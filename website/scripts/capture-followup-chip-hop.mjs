@@ -25,7 +25,7 @@ import { openTranscriptHarness } from './lib/transcript-harness.mjs'
 const OUT = process.argv[2] || '../temp-screenshots/followup-chip-hop'
 const LABEL = process.argv[3] || 'after'
 const SLOT = 'chat-chip-hop'
-const PROJECT = '/home/user/workspace/Kiro Crew'
+const PROJECT = '/home/user/workspace/Junction'
 const VIEWPORT = { width: 1200, height: 760 }
 
 mkdirSync(OUT, { recursive: true })

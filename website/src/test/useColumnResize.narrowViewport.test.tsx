@@ -12,8 +12,8 @@ vi.mock('../hooks/useIsMobile', () => ({ useIsMobile: () => mockIsMobile }))
 import { useColumnResize, type CollapseConfig } from '../hooks/useColumnResize'
 import ResizeHandle from '../components/ResizeHandle'
 
-const WIDTH_KEY = 'kc:test:col-width'
-const COLLAPSED_KEY = 'kc:test:col-collapsed'
+const WIDTH_KEY = 'jn:test:col-width'
+const COLLAPSED_KEY = 'jn:test:col-collapsed'
 const MIN = 220
 const MAX = 460
 const STRIP = 48

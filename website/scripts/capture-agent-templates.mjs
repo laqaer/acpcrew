@@ -73,7 +73,7 @@ const INSTALLED = [
 
 const DETAIL = {
   junction: {
-    prompt: 'file://~/.kiro/crew/prompts/junction.md',
+    prompt: 'file://~/.junction/prompts/junction.md',
     tools: ['fs_read', 'fs_write', 'execute_bash', 'use_aws', 'report_issue'],
     allowedTools: ['fs_read', 'use_aws'],
     mcpServers: { 'junction-core': {}, playwright: { args: ['--include-tools', 'browser_navigate,browser_click'] } },

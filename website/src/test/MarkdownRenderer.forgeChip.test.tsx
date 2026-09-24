@@ -29,18 +29,18 @@ afterEach(() => {
 
 describe('MarkdownRenderer forge chips — the four URL shapes', () => {
   it('chips a GitHub pull request URL as owner/repo#N with the GitHub mark', () => {
-    render(<MarkdownRenderer content="See https://github.com/kirodotdev/KiroCrew/pull/2579 for the fix" />)
+    render(<MarkdownRenderer content="See https://github.com/laqaer/junction/pull/2579 for the fix" />)
     const link = screen.getByRole('link')
-    expect(link).toHaveAttribute('href', 'https://github.com/kirodotdev/KiroCrew/pull/2579')
+    expect(link).toHaveAttribute('href', 'https://github.com/laqaer/junction/pull/2579')
     expect(link).toHaveAttribute('target', '_blank')
     expect(link.getAttribute('rel')).toBe('noopener noreferrer')
-    expect(screen.getByText('kirodotdev/KiroCrew#2579')).toBeTruthy()
+    expect(screen.getByText('laqaer/junction#2579')).toBeTruthy()
     expect(link.querySelector('[data-provider-mark="github"]')).toBeTruthy()
   })
 
   it('chips a GitHub issue URL', () => {
-    render(<MarkdownRenderer content="https://github.com/kirodotdev/KiroCrew/issues/45" />)
-    expect(screen.getByText('kirodotdev/KiroCrew#45')).toBeTruthy()
+    render(<MarkdownRenderer content="https://github.com/laqaer/junction/issues/45" />)
+    expect(screen.getByText('laqaer/junction#45')).toBeTruthy()
     expect(screen.getByRole('link').querySelector('[data-provider-mark="github"]')).toBeTruthy()
   })
 
@@ -61,21 +61,21 @@ describe('MarkdownRenderer forge chips — the four URL shapes', () => {
 
 describe('MarkdownRenderer forge chips — security and fallthrough', () => {
   it('does NOT chip a lookalike hostname', () => {
-    render(<MarkdownRenderer content="https://evil-github.com.attacker.test/kirodotdev/KiroCrew/pull/1" />)
+    render(<MarkdownRenderer content="https://evil-github.com.attacker.test/laqaer/junction/pull/1" />)
     const link = screen.getByRole('link')
     expect(link.textContent).toContain('attacker.test')
     expect(link.querySelector('[data-provider-mark]')).toBeNull()
   })
 
   it('does NOT chip a credential-bearing URL, even on the real host', () => {
-    render(<MarkdownRenderer content="https://user:pass@github.com/kirodotdev/KiroCrew/pull/1" />)
-    expect(screen.queryByText('kirodotdev/KiroCrew#1')).toBeNull()
+    render(<MarkdownRenderer content="https://user:pass@github.com/laqaer/junction/pull/1" />)
+    expect(screen.queryByText('laqaer/junction#1')).toBeNull()
     expect(screen.getByRole('link').querySelector('[data-provider-mark]')).toBeNull()
   })
 
   it('falls through to a plain anchor for malformed forge paths', () => {
     render(
-      <MarkdownRenderer content={'https://github.com/kirodotdev/KiroCrew/pull/abc and https://github.com/kirodotdev/KiroCrew and https://gitlab.com/acme/widgets/merge_requests/7'} />,
+      <MarkdownRenderer content={'https://github.com/laqaer/junction/pull/abc and https://github.com/laqaer/junction and https://gitlab.com/acme/widgets/merge_requests/7'} />,
     )
     for (const link of screen.getAllByRole('link')) {
       expect(link.querySelector('[data-provider-mark]')).toBeNull()
@@ -83,7 +83,7 @@ describe('MarkdownRenderer forge chips — security and fallthrough', () => {
   })
 
   it('keeps the authored href — fragments and query params are not rewritten', () => {
-    const authored = 'https://github.com/kirodotdev/KiroCrew/pull/2579?diff=split#issuecomment-1'
+    const authored = 'https://github.com/laqaer/junction/pull/2579?diff=split#issuecomment-1'
     render(<MarkdownRenderer content={authored} />)
     expect(screen.getByRole('link')).toHaveAttribute('href', authored)
   })
@@ -93,8 +93,8 @@ describe('MarkdownRenderer forge chips — render contexts', () => {
   it('chips with link previews OFF and issues no network request', () => {
     // No `linkPreviews` prop = the default context, exactly how user-message
     // markdown renders (ChatPage renders user content without linkPreviews).
-    render(<MarkdownRenderer content="https://github.com/kirodotdev/KiroCrew/pull/2579" softBreaks compactImages />)
-    expect(screen.getByText('kirodotdev/KiroCrew#2579')).toBeTruthy()
+    render(<MarkdownRenderer content="https://github.com/laqaer/junction/pull/2579" softBreaks compactImages />)
+    expect(screen.getByText('laqaer/junction#2579')).toBeTruthy()
     expect(fetchMock).not.toHaveBeenCalled()
   })
 

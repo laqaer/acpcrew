@@ -42,8 +42,8 @@ describe("findJunctionBin", () => {
     assert.equal(result, localBin);
   });
 
-  it("returns ~/.kirocrew-app/.venv/bin/junction when only venv binary exists", () => {
-    const venvBin = path.join(HOME, ".kirocrew-app", ".venv", "bin", "junction");
+  it("returns ~/.junction-app/.venv/bin/junction when only venv binary exists", () => {
+    const venvBin = path.join(HOME, ".junction-app", ".venv", "bin", "junction");
     const fakeFs = only(venvBin);
     const result = findJunctionBin(fakeFs, fakeOs, path, RESOURCES, DIRNAME);
     assert.equal(result, venvBin);
@@ -170,7 +170,7 @@ describe("findJunctionBin", () => {
   });
 
   it("skips candidates that throw non-ENOENT errors (e.g. EACCES)", () => {
-    const venvBin = path.join(HOME, ".kirocrew-app", ".venv", "bin", "junction");
+    const venvBin = path.join(HOME, ".junction-app", ".venv", "bin", "junction");
     const fakeFs = {
       accessSync: (p) => { if (p !== venvBin) throw new Error("EACCES"); },
       constants: { X_OK: fs.constants.X_OK },

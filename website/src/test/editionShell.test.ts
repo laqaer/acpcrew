@@ -55,7 +55,7 @@ describe('applyBrandingToHtml', () => {
   it('patches the title text', () => {
     const out = applyBrandingToHtml(SHELL, { title: 'Acme Crew' })
     expect(out).toContain('<title>Acme Crew</title>')
-    expect(out).not.toContain('<title>Kiro Crew</title>')
+    expect(out).not.toContain('<title>Junction</title>')
   })
 
   it('preserves attributes on a future <title> tag', () => {

@@ -97,7 +97,7 @@ describe('Code Review Sage rail at narrow widths', () => {
   it('has a strip narrower than the column minimum it replaces', async () => {
     // A "collapsed" width at or above the minimum would not free any room.
     expect(COLLAPSED_RAIL_WIDTH).toBeLessThan(MIN_RAIL_WIDTH)
-    expect(RAIL_COLLAPSED_KEY).toMatch(/^kc:code-review-sage:/)
+    expect(RAIL_COLLAPSED_KEY).toMatch(/^jn:code-review-sage:/)
   })
 
   it('lays the collapsed strip ACROSS THE TOP while narrow', async () => {

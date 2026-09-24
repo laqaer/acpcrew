@@ -13,7 +13,7 @@ const DEFAULT_REMOTE_PATH = "~/.toolbox/bin:/usr/bin:/bin";
 const REMOTE_BIN_CANDIDATES = [
   "~/.toolbox/bin/junction",           // toolbox install (recommended per wiki)
   "~/.local/bin/junction",             // install.sh / source install
-  "~/.kirocrew-app/.venv/bin/junction", // one-liner installer venv
+  "~/.junction-app/.venv/bin/junction", // one-liner installer venv
 ];
 
 // Build a shell snippet that tries each candidate path in order and execs the

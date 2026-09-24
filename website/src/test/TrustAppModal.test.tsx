@@ -114,7 +114,7 @@ const THIRD_PARTY = {
   // `repo` is the legacy/display alias. The server-resolved clone target is
   // deliberately different so the modal cannot accidentally authorize this.
   repo: 'https://github.com/launchdarkly-labs/catalog-alias',
-  trustRepository: 'https://git.example.test/launchdarkly/kiro-crew-app',
+  trustRepository: 'https://git.example.test/acme/junction-app',
   tags: ['feature-flags'],
   featured: 1,
   installed: true,

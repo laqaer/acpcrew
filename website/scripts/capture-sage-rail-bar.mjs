@@ -161,8 +161,8 @@ async function preparePage(context, { seedSelection = true } = {}) {
   await page.addInitScript(({ state, seed }) => {
     localStorage.setItem('mc-theme', 'light')
     localStorage.setItem('mc-onboarded', '1')
-    localStorage.setItem('kc-onboarded', '1')
-    if (seed) localStorage.setItem('kc:code-review-sage:ui-state', JSON.stringify(state))
+    localStorage.setItem('mc-onboarded', '1')
+    if (seed) localStorage.setItem('jn:code-review-sage:ui-state', JSON.stringify(state))
   }, { state: uiState, seed: seedSelection })
   await page.goto(`${BASE}/code-review-sage`, { waitUntil: 'domcontentloaded' })
   await page.waitForTimeout(3500)

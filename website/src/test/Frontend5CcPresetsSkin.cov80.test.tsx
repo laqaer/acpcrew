@@ -1,5 +1,5 @@
 /**
- * Crew Companion's preset data model, its theme-derived skin, and the switch row.
+ * Companion's preset data model, its theme-derived skin, and the switch row.
  *
  * `catPresets` is the gate a user-authored preset passes before it is persisted,
  * plus a registry whose constructor filter is what keeps a corrupted settings

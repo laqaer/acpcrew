@@ -30,8 +30,7 @@ import { i18nT } from '../i18n/t'
 import type { CrewSettings } from '../apps/issue-radar/api'
 import { repoScopeKey } from '../apps/issue-radar/lib/links'
 
-// brand-ok: the repository name
-const PAGE_REPO = { owner: 'kirodotdev', repo: 'Junction' } // brand-ok: the repository name
+const PAGE_REPO = { owner: 'laqaer', repo: 'junction' }
 
 const api = {
   getCrewSettings: vi.fn(),

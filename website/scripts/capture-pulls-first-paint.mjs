@@ -95,9 +95,9 @@ await stubDashboardApi(page, {
 
 async function open(uiState) {
   await page.addInitScript((s) => {
-    localStorage.setItem('kc:issue-radar:active-repo', JSON.stringify({ owner: 'kirodotdev', repo: 'Kiro' }))
-    if (s) localStorage.setItem('kc:issue-radar:ui-state', JSON.stringify(s))
-    else localStorage.removeItem('kc:issue-radar:ui-state')
+    localStorage.setItem('jn:issue-radar:active-repo', JSON.stringify({ owner: 'kirodotdev', repo: 'Kiro' }))
+    if (s) localStorage.setItem('jn:issue-radar:ui-state', JSON.stringify(s))
+    else localStorage.removeItem('jn:issue-radar:ui-state')
   }, uiState)
   await page.goto(`${base}/issue-radar`, { waitUntil: 'domcontentloaded' })
   await page.waitForTimeout(2000)

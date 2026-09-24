@@ -3910,7 +3910,7 @@ function ChatSidebar({
                 // It is a plain inline block (`truncate` = whitespace-nowrap +
                 // overflow-hidden + text-overflow-ellipsis), NOT a flex row:
                 // ellipsis does not render across flex children, so an inline-flex
-                // group hard-clipped mid-word ("KiroC", "kc-them") instead of
+                // group hard-clipped mid-word ("Juncti", "jn-them") instead of
                 // showing "…". The children stay inline `<span>`s so a multi-tag
                 // run ellipsizes as one line while each tag keeps its own colour
                 // (applied inline, since it is per-tag data, not a theme token).

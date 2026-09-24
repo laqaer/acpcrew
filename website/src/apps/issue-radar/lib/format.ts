@@ -8,14 +8,14 @@ import { loadColumnCollapsed, loadColumnWidth } from '../../../lib/columnWidth'
 import { DASHBOARD_TABS, SORT_KEYS } from './types'
 import type { ActiveRepo, CrewSortKey, DashboardTab, MainView, PrSortKey, PrStateFilter, SettingsTarget, SortDir, SortKey, StateFilter } from './types'
 
-export const ACTIVE_KEY = 'kc:issue-radar:active-repo'
-export const LIST_WIDTH_KEY = 'kc:issue-radar:list-width'
+export const ACTIVE_KEY = 'jn:issue-radar:active-repo'
+export const LIST_WIDTH_KEY = 'jn:issue-radar:list-width'
 export const DEFAULT_LIST_WIDTH = 320
 export const MIN_LIST_WIDTH = 240
 export const MAX_LIST_WIDTH = 600
 
-export const RAIL_WIDTH_KEY = 'kc:issue-radar:rail-width'
-export const RAIL_COLLAPSED_KEY = 'kc:issue-radar:rail-collapsed'
+export const RAIL_WIDTH_KEY = 'jn:issue-radar:rail-width'
+export const RAIL_COLLAPSED_KEY = 'jn:issue-radar:rail-collapsed'
 /** Matches the rail's original fixed `w-72`, so an existing user sees no jump. */
 export const DEFAULT_RAIL_WIDTH = 288
 export const MIN_RAIL_WIDTH = 220
@@ -407,7 +407,7 @@ export const CREW_SORT_FIELDS: { key: CrewSortKey; label: string; icon: LucideIc
 // Issue Radar for another Junction page and coming back restores exactly where
 // you were. Mirrors loadActiveRepo above (the active repo is persisted on its
 // own key); together they fully restore the app on return.
-export const UI_STATE_KEY = 'kc:issue-radar:ui-state'
+export const UI_STATE_KEY = 'jn:issue-radar:ui-state'
 
 export interface PersistedUiState {
   mainView: MainView

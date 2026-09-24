@@ -37,7 +37,7 @@ const NOW = Date.now() / 1000
 const RUNNING_LINES = [
   '[provision] creating venv \u2026',
   'Collecting build dependencies',
-  'Installing collected packages: kiro-crew',
+  'Installing collected packages: junction',
   '[provision] building dist \u2026',
   'vite v5.4.20 building for production...',
   'transforming (412) src/pages/DevFleetPage.tsx',
@@ -62,13 +62,13 @@ const FLEET = {
       branch: 'main', last_updated_at: NOW - 1800,
     },
     {
-      name: 'kc-wt-oauth-device-flow', is_main: false, running: false,
+      name: 'jn-wt-oauth-device-flow', is_main: false, running: false,
       has_dist: false, has_venv: true, behind: 2, branch: 'feat/oauth-device-flow',
       last_updated_at: NOW - 3600, provision_run_id: RID,
-      pr: { number: 3180, state: 'OPEN', url: 'https://github.com/kirodotdev/KiroCrew/pull/3180', isDraft: false },
+      pr: { number: 3180, state: 'OPEN', url: 'https://github.com/laqaer/junction/pull/3180', isDraft: false },
     },
     {
-      name: 'kc-wt-slack-scope-probe', is_main: false, running: true, port: 7791,
+      name: 'jn-wt-slack-scope-probe', is_main: false, running: true, port: 7791,
       health: 200, has_dist: true, has_venv: true, behind: 0,
       branch: 'fix/slack-scope-probe', last_updated_at: NOW - 7200,
     },

@@ -38,7 +38,7 @@ const fixedApi = makeFixedApi(PROJECT)
 fixedApi.set('/api/status', status)
 // TWO WORDS, matching the backend default: the nav brand row accents the last
 // word only, so a single-word name renders the mark without its "CREW" half.
-fixedApi.set('/api/dashboard/branding', { bot_name: 'Kiro Crew', avatar: '/logo.png' })
+fixedApi.set('/api/dashboard/branding', { bot_name: 'Junction', avatar: '/logo.png' })
 
 const browser = await chromium.launch()
 const context = await browser.newContext({
@@ -84,7 +84,7 @@ await page.route('**/api/**', async route => {
     // Complete JunctionCfg shape (JunctionCfgTab enumerates every section).
     agents: { junction: { provider: 'kiroacp', model: 'auto', approval_mode: 'reads' } },
     default_agent: 'junction',
-    workspaces: { default: { dir: '~/.kiro/crew/workspace' } },
+    workspaces: { default: { dir: '~/.junction/workspace' } },
     default_workspace: 'default',
     memory_stores: { default: { description: 'Workspace memory', embedding_provider: 'local' } },
     default_memory_store: 'default',

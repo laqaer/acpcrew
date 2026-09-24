@@ -1731,7 +1731,7 @@ export type WebhookOutcome =
 export interface WebhookTokenEntry {
   id: string
   label: string
-  /** Leading, non-secret slice of the raw token, e.g. `kc_whk_4f2b`. */
+  /** Leading, non-secret slice of the raw token, e.g. `jn_whk_4f2b`. */
   display_prefix: string
   last4: string
   created_at: number
@@ -2019,7 +2019,7 @@ export const api = {
   // user's OWN AWS account, then register it as an SSM instance on connect. The
   // launch is a DURABLE gateway job (see cloud/launch_job.py): it survives
   // dashboard navigation and restart, so the UI polls its state rather than
-  // holding it in memory. `tag` (kc-xxxx) is the cloud lifecycle handle used by
+  // holding it in memory. `tag` (jn-xxxx) is the cloud lifecycle handle used by
   // stop/start/destroy; `instance_id` (i-...) is the EC2 id it registers under.
   cloudPreflight: (profile?: string, region?: string) => {
     const p = new URLSearchParams()

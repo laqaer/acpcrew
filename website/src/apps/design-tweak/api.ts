@@ -106,8 +106,8 @@ const QUEUE_SUBDIR = 'queue'
  *
  * `dataDir` MUST come from what the backend reports (`GET /health` → `dataDir`):
  * the real location depends on `JUNCTION_APP_DATA_DIR` / `JUNCTION_HOME` and is
- * not knowable from the client, and a hardcoded guess (this used to name the
- * retired `~/.kirocrew/…` home) points the agent at a path that does not exist.
+ * not knowable from the client, and a hardcoded guess points the agent at a path
+ * that does not exist.
  * Returns '' when the backend has not reported one, and callers then quote no
  * path at all rather than a wrong one.
  *

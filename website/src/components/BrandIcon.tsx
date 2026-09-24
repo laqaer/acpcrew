@@ -1,6 +1,5 @@
 import type { CSSProperties } from 'react'
 import githubMarkUrl from '../assets/github-mark.svg'
-import discordMarkUrl from '../assets/discord-mark.svg'
 
 /**
  * Monochrome brand marks (GitHub, Discord, the Kiro ghost) tinted via CSS
@@ -57,6 +56,3 @@ export function GithubIcon({ size = 16 }: { size?: number }) {
   return <BrandGlyph url={githubMarkUrl} size={size} />
 }
 
-export function DiscordIcon({ size = 16 }: { size?: number }) {
-  return <BrandGlyph url={discordMarkUrl} size={size} />
-}

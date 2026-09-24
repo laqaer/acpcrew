@@ -60,9 +60,9 @@ const chunk = [
   'Failures are listed first. Full outputs are on disk — read the result paths on demand; do NOT re-run completed agents.',
   '',
   '— `53e3e5eb` ✅ Add TWO short UI labels to the GERMAN (de) catalog',
-  '  → /home/user/.kiro/crew/subagents/53e3e5eb/result.txt',
+  '  → /home/user/.junction/subagents/53e3e5eb/result.txt',
   '— `b8185d65` ✅ Add TWO short UI labels to the SPANISH (es) catalog',
-  '  → /home/user/.kiro/crew/subagents/b8185d65/result.txt',
+  '  → /home/user/.junction/subagents/b8185d65/result.txt',
 ].join('\n')
 
 /** The wave's final digest, carrying the terminal tallies. */
@@ -77,9 +77,9 @@ const wave = [
   '— `c19d0a44` stopped by user ⏹ · Add TWO short UI labels to the RUSSIAN (ru) catalog',
   '  Stopped by the user before completing.',
   '— `a0417f21` ✅ Add TWO short UI labels to the ITALIAN (it) catalog',
-  '  → /home/user/.kiro/crew/subagents/a0417f21/result.txt',
+  '  → /home/user/.junction/subagents/a0417f21/result.txt',
   '— `d5c3b210` ✅ Add TWO short UI labels to the PORTUGUESE (pt) catalog',
-  '  → /home/user/.kiro/crew/subagents/d5c3b210/result.txt',
+  '  → /home/user/.junction/subagents/d5c3b210/result.txt',
 ].join('\n')
 
 // The gateway now stamps the header facts onto meta.subagentCompletion at

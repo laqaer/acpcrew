@@ -44,7 +44,7 @@ describe('SchedulePage script source panel', () => {
   it('renders collapsed for a script job and fetches the source on expand', async () => {
     const { api } = await import('../api/client')
     vi.mocked(api).crons.mockResolvedValue({
-      jobs: [mkJob({ script: '/home/user/.kiro/crew/crons/monitor.py:run' })],
+      jobs: [mkJob({ script: '/home/user/.junction/crons/monitor.py:run' })],
     })
     vi.mocked(api).cronScript.mockResolvedValue({
       source: 'def run(ctx):\n    ctx.notify("hello")\n',
@@ -83,7 +83,7 @@ describe('SchedulePage script source panel', () => {
   it('shows the truncation notice when the backend flags a capped read', async () => {
     const { api } = await import('../api/client')
     vi.mocked(api).crons.mockResolvedValue({
-      jobs: [mkJob({ script: '/home/user/.kiro/crew/crons/big.py:run' })],
+      jobs: [mkJob({ script: '/home/user/.junction/crons/big.py:run' })],
     })
     vi.mocked(api).cronScript.mockResolvedValue({
       source: '# capped\n',

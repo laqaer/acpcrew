@@ -22,13 +22,13 @@ function renderCard() {
 }
 
 const RESULT = {
-  zip_path: '/Users/x/.kiro/crew/diagnostics/b.zip',
+  zip_path: '/Users/x/.junction/diagnostics/b.zip',
   filename: 'b.zip',
   included: ['versions.txt', 'gateway.log'],
   skipped: [],
   redaction_summary: { 'gateway.log': 3 },
   total_redactions: 3,
-  github_issue_url: 'https://github.com/kirodotdev/KiroCrew/issues/new?title=x&body=y',
+  github_issue_url: 'https://github.com/laqaer/junction/issues/new?title=x&body=y',
   download_url: '/api/diagnostics/download/b.zip',
 }
 

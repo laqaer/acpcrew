@@ -308,8 +308,7 @@ export default memo(function ToolCallLine({ message, running: _running, slot, on
   // reset by ACP's second tool_call frame) and re-seeds from GET /api/chat/slots.
   //
   // The `running` and newest-tool-row guards below are containment for a session
-  // identity that resolves per RUNTIME rather than per ACP session; the cure is
-  // tracked in https://github.com/kirodotdev/KiroCrew/issues/2347.
+  // identity that resolves per RUNTIME rather than per ACP session.
   const isWaitTool = isWaitToolTitle(toolName)
   const waitSlotKey = useAppSelector(s => slot ?? s.chat.activeSlot)
   const waitState = useAppSelector(s => {

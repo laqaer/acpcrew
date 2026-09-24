@@ -511,7 +511,7 @@ describe('Lightbox download', () => {
     act(() => open('data:image/png;base64,iVBORw0KGgo=', 'Junction banner'))
     act(() => { fireEvent.click(getByLabelText('Download image')) })
     await waitFor(() => expect(clicks).toHaveLength(1))
-    expect(clicks[0].download).toBe('Kiro_Crew_banner')
+    expect(clicks[0].download).toBe('Junction_banner')
   })
 
   it('opens the image in a new tab when the fetch is refused', async () => {

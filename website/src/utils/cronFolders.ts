@@ -59,7 +59,7 @@ export function groupJobsByFolder<T extends CronJob>(
   return groups
 }
 
-const COLLAPSED_KEY = 'kc-cron-folders-collapsed'
+const COLLAPSED_KEY = 'jn-cron-folders-collapsed'
 
 export function loadCollapsedFolders(): Set<string> {
   try {

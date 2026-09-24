@@ -113,9 +113,9 @@ describe('Sage persistence helpers', () => {
 
   it('ignores a snapshot older than a day', () => {
     writeSnapshot('runs', { runs: [] })
-    const raw = JSON.parse(localStorage.getItem('kc:code-review-sage:cache:runs') as string)
+    const raw = JSON.parse(localStorage.getItem('jn:code-review-sage:cache:runs') as string)
     raw.at = Date.now() - 25 * 60 * 60 * 1000
-    localStorage.setItem('kc:code-review-sage:cache:runs', JSON.stringify(raw))
+    localStorage.setItem('jn:code-review-sage:cache:runs', JSON.stringify(raw))
     expect(readSnapshot('runs')).toBeUndefined()
   })
 
@@ -247,7 +247,7 @@ describe('Sage serves the last payload while it refreshes', () => {
     // Aged past staleTime: a snapshot written a moment ago is legitimately
     // fresh, and NOT refetching it is correct. The interesting case is the one a
     // real reload hits — a payload from earlier.
-    const cacheKey = 'kc:code-review-sage:cache:prs:acme/widgets'
+    const cacheKey = 'jn:code-review-sage:cache:prs:acme/widgets'
     const stored = JSON.parse(localStorage.getItem(cacheKey) as string)
     stored.at = Date.now() - 5 * 60_000
     localStorage.setItem(cacheKey, JSON.stringify(stored))
@@ -292,7 +292,7 @@ describe('most recently picked repos', () => {
   })
 
   it('survives a corrupt value', () => {
-    localStorage.setItem('kc:code-review-sage:recent-repos', 'not json')
+    localStorage.setItem('jn:code-review-sage:recent-repos', 'not json')
     expect(loadRecentRepos()).toEqual([])
   })
 })

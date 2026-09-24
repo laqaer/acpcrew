@@ -89,7 +89,7 @@ function describeSandboxProfileNeed({ platform, env, readSysctl, cliBin }) {
  * Single-quote a value for safe pasting into a POSIX shell.
  *
  * A filename is attacker-influenced for a downloaded AppImage, and this string
- * is printed for a human to paste, so `Kiro-Crew-$(...).AppImage` must not have
+ * is printed for a human to paste, so `Junction-$(...).AppImage` must not have
  * its substitution executed. Embedded single quotes are closed, escaped, and
  * reopened — the standard `'\''` dance.
  */

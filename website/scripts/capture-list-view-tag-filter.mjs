@@ -83,7 +83,7 @@ async function preparePage(context, { withTags }) {
   await page.addInitScript(() => {
     localStorage.setItem('mc-theme', 'light')
     localStorage.setItem('mc-onboarded', '1')
-    localStorage.setItem('kc-onboarded', '1')
+    localStorage.setItem('mc-onboarded', '1')
     localStorage.removeItem('mc-session-tag-filter')
   })
   await page.goto(`${BASE}/chat`, { waitUntil: 'domcontentloaded' })

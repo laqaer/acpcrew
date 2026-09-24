@@ -442,7 +442,7 @@ narrow) -- the same one-number-written-twice pairing, so pin it with a test.
 rows across 15 files, but a hit is not a work item: most are toolbars, banners, sticky
 bars and buttons that own the only gutter their content has, and rows inside a bordered
 pane must keep theirs. There is no lint gate for this. Read the structure around a hit
-before gating it, and see kirodotdev/KiroCrew#3939 for the triage of all 27.
+before gating it.
 
 ## Stat cards
 

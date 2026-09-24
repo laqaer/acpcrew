@@ -45,9 +45,9 @@ const WIDTH = Number(process.argv[3] || 390)
 mkdirSync(OUT, { recursive: true })
 
 const SKILLS = [
-  { key: 'babysit', name: 'babysit', description: 'Same-session monitoring loop for PRs and CI runs', path: '/home/user/.kiro/crew/skills/babysit/SKILL.md', source: 'junction' },
-  { key: 'prepare-pr', name: 'prepare-pr', description: 'Drive working-tree changes to a review-ready pull request', path: '/home/user/.kiro/crew/skills/prepare-pr/SKILL.md', source: 'junction' },
-  { key: 'widgets', name: 'widgets', description: 'Render rich HTML inline via mcwidget tags', path: '/home/user/.kiro/crew/skills/widgets/SKILL.md', source: 'junction' },
+  { key: 'babysit', name: 'babysit', description: 'Same-session monitoring loop for PRs and CI runs', path: '/home/user/.junction/skills/babysit/SKILL.md', source: 'junction' },
+  { key: 'prepare-pr', name: 'prepare-pr', description: 'Drive working-tree changes to a review-ready pull request', path: '/home/user/.junction/skills/prepare-pr/SKILL.md', source: 'junction' },
+  { key: 'widgets', name: 'widgets', description: 'Render rich HTML inline via mcwidget tags', path: '/home/user/.junction/skills/widgets/SKILL.md', source: 'junction' },
 ]
 const STEERING = {
   files: [
@@ -70,8 +70,8 @@ const MCP = {
   },
 }
 const WORKSPACES = [
-  { name: 'default', path: '/home/user/.kiro/crew/workspace', active: true, sessions: 3 },
-  { name: 'research', path: '/home/user/.kiro/crew/workspaces/research', active: false, sessions: 0 },
+  { name: 'default', path: '/home/user/.junction/workspace', active: true, sessions: 3 },
+  { name: 'research', path: '/home/user/.junction/workspaces/research', active: false, sessions: 0 },
 ]
 const AGENTS = [
   { name: 'junction', description: 'Autonomous personal AI agent', source: 'junction', model: 'auto', mcp_servers: ['junction-core'], filename: 'junction.json', skills: [] },

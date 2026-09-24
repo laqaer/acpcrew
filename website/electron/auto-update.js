@@ -22,13 +22,14 @@
  * without an Electron runtime.
  */
 
-// Default update feed host: updates.crew.kiro.dev, the pointer hostname of the
-// public distribution CDN (CloudFront + OAC over the junction-updates bucket).
+// Default update feed host: updates.getjunction.dev, the pointer hostname
+// reserved for Junction's distribution CDN. That host is not provisioned yet;
+// JUNCTION_UPDATE_FEED points a build at another feed.
 //
 // electron-updater's generic provider treats the configured URL as a DIRECTORY
 // and resolves <base>/latest-mac.yml (macOS) or <base>/latest-linux.yml (Linux)
 // from it. The artifact URLs inside those files are ABSOLUTE and point at the
-// byte hostname (download.crew.kiro.dev), which is what preserves our
+// byte hostname (download.getjunction.dev), which is what preserves our
 // pointer/bytes host split: `new URL(fileUrl, base)` ignores the base when
 // fileUrl is absolute. That behaviour is structural but undocumented, so
 // test/auto-update.test.js pins it against the real installed library — a
@@ -222,7 +223,7 @@ function isBundleContainerWritable(resourcesPath) {
   }
 }
 
-const DEFAULT_FEED_BASE = "https://updates.crew.kiro.dev/feed";
+const DEFAULT_FEED_BASE = "https://updates.getjunction.dev/feed";
 const CHECK_INTERVAL_MS = 4 * 60 * 60 * 1000; // every 4h while running
 const LAUNCH_CHECK_DELAY_MS = 30 * 1000; // let startup settle first
 const FORCE_EXIT_AFTER_MS = 5 * 1000; // failsafe: guarantee exit after quitAndInstall
@@ -241,7 +242,7 @@ const SUPPORTED_PLATFORMS = new Set(["darwin", "linux", "win32"]);
 
 // Byte host for human (manual) downloads -- deliberately the same CDN the
 // updater pulls from, so a manual reinstall lands on identical artifacts.
-const DOWNLOAD_BASE = "https://download.crew.kiro.dev";
+const DOWNLOAD_BASE = "https://download.getjunction.dev";
 // Channels with a desktop publish lane. "dev" has none.
 const KNOWN_CHANNELS = new Set(["nightly", "insider", "stable"]);
 // Channels with a WINDOWS publish lane. publish-windows.yml is wired into

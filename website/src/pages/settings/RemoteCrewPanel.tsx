@@ -1,10 +1,10 @@
 /**
- * RemoteCrewPanel — Settings → Remote Crew. One page, two tabs:
+ * RemoteCrewPanel — Settings → Remote Instances. One page, two tabs:
  *
- *   1. "Your crews" (default) — the machines you can switch to from the top
+ *   1. "Your instances" (default) — the machines you can switch to from the top
  *      header: any in-progress cloud launch (a durable gateway job), the
  *      connected/added instances, and the add-a-machine form. Cloud-launched
- *      crews are told apart from hand-added ones by correlating each SSM
+ *      instances are told apart from hand-added ones by correlating each SSM
  *      instance's target id with a launch job's `instance_id`, so cloud rows can
  *      offer the cloud lifecycle (Stop / Delete-by-tag) that a plain tunnel row
  *      cannot.

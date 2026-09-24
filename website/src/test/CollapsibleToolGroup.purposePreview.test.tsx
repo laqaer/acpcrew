@@ -40,10 +40,10 @@ describe('CollapsibleToolGroup purpose preview', () => {
 
   it('prefers a real tool_input command over the purpose', () => {
     const text = preview({
-      tool_input: { command: 'node kc-shot.mjs' },
+      tool_input: { command: 'node jn-shot.mjs' },
       __toolUsePurpose: 'Check the harness render errors',
     })
-    expect(text).toContain('node kc-shot.mjs')
+    expect(text).toContain('node jn-shot.mjs')
     expect(text).not.toContain('Check the harness render errors')
   })
 

@@ -7,7 +7,7 @@
 // restores the fullscreen Space on the next launch and drops our fixed-size
 // window into it. That surfaces as the two long-standing symptoms:
 //   - "blacked out": the small WebContentsView doesn't fill the fullscreen
-//     window, so the dark BaseWindow backgroundColor (#0f1117) shows through.
+//     window, so the dark BaseWindow backgroundColor (#0b0e13) shows through.
 //   - "super tiny": the window comes up at the default size inside the big
 //     restored fullscreen Space (or at a degenerate restored frame).
 //

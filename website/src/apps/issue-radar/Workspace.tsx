@@ -57,7 +57,7 @@ const RAIL_COLLAPSE: CollapseConfig = {
  * so a width that suits one is not the width that suits the other. Sharing the key
  * would also mean dragging one silently resized the other two. Bounds are reused
  * (240–600px), which is the range every list column in this app lives in. */
-const CREW_LIST_WIDTH_KEY = 'kc:issue-radar:crew-list-width'
+const CREW_LIST_WIDTH_KEY = 'jn:issue-radar:crew-list-width'
 const loadCrewListWidth = () => loadColumnWidth(
   CREW_LIST_WIDTH_KEY, MIN_LIST_WIDTH, MAX_LIST_WIDTH, DEFAULT_LIST_WIDTH,
 )

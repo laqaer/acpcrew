@@ -86,8 +86,8 @@ const RESULT_ROWS = PHASES.map((p, i) =>
     `### Phase ${i + 1} — ${p}`,
     ...Array.from({ length: 6 }, (_, j) =>
       j === 4 && i === 2
-        ? `- agent ${j + 1}: FAILED — class contract mismatch, see \`/tmp/kc-audit/${i}/${j}/diff.txt\` for the per-element breakdown of the containment classes that did not survive`
-        : `- agent ${j + 1}: ok — result at \`/tmp/kc-audit/${i}/${j}/result.txt\``,
+        ? `- agent ${j + 1}: FAILED — class contract mismatch, see \`/tmp/jn-audit/${i}/${j}/diff.txt\` for the per-element breakdown of the containment classes that did not survive`
+        : `- agent ${j + 1}: ok — result at \`/tmp/jn-audit/${i}/${j}/result.txt\``,
     ),
   ].join('\n'),
 ).join('\n\n')

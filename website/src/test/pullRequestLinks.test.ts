@@ -939,7 +939,7 @@ describe('first-mention attribution (Changes vs Resources)', () => {
 })
 
 describe('CJK / fullwidth punctuation after a PR URL (issue #507)', () => {
-  const gh = 'https://github.com/kirodotdev/KiroCrew/pull/436'
+  const gh = 'https://github.com/laqaer/junction/pull/436'
   const gl = 'https://gitlab.com/acme/platform/-/merge_requests/42'
 
   // Fullwidth / CJK punctuation is kept as literals (the repo pre-commit hook
@@ -989,7 +989,7 @@ describe('CJK / fullwidth punctuation after a PR URL (issue #507)', () => {
       `PR \u5DF2\u5F00：${gh}（\u5355 commit，Fixes #435），`
       + `CI \u5168\u7EFF，approve \u540E merge。`
     expect(extractPullRequestLinks(messages(content))).toEqual([
-      { url: gh, provider: 'github', number: 436, repo: 'Junction', kind: 'change' },
+      { url: gh, provider: 'github', number: 436, repo: 'junction', kind: 'change' },
     ])
   })
 })

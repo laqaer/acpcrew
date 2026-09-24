@@ -44,7 +44,7 @@ const JOBS = [
   },
   {
     id: 'job-2', name: 'Feed poller', schedule: 'every 300s', enabled: true,
-    script: '~/.kiro/crew/crons/feed.py:check', message: '',
+    script: '~/.junction/crons/feed.py:check', message: '',
     last_status: 'ok', last_run_ts: now - 240, next_run_ts: now + 60,
   },
 ]

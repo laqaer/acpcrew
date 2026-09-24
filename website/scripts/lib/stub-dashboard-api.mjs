@@ -41,7 +41,7 @@ export const JUNCTION_CONFIG_FIXTURE = {
     junction: { kiro_agent: 'junction', workspace: 'default', memory_store: 'default' },
   },
   default_agent: 'junction',
-  workspaces: { default: { dir: '~/.kiro/crew/workspace' } },
+  workspaces: { default: { dir: '~/.junction/workspace' } },
   default_workspace: 'default',
   memory_stores: {
     default: { description: 'Default store', embedding_provider: '' },
@@ -93,11 +93,9 @@ export async function stubDashboardApi(page, opts = {}) {
     // instead.
     localStorageEntries = null,
     // The backend's own default (`api_branding`: `cfg.dashboard.bot_name or
-    // "Kiro Crew"`). It must stay TWO WORDS: the nav brand row accents the last
-    // word only, and the composer placeholder interpolates the whole name — so
-    // a single-word "Kiro" here silently produced screenshots with no "CREW"
-    // and a "Message Kiro…" composer, in every harness in this folder.
-    botName = 'Kiro Crew',
+    // PRODUCT_NAME`). The composer placeholder interpolates the whole name, so a
+    // harness that invents another one renders a composer the product never shows.
+    botName = 'Junction',
     extra = null,
   } = opts
 

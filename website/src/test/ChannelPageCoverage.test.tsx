@@ -34,7 +34,7 @@ type Raw = Record<string, unknown>
 
 /** A channel member as the backend sends it (snake_case), so `mapAgent` runs. */
 const member = (over: Raw = {}): Raw => ({
-  id: 'a1', role: 'Researcher', agent_name: 'kiro-crew-default',
+  id: 'a1', role: 'Researcher', agent_name: 'junction-default',
   state: 'listening', listen_mode: 'mention', approval_policy: 'writes', ...over,
 })
 
@@ -327,7 +327,7 @@ describe('ChannelPage — agents sidebar', () => {
   it('renders the agent template name under the role', async () => {
     await renderPage()
     await openAgentsPanel()
-    expect(screen.getByText('kiro-crew-default')).toBeInTheDocument()
+    expect(screen.getByText('junction-default')).toBeInTheDocument()
   })
 
   it('changes listen mode through the badge menu and patches the agent', async () => {

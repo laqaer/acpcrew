@@ -1,5 +1,5 @@
 /**
- * The Crew Companion dashboard sections and the desktop panel card.
+ * The Companion dashboard sections and the desktop panel card.
  *
  * All three are conditional surfaces whose interesting states only appear when
  * the desktop app is unreachable, a write fails, or a reminder repeats:

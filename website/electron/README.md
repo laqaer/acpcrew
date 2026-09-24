@@ -169,7 +169,7 @@ Remote host settings are **per-port** — each tab can have its own remote host
    unusual. The default tries, in order:
    - `~/.toolbox/bin/junction` (toolbox install — recommended)
    - `~/.local/bin/junction` (install.sh / source install)
-   - `~/.kirocrew-app/.venv/bin/junction` (one-liner installer venv)
+   - `~/.junction-app/.venv/bin/junction` (one-liner installer venv)
 4. Optionally set a **Remote port** if the gateway port on the remote host differs
    from the local tab port (default: same as tab port)
 5. Optionally set a **Remote PATH** if junction needs additional directories
@@ -187,7 +187,6 @@ each launch to get a fresh JWT — no manual paste required.
 
 ```
 1. Try local ~/.junction/.local_secret → /api/token/local on the tab's port
-   (with a temporary ~/.kirocrew read fallback during one-time migration)
 2. If remote host configured for this port:
    SSH: export PATH=<remotePath> JUNCTION_PORT=<port>; <bin> token
 3. Fallback: show manual token prompt

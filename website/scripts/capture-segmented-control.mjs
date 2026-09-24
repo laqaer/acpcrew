@@ -25,7 +25,7 @@ import { serveDist } from './lib/serve-dist.mjs'
 import { makeFixedApi, handleBootRoute } from './lib/boot-api.mjs'
 
 const OUT = process.argv[2] || '../temp-screenshots/segmented-control'
-const PROJECT = '/home/user/.kiro/crew/workspace'
+const PROJECT = '/home/user/.junction/workspace'
 const FIXED_API = makeFixedApi(PROJECT)
 
 /** `theme` is the data-theme attribute; `mode` is what /api/theme/boot returns. */

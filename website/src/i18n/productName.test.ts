@@ -43,14 +43,19 @@ const PASSTHROUGH_LITERALS = new Set([
   'apps.opsMissionControl.settingsPanel.mirror_incidents_to_a_channel_as_a_live_board_on',
   'pages.settings.remoteCrewPanel.doesnt_manage',
   'pages.settings.remoteCrewPanel.profile_name_only',
-  'pages.settings.remoteCrewPanel.runs_on_gateway',
   'pages.settings.remoteCrewPanel.unverified_cloud_note',
 ])
+
+/**
+ * Repo-attribution copy: each names this project as the target of a link to its
+ * GitHub repository, whose URL is hardcoded, so the name stays literal.
+ */
+const REPO_ATTRIBUTION_KEYS = new Set(['star_junction_on_github'])
 
 function isExempt(key: string): boolean {
   const parts = key.split('.')
   if (parts.includes('manifest')) return true
-  if (parts[parts.length - 1] === 'star_junction_on_github') return true
+  if (REPO_ATTRIBUTION_KEYS.has(parts[parts.length - 1])) return true
   if (PASSTHROUGH_LITERALS.has(key)) return true
   return false
 }
@@ -83,7 +88,7 @@ describe('productName interpolation variable', () => {
   it('keeps the update-restart handoff copy rebrandable', () => {
     const copy = i18next.t('pages.settings.aboutPanel.installing_quiet_note', { productName: 'Acme' })
     expect(copy).toContain('Acme')
-    expect(copy).not.toContain('Kiro Crew')
+    expect(copy).not.toContain('Junction')
   })
 
   it('does not hardcode the product name outside manifest and attribution keys', () => {

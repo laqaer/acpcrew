@@ -108,17 +108,17 @@ describe('prepareSendPayload', () => {
   })
 
   // Issue #3497: on Windows the upload endpoint returns backslash paths
-  // (`C:\Users\me\.kiro\crew\uploads\x.png`). In a markdown destination
+  // (`C:\Users\me\.junction\uploads\x.png`). In a markdown destination
   // CommonMark eats `\` before punctuation (`\.` -> `.`), mangling the path,
   // and the drive letter parses as an unknown `c:` scheme that the URL
   // sanitizer empties — so the sender's bubble rendered no image at all.
   describe('windows image paths (issue #3497)', () => {
     it('emits a drive path in forward-slash form in both txt and displayTxt', () => {
-      const result = prepareSendPayload('caption', ['C:\\Users\\me\\.kiro\\crew\\uploads\\shot.png'])
-      expect(result.txt).toContain('![image](C:/Users/me/.kiro/crew/uploads/shot.png)')
-      expect(result.displayTxt).toContain('![image](C:/Users/me/.kiro/crew/uploads/shot.png)')
+      const result = prepareSendPayload('caption', ['C:\\Users\\me\\.junction\\uploads\\shot.png'])
+      expect(result.txt).toContain('![image](C:/Users/me/.junction/uploads/shot.png)')
+      expect(result.displayTxt).toContain('![image](C:/Users/me/.junction/uploads/shot.png)')
       // imgPaths keeps the original path — it is the server-side identity.
-      expect(result.imgPaths).toEqual(['C:\\Users\\me\\.kiro\\crew\\uploads\\shot.png'])
+      expect(result.imgPaths).toEqual(['C:\\Users\\me\\.junction\\uploads\\shot.png'])
     })
 
     it('wraps a destination containing spaces in angle brackets', () => {
@@ -132,8 +132,8 @@ describe('prepareSendPayload', () => {
     })
 
     it('normalizes a UNC share path to forward slashes (roaming profiles)', () => {
-      const result = prepareSendPayload('', ['\\\\fileserver\\home\\me\\.kiro\\crew\\uploads\\shot.png'])
-      expect(result.displayTxt).toBe('![image](//fileserver/home/me/.kiro/crew/uploads/shot.png)')
+      const result = prepareSendPayload('', ['\\\\fileserver\\home\\me\\.junction\\uploads\\shot.png'])
+      expect(result.displayTxt).toBe('![image](//fileserver/home/me/.junction/uploads/shot.png)')
     })
 
     it('wraps and escapes a literal % so consumers decode only marked forms', () => {

@@ -63,7 +63,7 @@ await new Promise(r => server.listen(PORT, '127.0.0.1', r))
 const status = { sessions: 12, messages: 4821, cron_jobs: 7, subagents: 3, lessons: 52, uptime: 273840, version: '0.1.0' }
 const json = (route, body) => route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify(body) })
 
-const REG = 'kirodotdev-labs'
+const REG = 'acme-labs'
 const A = (name, displayName, author, description, tags, extra = {}) => ({
   name, displayName, author, description, tags, version: '1.0.0',
   installed: false, updateAvailable: false, ...extra,
@@ -135,7 +135,7 @@ await page.route('**/api/**', async route => {
     })
   }
   if (path === '/api/apps/registry') return json(route, { apps: registryApps, serverPlatform: { os: 'darwin', arch: 'arm64' } })
-  if (path === '/api/apps/registries') return json(route, { registries: [{ name: REG, repo: 'https://github.com/kirodotdev-labs/app-registry', branch: 'main' }] })
+  if (path === '/api/apps/registries') return json(route, { registries: [{ name: REG, repo: 'https://github.com/acme-labs/app-registry', branch: 'main' }] })
   if (path === '/api/apps') return json(route, installedApps)
   if (path === '/api/auth/me') return json(route, { user: 'owner', app: '' })
   if (path === '/api/kiro-prerequisite') return json(route, {
@@ -146,7 +146,7 @@ await page.route('**/api/**', async route => {
   })
   if (path === '/api/themes') return json(route, { themes: [], installed: [] })
   if (path === '/api/status') return json(route, status)
-  if (path === '/api/dashboard/branding') return json(route, { bot_name: 'Kiro Crew', avatar: '' })
+  if (path === '/api/dashboard/branding') return json(route, { bot_name: 'Junction', avatar: '' })
   if (path === '/api/theme/boot') return json(route, { mode: 'dark', theme: '' })
   if (path === '/api/notifications') return json(route, { notifications: [], unread: 0 })
   if (path === '/api/chat/slots') return json(route, [])

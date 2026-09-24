@@ -59,7 +59,7 @@ const status = { sessions: 12, messages: 4821, cron_jobs: 7, subagents: 3, lesso
 const json = (route, body) => route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify(body) })
 
 const REPO = 'octocat/pixel-pal'
-const REG = 'kirodotdev-labs'
+const REG = 'acme-labs'
 
 // Registry rows: pixel-pal carries NO hero fields (the merge in AppsPage pulls
 // them from the installed manifest — the relative-path case under test).
@@ -132,7 +132,7 @@ await page.route('**/app-assets/**', route => {
 // jscpd duplication gate quiet.)
 const API_FIXTURES = {
   '/api/apps/registry': () => ({ apps: registryApps, serverPlatform: { os: 'darwin', arch: 'arm64' } }),
-  '/api/apps/registries': () => ({ registries: [{ name: REG, repo: 'https://github.com/kirodotdev-labs/app-registry', branch: 'main' }] }),
+  '/api/apps/registries': () => ({ registries: [{ name: REG, repo: 'https://github.com/acme-labs/app-registry', branch: 'main' }] }),
   '/api/apps': () => installedApps,
   '/api/auth/me': () => ({ user: 'owner', app: '' }),
   '/api/kiro-prerequisite': () => ({
@@ -143,7 +143,7 @@ const API_FIXTURES = {
   }),
   '/api/themes': () => ({ themes: [], installed: [] }),
   '/api/status': () => status,
-  '/api/dashboard/branding': () => ({ bot_name: 'Kiro Crew', avatar: '' }),
+  '/api/dashboard/branding': () => ({ bot_name: 'Junction', avatar: '' }),
   '/api/theme/boot': () => ({ mode: themeMode, theme: '' }),
   '/api/notifications': () => ({ notifications: [], unread: 0 }),
   '/api/chat/slots': () => [],

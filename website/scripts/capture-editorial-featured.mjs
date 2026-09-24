@@ -44,7 +44,7 @@ mkdirSync(OUT, { recursive: true })
  * passing while proving nothing about artwork. The bodies are served by a route
  * on the catalog host, below.
  */
-const CATALOG = 'https://apps.crew.kiro.dev'
+const CATALOG = 'https://apps.getjunction.dev'
 const artBodies = new Map()
 
 const art = (from, to, label) => {
@@ -64,7 +64,7 @@ const art = (from, to, label) => {
 
 const A = (name, displayName, description, tags, extra = {}) => ({
   name, displayName, description, tags,
-  author: 'Kiro Crew', version: '1.0.0', installed: false, updateAvailable: false,
+  author: 'Junction', version: '1.0.0', installed: false, updateAvailable: false,
   provenance: 'official', verified: true, ...extra,
 })
 

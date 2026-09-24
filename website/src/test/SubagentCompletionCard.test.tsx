@@ -29,7 +29,7 @@ const WAVE = [
   '— `b8185d65` failed ❌ · Add TWO short UI labels to the SPANISH (es) catalog',
   '  Error: catalog parity check failed',
   '— `53e3e5eb` ✅ Add TWO short UI labels to the GERMAN (de) catalog',
-  '  → /home/u/.kiro/crew/subagents/53e3e5eb/result.txt',
+  '  → /home/u/.junction/subagents/53e3e5eb/result.txt',
 ].join('\n')
 
 const CHUNK = [
@@ -75,7 +75,7 @@ describe('subagentCompletion parsing/detection', () => {
     const shapes: [string, string, string, string][] = [
       [
         'Agent `53e3e5eb` ⚠️ orphaned by gateway restart',
-        'Result saved at: `/home/u/.kiro/crew/subagents/53e3e5eb/result.txt`\nUse the read tool to retrieve it.',
+        'Result saved at: `/home/u/.junction/subagents/53e3e5eb/result.txt`\nUse the read tool to retrieve it.',
         'interrupted',
         'orphaned by gateway restart',
       ],
@@ -285,7 +285,7 @@ describe('SubagentCompletionCard rendering', () => {
       '[Subagent completion event]',
       'Agent `53e3e5eb` ⚠️ orphaned by gateway restart',
       'Task: Add TWO short UI labels to the GERMAN (de) catalog',
-      'Result saved at: `/home/u/.kiro/crew/subagents/53e3e5eb/result.txt`',
+      'Result saved at: `/home/u/.junction/subagents/53e3e5eb/result.txt`',
       'Use the read tool to retrieve it.',
     ].join('\n')
     renderWithProviders(<SubagentCompletionCard message={msg(orphan)} />, { store: store() })
@@ -402,7 +402,7 @@ describe('structured meta path (the #1792 fix)', () => {
       '[Subagent completion event]',
       'Agent `53e3e5eb` ⚠️ orphaned by gateway restart',
       'Task: catalog work',
-      'Result saved at: `/home/u/.kiro/crew/subagents/53e3e5eb/result.txt`',
+      'Result saved at: `/home/u/.junction/subagents/53e3e5eb/result.txt`',
     ].join('\n')
     const p = parseSubagentCompletion(orphan, {
       subagentCompletion: {

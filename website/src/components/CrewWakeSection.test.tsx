@@ -123,7 +123,7 @@ describe('CrewWakeSection', () => {
   it('does not let the default crew claim script or command crons', async () => {
     H.crons.mockResolvedValue({ jobs: [
       { ...JOB, id: 's1', name: 'nightly-cleanup', agent: '', command: 'echo hi' },
-      { ...JOB, id: 's2', name: 'poller', agent: '', script: '~/.kiro/crew/crons/p.py:run' },
+      { ...JOB, id: 's2', name: 'poller', agent: '', script: '~/.junction/crons/p.py:run' },
     ] })
     wrap(<CrewWakeSection crew="default" isDefaultCrew />)
     expect(await screen.findByText(/No schedules run this crew automatically/i)).toBeTruthy()
@@ -166,7 +166,7 @@ describe('CrewWakeSection', () => {
 
   it('never lists a script job, even when it carries a stale agent', async () => {
     H.crons.mockResolvedValue({ jobs: [
-      { ...JOB, id: 'x1', name: 'stale-script', script: '~/.kiro/crew/crons/p.py:run' },
+      { ...JOB, id: 'x1', name: 'stale-script', script: '~/.junction/crons/p.py:run' },
     ] })
     wrap(<CrewWakeSection crew="junction-autofix" isDefaultCrew={false} />)
     expect(await screen.findByText(/No schedules run this crew automatically/i)).toBeTruthy()

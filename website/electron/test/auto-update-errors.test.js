@@ -283,5 +283,5 @@ test("manualDownloadUrl: null wherever there is no publish lane", () => {
 
 test("manualDownloadUrl: points at the same CDN the updater pulls from", () => {
   // A manual reinstall must land on identical artifacts, not a different host.
-  assert.match(manualDownloadUrl("nightly", "darwin"), /^https:\/\/download\.crew\.kiro\.dev\//);
+  assert.match(manualDownloadUrl("nightly", "darwin"), /^https:\/\/download\.getjunction\.dev\//);
 });

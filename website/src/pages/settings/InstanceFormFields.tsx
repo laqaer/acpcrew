@@ -98,10 +98,10 @@ export function instanceFormFromView(inst: InstanceView): InstanceFormValues {
  * Form state plus everything derived from it that both forms need to gate their
  * submit button.
  *
- * There is deliberately no "this port is already used by another crew" guard.
- * Crews may share a remote port: the local forward port is allocated
+ * There is deliberately no "this port is already used by another instance" guard.
+ * Instances may share a remote port: the local forward port is allocated
  * independently of it, so two stock installs — which necessarily report the same
- * default port — are a supported configuration, not a conflict (#1972).
+ * default port — are a supported configuration, not a conflict.
  */
 export function useInstanceFormState(
   initial: InstanceFormValues,

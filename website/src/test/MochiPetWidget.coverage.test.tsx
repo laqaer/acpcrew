@@ -15,8 +15,8 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest'
 import { render, screen, fireEvent, act } from '@testing-library/react'
 
-import svgIdleRaw from '../apps/mochi/assets/animations/mochi_idle.svg?raw'
-import svgPeekRaw from '../apps/mochi/assets/animations/mochi_peek.svg?raw'
+import svgIdleRaw from '../assets/pets/mochi_idle.svg?raw'
+import svgPeekRaw from '../assets/pets/mochi_peek.svg?raw'
 
 const mocks = vi.hoisted(() => {
   type Listener = (...args: never[]) => void
@@ -131,12 +131,12 @@ async function mountActive(): Promise<void> {
   await act(async () => { mocks.emit('setActive', true) })
 }
 
-const ghostPack = (over: Record<string, unknown> = {}) => ({
-  meta: { id: 'kiro-ghost', name: 'Kiro Ghost', format: 'svg' },
+const lanternPack = (over: Record<string, unknown> = {}) => ({
+  meta: { id: 'lantern-pack', name: 'Lantern', format: 'svg' },
   animations: {
-    idle: '<svg id="ghost-idle"></svg>',
-    walking: '<svg id="ghost-walk"></svg>',
-    happy: '<svg id="ghost-happy"></svg>',
+    idle: '<svg id="lantern-idle"></svg>',
+    walking: '<svg id="lantern-walk"></svg>',
+    happy: '<svg id="lantern-happy"></svg>',
   },
   ...over,
 })
@@ -215,9 +215,9 @@ describe('PetWidget art and state', () => {
   })
 
   it('uses the name the user configured', async () => {
-    api.getMochiConfig.mockResolvedValue({ theme: 'junction', petName: '  Ghosty  ' })
+    api.getMochiConfig.mockResolvedValue({ theme: 'junction', petName: '  Tofu  ' })
     await mountActive()
-    expect(screen.getByTitle('Ghosty: idle')).toBeTruthy()
+    expect(screen.getByTitle('Tofu: idle')).toBeTruthy()
   })
 
   it('swaps art on a state change, after the fade', async () => {
@@ -280,19 +280,19 @@ describe('PetWidget art and state', () => {
 
 describe('PetWidget appearance packs', () => {
   it('paints art from the active pack instead of the built-in cat', async () => {
-    api.getMochiConfig.mockResolvedValue({ theme: 'junction', activeAppearance: 'kiro-ghost' })
-    api.galleryGetPackDetail.mockResolvedValue(ghostPack())
+    api.getMochiConfig.mockResolvedValue({ theme: 'junction', activeAppearance: 'lantern-pack' })
+    api.galleryGetPackDetail.mockResolvedValue(lanternPack())
     await mountActive()
 
-    expect(api.galleryGetPackDetail).toHaveBeenCalledWith('kiro-ghost')
+    expect(api.galleryGetPackDetail).toHaveBeenCalledWith('lantern-pack')
     // A non-built-in pack is not recolourable, so no colour map is read for it.
     expect(api.presetsGetColorMap).not.toHaveBeenCalled()
-    expect(petArt()).toContain('ghost-idle')
+    expect(petArt()).toContain('lantern-idle')
   })
 
   it('mirrors a pack that declares its art faces the other way', async () => {
-    api.getMochiConfig.mockResolvedValue({ theme: 'junction', activeAppearance: 'kiro-ghost' })
-    api.galleryGetPackDetail.mockResolvedValue(ghostPack({ flipX: true }))
+    api.getMochiConfig.mockResolvedValue({ theme: 'junction', activeAppearance: 'lantern-pack' })
+    api.galleryGetPackDetail.mockResolvedValue(lanternPack({ flipX: true }))
     await mountActive()
     expect(petBox().style.transform).toContain('scaleX(-1)')
   })
@@ -306,16 +306,16 @@ describe('PetWidget appearance packs', () => {
 
   it('keeps the built-in art and says why when a pack ships no idle drawing', async () => {
     const err = vi.spyOn(console, 'error').mockImplementation(() => {})
-    api.getMochiConfig.mockResolvedValue({ theme: 'junction', activeAppearance: 'kiro-ghost' })
+    api.getMochiConfig.mockResolvedValue({ theme: 'junction', activeAppearance: 'lantern-pack' })
     api.galleryGetPackDetail.mockResolvedValue({
-      meta: { id: 'kiro-ghost', format: 'svg' },
-      animations: { walking: '<svg id="ghost-walk"></svg>' },
+      meta: { id: 'lantern-pack', format: 'svg' },
+      animations: { walking: '<svg id="lantern-walk"></svg>' },
     })
     await mountActive()
 
     expect(err).toHaveBeenCalledWith(
       '[mochi] pack cannot drive the pet — no idle art',
-      expect.objectContaining({ packId: 'kiro-ghost' }),
+      expect.objectContaining({ packId: 'lantern-pack' }),
     )
     expect(petArt()).toBe(stripXmlDecl(svgIdleRaw))
     err.mockRestore()
@@ -323,27 +323,41 @@ describe('PetWidget appearance packs', () => {
 
   it('reports a pack whose detail carries no art at all', async () => {
     const err = vi.spyOn(console, 'error').mockImplementation(() => {})
-    api.getMochiConfig.mockResolvedValue({ theme: 'junction', activeAppearance: 'kiro-ghost' })
-    api.galleryGetPackDetail.mockResolvedValue({ meta: { id: 'kiro-ghost' } })
+    api.getMochiConfig.mockResolvedValue({ theme: 'junction', activeAppearance: 'lantern-pack' })
+    api.galleryGetPackDetail.mockResolvedValue({ meta: { id: 'lantern-pack' } })
     await mountActive()
 
     expect(err).toHaveBeenCalledWith(
       '[mochi] active pack returned no usable detail',
-      expect.objectContaining({ packId: 'kiro-ghost', hasAnimations: false }),
+      expect.objectContaining({ packId: 'lantern-pack', hasAnimations: false }),
     )
     expect(petArt()).toBe(stripXmlDecl(svgIdleRaw))
     err.mockRestore()
   })
 
+  it('shows the recoloured default cat for a pack id with no readable art', async () => {
+    // A stored id that no pack answers to (deleted, or not shipped by this build)
+    // degrades to the default character, wearing the user's saved colours.
+    const err = vi.spyOn(console, 'error').mockImplementation(() => {})
+    api.presetsGetColorMap.mockResolvedValue({ '#E98649': '#00FF00' })
+    api.getMochiConfig.mockResolvedValue({ theme: 'junction', activeAppearance: 'retired-pack' })
+    api.galleryGetPackDetail.mockResolvedValue(null)
+    await mountActive()
+
+    expect(api.presetsGetColorMap).toHaveBeenCalledWith('default-mochi')
+    expect(petArt()).toContain('#00FF00')
+    err.mockRestore()
+  })
+
   it('reports a pack that could not be loaded, and still draws a pet', async () => {
     const err = vi.spyOn(console, 'error').mockImplementation(() => {})
-    api.getMochiConfig.mockResolvedValue({ theme: 'junction', activeAppearance: 'kiro-ghost' })
+    api.getMochiConfig.mockResolvedValue({ theme: 'junction', activeAppearance: 'lantern-pack' })
     api.galleryGetPackDetail.mockRejectedValue(new Error('pack file is gone'))
     await mountActive()
 
     expect(err).toHaveBeenCalledWith(
       '[mochi] could not load the active pack',
-      'kiro-ghost',
+      'lantern-pack',
       expect.any(Error),
     )
     expect(petArt()).toBe(stripXmlDecl(svgIdleRaw))
@@ -356,13 +370,13 @@ describe('PetWidget appearance packs', () => {
 
     await act(async () => {
       mocks.emit('galleryActiveChanged', {
-        packId: 'kiro-ghost',
-        meta: { id: 'kiro-ghost', format: 'svg' },
-        animations: { idle: '<svg id="live-ghost"></svg>' },
+        packId: 'lantern-pack',
+        meta: { id: 'lantern-pack', format: 'svg' },
+        animations: { idle: '<svg id="live-lantern"></svg>' },
       })
     })
     await tick(150)
-    expect(petArt()).toContain('live-ghost')
+    expect(petArt()).toContain('live-lantern')
 
     // Back to the built-in pack: its saved colour map is restored with it.
     api.presetsGetColorMap.mockResolvedValue({ '#E98649': '#00FF00' })
@@ -375,20 +389,20 @@ describe('PetWidget appearance packs', () => {
     const err = vi.spyOn(console, 'error').mockImplementation(() => {})
     await mountActive()
 
-    await act(async () => { mocks.emit('galleryActiveChanged', { packId: 'kiro-ghost' }) })
+    await act(async () => { mocks.emit('galleryActiveChanged', { packId: 'lantern-pack' }) })
     await tick(150)
 
     expect(err).toHaveBeenCalledWith(
       '[mochi] live appearance switch carried no usable art',
-      expect.objectContaining({ packId: 'kiro-ghost' }),
+      expect.objectContaining({ packId: 'lantern-pack' }),
     )
     expect(petArt()).toBe(stripXmlDecl(svgIdleRaw))
     err.mockRestore()
   })
 
   it('slides a pack with no peek drawing partly off-screen while it peeks', async () => {
-    api.getMochiConfig.mockResolvedValue({ theme: 'junction', activeAppearance: 'kiro-ghost' })
-    api.galleryGetPackDetail.mockResolvedValue(ghostPack())
+    api.getMochiConfig.mockResolvedValue({ theme: 'junction', activeAppearance: 'lantern-pack' })
+    api.galleryGetPackDetail.mockResolvedValue(lanternPack())
     api.getWindowPosition.mockResolvedValue({ x: 0, y: 400 })
     await mountActive()
 
@@ -398,8 +412,8 @@ describe('PetWidget appearance packs', () => {
   })
 
   it('draws the BUILT-IN peek art even when a pack is active (current behaviour — see comment)', async () => {
-    api.getMochiConfig.mockResolvedValue({ theme: 'junction', activeAppearance: 'kiro-ghost' })
-    api.galleryGetPackDetail.mockResolvedValue(ghostPack())
+    api.getMochiConfig.mockResolvedValue({ theme: 'junction', activeAppearance: 'lantern-pack' })
+    api.galleryGetPackDetail.mockResolvedValue(lanternPack())
     api.getWindowPosition.mockResolvedValue({ x: 0, y: 400 })
     await mountActive()
 
@@ -412,7 +426,7 @@ describe('PetWidget appearance packs', () => {
     // that branch claims it is "only reached when no resolver/pack", which is
     // exactly the assumption that does not hold.
     expect(petArt()).toBe(stripXmlDecl(svgPeekRaw))
-    expect(petArt()).not.toContain('ghost-idle')
+    expect(petArt()).not.toContain('lantern-idle')
   })
 })
 
@@ -600,16 +614,16 @@ describe('PetWidget walking and hiding', () => {
   })
 
   it('draws the walking art from the active pack while it moves', async () => {
-    api.getMochiConfig.mockResolvedValue({ theme: 'junction', activeAppearance: 'kiro-ghost' })
-    api.galleryGetPackDetail.mockResolvedValue(ghostPack())
+    api.getMochiConfig.mockResolvedValue({ theme: 'junction', activeAppearance: 'lantern-pack' })
+    api.galleryGetPackDetail.mockResolvedValue(lanternPack())
     await mountActive()
 
     await act(async () => { mocks.emit('walk', 500, 400) })
     await tick(300) // mid-walk
-    expect(petArt()).toContain('ghost-walk')
+    expect(petArt()).toContain('lantern-walk')
 
     await tick(1500) // arrives
-    expect(petArt()).toContain('ghost-idle')
+    expect(petArt()).toContain('lantern-idle')
   })
 
   it('tilts the pet on a diagonal walk', async () => {
@@ -643,23 +657,23 @@ describe('PetWidget non-SVG pack formats', () => {
   })
 
   it("prefers the pack's own mood art over its state art", async () => {
-    api.getMochiConfig.mockResolvedValue({ theme: 'junction', activeAppearance: 'kiro-ghost' })
-    api.galleryGetPackDetail.mockResolvedValue(ghostPack())
+    api.getMochiConfig.mockResolvedValue({ theme: 'junction', activeAppearance: 'lantern-pack' })
+    api.galleryGetPackDetail.mockResolvedValue(lanternPack())
     await mountActive()
-    expect(petArt()).toContain('ghost-idle')
+    expect(petArt()).toContain('lantern-idle')
 
     await act(async () => { mocks.emit('mood', 'happy', 1) })
     await act(async () => { mocks.emit('stateChange', 'working') })
     await tick(150)
     // The pack ships a `happy` drawing, which outranks the state slot.
-    expect(petArt()).toContain('ghost-happy')
+    expect(petArt()).toContain('lantern-happy')
   })
 
   it('warns once when the active pack resolves to no art at all', async () => {
     const warn = vi.spyOn(console, 'warn').mockImplementation(() => {})
-    api.getMochiConfig.mockResolvedValue({ theme: 'junction', activeAppearance: 'ghost-lottie' })
+    api.getMochiConfig.mockResolvedValue({ theme: 'junction', activeAppearance: 'lantern-lottie' })
     api.galleryGetPackDetail.mockResolvedValue({
-      meta: { id: 'ghost-lottie', format: 'lottie' },
+      meta: { id: 'lantern-lottie', format: 'lottie' },
       animations: { idle: { content: '', format: 'lottie' } },
     })
     await mountActive()
@@ -673,9 +687,9 @@ describe('PetWidget non-SVG pack formats', () => {
 
   it('hands a lottie-format pack to the lottie renderer, and reports a clip it cannot parse', async () => {
     const err = vi.spyOn(console, 'error').mockImplementation(() => {})
-    api.getMochiConfig.mockResolvedValue({ theme: 'junction', activeAppearance: 'ghost-lottie' })
+    api.getMochiConfig.mockResolvedValue({ theme: 'junction', activeAppearance: 'lantern-lottie' })
     api.galleryGetPackDetail.mockResolvedValue({
-      meta: { id: 'ghost-lottie', name: 'Ghost', format: 'lottie' },
+      meta: { id: 'lantern-lottie', name: 'Lantern', format: 'lottie' },
       // Per-slot format, the shape the gallery sends for a mixed pack.
       animations: { idle: { content: 'not-json-at-all', format: 'lottie' } },
     })
@@ -698,9 +712,9 @@ describe('PetWidget non-SVG pack formats', () => {
     // the resolver has to be told, or its cached art keeps the old colours.
     await act(async () => {
       mocks.emit('galleryActiveChanged', {
-        packId: 'kiro-ghost',
-        meta: { id: 'kiro-ghost', format: 'svg' },
-        animations: { idle: '<svg fill="#E98649" id="ghost-idle"></svg>' },
+        packId: 'lantern-pack',
+        meta: { id: 'lantern-pack', format: 'svg' },
+        animations: { idle: '<svg fill="#E98649" id="lantern-idle"></svg>' },
       })
     })
     await tick(150)

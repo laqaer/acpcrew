@@ -27,7 +27,7 @@
     "js-yaml": "4.3.2"
   },
   "build": {
-    "appId": "com.amazon.kiro.crew",
+    "appId": "dev.junction.desktop",
     "productName": "Junction",
     "mac": {
       "category": "public.app-category.developer-tools",
@@ -70,7 +70,7 @@
       "publish": [
         {
           "provider": "generic",
-          "url": "https://updates.crew.kiro.dev/feed/stable/deb"
+          "url": "https://updates.getjunction.dev/feed/stable/deb"
         }
       ],
       "depends": [
@@ -92,7 +92,7 @@
       "publish": [
         {
           "provider": "generic",
-          "url": "https://updates.crew.kiro.dev/feed/stable/rpm"
+          "url": "https://updates.getjunction.dev/feed/stable/rpm"
         }
       ],
       "depends": [
@@ -224,7 +224,7 @@
     "publish": [
       {
         "provider": "generic",
-        "url": "https://updates.crew.kiro.dev/feed/stable/"
+        "url": "https://updates.getjunction.dev/feed/stable/"
       }
     ],
     "win": {

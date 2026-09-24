@@ -332,7 +332,7 @@ describe('SchedulePage cron folders', () => {
     expect(screen.queryByText('In Target')).not.toBeInTheDocument()
 
     // Verify collapsed state is persisted
-    const storedBefore = localStorage.getItem('kc-cron-folders-collapsed')
+    const storedBefore = localStorage.getItem('jn-cron-folders-collapsed')
     expect(storedBefore).toBeTruthy()
     expect(JSON.parse(storedBefore!)).toContain('f1')
 
@@ -356,7 +356,7 @@ describe('SchedulePage cron folders', () => {
 
     // After move completes, the folder should be auto-expanded in localStorage
     await waitFor(() => {
-      const storedAfter = localStorage.getItem('kc-cron-folders-collapsed')
+      const storedAfter = localStorage.getItem('jn-cron-folders-collapsed')
       // Either null (empty set) or doesn't contain f1
       if (storedAfter) {
         expect(JSON.parse(storedAfter)).not.toContain('f1')

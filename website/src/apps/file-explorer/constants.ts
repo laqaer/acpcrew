@@ -1,5 +1,5 @@
 export const API_BASE = '/apps/file-explorer/api'
-export const STORAGE_KEY = 'kc:file-explorer:state:v2'
+export const STORAGE_KEY = 'jn:file-explorer:state:v2'
 
 export const IMAGE_EXTS = new Set(['.png', '.jpg', '.jpeg', '.gif', '.webp', '.bmp', '.ico', '.svg'])
 

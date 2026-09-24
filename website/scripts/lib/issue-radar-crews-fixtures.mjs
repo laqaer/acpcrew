@@ -12,15 +12,15 @@
  * the AGENT-TEMPLATE roster and a different feature entirely.
  */
 
-export const OWNER = 'kirodotdev'
-export const REPO = 'Junction' // brand-ok: the repository name
+export const OWNER = 'laqaer'
+export const REPO = 'junction'
 export const REPO_REF = { owner: OWNER, repo: REPO, provider: 'github', host: 'github.com' }
 
 export const SETTINGS = {
   schema: 1,
   claim_ttl_hours: 48,
   needs_human_label: 'crew: needs human',
-  commit_trailer: 'Crew: {name} (Kiro Crew Issue Radar)',
+  commit_trailer: 'Crew: {name} (Junction Issue Radar)',
 }
 
 /** One crew record. `status` is DERIVED BY THE ROUTE (`_crew_status` in
@@ -214,11 +214,11 @@ export function makeExtra(json) {
  *  see the comment on CREW_UI_KEY in context.tsx. */
 export function seedState(crewUi, ui) {
   return {
-    'kc:issue-radar:active-repo': JSON.stringify({ owner: OWNER, repo: REPO }),
+    'jn:issue-radar:active-repo': JSON.stringify({ owner: OWNER, repo: REPO }),
     // `ui` lets a caller land on another main view — the crew PROTOCOL settings
     // live on the repo settings page, so capturing them needs a different view
     // than the crews surface itself.
-    'kc:issue-radar:ui-state': JSON.stringify({ mainView: 'crews', ...(ui ?? {}) }),
-    'kc:issue-radar:crew-ui': JSON.stringify(crewUi),
+    'jn:issue-radar:ui-state': JSON.stringify({ mainView: 'crews', ...(ui ?? {}) }),
+    'jn:issue-radar:crew-ui': JSON.stringify(crewUi),
   }
 }

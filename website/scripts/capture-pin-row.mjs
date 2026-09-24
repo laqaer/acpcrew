@@ -75,7 +75,7 @@ import { json, makeFixedApi, handleBootRoute } from './lib/boot-api.mjs'
 const OUT = process.argv[2] || '../temp-screenshots/pin-row-default-model'
 const PHASE = process.argv[3] || 'after'
 const SLOT = 'pin-row-default-model'
-const PROJECT = '/home/user/.kiro/crew/workspace'
+const PROJECT = '/home/user/.junction/workspace'
 // The agent is named `default` on purpose: that collision with the English
 // adjective is the entire defect this row's wording fixes.
 const AGENT = 'default'

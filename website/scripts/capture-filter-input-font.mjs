@@ -58,7 +58,7 @@ import { json, makeFixedApi, handleBootRoute } from './lib/boot-api.mjs'
 const OUT = process.argv[2] || '../temp-screenshots/filter-input-font'
 const TAG = process.argv[3] || 'after'
 const SLOT = 'filter-input-font'
-const PROJECT = '/home/user/.kiro/crew/workspace'
+const PROJECT = '/home/user/.junction/workspace'
 const VIEW = { width: 1500, height: 1000 }
 
 // The family under test. NOT the default: 'sans' would leave --font-body at its

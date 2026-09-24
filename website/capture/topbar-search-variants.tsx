@@ -222,7 +222,7 @@ function TopBarMobile() {
             {pins > 0 ? <PinnedChipRow /> : null}
             <button
               type="button"
-              aria-label="切换 crew"
+              aria-label="切换实例"
               className="relative flex items-center justify-center h-6 w-6 shrink-0 rounded-md border border-transparent text-muted"
             >
               <ChevronDown className="lucide-inline shrink-0" />

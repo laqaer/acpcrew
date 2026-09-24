@@ -47,10 +47,10 @@ function serveDist() {
 }
 
 const SKILLS = [
-  { key: 'babysit', name: 'babysit', description: 'Same-session monitoring loop for PRs and CI runs', path: '/home/user/.kiro/crew/skills/babysit/SKILL.md', source: 'junction' },
-  { key: 'prepare-pr', name: 'prepare-pr', description: 'Drive working-tree changes to a review-ready pull request', path: '/home/user/.kiro/crew/skills/prepare-pr/SKILL.md', source: 'junction' },
-  { key: 'rubber-duck', name: 'rubber-duck', description: 'Adversarial review that turns explaining out loud into a hallucination check', path: '/home/user/.kiro/crew/skills/rubber-duck/SKILL.md', source: 'junction' },
-  { key: 'widgets', name: 'widgets', description: 'Render rich HTML inline via mcwidget tags', path: '/home/user/.kiro/crew/skills/widgets/SKILL.md', source: 'junction' },
+  { key: 'babysit', name: 'babysit', description: 'Same-session monitoring loop for PRs and CI runs', path: '/home/user/.junction/skills/babysit/SKILL.md', source: 'junction' },
+  { key: 'prepare-pr', name: 'prepare-pr', description: 'Drive working-tree changes to a review-ready pull request', path: '/home/user/.junction/skills/prepare-pr/SKILL.md', source: 'junction' },
+  { key: 'rubber-duck', name: 'rubber-duck', description: 'Adversarial review that turns explaining out loud into a hallucination check', path: '/home/user/.junction/skills/rubber-duck/SKILL.md', source: 'junction' },
+  { key: 'widgets', name: 'widgets', description: 'Render rich HTML inline via mcwidget tags', path: '/home/user/.junction/skills/widgets/SKILL.md', source: 'junction' },
   { key: 'kiro-user/pod-e2e', name: 'pod-e2e', description: 'Run end-to-end tests against an isolated throwaway pod', path: '/home/user/.kiro/skills/pod-e2e/SKILL.md', source: 'kiro-user' },
   { key: 'kiro-user/llm-council', name: 'llm-council', description: 'Convene a cross-vendor LLM council for hard decisions', path: '/home/user/.kiro/skills/llm-council/SKILL.md', source: 'kiro-user' },
 ]

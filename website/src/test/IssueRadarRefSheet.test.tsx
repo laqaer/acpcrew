@@ -44,8 +44,8 @@ vi.mock('../apps/issue-radar/components/PrDetail', () => ({
 const RefMarkdown = (await import('../apps/issue-radar/components/RefMarkdown')).default
 const RefSheet = (await import('../apps/issue-radar/components/RefSheet')).default
 
-const OWNER = 'kirodotdev'
-const REPO = 'Junction'
+const OWNER = 'laqaer'
+const REPO = 'junction'
 
 function summary(over: Record<string, unknown> = {}) {
   return {

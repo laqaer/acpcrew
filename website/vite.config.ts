@@ -638,7 +638,7 @@ export default defineConfig({
         ws: true,
         changeOrigin: true, // Backend validates Host header for CSRF; without this, dev proxy sends localhost:3000
       },
-      // Proxy app UI bundle file requests to the backend (serves from ~/.kiro/crew/apps/)
+      // Proxy app UI bundle file requests to the backend (serves from ~/.junction/apps/)
       // Only matches /apps/{name}/ui/* — not /apps (React Router page)
       '^/apps/[^/]+/ui/': {
         target: `http://localhost:${backendPort}`,

@@ -103,8 +103,8 @@ const TASKS = [
 ]
 const DIGEST_ROWS = TASKS.map((t, i) =>
   i === 1
-    ? `— \`b8185d${i}5\` failed ❌ · ${t}\n  Error: catalog parity check failed on 3 of 12 locales, see the per-locale diff at /tmp/kc-audit/${i}/parity.diff for the full breakdown`
-    : `— \`53e3e5e${i}\` ✅ ${t}\n  → /home/u/.kiro/crew/subagents/53e3e5e${i}/result.txt`,
+    ? `— \`b8185d${i}5\` failed ❌ · ${t}\n  Error: catalog parity check failed on 3 of 12 locales, see the per-locale diff at /tmp/jn-audit/${i}/parity.diff for the full breakdown`
+    : `— \`53e3e5e${i}\` ✅ ${t}\n  → /home/u/.junction/subagents/53e3e5e${i}/result.txt`,
 ).join('\n')
 
 const BATCH = [

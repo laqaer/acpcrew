@@ -1411,7 +1411,7 @@ describe('trustFailureMessage', () => {
       409,
       'Conflict',
       JSON.stringify({
-        error: 'apps_trusted is set in /home/u/.kiro/crew/config.local.json',
+        error: 'apps_trusted is set in /home/u/.junction/config.local.json',
         code: 'trust_setting_overlay_owned',
       }),
     )

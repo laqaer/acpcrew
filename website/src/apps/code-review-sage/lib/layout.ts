@@ -4,8 +4,8 @@
 // the resize hook's storage keys are namespaced per app (a shared key would let
 // Issue Radar's column width leak into Sage's).
 
-export const RAIL_WIDTH_KEY = 'kc:code-review-sage:rail-width'
-export const LIST_WIDTH_KEY = 'kc:code-review-sage:list-width'
+export const RAIL_WIDTH_KEY = 'jn:code-review-sage:rail-width'
+export const LIST_WIDTH_KEY = 'jn:code-review-sage:list-width'
 
 /** Wider than Issue Radar's rail (`w-72`), because this one carries the pull
  * request list that used to have a column of its own — PR titles need the room.
@@ -19,7 +19,7 @@ export const MAX_RAIL_WIDTH = 560
  * viewport leaves the review pane ~100px; the strip is the narrow-width state
  * the resize hook falls back to. */
 export const COLLAPSED_RAIL_WIDTH = 44
-export const RAIL_COLLAPSED_KEY = 'kc:code-review-sage:rail-collapsed'
+export const RAIL_COLLAPSED_KEY = 'jn:code-review-sage:rail-collapsed'
 
 export const DEFAULT_LIST_WIDTH = 330
 export const MIN_LIST_WIDTH = 260

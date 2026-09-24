@@ -101,7 +101,7 @@ describe('ChatSidebar Folder Grouping', () => {
       {
         ...baseSlots[0],
         source_links: [
-          { provider: 'github' as const, number: 113, url: 'https://github.com/kirodotdev/KiroCrew/pull/113', state: 'merged' as const },
+          { provider: 'github' as const, number: 113, url: 'https://github.com/laqaer/junction/pull/113', state: 'merged' as const },
           { provider: 'gitlab' as const, number: 7, url: 'https://gitlab.com/acme/service/-/merge_requests/7' },
         ],
       },
@@ -121,8 +121,8 @@ describe('ChatSidebar Folder Grouping', () => {
       {
         ...baseSlots[0],
         source_links: [
-          { provider: 'github' as const, number: 284, url: 'https://github.com/kirodotdev/KiroCrew/pull/284', state: 'merged' as const, ci: 'passed' as const },
-          { provider: 'github' as const, number: 285, url: 'https://github.com/kirodotdev/KiroCrew/pull/285', state: 'open' as const, ci: 'passed' as const },
+          { provider: 'github' as const, number: 284, url: 'https://github.com/laqaer/junction/pull/284', state: 'merged' as const, ci: 'passed' as const },
+          { provider: 'github' as const, number: 285, url: 'https://github.com/laqaer/junction/pull/285', state: 'open' as const, ci: 'passed' as const },
         ],
       },
     ]

@@ -72,12 +72,12 @@ const POPULATED: WebhooksView = {
   slots: { in_use: 2, max: 6 },
   tokens: [
     {
-      id: 'wht_review', label: 'Review Bot', display_prefix: 'kc_whk_4f2b', last4: '1f3a',
+      id: 'wht_review', label: 'Review Bot', display_prefix: 'jn_whk_4f2b', last4: '1f3a',
       created_at: NOW - 7200, last_used_at: NOW - 480, require_signature: true,
       agent: 'reviewer', enabled: true, legacy: false,
     },
     {
-      id: 'wht_deploy', label: 'Deploy Bot', display_prefix: 'kc_whk_8a9c', last4: '44ad',
+      id: 'wht_deploy', label: 'Deploy Bot', display_prefix: 'jn_whk_8a9c', last4: '44ad',
       created_at: NOW - 3600, last_used_at: null, require_signature: false,
       agent: 'oncall', enabled: false, legacy: false,
     },
@@ -299,8 +299,8 @@ describe('credential lifecycle safeguards', () => {
   it('creates a routed source, shows both raw secrets once, and dismisses in two steps', async () => {
     createWebhookToken.mockResolvedValue({
       ok: true,
-      token: 'kc_whk_TESTSECRET0123456789abcdefghij',
-      signing_secret: 'kc_whs_SIGNSECRET0123456789abcdefghij',
+      token: 'jn_whk_TESTSECRET0123456789abcdefghij',
+      signing_secret: 'jn_whs_SIGNSECRET0123456789abcdefghij',
       entry: {
         ...POPULATED.tokens[0], id: 'wht_new', label: 'CI Bot', agent: 'reviewer', enabled: true,
       },
@@ -312,8 +312,8 @@ describe('credential lifecycle safeguards', () => {
     await waitFor(() => expect(createWebhookToken).toHaveBeenCalledWith('CI Bot', true, 'reviewer'))
 
     const reveal = await screen.findByTestId('webhook-token-reveal')
-    expect(reveal.textContent).toContain('kc_whk_TESTSECRET0123456789abcdefghij')
-    expect(reveal.textContent).toContain('kc_whs_SIGNSECRET0123456789abcdefghij')
+    expect(reveal.textContent).toContain('jn_whk_TESTSECRET0123456789abcdefghij')
+    expect(reveal.textContent).toContain('jn_whs_SIGNSECRET0123456789abcdefghij')
 
     fireEvent.change(screen.getByLabelText('New token label'), { target: { value: 'Second' } })
     expect(screen.getByText('Generate token').closest('button')?.disabled).toBe(true)
@@ -327,7 +327,7 @@ describe('credential lifecycle safeguards', () => {
   it('creates bearer-only when signing is explicitly disabled', async () => {
     createWebhookToken.mockResolvedValue({
       ok: true,
-      token: 'kc_whk_BEARERONLY0123456789abcdefghij',
+      token: 'jn_whk_BEARERONLY0123456789abcdefghij',
       entry: {
         ...POPULATED.tokens[1], id: 'wht_bearer', label: 'Legacy CI', agent: 'reviewer', enabled: true,
       },
@@ -355,7 +355,7 @@ describe('credential lifecycle safeguards', () => {
     mount({
       ...POPULATED,
       tokens: [{
-        id: 'legacy', label: 'Legacy config', display_prefix: 'kc_whk_0000', last4: '0000',
+        id: 'legacy', label: 'Legacy config', display_prefix: 'jn_whk_0000', last4: '0000',
         created_at: NOW - 86400, last_used_at: null, require_signature: false,
         agent: '', enabled: true, legacy: true,
       }],

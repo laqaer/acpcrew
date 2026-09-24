@@ -1,5 +1,5 @@
 /**
- * pageUrl.js — build the URL for one of Crew Companion's windows.
+ * pageUrl.js — build the URL for one of Companion's windows.
  *
  * The windows are top-level pages loaded FROM the gateway. For the local gateway
  * that is the same origin the dashboard already authenticated, so its cookie is

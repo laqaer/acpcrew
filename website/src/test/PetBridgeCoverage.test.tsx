@@ -2,7 +2,7 @@
 // file pickers, the read helpers' failure arms, the coalesced position write, the
 // listener fan-out and the context-menu actions.
 //
-// The bridge is the whole boundary between the Crew Companion pages and the
+// The bridge is the whole boundary between the Companion pages and the
 // gateway, and most of its methods have a refusal arm that is only visible when
 // the network says no. Those arms are where the interesting regressions live —
 // a refusal read back as a success discards the user's artwork — so they are
@@ -208,8 +208,8 @@ describe('savePosition coalescing', () => {
 
 describe('config and export reads', () => {
   it('getCrewCompanionConfig hands back the snapshot verbatim', async () => {
-    stubFetchAll({ body: { activeAppearance: 'ghost', petX: 4 } })
-    expect(await petBridge.getCrewCompanionConfig!()).toEqual({ activeAppearance: 'ghost', petX: 4 })
+    stubFetchAll({ body: { activeAppearance: 'lantern', petX: 4 } })
+    expect(await petBridge.getCrewCompanionConfig!()).toEqual({ activeAppearance: 'lantern', petX: 4 })
   })
 
   it('getCrewCompanionConfig reports null when the body is not JSON', async () => {
@@ -461,12 +461,12 @@ describe('gallerySetActive', () => {
     const heard = vi.fn()
     const off = petBridge.onGalleryActiveChanged!(heard)
 
-    const result = await petBridge.gallerySetActive!('ghost')
+    const result = await petBridge.gallerySetActive!('lantern')
     off()
 
-    expect(result).toEqual({ ok: true, packId: 'ghost' })
+    expect(result).toEqual({ ok: true, packId: 'lantern' })
     expect(calls[0].url).toBe(CONFIG_PATH)
-    expect(calls[0].body).toEqual({ activeAppearance: 'ghost' })
+    expect(calls[0].body).toEqual({ activeAppearance: 'lantern' })
     expect(heard).toHaveBeenCalledOnce()
     expect(bridge.appearanceChanged).toHaveBeenCalledOnce()
   })
@@ -477,7 +477,7 @@ describe('gallerySetActive', () => {
     const heard = vi.fn()
     const off = petBridge.onGalleryActiveChanged!(heard)
 
-    expect(await petBridge.gallerySetActive!('ghost')).toEqual({
+    expect(await petBridge.gallerySetActive!('lantern')).toEqual({
       ok: false,
       error: 'Could not switch avatar',
     })
@@ -500,7 +500,7 @@ describe('listener registration', () => {
 
     // Unsubscribed: a later switch reaches nobody.
     stubFetchAll({ ok: true })
-    await petBridge.gallerySetActive!('ghost')
+    await petBridge.gallerySetActive!('lantern')
     expect(heard).not.toHaveBeenCalled()
   })
 
@@ -508,7 +508,7 @@ describe('listener registration', () => {
     const heard = vi.fn()
     const off = petBridge.onGalleryActiveChanged!(heard)
     stubFetchAll({ ok: true })
-    await petBridge.gallerySetActive!('ghost')
+    await petBridge.gallerySetActive!('lantern')
     expect(heard).toHaveBeenCalledOnce()
     // Dropping the subscription must not throw when there was no bridge to drop.
     expect(() => off()).not.toThrow()
@@ -519,18 +519,18 @@ describe('listener registration', () => {
     const heard = vi.fn()
     const off = petBridge.onColorMapChanged!(heard)
 
-    await petBridge.gallerySetColorMap!('ghost', { '#fff': '#f0f' })
-    expect(heard).toHaveBeenCalledWith({ packId: 'ghost', colorMap: { '#fff': '#f0f' } })
+    await petBridge.gallerySetColorMap!('lantern', { '#fff': '#f0f' })
+    expect(heard).toHaveBeenCalledWith({ packId: 'lantern', colorMap: { '#fff': '#f0f' } })
 
     off()
-    await petBridge.gallerySetColorMap!('ghost', { '#fff': '#000' })
+    await petBridge.gallerySetColorMap!('lantern', { '#fff': '#000' })
     expect(heard).toHaveBeenCalledOnce()
   })
 
   it('gallerySetColorMap reports a refusal with a reason', async () => {
     stubFetchAll({ ok: false })
     const { calls } = stubFetch(() => ({ ok: false }))
-    expect(await petBridge.gallerySetColorMap!('ghost', { '#fff': '#f0f' })).toEqual({
+    expect(await petBridge.gallerySetColorMap!('lantern', { '#fff': '#f0f' })).toEqual({
       ok: false,
       error: 'Could not save those colours',
     })
@@ -542,7 +542,7 @@ describe('listener registration', () => {
     const heard = vi.fn()
     const off = petBridge.onConfigUpdated!(heard)
 
-    await petBridge.updateConfig!({ activeAppearance: 'ghost' })
+    await petBridge.updateConfig!({ activeAppearance: 'lantern' })
     expect(heard).toHaveBeenCalledOnce()
 
     off()
@@ -553,13 +553,13 @@ describe('listener registration', () => {
   it('an activeAppearance patch repaints the overlay window', async () => {
     stubFetchAll({ body: { ok: true } })
     const bridge = stubPreload()
-    expect(await petBridge.updateConfig!({ activeAppearance: 'ghost' })).toBe(true)
+    expect(await petBridge.updateConfig!({ activeAppearance: 'lantern' })).toBe(true)
     expect(bridge.appearanceChanged).toHaveBeenCalledOnce()
   })
 
   it('updateConfig reports false when the gateway never answers', async () => {
     stubFetchAll({ fails: true })
-    expect(await petBridge.updateConfig!({ activeAppearance: 'ghost' })).toBe(false)
+    expect(await petBridge.updateConfig!({ activeAppearance: 'lantern' })).toBe(false)
   })
 })
 
@@ -569,11 +569,11 @@ describe('galleryDelete', () => {
     const heard = vi.fn()
     const off = petBridge.onGalleryPacksChanged!(heard)
 
-    expect(await petBridge.galleryDelete!('ghost')).toBe(true)
+    expect(await petBridge.galleryDelete!('lantern')).toBe(true)
     off()
 
     expect(calls[0].url).toBe(APPEARANCE_DELETE_PATH)
-    expect(calls[0].body).toEqual({ id: 'ghost' })
+    expect(calls[0].body).toEqual({ id: 'lantern' })
     expect(heard).toHaveBeenCalledOnce()
   })
 
@@ -581,7 +581,7 @@ describe('galleryDelete', () => {
     stubFetchAll({ ok: false })
     const heard = vi.fn()
     const off = petBridge.onGalleryPacksChanged!(heard)
-    expect(await petBridge.galleryDelete!('ghost')).toBe(false)
+    expect(await petBridge.galleryDelete!('lantern')).toBe(false)
     off()
     expect(heard).not.toHaveBeenCalled()
   })
@@ -593,7 +593,7 @@ describe('gallerySaveSpritePack — slot classification and fallbacks', () => {
   it('files an unknown slot as a MOOD and keeps the source sheet for re-editing', async () => {
     const { calls } = stubFetchAll({ body: { ok: true } })
     await petBridge.gallerySaveSpritePack!({
-      name: 'Ghost',
+      name: 'Lantern',
       author: 'me',
       description: '',
       frameWidth: 32,
@@ -605,7 +605,7 @@ describe('gallerySaveSpritePack — slot classification and fallbacks', () => {
       randomAssignments: {},
       rowAssignments: {},
       sourceImage: sheet,
-      overwriteId: 'ghost',
+      overwriteId: 'lantern',
     })
 
     const payload = calls[0].body as {
@@ -617,7 +617,7 @@ describe('gallerySaveSpritePack — slot classification and fallbacks', () => {
       }
       files: Record<string, string>
     }
-    expect(payload.id).toBe('ghost')
+    expect(payload.id).toBe('lantern')
     expect(payload.manifest.states).toHaveProperty('idle')
     // `celebrating` is not a known state, so it must land in moods.
     expect(payload.manifest.moods).toHaveProperty('celebrating')
@@ -631,7 +631,7 @@ describe('gallerySaveSpritePack — slot classification and fallbacks', () => {
   it('omits the sprite source when the pack kept no sheet', async () => {
     const { calls } = stubFetchAll({ body: { ok: true } })
     await petBridge.gallerySaveSpritePack!({
-      name: 'Ghost',
+      name: 'Lantern',
       author: '',
       description: '',
       frameWidth: 32,
@@ -651,7 +651,7 @@ describe('gallerySaveSpritePack — slot classification and fallbacks', () => {
   it('refuses a sprite pack with no art and does not hit the network', async () => {
     const { fn } = stubFetchAll({ body: { ok: true } })
     const result = await petBridge.gallerySaveSpritePack!({
-      name: 'Ghost',
+      name: 'Lantern',
       author: '',
       description: '',
       frameWidth: 32,
@@ -672,7 +672,7 @@ describe('gallerySaveSpritePack — slot classification and fallbacks', () => {
   it('reports a failure when the save request never answers', async () => {
     stubFetchAll({ fails: true })
     const result = await petBridge.gallerySaveSpritePack!({
-      name: 'Ghost',
+      name: 'Lantern',
       author: '',
       description: '',
       frameWidth: 32,
@@ -730,14 +730,14 @@ describe('gallerySavePack and petdexFetch fallbacks', () => {
   })
 
   it('petdexFetch passes the input through and falls back to a message on failure', async () => {
-    const { calls } = stubFetchAll({ body: { ok: true, name: 'Ghost' } })
-    expect(await petBridge.petdexFetch!('ghost')).toEqual({ ok: true, name: 'Ghost' })
+    const { calls } = stubFetchAll({ body: { ok: true, name: 'Lantern' } })
+    expect(await petBridge.petdexFetch!('lantern')).toEqual({ ok: true, name: 'Lantern' })
     expect(calls[0].url).toBe(PETDEX_FETCH_PATH)
-    expect(calls[0].body).toEqual({ input: 'ghost' })
+    expect(calls[0].body).toEqual({ input: 'lantern' })
 
     vi.unstubAllGlobals()
     stubFetchAll({ fails: true })
-    expect(await petBridge.petdexFetch!('ghost')).toEqual({
+    expect(await petBridge.petdexFetch!('lantern')).toEqual({
       ok: false,
       error: 'PetDex import failed',
     })
@@ -745,7 +745,7 @@ describe('gallerySavePack and petdexFetch fallbacks', () => {
 
   it('a non-2xx body with no ok field is still reported as a refusal', async () => {
     stubFetchAll({ ok: false, body: { error: 'too large', code: 'payload_too_big' } })
-    expect(await petBridge.petdexFetch!('ghost')).toEqual({
+    expect(await petBridge.petdexFetch!('lantern')).toEqual({
       ok: false,
       error: 'too large',
       code: 'payload_too_big',
@@ -754,22 +754,22 @@ describe('gallerySavePack and petdexFetch fallbacks', () => {
 
   it('a non-2xx body that is not an object still reports a refusal', async () => {
     stubFetchAll({ ok: false, body: 'plain text' })
-    expect(await petBridge.petdexFetch!('ghost')).toEqual({ ok: false })
+    expect(await petBridge.petdexFetch!('lantern')).toEqual({ ok: false })
   })
 })
 
 describe('openExternal', () => {
   it('hands an https link to the main process when the bridge is there', () => {
     const bridge = stubPreload()
-    petBridge.openExternal!('https://petdex.dev/ghost')
-    expect(bridge.openExternal).toHaveBeenCalledWith('https://petdex.dev/ghost')
+    petBridge.openExternal!('https://petdex.dev/lantern')
+    expect(bridge.openExternal).toHaveBeenCalledWith('https://petdex.dev/lantern')
   })
 
   it('opens a new tab when there is no bridge', () => {
     const open = vi.fn()
     vi.stubGlobal('open', open)
-    petBridge.openExternal!('https://petdex.dev/ghost')
-    expect(open).toHaveBeenCalledWith('https://petdex.dev/ghost', '_blank', 'noopener,noreferrer')
+    petBridge.openExternal!('https://petdex.dev/lantern')
+    expect(open).toHaveBeenCalledWith('https://petdex.dev/lantern', '_blank', 'noopener,noreferrer')
   })
 
   it('refuses a non-https scheme outright', () => {

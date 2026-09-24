@@ -44,9 +44,9 @@ const CONFIG_API = async (path, route) => {
     await json(route, {
       agents: { junction: { kiro_agent: 'junction', workspace: 'default', memory_store: 'default' } },
       default_agent: 'junction',
-      workspaces: { default: { path: '~/.kiro/crew/workspace' } },
+      workspaces: { default: { path: '~/.junction/workspace' } },
       default_workspace: 'default',
-      memory_stores: { default: { path: '~/.kiro/crew/workspace/memory' } },
+      memory_stores: { default: { path: '~/.junction/workspace/memory' } },
       default_memory_store: 'default',
       agent: {
         default_agent: 'junction', provider: 'acp', model: 'auto',

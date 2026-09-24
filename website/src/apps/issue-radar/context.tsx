@@ -45,7 +45,7 @@ const MEMBER_ASSOCS = new Set(['OWNER', 'MEMBER', 'COLLABORATOR'])
  * answers it (see the drop-unknown-crew effect below). `mainView` itself stays in
  * the shared blob, so a reload still returns to the crews page.
  */
-const CREW_UI_KEY = 'kc:issue-radar:crew-ui'
+const CREW_UI_KEY = 'jn:issue-radar:crew-ui'
 
 interface PersistedCrewUi {
   crewView: CrewView

@@ -49,7 +49,7 @@ async function openRowMenu(u: ReturnType<typeof userEvent.setup>, name: RegExp =
 
 const CLOUD_INSTANCE = {
   id: 'kc1',
-  name: 'Junction Cloud (kc-3f9a)',
+  name: 'Junction Cloud (jn-3f9a)',
   connection_method: 'ssm' as const,
   ssm_target: 'i-0abc123456789def0',
   ssh_host: '',
@@ -80,11 +80,11 @@ const MANUAL_INSTANCE = {
   status: { instance_id: 'm1', state: 'disconnected' as const },
 }
 const DONE_JOB = {
-  id: 'j-done', tag: 'kc-3f9a', instance_id: 'i-0abc123456789def0', profile: '', region: 'us-east-1',
+  id: 'j-done', tag: 'jn-3f9a', instance_id: 'i-0abc123456789def0', profile: '', region: 'us-east-1',
   size_key: 'balanced', status: 'done' as const, steps: [], signin: null, created_at: 0, updated_at: 0,
 }
 const RUNNING_JOB = {
-  id: 'j-run', tag: 'kc-4d10', profile: '', region: 'us-east-1', size_key: 'light',
+  id: 'j-run', tag: 'jn-4d10', profile: '', region: 'us-east-1', size_key: 'light',
   status: 'running' as const, signin: null, created_at: 0, updated_at: 0,
   steps: [
     { key: 'preflight', label: 'Checked your AWS setup', state: 'done' as const },
@@ -131,7 +131,7 @@ describe('RemoteCrewPanel', () => {
     // Once known, it is correctly a cloud row: Stop + the two-step Delete, no plain Remove.
     expect(await screen.findByText('Launched by Junction')).toBeInTheDocument()
     await openRowMenu(u)
-    expect(screen.getByRole('menuitem', { name: 'Stop Junction Cloud (kc-3f9a)' })).toBeInTheDocument()
+    expect(screen.getByRole('menuitem', { name: 'Stop Junction Cloud (jn-3f9a)' })).toBeInTheDocument()
     expect(screen.queryByRole('menuitem', { name: /^Remove/i })).not.toBeInTheDocument()
   })
 
@@ -160,7 +160,7 @@ describe('RemoteCrewPanel', () => {
 
   it('refreshes the crew list when a launch finishes, without waiting for a manual reload', async () => {
     // Switching tabs does not remount the panel, so nothing would invalidate the
-    // instances cache and the brand-new crew would stay missing from Your crews.
+    // instances cache and the brand-new instance would stay missing from Your instances.
     vi.mocked(api.listInstances).mockResolvedValue({ active: true, warm_set_cap: 5, instances: [] })
     vi.mocked(api.cloudLaunches).mockResolvedValue({ jobs: [RUNNING_JOB] })
     vi.mocked(api.cloudLaunchStatus).mockResolvedValue({ ...RUNNING_JOB, status: 'done' as const })
@@ -321,7 +321,7 @@ describe('RemoteCrewPanel', () => {
     const card = (await screen.findByText(/WXYZ-1234/)).closest('div')?.parentElement
     expect(card).toBeTruthy()
     const page = document.body.textContent ?? ''
-    expect(page).toMatch(/leave the page or switch crews and it keeps going/i)
+    expect(page).toMatch(/leave the page or switch instances and it keeps going/i)
     expect(page).not.toMatch(/quit the app/i)
     expect(page).not.toMatch(/get a notification/i)
   })
@@ -337,7 +337,7 @@ describe('RemoteCrewPanel', () => {
 
     await openRowMenu(u)
     await u.click(await screen.findByRole('menuitem', { name: /^Start Junction Cloud/i }))
-    await waitFor(() => expect(api.cloudStart).toHaveBeenCalledWith('kc-3f9a', expect.anything()))
+    await waitFor(() => expect(api.cloudStart).toHaveBeenCalledWith('jn-3f9a', expect.anything()))
   })
 
   it('still shows the device code when a finished launch never confirmed sign-in', async () => {
@@ -385,7 +385,7 @@ describe('RemoteCrewPanel', () => {
     await openRowMenu(u)
     await u.click(await screen.findByRole('menuitem', { name: /^Delete Junction Cloud/i }))
     await u.click(await screen.findByRole('button', { name: /^Confirm deleting/i }))
-    await waitFor(() => expect(api.cloudDestroy).toHaveBeenCalledWith('kc-3f9a', expect.anything()))
+    await waitFor(() => expect(api.cloudDestroy).toHaveBeenCalledWith('jn-3f9a', expect.anything()))
     // The row now reflects the in-flight teardown and cannot be re-triggered.
     const deleting = await screen.findByRole('button', { name: /Deleting…/i })
     expect(deleting).toBeDisabled()
@@ -395,8 +395,8 @@ describe('RemoteCrewPanel', () => {
     vi.mocked(api.listInstances).mockRejectedValue(new ApiError(403, 'instances feature is disabled'))
     vi.mocked(api.cloudLaunches).mockResolvedValue({ jobs: [] })
     renderWithProviders(<RemoteCrewPanel />)
-    expect(await screen.findByText(/Remote crew management is off/i)).toBeInTheDocument()
-    expect(screen.getByRole('button', { name: /Enable remote crew management/i })).toBeInTheDocument()
+    expect(await screen.findByText(/Remote instance management is off/i)).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: /Enable remote instance management/i })).toBeInTheDocument()
   })
 
   it('does not flash the tabbed UI before showing the disabled state', async () => {
@@ -412,14 +412,14 @@ describe('RemoteCrewPanel', () => {
 
     // While loading: a spinner, no tabs, no form.
     expect(screen.getByText(/Loading/i)).toBeInTheDocument()
-    expect(screen.queryByRole('button', { name: /Your crews/i })).not.toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: /Your instances/i })).not.toBeInTheDocument()
     expect(screen.queryByRole('button', { name: /Set up a new one/i })).not.toBeInTheDocument()
-    expect(screen.queryByRole('button', { name: /Enable remote crew management/i })).not.toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: /Enable remote instance management/i })).not.toBeInTheDocument()
 
     // After the 403 resolves: transitions directly to the disabled card.
     rejectInstances(new ApiError(403, 'instances feature is disabled'))
-    expect(await screen.findByText(/Remote crew management is off/i)).toBeInTheDocument()
-    expect(screen.queryByRole('button', { name: /Your crews/i })).not.toBeInTheDocument()
+    expect(await screen.findByText(/Remote instance management is off/i)).toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: /Your instances/i })).not.toBeInTheDocument()
   })
 
   it('distinguishes cloud crews from hand-added machines, and shows an in-progress launch', async () => {
@@ -432,7 +432,7 @@ describe('RemoteCrewPanel', () => {
     expect(await screen.findByText('Launched by Junction')).toBeInTheDocument()
     expect(screen.getByText(/does not manage this machine/i)).toBeInTheDocument()
     await openRowMenu(u, /More actions for Junction Cloud/i)
-    expect(screen.getByRole('menuitem', { name: 'Stop Junction Cloud (kc-3f9a)' })).toBeInTheDocument()
+    expect(screen.getByRole('menuitem', { name: 'Stop Junction Cloud (jn-3f9a)' })).toBeInTheDocument()
 
     // The still-launching job shows a "Setting up" row with step progress + the note.
     expect(screen.getByText(/Setting up/)).toBeInTheDocument()
@@ -479,7 +479,7 @@ describe('RemoteCrewPanel', () => {
     renderWithProviders(<RemoteCrewPanel />)
 
     expect(await screen.findByText(/gateway exploded/i)).toBeInTheDocument()
-    expect(screen.queryByText(/No crews yet/i)).not.toBeInTheDocument()
+    expect(screen.queryByText(/No instances yet/i)).not.toBeInTheDocument()
     // A retry sits with the error, in addition to the header's refresh control.
     expect(screen.getAllByRole('button', { name: /Refresh/i }).length).toBeGreaterThan(1)
   })

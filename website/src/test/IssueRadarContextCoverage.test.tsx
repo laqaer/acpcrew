@@ -54,7 +54,7 @@ const REPOS = [
 ]
 /** repoScopeKey(ACTIVE) — provider:host:owner/repo. */
 const SCOPE = 'github:github.com:kirodotdev/Kiro'
-const CREW_UI_KEY = 'kc:issue-radar:crew-ui'
+const CREW_UI_KEY = 'jn:issue-radar:crew-ui'
 
 // #1 authored + assigned to me. #2 authored by a roster member, also assigned to
 // me. #3 authored by a stranger who carries a member author_association, which is

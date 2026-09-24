@@ -12,7 +12,7 @@
  *   node scripts/capture-app-store-gallery.mjs [outputRoot]
  */
 import { chromium } from 'playwright'
-import { copyFileSync, existsSync, mkdirSync, readFileSync, readdirSync } from 'node:fs'
+import { existsSync, mkdirSync, readFileSync, readdirSync } from 'node:fs'
 import { join, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
 
@@ -24,17 +24,6 @@ const BUILTINS = fileURLToPath(new URL('../../src/junction/apps/builtins/', impo
 const OUTPUT_ROOT = resolve(process.argv[2]
   || fileURLToPath(new URL('../public/app-assets/', import.meta.url)))
 const VIEWPORT = { width: 1280, height: 800 }
-
-// These are prior captures of the same real SPA in richer, deliberately seeded
-// states. Keep them instead of replacing useful product frames with empty-state
-// screenshots. They are copied byte-for-byte; no mock artwork is substituted.
-const SEEDED_CAPTURES = {
-  'auto-improvement': fileURLToPath(new URL('../../temp-screenshots/auto-improvement/01-dashboard.png', import.meta.url)),
-  'auto-triage-pipeline': fileURLToPath(new URL('../../temp-screenshots/auto-triage-pipeline/app-01-populated.png', import.meta.url)),
-  'command-bar': fileURLToPath(new URL('../../temp-screenshots/command-bar/2-command-bar-root.png', import.meta.url)),
-  'crew-companion': fileURLToPath(new URL('../../temp-screenshots/crew-companion/dashboard-app-page.png', import.meta.url)),
-  mochi: fileURLToPath(new URL('../public/app-assets/mochi/shot-1-gallery.png', import.meta.url)),
-}
 
 const APPS = [
   ['agent-worlds', 'agent_worlds', 'worlds', '/worlds'],
@@ -154,7 +143,8 @@ function appResponse(name) {
 
 async function main() {
   const { srv, base } = await serveDist()
-  const browser = await chromium.launch()
+  // CHROME points at a Chromium binary when Playwright's own browser is absent.
+  const browser = await chromium.launch({ executablePath: process.env.CHROME || undefined })
   const context = await browser.newContext({
     viewport: VIEWPORT,
     deviceScaleFactor: 1,
@@ -185,10 +175,10 @@ async function main() {
   }
 
   await stubDashboardApi(page, {
-    theme: 'light',
+    theme: 'dark',
     extra,
     localStorageEntries: {
-      'kc-onboarded': '1',
+      'mc-onboarded': '1',
       'mc-changelog-seen': '9999',
       'mc-yolo-ack': '1',
     },
@@ -199,15 +189,17 @@ async function main() {
     const outputDir = join(OUTPUT_ROOT, assetDir)
     mkdirSync(outputDir, { recursive: true })
     const output = join(outputDir, screenshotName)
-    const seeded = SEEDED_CAPTURES[name]
-    if (seeded && existsSync(seeded)) {
-      if (seeded !== output) copyFileSync(seeded, output)
-      console.log(`copied seeded real capture ${output.replace(`${ROOT}`, '')}`)
-      continue
-    }
-
     await page.goto(`${base}${route}`, { waitUntil: 'domcontentloaded' })
     await page.waitForTimeout(2200)
+    if (name === 'command-bar') {
+      // The command bar has no page of its own; its product frame is the
+      // palette open over the dashboard.
+      const trigger = page.getByText('Run a command', { exact: true }).first()
+      if (await trigger.isVisible().catch(() => false)) {
+        await trigger.click()
+        await page.waitForTimeout(700)
+      }
+    }
     if (name === 'design-critique') {
       const example = page.getByRole('button', { name: /example/i }).first()
       if (await example.isVisible().catch(() => false)) {

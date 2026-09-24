@@ -18,7 +18,7 @@ import { serveDist } from './lib/serve-dist.mjs'
 import { json, makeFixedApi, handleBootRoute } from './lib/boot-api.mjs'
 
 const OUT = process.argv[2] || '../temp-screenshots/process-gauges'
-const PROJECT = '/home/user/.kiro/crew/workspace'
+const PROJECT = '/home/user/.junction/workspace'
 const VIEW = { width: 1500, height: 1000 }
 
 mkdirSync(OUT, { recursive: true })
@@ -32,7 +32,7 @@ const telemetry = {
   enabled: true,
   window_days: 14,
   shard_count: 42,
-  metrics_dir: '/home/user/.kiro/crew/metrics',
+  metrics_dir: '/home/user/.junction/metrics',
   startup: {
     overall: stat({ count: 63 }), cold: stat({ count: 21 }), warm: stat({ count: 42 }),
     outcome: { ready: 61, error: 2 },

@@ -79,8 +79,8 @@ function signedCurlFor(
   const body = JSON.stringify({ message, sessionKey, name: 'My Bot', deliver: true })
   return [
     '# Both secrets were shown once, when the token was generated.',
-    "TOKEN='kc_whk_…'      # bearer token — proves who is calling",
-    "SECRET='kc_whs_…'     # signing secret — proves the body was not tampered with",
+    "TOKEN='jn_whk_…'      # bearer token — proves who is calling",
+    "SECRET='jn_whs_…'     # signing secret — proves the body was not tampered with",
     '',
     `BODY=${shellQuote(body)}`,
     'TS=$(date +%s)',

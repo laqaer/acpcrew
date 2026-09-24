@@ -37,7 +37,7 @@ async function shoot(scene, mustSee, name) {
 
 // Reload mid-provision: the stepper and live log are rehydrated from the
 // fleet payload's provision_run_id — the state that used to be lost.
-await shoot('running', ['Provisioning', 'kc-wt-oauth-device-flow'], '01-reattach-running-stepper-dark.png')
+await shoot('running', ['Provisioning', 'jn-wt-oauth-device-flow'], '01-reattach-running-stepper-dark.png')
 
 // Reload after a failed provision: the red failure strip and auto-expanded
 // log persist, restoring the failure evidence a reload used to destroy.

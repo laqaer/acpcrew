@@ -41,12 +41,12 @@ const LIMITS = {
 
 const TOKENS = [
   {
-    id: 'tok_a', label: 'Review Bot', display_prefix: 'kc_whk_4f2b', last4: '1f3a',
+    id: 'tok_a', label: 'Review Bot', display_prefix: 'jn_whk_4f2b', last4: '1f3a',
     created_at: NOW - 3 * 86400, last_used_at: NOW - 480,
     require_signature: true, legacy: false,
   },
   {
-    id: 'tok_b', label: 'CI callback', display_prefix: 'kc_whk_91de', last4: 'b231',
+    id: 'tok_b', label: 'CI callback', display_prefix: 'jn_whk_91de', last4: 'b231',
     created_at: NOW - 86400, last_used_at: null,
     require_signature: false, legacy: false,
   },

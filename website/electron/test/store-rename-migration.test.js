@@ -55,7 +55,7 @@ const DEFAULTS = {
 };
 
 function tmpUserData() {
-  return fs.mkdtempSync(path.join(os.tmpdir(), "kc-store-"));
+  return fs.mkdtempSync(path.join(os.tmpdir(), "jn-store-"));
 }
 
 // Open a REAL electron-store the way main.js does, so assertions run against the
@@ -295,7 +295,7 @@ test("a CORRUPTED legacy store is final and loud, never retried", () => {
   // no exception may escape to the caller, because this runs before any window
   // exists. Exercised through the REAL read path (a real malformed file on disk),
   // since the JSON.parse throw is what production hits.
-  const parent = fs.mkdtempSync(path.join(os.tmpdir(), "kc-corrupt-"));
+  const parent = fs.mkdtempSync(path.join(os.tmpdir(), "jn-corrupt-"));
   const userData = path.join(parent, "junction-desktop-nightly");
   fs.mkdirSync(userData, { recursive: true });
   const legacyDir = path.join(parent, LEGACY_STORE_NAME);

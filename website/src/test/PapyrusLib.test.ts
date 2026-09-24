@@ -218,10 +218,10 @@ describe('project + slot persistence', () => {
   })
 
   it('leaves unrelated keys alone when pruning', () => {
-    localStorage.setItem('kc:unrelated', 'keep-me')
+    localStorage.setItem('jn:unrelated', 'keep-me')
     saveSlot('gone', 'slot')
     pruneSlots([])
-    expect(localStorage.getItem('kc:unrelated')).toBe('keep-me')
+    expect(localStorage.getItem('jn:unrelated')).toBe('keep-me')
   })
 
   it('namespaces slot keys', () => {

@@ -84,7 +84,7 @@ const PACKAGE_TEMPLATE = {
 
 const BUILTIN_DETAIL = {
   ...BUILTIN,
-  prompt: 'file://~/.kiro/crew/prompts/junction.md',
+  prompt: 'file://~/.junction/prompts/junction.md',
   tools: ['fs_read', 'fs_write'],
   allowedTools: ['fs_read'],
   mcpServers: { 'junction-core': {} },

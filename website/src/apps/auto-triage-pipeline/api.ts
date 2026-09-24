@@ -153,13 +153,13 @@ export interface ReposResponse {
  * the backend is authoritative, and a preference naming a repo no longer in that
  * list is discarded (see `lib/fabric.ts` `selectRepo`). The app writes only this
  * key; it never writes Issue Radar's. */
-export const REPO_PREFERENCE_KEY = 'kc:auto-triage-pipeline:repo'
+export const REPO_PREFERENCE_KEY = 'jn:auto-triage-pipeline:repo'
 
 /** localStorage key Issue Radar persists its active repo under. This app READS it
  * (never writes it) as a seed for a first-ever visit, so a user who already has a
  * repo open in Issue Radar lands on the same one — but it is only one candidate
  * preference, not the source of truth. */
-export const ISSUE_RADAR_ACTIVE_REPO_KEY = 'kc:issue-radar:active-repo'
+export const ISSUE_RADAR_ACTIVE_REPO_KEY = 'jn:issue-radar:active-repo'
 
 /** Coerce an unknown parsed value into a `RepoRef`, or null if it is not one.
  * Guards every field so a malformed or pre-GitLab value cannot crash the read. */

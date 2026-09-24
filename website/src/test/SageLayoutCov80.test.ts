@@ -22,8 +22,8 @@ afterEach(() => {
 
 describe('layout storage keys', () => {
   it('namespaces the rail and list keys per app so another app cannot collide', () => {
-    expect(RAIL_WIDTH_KEY).toBe('kc:code-review-sage:rail-width')
-    expect(LIST_WIDTH_KEY).toBe('kc:code-review-sage:list-width')
+    expect(RAIL_WIDTH_KEY).toBe('jn:code-review-sage:rail-width')
+    expect(LIST_WIDTH_KEY).toBe('jn:code-review-sage:list-width')
     expect(RAIL_WIDTH_KEY).not.toBe(LIST_WIDTH_KEY)
   })
 

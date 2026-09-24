@@ -32,14 +32,14 @@ describe('boardFolderCollapse persistence', () => {
   it('each override occupies its own storage key (no shared blob to interleave on)', () => {
     persistBoardOverride('col-a', 'f1', true)
     persistBoardOverride('col-b', 'f1', false)
-    expect(localStorage.getItem('kc-board-folder-collapsed:col-a:f1')).toBe('1')
-    expect(localStorage.getItem('kc-board-folder-collapsed:col-b:f1')).toBe('0')
+    expect(localStorage.getItem('jn-board-folder-collapsed:col-a:f1')).toBe('1')
+    expect(localStorage.getItem('jn-board-folder-collapsed:col-b:f1')).toBe('0')
     // The legacy single-blob key never appears.
-    expect(localStorage.getItem('kc-board-folder-collapsed')).toBeNull()
+    expect(localStorage.getItem('jn-board-folder-collapsed')).toBeNull()
   })
 
   it('skips a corrupt per-key value instead of throwing, leaving the rest intact', () => {
-    localStorage.setItem('kc-board-folder-collapsed:col-a:f1', 'garbage')
+    localStorage.setItem('jn-board-folder-collapsed:col-a:f1', 'garbage')
     persistBoardOverride('col-b', 'f2', true)
     const loaded = loadBoardFolderCollapse()
     expect(loaded.has('col-a:f1')).toBe(false)

@@ -235,7 +235,7 @@ describe('pasting a pull request link', () => {
     api.pinnedRepos.mockResolvedValue({ repos: [] })
     api.recentRepos.mockResolvedValue({ repos: [], pinned: [], gh_ready: true })
     api.myRepos.mockResolvedValue({ repos: [], pinned: [], gh_ready: true })
-    api.repoPrs.mockResolvedValue({ repo: 'kirodotdev/KiroCrew', prs: [], count: 0 })
+    api.repoPrs.mockResolvedValue({ repo: 'laqaer/junction', prs: [], count: 0 })
     api.settings.mockResolvedValue({
       settings: { review: { concurrency: 2 } }, pool: null, reviewer: null,
     })
@@ -246,20 +246,20 @@ describe('pasting a pull request link', () => {
     // lands here whatever it points at.
     api.pinRepoUrl.mockResolvedValue({
       ok: true,
-      repos: [{ owner: 'kirodotdev', repo: 'Junction' }],  // brand-ok: literal repository name
-      added: { owner: 'kirodotdev', repo: 'Junction' },  // brand-ok: literal repository name
+      repos: [{ owner: 'laqaer', repo: 'junction' }],
+      added: { owner: 'laqaer', repo: 'junction' },
       pull_request: {
-        owner: 'kirodotdev', repo: 'Junction', number: 777,  // brand-ok: literal repository name
-        url: 'https://github.com/kirodotdev/KiroCrew/pull/777',
-        change_id: 'GH-kirodotdev-Junction-777',
+        owner: 'laqaer', repo: 'junction', number: 777,
+        url: 'https://github.com/laqaer/junction/pull/777',
+        change_id: 'GH-laqaer-junction-777',
       },
     })
     mount()
     const field = await screen.findByLabelText(/Repository or pull request URL/i)
-    await userEvent.type(field, 'https://github.com/kirodotdev/KiroCrew/pull/777')
+    await userEvent.type(field, 'https://github.com/laqaer/junction/pull/777')
     await userEvent.click(screen.getByRole('button', { name: /^Add$/ }))
     await waitFor(() => expect(api.pinRepoUrl).toHaveBeenCalledWith(
-      'https://github.com/kirodotdev/KiroCrew/pull/777'))
+      'https://github.com/laqaer/junction/pull/777'))
   })
 
   it('opens the pasted pull request instead of leaving you to find it', async () => {
@@ -267,16 +267,16 @@ describe('pasting a pull request link', () => {
     // have to locate it in.
     api.pinRepoUrl.mockResolvedValue({
       ok: true,
-      repos: [{ owner: 'kirodotdev', repo: 'Junction' }],  // brand-ok: literal repository name
-      added: { owner: 'kirodotdev', repo: 'Junction' },  // brand-ok: literal repository name
+      repos: [{ owner: 'laqaer', repo: 'junction' }],
+      added: { owner: 'laqaer', repo: 'junction' },
       pull_request: {
-        owner: 'kirodotdev', repo: 'Junction', number: 777,  // brand-ok: literal repository name
-        url: 'https://github.com/kirodotdev/KiroCrew/pull/777',
-        change_id: 'GH-kirodotdev-Junction-777',
+        owner: 'laqaer', repo: 'junction', number: 777,
+        url: 'https://github.com/laqaer/junction/pull/777',
+        change_id: 'GH-laqaer-junction-777',
       },
     })
     api.pullRequestSource?.mockResolvedValue?.({
-      provider: 'github', url: 'https://github.com/kirodotdev/KiroCrew/pull/777',
+      provider: 'github', url: 'https://github.com/laqaer/junction/pull/777',
       number: 777, title: 'Pasted pull request', description: '', state: 'open',
       draft: false, mergedAt: '', updatedAt: '', headBranch: 'x', baseBranch: 'main',
       headSha: 'abc', author: 'ann', additions: 0, deletions: 0, changedFiles: 0,
@@ -285,18 +285,18 @@ describe('pasting a pull request link', () => {
     // After the add the server lists the repo as pinned; the provider drops an
     // active repo that is NOT pinned, so the fixture has to reflect that.
     api.pinnedRepos.mockResolvedValue({
-      repos: [{ owner: 'kirodotdev', repo: 'Junction' }],  // brand-ok: literal repository name
+      repos: [{ owner: 'laqaer', repo: 'junction' }],
     })
     mount()
     const field = await screen.findByLabelText(/Repository or pull request URL/i)
-    await userEvent.type(field, 'https://github.com/kirodotdev/KiroCrew/pull/777')
+    await userEvent.type(field, 'https://github.com/laqaer/junction/pull/777')
     await userEvent.click(screen.getByRole('button', { name: /^Add$/ }))
     // The modal closes, the repo is active, and the pull request is selected.
     await waitFor(() => expect(screen.queryByRole('dialog')).toBeNull())
     await waitFor(() => expect(screen.getByTestId('probe').textContent)
       .toContain('pr:777'))
     expect(screen.getByTestId('probe').textContent)
-      .toContain('repo:kirodotdev/KiroCrew')
+      .toContain('repo:laqaer/junction')
   })
 
   it('says pasting a pull request link works', async () => {

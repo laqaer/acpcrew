@@ -110,7 +110,7 @@ describe('WelcomeView', () => {
     expect(suggestions).not.toHaveBeenCalled()
   })
 
-  it('renders the theme logo instead of the stock ghost when one is registered', () => {
+  it('renders the theme logo instead of the stock track mark when one is registered', () => {
     branding.mockReturnValue({ logo: '/zzq-logo.png' })
     const { container } = renderWithProviders(
       <WelcomeView mode="orchestrator" setInput={vi.fn()} />,

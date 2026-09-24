@@ -37,7 +37,7 @@ initI18n('en')
 
 /** Realistic operands so the frame reads like production, not lorem ipsum. */
 const SITE = 'blog'
-const BUCKET = 'kc-site-blog-8f3a'
+const BUCKET = 'jn-site-blog-8f3a'
 const DISTRIBUTION = 'E2ABCDEF123'
 const FILE = 'draft.tex'
 

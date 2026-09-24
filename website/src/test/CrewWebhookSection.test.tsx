@@ -24,7 +24,7 @@ function token(over: Record<string, unknown> = {}) {
   return {
     id: 'wht_' + Math.random().toString(16).slice(2, 8),
     label: 'CI runner',
-    display_prefix: 'kc_whk_4f2b',
+    display_prefix: 'jn_whk_4f2b',
     last4: '9c1d',
     created_at: 1_700_000_000,
     last_used_at: null,
@@ -72,7 +72,7 @@ describe('crew webhook pane — lists only this crew\'s bindings', () => {
       token({ agent: 'oncall', require_signature: true }),
     ]))
     renderPane('oncall')
-    await waitFor(() => expect(screen.getByText(/kc_whk_4f2b…9c1d/)).toBeInTheDocument())
+    await waitFor(() => expect(screen.getByText(/jn_whk_4f2b…9c1d/)).toBeInTheDocument())
     expect(screen.getByText('Signed')).toBeInTheDocument()
     expect(screen.getByText(/never used/)).toBeInTheDocument()
   })
