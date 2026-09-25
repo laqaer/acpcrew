@@ -35,8 +35,8 @@
     carry no audio-input at all.
 
     Keep this in sync with packaging/signing/Entitlements.entitlements — the
-    two signing paths (electron-builder locally, the enterprise signing service
-    for release) each read their OWN file, so an entitlement added to one and
+    two signing paths (electron-builder locally, packaging/signing/sign.sh's
+    Developer ID codesign for release) each read their OWN file, so an entitlement added to one and
     not the other ships a broken bundle on the other lane.
     `packaging.test.js` pins both.
 

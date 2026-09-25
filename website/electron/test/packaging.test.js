@@ -461,14 +461,14 @@ function parseEntitlements(xml) {
 }
 
 // There are TWO signing lanes reading TWO different files (electron-builder
-// locally, the enterprise signing service for release), so an entitlement
+// locally, packaging/signing/sign.sh for release), so an entitlement
 // present in one and absent from the other still ships a broken bundle on that
 // lane. Every entitlement assertion below runs against both.
 const ENTITLEMENT_LANES = {
   "electron-builder (build/entitlements.mac.plist)": path.join(
     ROOT, "build", "entitlements.mac.plist"
   ),
-  "signing service (packaging/signing/Entitlements.entitlements)": path.resolve(
+  "release codesign (packaging/signing/Entitlements.entitlements)": path.resolve(
     ROOT, "..", "..", "packaging", "signing", "Entitlements.entitlements"
   ),
 };
@@ -478,8 +478,8 @@ const ENTITLEMENT_LANES = {
 // audio-input missing, the runtime refused the microphone BEFORE macOS (TCC) was
 // consulted, so voice input reported "permission denied" and the user was never
 // prompted and had no System Settings toggle to fix it. There are TWO signing
-// lanes reading TWO different files (electron-builder locally, the enterprise
-// signing service for release), so an entitlement present in one and absent from
+// lanes reading TWO different files (electron-builder locally,
+// packaging/signing/sign.sh for release), so an entitlement present in one and absent from
 // the other still ships a broken bundle on that lane. Pin both.
 describe("macOS microphone entitlement (both signing lanes)", () => {
   const MIC = "com.apple.security.device.audio-input";
