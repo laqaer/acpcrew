@@ -138,7 +138,7 @@ def format_human_planes(snap: Mapping[str, Any], *, heading: str) -> str:
 
 def _model_line(model: Mapping[str, Any]) -> str:
     """One status line. The built-in catalog is up when its health names us."""
-    health = {}
+    health: Mapping[str, Any] = {}
     router = model.get("router")
     if isinstance(router, Mapping):
         raw = router.get("health")
