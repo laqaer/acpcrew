@@ -90,8 +90,10 @@ re-gating each one.
 
 **Respect existing ownership signals during triage.** Other automation shares
 your work pool — an Issue Radar steward labels the issue it is working
-`steward: in progress`, humans assign themselves. A candidate someone else already owns is excluded, listed in the
-plan as skipped with the reason, never dispatched over.
+`steward: in progress`, humans assign themselves. Treat any claim or
+in-progress label as ownership, including one an earlier Junction build wrote
+with a different prefix. A candidate someone else already owns is excluded,
+listed in the plan as skipped with the reason, never dispatched over.
 
 Keep concurrency small and constant — two or three items per round. More rounds
 beats more parallelism: every open item is a session the user may have to read.

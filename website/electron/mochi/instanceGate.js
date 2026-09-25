@@ -61,9 +61,9 @@ function enabledOrTrust(probe) {
  * host being switched off says nothing about whether that pet can continue.
  *
  * So a user who runs Mochi on a remote instance and turns it off locally is
- * telling us to stop MOCHI'S BACKEND WORK HERE (which
- * `on_shutdown` duly does — pollers, watchlist guard, stats), not to take away a
- * pet that is being served from somewhere else entirely.
+ * telling us to stop MOCHI'S BACKEND WORK HERE (which `on_shutdown` duly does —
+ * pollers, watchlist guard, stats), not to take away a pet that is being served
+ * from somewhere else entirely.
  *
  * `self` still tears down, because then the host IS the thing being shown.
  *
