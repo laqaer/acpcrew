@@ -1,5 +1,5 @@
 /**
- * CrewCompanion - Gallery Panel
+ * Companion - Gallery Panel
  *
  * Full gallery UI for browsing, previewing, and managing appearance packs.
  * Renders as the root component of the Gallery BrowserWindow.
@@ -504,12 +504,12 @@ function PackCard({ pack, isActive, isSelected, onClick, onManage, thumbnailCont
   colorMap?: ColorMap | null
 }) {
   return (
-    <div role="button" tabIndex={0} aria-pressed={isActive} onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onClick() } }} style={{ ...S.card(isActive, isSelected), position: 'relative' }} onClick={onClick} title={isActive ? undefined : i18nT('apps.crewCompanion.gallery.useNamed', { name: pack.name })}>
+    <div role="button" tabIndex={0} aria-pressed={isActive} onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onClick() } }} style={{ ...S.card(isActive, isSelected), position: 'relative' }} onClick={onClick} title={isActive ? undefined : i18nT('apps.deskCompanion.gallery.useNamed', { name: pack.name })}>
       {onManage && (
         <button
           onClick={(e) => { e.stopPropagation(); onManage() }}
-          title={i18nT('apps.crewCompanion.gallery.manage')}
-          aria-label={i18nT('apps.crewCompanion.gallery.manage')}
+          title={i18nT('apps.deskCompanion.gallery.manage')}
+          aria-label={i18nT('apps.deskCompanion.gallery.manage')}
           style={{
             position: 'absolute', top: 6, right: 6, width: 22, height: 22, lineHeight: '20px',
             borderRadius: 6, border: '1px solid var(--border)', background: 'var(--cc-input-bg)',
@@ -532,8 +532,8 @@ function PackCard({ pack, isActive, isSelected, onClick, onManage, thumbnailCont
       <div style={S.cardAuthor}>{pack.author}</div>
       <div style={{ display: 'flex', alignItems: 'center', gap: 4, minHeight: 20 }}>
         {isActive
-          ? <span style={S.activeBadge}>{i18nT('apps.crewCompanion.gallery.active')}</span>
-          : <span style={{ fontSize: 11, color: 'var(--text-muted)' }}>{i18nT('apps.crewCompanion.gallery.tapToUse')}</span>}
+          ? <span style={S.activeBadge}>{i18nT('apps.deskCompanion.gallery.active')}</span>
+          : <span style={{ fontSize: 11, color: 'var(--text-muted)' }}>{i18nT('apps.deskCompanion.gallery.tapToUse')}</span>}
       </div>
     </div>
   )
@@ -565,8 +565,8 @@ function ImportPetDialog({ input, onInput, resolving, resolved, importing, error
       {/* eslint-disable-next-line jsx-a11y/click-events-have-key-events, jsx-a11y/no-noninteractive-element-interactions -- stopPropagation prevents backdrop dismiss when clicking inside modal */}
       <div role="dialog" aria-modal="true" style={S.modal} onClick={(e) => e.stopPropagation()}>
         <div style={S.modalHeader}>
-          <span style={{ fontSize: 13, fontWeight: 600, flex: 1 }}>{i18nT('apps.crewCompanion.gallery.importPet')}</span>
-          <button onClick={onClose} aria-label={i18nT('apps.crewCompanion.gallery.close')}
+          <span style={{ fontSize: 13, fontWeight: 600, flex: 1 }}>{i18nT('apps.deskCompanion.gallery.importPet')}</span>
+          <button onClick={onClose} aria-label={i18nT('apps.deskCompanion.gallery.close')}
             style={{ background: 'none', border: 'none', color: 'var(--text-muted)', cursor: 'pointer', fontSize: 15, padding: 0 }}>
             <X className="lucide-inline" aria-hidden="true" />
           </button>
@@ -578,7 +578,7 @@ function ImportPetDialog({ input, onInput, resolving, resolved, importing, error
               One key, one sentence, split on a {{link}} placeholder — so a translator
               can put the link wherever their language needs it.
             */}
-            {splitOnPlaceholder(i18nT('apps.crewCompanion.gallery.petdexIntro'), 'link').map((part, i) =>
+            {splitOnPlaceholder(i18nT('apps.deskCompanion.gallery.petdexIntro'), 'link').map((part, i) =>
               part === null ? (
                 /*
                  * A real <button>, not a click-handling span. This sits mid-sentence,
@@ -597,7 +597,7 @@ function ImportPetDialog({ input, onInput, resolving, resolved, importing, error
                     textDecoration: 'underline',
                   }}
                 >
-                  {i18nT('apps.crewCompanion.gallery.petdexLinkLabel')}
+                  {i18nT('apps.deskCompanion.gallery.petdexLinkLabel')}
                 </button>
               ) : (
                 <span key={i}>{part}</span>
@@ -609,8 +609,8 @@ function ImportPetDialog({ input, onInput, resolving, resolved, importing, error
             value={input}
             onChange={(e) => onInput(e.target.value)}
             {...ime.bindEnter({ onEnter: () => { if (resolved) onConfirm() } })}
-            placeholder={i18nT('apps.crewCompanion.gallery.petdexPlaceholder')}
-            aria-label={i18nT('apps.crewCompanion.gallery.petdexPlaceholder')}
+            placeholder={i18nT('apps.deskCompanion.gallery.petdexPlaceholder')}
+            aria-label={i18nT('apps.deskCompanion.gallery.petdexPlaceholder')}
             autoFocus
             disabled={importing}
             style={{
@@ -623,7 +623,7 @@ function ImportPetDialog({ input, onInput, resolving, resolved, importing, error
           {/* Status: looking up / found / not found */}
           <div style={{ minHeight: 58, marginTop: 10 }}>
             {resolving && (
-              <div style={{ fontSize: 11, color: 'var(--text-muted)' }}>{i18nT('apps.crewCompanion.gallery.lookingUp')}</div>
+              <div style={{ fontSize: 11, color: 'var(--text-muted)' }}>{i18nT('apps.deskCompanion.gallery.lookingUp')}</div>
             )}
             {!resolving && error && (
               <div style={{ fontSize: 11, color: 'var(--danger)' }}>{error}</div>
@@ -639,7 +639,7 @@ function ImportPetDialog({ input, onInput, resolving, resolved, importing, error
                 <div style={{ flex: 1, minWidth: 0 }}>
                   <div style={{ fontSize: 12, fontWeight: 600 }}>{resolved.displayName}</div>
                   <div style={{ fontSize: 10, color: 'var(--text-muted)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                    {i18nT('apps.crewCompanion.gallery.foundBy', { author: resolved.author })}
+                    {i18nT('apps.deskCompanion.gallery.foundBy', { author: resolved.author })}
                   </div>
                 </div>
               </div>
@@ -647,13 +647,13 @@ function ImportPetDialog({ input, onInput, resolving, resolved, importing, error
           </div>
 
           <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginTop: 4 }}>
-            <span style={{ flex: 1, fontSize: 10, color: 'var(--text-faint)' }}>{i18nT('apps.crewCompanion.gallery.fanArt')}</span>
-            <button style={S.headerBtn} onClick={onClose}>{i18nT('apps.crewCompanion.gallery.cancel')}</button>
+            <span style={{ flex: 1, fontSize: 10, color: 'var(--text-faint)' }}>{i18nT('apps.deskCompanion.gallery.fanArt')}</span>
+            <button style={S.headerBtn} onClick={onClose}>{i18nT('apps.deskCompanion.gallery.cancel')}</button>
             <button
               style={{ ...S.headerBtnAccent, opacity: !resolved || importing ? 0.5 : 1, cursor: !resolved || importing ? 'default' : 'pointer' }}
               disabled={!resolved || importing}
               onClick={onConfirm}
-            >{importing ? i18nT('apps.crewCompanion.gallery.adding') : i18nT('apps.crewCompanion.gallery.usePet')}</button>
+            >{importing ? i18nT('apps.deskCompanion.gallery.adding') : i18nT('apps.deskCompanion.gallery.usePet')}</button>
           </div>
         </div>
       </div>
@@ -725,11 +725,11 @@ function DetailPanel({ detail, isActive, onClose, onApply, onExport, onEdit, onD
             )}
           </div>
           <span style={S.badge(meta.type)}>
-            {meta.type === 'built-in' ? i18nT('apps.crewCompanion.gallery.builtIn') : i18nT('apps.crewCompanion.gallery.custom')}
+            {meta.type === 'built-in' ? i18nT('apps.deskCompanion.gallery.builtIn') : i18nT('apps.deskCompanion.gallery.custom')}
           </span>
-          {isActive && <span style={S.activeBadge}>{i18nT('apps.crewCompanion.gallery.active')}</span>}
+          {isActive && <span style={S.activeBadge}>{i18nT('apps.deskCompanion.gallery.active')}</span>}
           <button style={S.closeBtn} onClick={onClose}
-            aria-label={i18nT('apps.crewCompanion.gallery.close')}>
+            aria-label={i18nT('apps.deskCompanion.gallery.close')}>
             <X className="lucide-inline" aria-hidden="true" />
           </button>
         </div>
@@ -749,7 +749,7 @@ function DetailPanel({ detail, isActive, onClose, onApply, onExport, onEdit, onD
             }}
           >
             <span style={{ transition: 'transform 200ms', transform: showColorCustomizer ? 'rotate(180deg)' : 'none', display: 'inline-flex' }}><ChevronDown size={13} className="lucide-inline" aria-hidden="true" /></span>
-            {showColorCustomizer ? i18nT('apps.crewCompanion.color.hideBtn') : i18nT('apps.crewCompanion.color.customizeBtn')}
+            {showColorCustomizer ? i18nT('apps.deskCompanion.color.hideBtn') : i18nT('apps.deskCompanion.color.customizeBtn')}
           </button>
         )}
 
@@ -766,7 +766,7 @@ function DetailPanel({ detail, isActive, onClose, onApply, onExport, onEdit, onD
         )}
 
         {/* Required */}
-        <div style={S.sectionLabel}>{i18nT('apps.crewCompanion.gallery.states')}</div>
+        <div style={S.sectionLabel}>{i18nT('apps.deskCompanion.gallery.states')}</div>
         <div style={S.animGrid}>
           {stateEntries.map(({ key, label, anim }) => (
             <div key={key} style={S.animCell}>
@@ -781,7 +781,7 @@ function DetailPanel({ detail, isActive, onClose, onApply, onExport, onEdit, onD
         </div>
 
         {/* Status / Random / Legacy — only the groups this pack actually provides */}
-        {([[i18nT('apps.crewCompanion.state.groupStatus'), statusEntries], [i18nT('apps.crewCompanion.state.groupRandom'), randomEntries], [i18nT('apps.crewCompanion.state.groupLegacy'), legacyEntries]] as const)
+        {([[i18nT('apps.deskCompanion.state.groupStatus'), statusEntries], [i18nT('apps.deskCompanion.state.groupRandom'), randomEntries], [i18nT('apps.deskCompanion.state.groupLegacy'), legacyEntries]] as const)
           .filter(([, entries]) => entries.length > 0)
           .map(([title, entries]) => (
           <React.Fragment key={title}>
@@ -805,19 +805,19 @@ function DetailPanel({ detail, isActive, onClose, onApply, onExport, onEdit, onD
         <div style={S.btnRow}>
           {!isActive && (
             <button style={S.applyBtn} onClick={onApply}>
-              {i18nT('apps.crewCompanion.gallery.apply')}
+              {i18nT('apps.deskCompanion.gallery.apply')}
             </button>
           )}
           {meta.type === 'custom' && (
             <>
               <button style={S.actionBtn} onClick={onExport}>
-                {i18nT('apps.crewCompanion.gallery.export')}
+                {i18nT('apps.deskCompanion.gallery.export')}
               </button>
               <button style={S.actionBtn} onClick={onEdit}>
-                {i18nT('apps.crewCompanion.gallery.edit')}
+                {i18nT('apps.deskCompanion.gallery.edit')}
               </button>
               <button style={S.dangerBtn} onClick={onDelete}>
-                {i18nT('apps.crewCompanion.gallery.delete')}
+                {i18nT('apps.deskCompanion.gallery.delete')}
               </button>
             </>
           )}
@@ -866,7 +866,7 @@ export const GalleryPanel: React.FC = () => {
   const [thumbs, setThumbs] = useState<Record<string, string>>({})
   const [spriteConfigs, setSpriteConfigs] = useState<Record<string, SpriteMeta>>({})
   // Color map for the built-in cat's thumbnail
-  const [crewCompanionColorMap, setCrewCompanionColorMap] = useState<ColorMap | null>(null)
+  const [deskCompanionColorMap, setDeskCompanionColorMap] = useState<ColorMap | null>(null)
   // ── Data fetching ──────────────────────────────────────────────────────
 
   const fetchPacks = useCallback(async () => {
@@ -890,18 +890,18 @@ export const GalleryPanel: React.FC = () => {
       setThumbs(thumbMap)
       setSpriteConfigs(scMap)
     } catch (err) {
-      setError(errorText(err) || i18nT('apps.crewCompanion.gallery.loadPacksFailed'))
+      setError(errorText(err) || i18nT('apps.deskCompanion.gallery.loadPacksFailed'))
     }
   }, [])
 
   const fetchActiveId = useCallback(async () => {
     try {
-      const cfg = await api.getCrewCompanionConfig()
+      const cfg = await api.getDeskCompanionConfig()
       setActivePackId(cfg?.activeAppearance || BUILTIN_PACK)
       if (typeof cfg?.language === 'string') setLang(cfg.language)
       // Load colorMap for the built-in cat's thumbnail, keyed by the built-in's id.
       const cm = await api?.presetsGetColorMap?.(BUILTIN_PACK)
-      setCrewCompanionColorMap(cm && Object.keys(cm).length > 0 ? cm : null)
+      setDeskCompanionColorMap(cm && Object.keys(cm).length > 0 ? cm : null)
     } catch {
       setActivePackId(BUILTIN_PACK)
     }
@@ -934,7 +934,7 @@ export const GalleryPanel: React.FC = () => {
     // Listen for color map changes to update the built-in cat's thumbnail
     const offColor = api.onColorMapChanged?.((data: { packId: string; colorMap: Record<string, string> }) => {
       if (data.packId === BUILTIN_PACK) {
-        setCrewCompanionColorMap(data.colorMap && Object.keys(data.colorMap).length > 0 ? data.colorMap : null)
+        setDeskCompanionColorMap(data.colorMap && Object.keys(data.colorMap).length > 0 ? data.colorMap : null)
       }
     })
     // Listen for config changes (language, theme) broadcast from settings save
@@ -970,7 +970,7 @@ export const GalleryPanel: React.FC = () => {
         : d.animations ?? {}
       setDetail({ meta: d.meta as PackMeta, animations, sprite: d.sprite })
     } catch (err) {
-      setError(errorText(err) || i18nT('apps.crewCompanion.gallery.loadDetailFailed'))
+      setError(errorText(err) || i18nT('apps.deskCompanion.gallery.loadDetailFailed'))
       setDetail(null)
     }
   }, [selectedPackId])
@@ -982,12 +982,12 @@ export const GalleryPanel: React.FC = () => {
     try {
       const result = await api.gallerySetActive(detail.meta.id)
       if (result && !result.ok) {
-        setError(result.error || i18nT('apps.crewCompanion.gallery.applyFailed'))
+        setError(result.error || i18nT('apps.deskCompanion.gallery.applyFailed'))
         return
       }
       setActivePackId(detail.meta.id)
     } catch (err) {
-      setError(errorText(err) || i18nT('apps.crewCompanion.gallery.applyFailed'))
+      setError(errorText(err) || i18nT('apps.deskCompanion.gallery.applyFailed'))
     }
   }, [detail])
 
@@ -1009,12 +1009,12 @@ export const GalleryPanel: React.FC = () => {
       const result = (await api.galleryExport(detail.meta.id)) as GalleryResult | null
       if (!result) return // cancelled
       if (result.ok) {
-        showToast(i18nT('apps.crewCompanion.gallery.exportSuccess'))
+        showToast(i18nT('apps.deskCompanion.gallery.exportSuccess'))
       } else {
-        setError(result.error || i18nT('apps.crewCompanion.gallery.exportFailed'))
+        setError(result.error || i18nT('apps.deskCompanion.gallery.exportFailed'))
       }
     } catch (err) {
-      setError(errorText(err) || i18nT('apps.crewCompanion.gallery.exportFailed'))
+      setError(errorText(err) || i18nT('apps.deskCompanion.gallery.exportFailed'))
     }
   }, [detail])
 
@@ -1028,7 +1028,7 @@ export const GalleryPanel: React.FC = () => {
 
   const handleDelete = useCallback(async () => {
     if (!detail) return
-    if (!confirm(i18nT('apps.crewCompanion.gallery.deleteConfirm', { name: detail.meta.name }))) return
+    if (!confirm(i18nT('apps.deskCompanion.gallery.deleteConfirm', { name: detail.meta.name }))) return
     try {
       const wasActive = detail.meta.id === activePackId
       if (wasActive) {
@@ -1040,21 +1040,21 @@ export const GalleryPanel: React.FC = () => {
         // gallerySetActive also broadcasts the change to the overlay window.
         const switched = await api.gallerySetActive?.(BUILTIN_PACK)
         if (!switched?.ok) {
-          setError(i18nT('apps.crewCompanion.gallery.deleteFailed'))
+          setError(i18nT('apps.deskCompanion.gallery.deleteFailed'))
           return
         }
         setActivePackId(BUILTIN_PACK)
       }
       const result = await api.galleryDelete(detail.meta.id)
       if (!result) {
-        setError(i18nT('apps.crewCompanion.gallery.deleteFailed'))
+        setError(i18nT('apps.deskCompanion.gallery.deleteFailed'))
         return
       }
       setSelectedPackId(null)
       setDetail(null)
       fetchPacks()
     } catch (err) {
-      setError(errorText(err) || i18nT('apps.crewCompanion.gallery.deleteFailed'))
+      setError(errorText(err) || i18nT('apps.deskCompanion.gallery.deleteFailed'))
     }
   }, [detail, fetchPacks, activePackId])
 
@@ -1069,11 +1069,11 @@ export const GalleryPanel: React.FC = () => {
     setError(null)
     try {
       const result = await api.gallerySetActive(packId)
-      if (result && !result.ok) { setError(result.error || i18nT('apps.crewCompanion.gallery.applyFailed')); return }
+      if (result && !result.ok) { setError(result.error || i18nT('apps.deskCompanion.gallery.applyFailed')); return }
       setActivePackId(packId)
-      showToast(i18nT('apps.crewCompanion.gallery.switched'))
+      showToast(i18nT('apps.deskCompanion.gallery.switched'))
     } catch (err) {
-      setError(errorText(err) || i18nT('apps.crewCompanion.gallery.applyFailed'))
+      setError(errorText(err) || i18nT('apps.deskCompanion.gallery.applyFailed'))
     }
   }, [activePackId])
 
@@ -1090,7 +1090,7 @@ export const GalleryPanel: React.FC = () => {
     setResolving(true)
     try {
       const res = (await api?.petdexFetch?.(input)) as unknown as PetdexResult | undefined
-      if (!res?.ok) { setImportError(res?.error || i18nT('apps.crewCompanion.gallery.petNotFound')); return }
+      if (!res?.ok) { setImportError(res?.error || i18nT('apps.deskCompanion.gallery.petNotFound')); return }
       let preview = ''
       try { preview = await firstFramePreview(res.spriteBase64) } catch { /* preview optional */ }
       setResolved({
@@ -1098,7 +1098,7 @@ export const GalleryPanel: React.FC = () => {
         description: res.description, spriteBase64: res.spriteBase64, preview,
       })
     } catch (err) {
-      setImportError(errorText(err) || i18nT('apps.crewCompanion.gallery.lookupFailed'))
+      setImportError(errorText(err) || i18nT('apps.deskCompanion.gallery.lookupFailed'))
     } finally {
       setResolving(false)
     }
@@ -1132,13 +1132,13 @@ export const GalleryPanel: React.FC = () => {
         displayName: resolved.displayName, author: resolved.author, description: resolved.description,
       })
       const save = await api?.gallerySaveSpritePack?.(data)
-      if (!save?.ok) { setImportError(save?.error || i18nT('apps.crewCompanion.gallery.savePetFailed')); return }
+      if (!save?.ok) { setImportError(save?.error || i18nT('apps.deskCompanion.gallery.savePetFailed')); return }
       if (save.packId) { api?.gallerySetActive?.(save.packId); setActivePackId(save.packId) }
-      showToast(i18nT('apps.crewCompanion.gallery.nowYourPet', { name: resolved.displayName }))
+      showToast(i18nT('apps.deskCompanion.gallery.nowYourPet', { name: resolved.displayName }))
       closeImport()
       fetchPacks()
     } catch (err) {
-      setImportError(errorText(err) || i18nT('apps.crewCompanion.gallery.importFailed'))
+      setImportError(errorText(err) || i18nT('apps.deskCompanion.gallery.importFailed'))
     } finally {
       setImporting(false)
     }
@@ -1157,7 +1157,7 @@ export const GalleryPanel: React.FC = () => {
         <PackEditor
           existingPack={editingPack}
           onSave={() => {
-            showToast(i18nT(editingPack ? 'apps.crewCompanion.editor.saveSuccess' : 'apps.crewCompanion.editor.createSuccess'))
+            showToast(i18nT(editingPack ? 'apps.deskCompanion.editor.saveSuccess' : 'apps.deskCompanion.editor.createSuccess'))
             closeEditor()
             fetchPacks()
           }}
@@ -1175,7 +1175,7 @@ export const GalleryPanel: React.FC = () => {
           // Save sprite pack via IPC
           const res = await api.gallerySaveSpritePack(result)
           if (res?.ok) {
-            showToast(i18nT(editingPack ? 'apps.crewCompanion.editor.saveSuccess' : 'apps.crewCompanion.editor.createSuccess'))
+            showToast(i18nT(editingPack ? 'apps.deskCompanion.editor.saveSuccess' : 'apps.deskCompanion.editor.createSuccess'))
             // If overwriting the active pack, re-apply it
             const packId = result.overwriteId || res.packId
             if (packId && packId === activePackId) {
@@ -1188,7 +1188,7 @@ export const GalleryPanel: React.FC = () => {
             setSpriteSaveError(null)
             setMode('gallery')
           } else {
-            setSpriteSaveError(res?.error || i18nT('apps.crewCompanion.gallery.spritePackFailed'))
+            setSpriteSaveError(res?.error || i18nT('apps.deskCompanion.gallery.spritePackFailed'))
           }
         }}
         saveError={spriteSaveError}
@@ -1203,18 +1203,18 @@ export const GalleryPanel: React.FC = () => {
     <div style={S.root}>
       {/* Header — title + the two ways to add an avatar */}
       <div style={S.header}>
-        <span style={S.title}>{i18nT('apps.crewCompanion.gallery.title')}</span>
+        <span style={S.title}>{i18nT('apps.deskCompanion.gallery.title')}</span>
         <button style={S.headerBtnAccent} onClick={() => { setShowImport(true); setImportError(null) }}>
-          {i18nT('apps.crewCompanion.gallery.importFromPetdex')}
+          {i18nT('apps.deskCompanion.gallery.importFromPetdex')}
         </button>
         <button style={S.headerBtn} onClick={handleCreateNew}>
-          {i18nT('apps.crewCompanion.gallery.makeYourOwn')}
+          {i18nT('apps.deskCompanion.gallery.makeYourOwn')}
         </button>
         <button
           style={S.windowCloseBtn}
           onClick={() => api?.closeGallery?.()}
-          title={i18nT('apps.crewCompanion.gallery.close')}
-          aria-label={i18nT('apps.crewCompanion.gallery.close')}
+          title={i18nT('apps.deskCompanion.gallery.close')}
+          aria-label={i18nT('apps.deskCompanion.gallery.close')}
         ><X size={14} aria-hidden="true" /></button>
       </div>
 
@@ -1229,13 +1229,13 @@ export const GalleryPanel: React.FC = () => {
             <button
               onClick={() => setError(null)}
               style={{ float: 'right', background: 'none', border: 'none', color: 'var(--danger)', cursor: 'pointer', fontSize: 14 }}
-              aria-label={i18nT('apps.crewCompanion.panel.close')}
+              aria-label={i18nT('apps.deskCompanion.panel.close')}
             ><X size={14} aria-hidden="true" /></button>
           </div>
         )}
 
         {loading ? (
-          <div style={S.loading}>{i18nT('apps.crewCompanion.gallery.loading')}</div>
+          <div style={S.loading}>{i18nT('apps.deskCompanion.gallery.loading')}</div>
         ) : (
           <div style={S.grid}>
             {packs.map((pack) => (
@@ -1249,7 +1249,7 @@ export const GalleryPanel: React.FC = () => {
                 thumbnailContent={thumbs[pack.id]}
                 spriteConfig={spriteConfigs[pack.id]}
                 i18nT={i18nT}
-                colorMap={crewCompanionColorMap}
+                colorMap={deskCompanionColorMap}
               />
             ))}
           </div>
@@ -1258,7 +1258,7 @@ export const GalleryPanel: React.FC = () => {
         {/* Footer — quiet pointer to the PetDex gallery */}
         {!loading && (
           <div style={{ marginTop: 18, textAlign: 'center', fontSize: 12, color: 'var(--text-muted)' }}>
-            {i18nT('apps.crewCompanion.gallery.moreAvatarsOn')}{' '}
+            {i18nT('apps.deskCompanion.gallery.moreAvatarsOn')}{' '}
             <button
               type="button"
               onClick={() => api?.openExternal?.('https://petdex.dev')}
@@ -1301,7 +1301,7 @@ export const GalleryPanel: React.FC = () => {
           onEdit={handleEdit}
           onDelete={handleDelete}
           i18nT={i18nT}
-          colorMap={crewCompanionColorMap}
+          colorMap={deskCompanionColorMap}
           lang={lang}
         />
       )}

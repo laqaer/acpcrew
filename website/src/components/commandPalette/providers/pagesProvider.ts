@@ -125,7 +125,7 @@ const EXTRA_PAGE_TITLE_KEY: Record<string, string> = {
   hooks: 'components.commandPalette.providers.pagesProvider.hooks',
   tasks: 'components.commandPalette.providers.pagesProvider.tasks',
   'mc-agents': 'components.commandPalette.providers.pagesProvider.junction_agents',
-  instances: 'components.commandPalette.providers.pagesProvider.remote_crew',
+  instances: 'components.commandPalette.providers.pagesProvider.remote_instances',
 }
 
 /**

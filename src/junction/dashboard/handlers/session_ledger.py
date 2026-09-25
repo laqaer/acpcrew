@@ -1,7 +1,7 @@
 """HTTP routes for the per-session work ledger.
 
 Thin mapping over :mod:`junction.session_ledger`. The security contract is
-the Issue Radar crew-route one: the ledger a request touches is derived from
+the Issue Radar steward-route one: the ledger a request touches is derived from
 the CALLING SESSION's identity (``X-Session-Key``, vetted by
 ``_recognize_session``), never from the request body — so a session can only
 ever read or write its own ledger, and raw HTTP with no recognized session

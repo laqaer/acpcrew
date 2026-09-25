@@ -3,7 +3,7 @@ import { useQuery } from '@tanstack/react-query'
 import { Activity, RefreshCw, ChevronDown, Check } from 'lucide-react'
 import {
   autoTriagePipelineApi, loadStoredPreference, saveRepoPreference,
-  type CrewFabricItem, type RepoRef, type ConnectedRepo,
+  type StewardFabricItem, type RepoRef, type ConnectedRepo,
 } from '../api'
 import {
   SPINE_PHASES, foldItem, columnOccupancy, laneDwells, openDwellSeconds, formatDwell,
@@ -19,7 +19,7 @@ import { fmtUnit } from '../../../i18n/format'
 // (other locales abbreviate these differently) joined to the number. The pure
 // fold decides WHICH prefix from `prNumber`; the words are translated here.
 function laneLabel(lane: FabricLane): string {
-  // ALWAYS the issue number: a lane IS a crew work item, and a work item is keyed by
+  // ALWAYS the issue number: a lane IS a steward work item, and a work item is keyed by
   // its issue. Prefixing `PR-` while interpolating that same issue number printed
   // `PR-5127` next to the card's own `#5179` PR chip -- two different numbers, one
   // labelled as the other. The PR is an attribute of the item, and the chip already
@@ -34,7 +34,7 @@ function dwellText(parts: DwellParts): string {
   return fmtUnit(parts.value, parts.unit)
 }
 
-// Auto Triage Pipeline — one horizontal LANE per crew work item across the phase
+// Auto Triage Pipeline — one horizontal LANE per steward work item across the phase
 // enum. An operator sees which phase each item is in, where items pile up, and
 // which have stalled.
 //
@@ -291,11 +291,11 @@ function PipelineDashboard({
   const scopeKey = `${repo.provider ?? 'github'}:${repo.host ?? ''}:${repo.owner}/${repo.repo}`
   const fabricQuery = useQuery({
     queryKey: ['auto-triage-pipeline', 'fabric', scopeKey],
-    queryFn: () => autoTriagePipelineApi.crewFabric(repo),
+    queryFn: () => autoTriagePipelineApi.stewardFabric(repo),
     refetchInterval: 30_000,
   })
 
-  const items = useMemo<CrewFabricItem[]>(
+  const items = useMemo<StewardFabricItem[]>(
     () => (Array.isArray(fabricQuery.data?.items) ? fabricQuery.data.items : []),
     [fabricQuery.data],
   )
@@ -365,11 +365,11 @@ function QueueSummaryCards({ summary, hasData }: { summary: QueueSummary; hasDat
     },
     {
       label: i18nT('apps.autoTriagePipeline.pipeline.summary_editing'),
-      // The cap is PER CREW, so the total is the informative number and the fault
-      // condition is "some crew holds more than one". Showing `n / 1` in danger red
-      // called two crews working normally a violation.
+      // The cap is PER STEWARD, so the total is the informative number and the fault
+      // condition is "some steward holds more than one". Showing `n / 1` in danger red
+      // called two stewards working normally a violation.
       value: `${summary.editing}`,
-      colorClass: summary.editingMaxPerCrew > EDITING_SLOT_CAP
+      colorClass: summary.editingMaxPerSteward > EDITING_SLOT_CAP
         ? 'text-danger'
         : summary.editing ? 'text-accent' : undefined,
       title: i18nT('apps.autoTriagePipeline.pipeline.dashboard_editing_cap'),
@@ -689,11 +689,11 @@ function LaneRow({
       onMouseLeave={onLeave}
     >
       {/* THE COMPACT ID CARD — copies Issue Radar's list-row idiom verbatim
-          (IssueList/CrewList `cardClass` + `cardInner`): `rounded-lg border p-2.5
+          (IssueList/StewardList `cardClass` + `cardInner`): `rounded-lg border p-2.5
           bg-card`, a meta row with the number in `font-bold text-accent` and a
           right-aligned marker, the title on a `line-clamp` line, then a chips row.
           Copied rather than imported: Issue Radar's row is a `<button>`/`Clickable`
-          bound to its `useIssueRadar()` selection context and its own `Issue`/`Crew`
+          bound to its `useIssueRadar()` selection context and its own `Issue`/`Steward`
           shape, so the STYLE is reused and the data is this app's own. Border weight
           is uniform regardless of exit (defect #2); the number + state chip + PR
           chip say what the item IS (defect #4); ~176px compact (defect #17). */}
@@ -1049,7 +1049,7 @@ function LaneBoardSkeleton() {
   )
 }
 
-// ── the designed empty state (the COMMON case: most installs never ran a crew) ──
+// ── the designed empty state (the COMMON case: most installs never ran a steward) ──
 
 function EmptyState() {
   const rows = [

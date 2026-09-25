@@ -278,6 +278,7 @@ def _load_state() -> TipsState:
     # Outside the try: a migration bug must surface as an error, not silently
     # degrade to "discard all user state" via the except above.
     _migrate_relinked_curated_state(st)
+    _migrate_renamed_curated_ids(st)
     return st
 
 
@@ -329,6 +330,38 @@ def _migrate_relinked_curated_state(st: TipsState) -> None:
         if st.shown_docs.get(tid) == doc:
             del st.shown_docs[tid]
     st.relink_migrated = True
+
+
+# Curated tips whose id changed, old id -> current id. Earlier Junction builds
+# shipped the Remote Instances tip as "remote-crew"; tips_state.json can still
+# key a dismissal, snooze or show count by it, so it is read and folded onto the
+# current id: without that, a tip the user dismissed resurfaces once.
+LEGACY_CURATED_TIP_IDS: dict[str, str] = {
+    "remote-crew": "remote-instances",
+}
+
+
+def _migrate_renamed_curated_ids(st: TipsState) -> None:
+    """Fold per-id state recorded under a curated tip's earlier id onto its current id.
+
+    Covers every place state keys a tip by id: the permanent dismissal list, the
+    show counts, the snoozes, the id -> doc map, and a held-over offered copy.
+    Idempotent, so it needs no marker: once no legacy id remains in the state
+    there is nothing left to fold, and a later save persists the folded shape.
+    """
+    for old, new in LEGACY_CURATED_TIP_IDS.items():
+        if old in st.dismissed:
+            folded = [new if tid == old else tid for tid in st.dismissed]
+            st.dismissed = list(dict.fromkeys(folded))
+        if old in st.shown:
+            st.shown[new] = st.shown.get(new, 0) + st.shown.pop(old)
+        if old in st.snoozed:
+            # The later snooze is the one the user most recently asked for.
+            st.snoozed[new] = max(st.snoozed.pop(old), st.snoozed.get(new, 0.0))
+        if old in st.shown_docs:
+            st.shown_docs.setdefault(new, st.shown_docs.pop(old))
+        if isinstance(st.offered, dict) and st.offered.get("id") == old:
+            st.offered["id"] = new
 
 
 def _save_state(st: TipsState) -> None:

@@ -628,7 +628,7 @@ answers `tools/list` from):
 - **Session-bound directives** (`session_directive.DIRECTIVE_TOOLS`):
   `ask_question`, `suggest_followup`, `monitor_start`, `monitor_update`,
   `autonudge_stop`, `set_project`
-- **Crew routing:** `select_crew`
+- **Agent routing:** `select_agent`
 - **Sessions and history:** `list_sessions`, `get_chat_session`,
   `search_chat_history`
 - **Artifacts:** `artifact_list`, `artifact_get`, `artifact_save`,

@@ -179,14 +179,14 @@ class TestEmitWatchdogMetric:
         assert c["attrs"]["agent_override"] is True
 
     def test_agent_name_never_an_attribute(self):
-        """The cardinality rule: the crew agent NAME must not appear in any
+        """The cardinality rule: the canonical agent NAME must not appear in any
         attr — it only keys the WatchdogSettings snapshot on the handle."""
         handle = AcpSessionHandle(
             "sA",
             asyncio.Queue(),
             _handle()._runtime,
             watchdog=WatchdogSettings(agent_override=True),
-            crew_agent="my-very-custom-agent-name",
+            canonical_agent="my-very-custom-agent-name",
         )
         rec = _emit(handle, "probe", "dead", "no established backend socket", 120.0)
         for call in rec.counters + rec.histograms:

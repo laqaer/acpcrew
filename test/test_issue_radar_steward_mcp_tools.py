@@ -1,8 +1,8 @@
-"""The agent's read/write path into its own Issue Radar crew ledger.
+"""The agent's read/write path into its own Issue Radar steward ledger.
 
-An Issue Radar crew is an unattended agent whose context does not survive
+An Issue Radar steward is an unattended agent whose context does not survive
 compaction, its per-turn ceiling, or a gateway restart. The ledger does — so
-these two MCP tools are the crew's memory, and every property asserted here is
+these two MCP tools are the steward's memory, and every property asserted here is
 load-bearing for a cold resume:
 
   * the ledger must be REACHABLE from an agent session, which has no dashboard
@@ -14,7 +14,7 @@ load-bearing for a cold resume:
   * a phase must never move without a logged reason, which is why upsert and
     append are ONE tool;
   * the public strings must not carry this machine's identity, because the event
-    log feeds a comment on github.com as well as the crew page.
+    log feeds a comment on github.com as well as the steward page.
 """
 
 from __future__ import annotations
@@ -31,28 +31,28 @@ from junction import mcp_core
 from junction.dashboard.token_auth import token_auth_middleware
 from junction.validation import MCP_CORE_SCHEMAS, ValidationError, validate_tool_args
 
-READ_TOOL = "issue_radar_crew_read"
-RECORD_TOOL = "issue_radar_crew_record"
-READ_PATH = "/api/apps/issue-radar/crew"
-WORK_PATH = "/api/apps/issue-radar/crew/work"
+READ_TOOL = "issue_radar_steward_read"
+RECORD_TOOL = "issue_radar_steward_record"
+READ_PATH = "/api/apps/issue-radar/steward"
+WORK_PATH = "/api/apps/issue-radar/steward/work"
 
 #: What the read route answers with. Identity lives here and ONLY here — no tool
-#: argument can select a crew — so the fixture doubles as the contract.
+#: argument can select a steward — so the fixture doubles as the contract.
 #:
 #: The top-level ``owner``/``repo`` are the route's own echo, and they are the pair
-#: that is ALWAYS present: a crew with no work items yet has no other source. The
-#: copies on the crew record and the item mirror what the store holds, so this
-#: fixture also covers ``_crew_identity``'s tolerance of all three locations.
+#: that is ALWAYS present: a steward with no work items yet has no other source. The
+#: copies on the steward record and the item mirror what the store holds, so this
+#: fixture also covers ``_steward_identity``'s tolerance of all three locations.
 #: ``test_issue_radar_steward_routes.TestAgentIdentityIsTheSession`` asserts the real
 #: handler produces this shape, so the stub cannot drift from the route.
-CREW_PAYLOAD = {
+STEWARD_PAYLOAD = {
     "owner": "acme",
     "repo": "widget",
     "provider": "github",
     "host": "github.com",
-    "crew": {"id": "c_7f3a", "name": "Whirlpool", "owner": "acme", "repo": "widget"},
-    "settings": {"claim_ttl_hours": 48, "needs_human_label": "crew: needs human"},
-    "items": [{"crew_id": "c_7f3a", "owner": "acme", "repo": "widget", "number": 12}],
+    "steward": {"id": "c_7f3a", "name": "Whirlpool", "owner": "acme", "repo": "widget"},
+    "settings": {"claim_ttl_hours": 48, "needs_human_label": "steward: needs human"},
+    "items": [{"steward_id": "c_7f3a", "owner": "acme", "repo": "widget", "number": 12}],
     "events": [],
     "skipped_numbers": [4, 91],
     "recent_skips": [{"number": 91, "reason": "needs a design decision", "scope": "needs-design"}],
@@ -83,7 +83,7 @@ def _record(payload: dict | None = None, put_result: dict | None = None, **over)
     def fake_get(path, session_key=None):
         captured["get_path"] = path
         captured["get_session_key"] = session_key
-        return CREW_PAYLOAD if payload is None else payload
+        return STEWARD_PAYLOAD if payload is None else payload
 
     def fake_put(path, body=None, session_key=None):
         captured["put_path"] = path
@@ -97,7 +97,7 @@ def _record(payload: dict | None = None, put_result: dict | None = None, **over)
     # gate in `_call_tool_inner`), so the harness has to model one. Stubbing only
     # the HTTP legs left identity unexercised — the same blind spot that once let a
     # 400 on the read route pass every test on this feature.
-    with patch.object(mcp_core, "_resolve_session_key_strict", return_value="crew-c_7f3a"):
+    with patch.object(mcp_core, "_resolve_session_key_strict", return_value="steward-c_7f3a"):
         with patch.object(mcp_core, "_get", side_effect=fake_get):
             with patch.object(mcp_core, "_put", side_effect=fake_put):
                 out = mcp_core._call_tool_inner(RECORD_TOOL, cleaned)
@@ -160,7 +160,7 @@ class TestGatewayPathsAreReachableWithTheInternalSecret(unittest.TestCase):
                     f"{helper.__name__} ignored the verified key and re-resolved one"
                 )
 
-    def test_both_crew_routes_are_mixed_internal_paths(self):
+    def test_both_steward_routes_are_mixed_internal_paths(self):
         from junction.dashboard.server import _MIXED_INTERNAL_API_PATHS
 
         assert READ_PATH in _MIXED_INTERNAL_API_PATHS
@@ -191,10 +191,10 @@ class TestGatewayPathsAreReachableWithTheInternalSecret(unittest.TestCase):
         # for an unattended agent — nobody is watching the turn it happens on.
         from junction.dashboard.server import _MIXED_INTERNAL_API_PATHS
 
-        assert mcp_core._CREW_READ_PATH == READ_PATH
-        assert mcp_core._CREW_WORK_PATH == WORK_PATH
-        assert mcp_core._CREW_READ_PATH in _MIXED_INTERNAL_API_PATHS
-        assert mcp_core._CREW_WORK_PATH in _MIXED_INTERNAL_API_PATHS
+        assert mcp_core._STEWARD_READ_PATH == READ_PATH
+        assert mcp_core._STEWARD_WORK_PATH == WORK_PATH
+        assert mcp_core._STEWARD_READ_PATH in _MIXED_INTERNAL_API_PATHS
+        assert mcp_core._STEWARD_WORK_PATH in _MIXED_INTERNAL_API_PATHS
 
 
 class TestToolRegistration(unittest.TestCase):
@@ -210,8 +210,8 @@ class TestToolRegistration(unittest.TestCase):
         assert RECORD_TOOL in listed
 
     def test_read_takes_no_arguments_at_all(self):
-        # Identity is resolved from the session; if the model could name a crew
-        # it could read, then write against, another crew's ledger.
+        # Identity is resolved from the session; if the model could name a steward
+        # it could read, then write against, another steward's ledger.
         spec = next(t for t in mcp_core._list_tools() if t["name"] == READ_TOOL)
         assert spec["inputSchema"]["properties"] == {}
         assert MCP_CORE_SCHEMAS[READ_TOOL].fields == []
@@ -226,10 +226,10 @@ class TestToolRegistration(unittest.TestCase):
         props = next(
             t for t in mcp_core._list_tools() if t["name"] == RECORD_TOOL
         )["inputSchema"]["properties"]
-        for forbidden in ("owner", "repo", "crew_id", "id"):
+        for forbidden in ("owner", "repo", "steward_id", "id"):
             assert forbidden not in props
         assert {f.name for f in MCP_CORE_SCHEMAS[RECORD_TOOL].fields}.isdisjoint(
-            {"owner", "repo", "crew_id"}
+            {"owner", "repo", "steward_id"}
         )
 
     def test_advertised_schema_matches_the_validated_schema(self):
@@ -252,8 +252,8 @@ class TestToolRegistration(unittest.TestCase):
         assert "PUBLIC" in spec["description"]
         assert "403" in spec["description"]
 
-    def test_the_read_description_tells_the_crew_the_skip_list_is_shared(self):
-        # The index is only worth having if a crew CONSULTS it before
+    def test_the_read_description_tells_the_steward_the_skip_list_is_shared(self):
+        # The index is only worth having if a steward CONSULTS it before
         # investigating. Nothing enforces that, so the tool description is the
         # only place the instruction can live.
         spec = next(t for t in mcp_core._list_tools() if t["name"] == READ_TOOL)
@@ -293,20 +293,20 @@ class TestToolRegistration(unittest.TestCase):
 class TestArgValidation(unittest.TestCase):
     def test_rejects_an_unknown_arg(self):
         # Fail closed on a hallucinated field rather than dropping it silently:
-        # a crew that thinks it recorded `blocked_on` has recorded nothing.
+        # a steward that thinks it recorded `blocked_on` has recorded nothing.
         with pytest.raises(ValidationError):
             _clean(blocked_on="review")
 
     def test_rejects_identity_args(self):
         # Not merely absent from the schema — actively refused, so an attempt to
-        # aim a write at another repo or crew errors instead of being ignored.
-        for arg, value in (("owner", "other"), ("repo", "other"), ("crew_id", "c_dead")):
+        # aim a write at another repo or steward errors instead of being ignored.
+        for arg, value in (("owner", "other"), ("repo", "other"), ("steward_id", "c_dead")):
             with pytest.raises(ValidationError):
                 _clean(**{arg: value})
 
     def test_read_rejects_any_arg(self):
         with pytest.raises(ValidationError):
-            validate_tool_args({"crew_id": "c_7f3a"}, MCP_CORE_SCHEMAS[READ_TOOL])
+            validate_tool_args({"steward_id": "c_7f3a"}, MCP_CORE_SCHEMAS[READ_TOOL])
 
     def test_rejects_an_unknown_phase(self):
         with pytest.raises(ValidationError):
@@ -334,7 +334,7 @@ class TestArgValidation(unittest.TestCase):
         assert cleaned["event_kind"] == "ci"
 
     def test_rejects_a_number_that_would_blow_up_the_filename(self):
-        # The number becomes crews/<crew_id>/<n>.json.
+        # The number becomes stewards/<steward_id>/<n>.json.
         with pytest.raises(ValidationError):
             _clean(number=10**12)
 
@@ -352,7 +352,7 @@ class TestArgValidation(unittest.TestCase):
 
 
 class TestIdentityComesFromTheSession(unittest.TestCase):
-    def test_the_put_body_names_owner_repo_and_crew_explicitly(self):
+    def test_the_put_body_names_owner_repo_and_steward_explicitly(self):
         # Explicit identity is what stops a same-numbered issue in another repo
         # being the record that gets written.
         captured, _ = _record()
@@ -360,30 +360,30 @@ class TestIdentityComesFromTheSession(unittest.TestCase):
         assert captured["put_path"] == WORK_PATH
         assert captured["body"]["owner"] == "acme"
         assert captured["body"]["repo"] == "widget"
-        assert captured["body"]["crew_id"] == "c_7f3a"
+        assert captured["body"]["steward_id"] == "c_7f3a"
         assert captured["body"]["number"] == 12
 
-    def test_identity_is_read_from_a_work_item_when_the_crew_record_omits_it(self):
+    def test_identity_is_read_from_a_work_item_when_the_steward_record_omits_it(self):
         payload = {
-            "crew": {"id": "c_7f3a", "name": "Whirlpool"},
-            "items": [{"crew_id": "c_7f3a", "owner": "acme", "repo": "widget", "number": 12}],
+            "steward": {"id": "c_7f3a", "name": "Whirlpool"},
+            "items": [{"steward_id": "c_7f3a", "owner": "acme", "repo": "widget", "number": 12}],
         }
         captured, _ = _record(payload=payload)
         assert (captured["body"]["owner"], captured["body"]["repo"]) == ("acme", "widget")
 
-    def test_a_subagent_resolved_identity_cannot_read_or_write_the_crew(self):
-        """A subagent must not inherit its parent crew's authority.
+    def test_a_subagent_resolved_identity_cannot_read_or_write_the_steward(self):
+        """A subagent must not inherit its parent steward's authority.
 
         ``_get``/``_put`` attach ``X-Session-Key`` using the LENIENT resolver, which
         falls back to a /proc ancestor walk. A subagent spawned with ``spawn_run``
         runs under its parent slot's process tree, so that walk resolves it to the
-        PARENT — and the route derives which crew is calling from exactly that
-        header. Without a strict gate the subagent reads the parent crew's ledger
+        PARENT — and the route derives which steward is calling from exactly that
+        header. Without a strict gate the subagent reads the parent steward's ledger
         and writes its work items.
 
         Both tools are asserted, and both are asserted to refuse BEFORE any HTTP
         leg: a refusal that still issued the request would already have leaked the
-        crew's identity, worktree path and claim state.
+        steward's identity, worktree path and claim state.
         """
         for tool, args in ((READ_TOOL, {}), (RECORD_TOOL, _clean())):
             reached: dict = {}
@@ -403,16 +403,16 @@ class TestIdentityComesFromTheSession(unittest.TestCase):
             assert "directly-identified" in out, (tool, out)
             assert "called" not in reached, tool
 
-    def test_a_non_crew_session_is_refused_before_any_write(self):
-        captured, out = _record(payload={"crew": {}, "items": []})
+    def test_a_non_steward_session_is_refused_before_any_write(self):
+        captured, out = _record(payload={"steward": {}, "items": []})
         assert out.startswith("Error:")
-        assert "not bound to an Issue Radar crew" in out
+        assert "not bound to an Issue Radar steward" in out
         assert "put_path" not in captured
 
     def test_a_read_error_is_surfaced_instead_of_writing_blind(self):
         cleaned = _clean()
         with patch.object(
-            mcp_core, "_resolve_session_key_strict", return_value="crew-c_7f3a"
+            mcp_core, "_resolve_session_key_strict", return_value="steward-c_7f3a"
         ):
             with patch.object(mcp_core, "_get", return_value={"error": "not connected"}):
                 with patch.object(mcp_core, "_put") as put:
@@ -423,13 +423,13 @@ class TestIdentityComesFromTheSession(unittest.TestCase):
     def test_a_write_error_is_surfaced_instead_of_claiming_success(self):
         cleaned = _clean(next="rebase onto main")
         with patch.object(
-            mcp_core, "_resolve_session_key_strict", return_value="crew-c_7f3a"
+            mcp_core, "_resolve_session_key_strict", return_value="steward-c_7f3a"
         ):
-            with patch.object(mcp_core, "_get", return_value=CREW_PAYLOAD):
-                with patch.object(mcp_core, "_put", return_value={"error": "unknown crew"}):
+            with patch.object(mcp_core, "_get", return_value=STEWARD_PAYLOAD):
+                with patch.object(mcp_core, "_put", return_value={"error": "unknown steward"}):
                     out = mcp_core._call_tool_inner(RECORD_TOOL, cleaned)
             assert out.startswith("Error:")
-            assert "unknown crew" in out
+            assert "unknown steward" in out
 
 
 class TestEmptyFieldsAreDropped(unittest.TestCase):
@@ -437,17 +437,17 @@ class TestEmptyFieldsAreDropped(unittest.TestCase):
 
     def test_a_minimal_call_sends_identity_and_nothing_else(self):
         captured, _ = _record()
-        assert set(captured["body"]) == {"owner", "repo", "crew_id", "number"}
+        assert set(captured["body"]) == {"owner", "repo", "steward_id", "number"}
 
     def test_an_explicitly_empty_field_is_not_sent(self):
         # "" would still be a merge key on the way through; dropping keeps the
         # request honest about what this call is actually asserting.
         captured, _ = _record(next="", decision="", worktree="", branch="")
-        assert set(captured["body"]) == {"owner", "repo", "crew_id", "number"}
+        assert set(captured["body"]) == {"owner", "repo", "steward_id", "number"}
 
     def test_only_the_supplied_fields_are_sent(self):
         captured, _ = _record(next="add the Windows branch to _safe_chmod")
-        assert set(captured["body"]) == {"owner", "repo", "crew_id", "number", "next"}
+        assert set(captured["body"]) == {"owner", "repo", "steward_id", "number", "next"}
         assert captured["body"]["next"] == "add the Windows branch to _safe_chmod"
 
     def test_a_skip_carries_its_scope_to_the_route(self):
@@ -526,7 +526,7 @@ class TestCiStateAssembly(unittest.TestCase):
     def test_a_zero_reading_is_kept_not_dropped(self):
         # 0/47 green and 0 inherited reds are both real, load-bearing readings:
         # dropping them on falsiness would leave the previous round's numbers in
-        # place and a crew would read them as still-green.
+        # place and a steward would read them as still-green.
         captured, _ = _record(ci_passed=0, ci_total=47, ci_inherited_reds=0)
         assert captured["body"]["ci_state"] == {
             "passed": 0,
@@ -558,8 +558,8 @@ class TestPublicStringsAreSanitizedOnTheWayIn(unittest.TestCase):
     def test_a_credential_in_the_pass_reason_is_not_stored(self):
         """``why`` is what the shared skip index keeps as the reason.
 
-        Its audience grew: it is no longer only the crew page, it is the line every
-        other crew in the repository reads before deciding not to investigate an
+        Its audience grew: it is no longer only the steward page, it is the line every
+        other steward in the repository reads before deciding not to investigate an
         issue. It takes ``redact`` rather than the stricter public sanitizer because
         it stays on this machine — but a credential quoted out of a log must not be
         the thing that gets persisted and re-read.
@@ -634,18 +634,18 @@ class TestPublicStringsAreSanitizedOnTheWayIn(unittest.TestCase):
         assert captured["body"]["worktree"] == worktree
 
     def test_a_label_carrying_a_credential_is_not_persisted(self):
-        captured, _ = _record(labels_applied=["crew: in progress", "AKIAIOSFODNN7EXAMPLE"])
+        captured, _ = _record(labels_applied=["steward: in progress", "AKIAIOSFODNN7EXAMPLE"])
         assert "AKIAIOSFODNN7EXAMPLE" not in captured["body"]["labels_applied"][1]
 
     def test_removing_the_last_label_is_forwarded_as_an_empty_list(self):
         """`labels_applied: []` means "I now hold none", not "I did not say".
 
         REGRESSION: the field was forwarded only when the list was non-empty, so
-        the one report that matters — a crew that has just taken its last label
+        the one report that matters — a steward that has just taken its last label
         OFF the issue — was indistinguishable from a call that never mentioned
         labels. The store treats absence as "leave as-is", so the record went on
-        claiming labels the crew had already removed from the forge, and the
-        release of a claim is exactly what other crews read to decide the issue
+        claiming labels the steward had already removed from the forge, and the
+        release of a claim is exactly what other stewards read to decide the issue
         is free.
         """
         captured, _ = _record(labels_applied=[])
@@ -658,7 +658,7 @@ class TestPublicStringsAreSanitizedOnTheWayIn(unittest.TestCase):
         """The other half of the distinction: silence must stay silence.
 
         Forwarding `[]` for a call that never mentioned labels would erase the
-        crew's real labels on every unrelated progress update.
+        steward's real labels on every unrelated progress update.
         """
         captured, _ = _record(event="pushed", event_kind="implement")
         assert "labels_applied" not in captured["body"]
@@ -671,29 +671,29 @@ class TestPublicStringsAreSanitizedOnTheWayIn(unittest.TestCase):
         check-then-use split across two different sources: whatever the walk
         answered at request time went on the wire, so a caller whose PID chain
         resolves differently after the check would have its read and its WRITE
-        attributed to another crew — disclosing or corrupting that crew's ledger.
+        attributed to another steward — disclosing or corrupting that steward's ledger.
         Both legs are asserted because the read is the write's precondition.
         """
         captured, _ = _record()
-        assert captured["get_session_key"] == "crew-c_7f3a", (
+        assert captured["get_session_key"] == "steward-c_7f3a", (
             "the precondition read re-resolved its own identity"
         )
-        assert captured["put_session_key"] == "crew-c_7f3a", (
+        assert captured["put_session_key"] == "steward-c_7f3a", (
             "the ledger write re-resolved its own identity"
         )
 
 
 class TestRecordOutput(unittest.TestCase):
     def test_a_skip_is_confirmed_back_with_the_scope_that_was_STORED(self):
-        """The crew must see that the shared index took its pass.
+        """The steward must see that the shared index took its pass.
 
-        Recording ``phase: skipped`` is itself what stops every other crew in the
+        Recording ``phase: skipped`` is itself what stops every other steward in the
         repository re-investigating the issue, so a silent success leaves the one
         guarantee that prevents the fleet looping invisible to the only party that
         can act on it.
 
         The STORED scope is echoed, not the argument: an unrecognised scope is
-        filed as ``other``, and a crew that believed it recorded ``architecture``
+        filed as ``other``, and a steward that believed it recorded ``architecture``
         has to see what was actually kept.
         """
         captured, out = _record(
@@ -719,13 +719,13 @@ class TestRecordOutput(unittest.TestCase):
         assert "Shared skip index" not in out
 
     def test_echoes_the_stored_event_not_the_argument(self):
-        # If a sanitizer pass changed the line, the crew must see what actually
+        # If a sanitizer pass changed the line, the steward must see what actually
         # became public — otherwise it believes it published something else.
         cleaned = _clean(event="pushed round 3", event_kind="ci")
         with patch.object(
-            mcp_core, "_resolve_session_key_strict", return_value="crew-c_7f3a"
+            mcp_core, "_resolve_session_key_strict", return_value="steward-c_7f3a"
         ):
-            with patch.object(mcp_core, "_get", return_value=CREW_PAYLOAD):
+            with patch.object(mcp_core, "_get", return_value=STEWARD_PAYLOAD):
                 with patch.object(
                     mcp_core,
                     "_put",
@@ -743,13 +743,13 @@ class TestRecordOutput(unittest.TestCase):
 class TestReadOutput(unittest.TestCase):
     def _read(self, payload):
         with patch.object(
-            mcp_core, "_resolve_session_key_strict", return_value="crew-c_7f3a"
+            mcp_core, "_resolve_session_key_strict", return_value="steward-c_7f3a"
         ), patch.object(mcp_core, "_get", return_value=payload):
             return mcp_core._call_tool_inner(READ_TOOL, {})
 
-    def test_returns_the_crew_settings_and_open_items(self):
-        out = json.loads(self._read(CREW_PAYLOAD))
-        assert out["crew"]["name"] == "Whirlpool"
+    def test_returns_the_steward_settings_and_open_items(self):
+        out = json.loads(self._read(STEWARD_PAYLOAD))
+        assert out["steward"]["name"] == "Whirlpool"
         assert out["settings"]["claim_ttl_hours"] == 48
         assert out["open_items"][0]["number"] == 12
         assert out["counts"]["open"] == 1
@@ -761,30 +761,30 @@ class TestReadOutput(unittest.TestCase):
         of what ``steward_store.read_events`` returns ("Newest first" — it walks the
         append-only log in reverse). Against that unrealistic fixture the old
         ``events[-N:]`` looked right, so the test went green while the real code
-        handed every crew past its first N events the N OLDEST ones — labelled by
+        handed every steward past its first N events the N OLDEST ones — labelled by
         ``recent_events_note`` as the newest.
 
         So the fixture here is newest-first, matching the route, and the assertions
         pin both ends of the window: the newest event must be IN it, which is what
         the bug lost, and the order inside must be chronological, which is what the
-        crew reads it as.
+        steward reads it as.
         """
-        payload = dict(CREW_PAYLOAD)
+        payload = dict(STEWARD_PAYLOAD)
         # Newest first, exactly as the route hands them over.
         payload["events"] = [{"text": f"line {i}"} for i in range(59, -1, -1)]
         out = json.loads(self._read(payload))
         window = out["recent_events"]
 
-        assert len(window) == mcp_core._CREW_MAX_EVENTS
+        assert len(window) == mcp_core._STEWARD_MAX_EVENTS
         # The newest event is present and last: the window is chronological.
         assert window[-1]["text"] == "line 59"
-        assert window[0]["text"] == f"line {60 - mcp_core._CREW_MAX_EVENTS}"
+        assert window[0]["text"] == f"line {60 - mcp_core._STEWARD_MAX_EVENTS}"
         # And the oldest events are the ones dropped, not the newest.
         assert not any(e["text"] == "line 0" for e in window)
         assert "60" in out["recent_events_note"]
 
-    def test_a_non_crew_session_is_told_so(self):
-        out = self._read({"crew": {}, "items": []})
+    def test_a_non_steward_session_is_told_so(self):
+        out = self._read({"steward": {}, "items": []})
         assert out.startswith("Error:")
 
     def test_a_gateway_error_is_surfaced(self):
@@ -792,18 +792,18 @@ class TestReadOutput(unittest.TestCase):
         assert out.startswith("Error:")
         assert "not connected" in out
 
-    def test_the_shared_skip_index_reaches_the_crew_intact(self):
+    def test_the_shared_skip_index_reaches_the_steward_intact(self):
         # The membership list must survive the projection COMPLETE: trimming it
         # here would answer "not skipped" for an issue that is, which is the
         # duplicated investigation the index removes.
-        out = json.loads(self._read(CREW_PAYLOAD))
+        out = json.loads(self._read(STEWARD_PAYLOAD))
         assert out["skipped_numbers"] == [4, 91]
         assert out["recent_skips"][0]["scope"] == "needs-design"
 
     def test_an_older_payload_without_the_skip_fields_still_reads(self):
         # A gateway that predates the index answers without these keys; the
         # projection must degrade to "nothing known skipped", not KeyError.
-        payload = {k: v for k, v in CREW_PAYLOAD.items()
+        payload = {k: v for k, v in STEWARD_PAYLOAD.items()
                    if k not in ("skipped_numbers", "recent_skips")}
         out = json.loads(self._read(payload))
         assert out["skipped_numbers"] == []
@@ -811,10 +811,10 @@ class TestReadOutput(unittest.TestCase):
 
     def test_the_worktree_path_survives_the_read(self):
         # The resume needs it; output redaction removes credentials, not paths.
-        payload = dict(CREW_PAYLOAD)
+        payload = dict(STEWARD_PAYLOAD)
         payload["items"] = [
             {
-                "crew_id": "c_7f3a",
+                "steward_id": "c_7f3a",
                 "owner": "acme",
                 "repo": "widget",
                 "number": 12,
@@ -826,7 +826,7 @@ class TestReadOutput(unittest.TestCase):
 
 
 class TestMiddlewareDecision:
-    """Drive the real auth middleware over the crew paths.
+    """Drive the real auth middleware over the steward paths.
 
     Set membership alone would still pass if the prefix matcher changed, so
     assert the decision: a credential-less call is refused, the tools' call is
@@ -920,38 +920,38 @@ class TestMiddlewareDecision:
         return make_mocked_request(method, path, headers=headers, transport=transport)
 
     @pytest.mark.asyncio
-    async def test_the_crew_sibling_routes_are_not_reachable_with_the_secret(self):
-        """``/crew/pause`` and ``PUT``/``DELETE /crew`` are closed.
+    async def test_the_steward_sibling_routes_are_not_reachable_with_the_secret(self):
+        """``/steward/pause`` and ``PUT``/``DELETE /steward`` are closed.
 
         The middleware ADMITS all three: its allowlist is matched
-        ``path == p or path.startswith(p + "/")``, so the ``/crew`` entry covers the
+        ``path == p or path.startswith(p + "/")``, so the ``/steward`` entry covers the
         whole segment, and the entries carry no method, so no allowlist edit could
-        separate ``GET /crew`` from ``PUT``/``DELETE /crew``. The refusal is the
+        separate ``GET /steward`` from ``PUT``/``DELETE /steward``. The refusal is the
         app's, at the handler, which is the only layer that sees the method.
 
         Chained here — real middleware in front of the real registered handler — so
         the assertion is about end-to-end reachability rather than about either
         layer's own opinion. Without it, an agent holding the internal secret could
-        pause or retire a crew.
+        pause or retire a steward.
 
-        ``/crew/guidance`` used to be in this list. It is not merely closed now, it
-        is GONE: a crew never waits for a human, so there is no guidance to inject.
-        Asserting a deleted route is refused would pass for the wrong reason — a
+        ``/steward/guidance`` is not in this list because it is not closed, it is
+        absent: a steward never waits for a human, so there is no guidance to inject.
+        Asserting that an absent route is refused would pass for the wrong reason — a
         route that does not exist cannot be registered, so the lookup below would
-        fail before the gate was ever consulted. The deletion is asserted separately.
+        fail before the gate was ever consulted. The absence is asserted separately.
         """
         from junction.apps.builtins.issue_radar.backend import routes, steward_routes
 
         app = web.Application()
-        steward_routes.register_crew_routes(app)
+        steward_routes.register_steward_routes(app)
         handlers = {
             (route.method, str(route.resource.canonical)): route.handler
             for route in app.router.routes()
         }
         closed = (
-            ("/api/apps/issue-radar/crew/pause", "POST"),
-            ("/api/apps/issue-radar/crew", "PUT"),
-            ("/api/apps/issue-radar/crew", "DELETE"),
+            ("/api/apps/issue-radar/steward/pause", "POST"),
+            ("/api/apps/issue-radar/steward", "PUT"),
+            ("/api/apps/issue-radar/steward", "DELETE"),
         )
         # is_app_enabled patched True so a 403 can only be the agent gate's — the
         # app-disabled gate answers 403 as well and would fake every assertion here.
@@ -972,7 +972,7 @@ class TestMiddlewareDecision:
     async def test_the_guidance_route_no_longer_exists_at_all(self):
         """Not closed — absent.
 
-        A crew never holds an issue waiting for a person, so there is nothing for a
+        A steward never holds an issue waiting for a person, so there is nothing for a
         human to inject guidance into. Asserting this by registration rather than by
         response code is deliberate: a 403 or a 404 would also be produced by a route
         that exists and refuses, and "the endpoint is gone" is the property that
@@ -981,6 +981,6 @@ class TestMiddlewareDecision:
         from junction.apps.builtins.issue_radar.backend import steward_routes
 
         app = web.Application()
-        steward_routes.register_crew_routes(app)
+        steward_routes.register_steward_routes(app)
         paths = {str(route.resource.canonical) for route in app.router.routes()}
-        assert not any(p.endswith("/crew/guidance") for p in paths), sorted(paths)
+        assert not any(p.endswith("/steward/guidance") for p in paths), sorted(paths)

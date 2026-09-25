@@ -377,7 +377,7 @@ if has node && [ -d "$JUNCTION_APP_DIR/website" ]; then
     if [ "$_fe_ok" != "1" ]; then
         # The build did not produce a usable bundle. For a local CLI install this is
         # non-fatal — the dashboard falls back to a legacy page and the CLI still
-        # works. For a cloud crew the dashboard IS the product, so
+        # works. For a cloud gateway the dashboard IS the product, so
         # JUNCTION_REQUIRE_FRONTEND=1 makes it FATAL: dump the build log and exit
         # non-zero. That lets the cloud bootstrap RETRY the whole install on the warm
         # box (first-boot contention — the common cause — self-heals), and if it still

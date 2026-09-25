@@ -1,5 +1,5 @@
 /**
- * Screenshot harness + geometry check for PINNED CREW CHIPS in the top header.
+ * Screenshot harness + geometry check for PINNED INSTANCE CHIPS in the top header.
  *
  * Photographs the states of the switcher (nothing pinned, short names pinned, and
  * a row that overflows and is clipped) and ASSERTS the invariant the design rests on: a pinned chip row never reaches
@@ -7,10 +7,10 @@
  * never unmounts.
  *
  * A fourth scenario opens the menu instead, where the pin lives: one lit/unlit
- * pin per crew row. It asserts that each destination owns exactly one named pin
- * and that the lit ones are exactly the pinned crews.
+ * pin per instance row. It asserts that each destination owns exactly one named pin
+ * and that the lit ones are exactly the pinned instances.
  *
- * Crews are pinned by DRIVING THE UI, not by seeding localStorage: the dashboard
+ * Instances are pinned by DRIVING THE UI, not by seeding localStorage: the dashboard
  * does not carry a pre-seeded value across the reload the store would need to
  * observe it, and clicking the real menu rows proves the interaction as a
  * side-effect instead of assuming it.
@@ -27,7 +27,7 @@ import { mkdirSync } from 'node:fs'
 import { serveDist } from './lib/serve-dist.mjs'
 import { logPageProblems, stubDashboardApi, json } from './lib/stub-dashboard-api.mjs'
 
-const OUT = process.argv[2] || '../temp-screenshots/crew-pin-chips'
+const OUT = process.argv[2] || '../temp-screenshots/instance-pin-chips'
 
 /**
  * 1280px wide on purpose: an ordinary laptop width, and the one where a full
@@ -38,7 +38,7 @@ const VIEWPORT = { width: 1280, height: 760 }
 /** Just the header band — the rest of the shell is not what these prove. */
 const HEADER_CLIP = { x: 0, y: 0, width: VIEWPORT.width, height: 54 }
 
-const crew = (id, name, sshHost, port) => ({
+const instance = (id, name, sshHost, port) => ({
   id,
   name,
   ssh_host: sshHost,
@@ -54,7 +54,7 @@ const crew = (id, name, sshHost, port) => ({
   ssm_run_as: '',
   aws_profile: '',
   aws_region: '',
-  // Deliberately false: `visibleInstanceTabs` admits a crew on a live
+  // Deliberately false: `visibleInstanceTabs` admits an instance on a live
   // `status.state` alone, and setting the sticky-intent flag would make the
   // dashboard auto-connect and mount a cross-origin remote pane iframe — noise
   // this harness has no use for.
@@ -63,13 +63,13 @@ const crew = (id, name, sshHost, port) => ({
 })
 
 // A mix of short and host-shaped names, because the row's capacity is a pixel
-// budget: the long ones are what make a four-crew row overflow where a
+// budget: the long ones are what make a four-instance row overflow where a
 // four-short-name row would fit.
-const CREWS = [
-  crew('devdesk', 'devdesk', 'dev-dsk-alias', 7801),
-  crew('prod', 'prod-us-east-1', 'prod-use1-alias', 7802),
-  crew('staging', 'staging-eu-west-1', 'stg-euw1-alias', 7803),
-  crew('sandbox', 'sandbox', 'sandbox-alias', 7804),
+const INSTANCES = [
+  instance('devdesk', 'devdesk', 'dev-dsk-alias', 7801),
+  instance('prod', 'prod-us-east-1', 'prod-use1-alias', 7802),
+  instance('staging', 'staging-eu-west-1', 'stg-euw1-alias', 7803),
+  instance('sandbox', 'sandbox', 'sandbox-alias', 7804),
 ]
 
 const SSO = { state: 'ok', seconds_remaining: 72000, expires_at: null, reason: 'valid' }
@@ -81,8 +81,8 @@ const SSO = { state: 'ok', seconds_remaining: 72000, expires_at: null, reason: '
  * whatever is being photographed rather than a missing fixture.
  */
 const SLOTS = [{
-  key: 'crew-pin-shot',
-  title: 'Switching between crews',
+  key: 'instance-pin-shot',
+  title: 'Switching between instances',
   running: false,
   last_message: 'Pinned devdesk to the header.',
   messages: 2,
@@ -95,9 +95,9 @@ const SLOTS = [{
 }]
 
 const TRIGGER = '[aria-label^="Switch instance"]'
-const CHIP_ROW = '[data-testid="crew-chip-row"]'
-const PIN_ITEM = '[data-testid^="crew-pin-"]'
-const PINNED_KEY = 'mc-crew-switcher-pinned'
+const CHIP_ROW = '[data-testid="instance-chip-row"]'
+const PIN_ITEM = '[data-testid^="instance-pin-"]'
+const PINNED_KEY = 'mc-instance-switcher-pinned'
 
 const results = []
 /** Open-menu scenarios: the per-row pin toggles, which the header clip cannot see. */
@@ -120,13 +120,13 @@ async function main() {
    */
   const extra = async (path, route) => {
     if (path === '/api/instances') {
-      await json(route, { active: true, instances: CREWS, warm_set_cap: 5, sso: SSO })
+      await json(route, { active: true, instances: INSTANCES, warm_set_cap: 5, sso: SSO })
       return true
     }
     const tunnel = /^\/api\/instances\/([^/]+)\/(connect|refresh-token)$/.exec(path)
     if (tunnel) {
       const id = decodeURIComponent(tunnel[1])
-      const found = CREWS.find(c => c.id === id)
+      const found = INSTANCES.find(c => c.id === id)
       await json(route, {
         ...(found ? found.status : { instance_id: id, state: 'connected' }),
         token: 'stub-token',
@@ -142,12 +142,12 @@ async function main() {
 
   /**
    * @param name    output file stem
-   * @param pinIds  crews to pre-pin
+   * @param pinIds  instances to pre-pin
    */
   async function scenario(name, pinIds, opts = {}) {    const context = await browser.newContext({ viewport: opts.viewport || VIEWPORT, deviceScaleFactor: 2 })
     const page = await context.newPage()
     logPageProblems(page)
-    // A crew reported `connected` makes InstancesViewport mount a warm pane
+    // An instance reported `connected` makes InstancesViewport mount a warm pane
     // iframe pointed at its forwarded port. Nothing serves those ports here, so
     // the iframe would load this same SPA cross-origin, trip on storage it is not
     // allowed to read, and take the shell down with it. Serve them a blank
@@ -178,7 +178,7 @@ async function main() {
 
     await page.waitForTimeout(300)
 
-    // The pin lives ON each crew's row in the open menu, so that state is only
+    // The pin lives ON each instance's row in the open menu, so that state is only
     // photographable with the menu down — and the menu is portalled outside the
     // header, so it needs its own clip rather than HEADER_CLIP.
     if (opts.openMenu) {
@@ -186,27 +186,27 @@ async function main() {
       await page.waitForSelector(PIN_ITEM, { timeout: 10000 })
       await page.waitForTimeout(250)
       const menu = await page.evaluate(() => {
-        const items = [...document.querySelectorAll('[data-testid^="crew-pin-"]')]
+        const items = [...document.querySelectorAll('[data-testid^="instance-pin-"]')]
         const content = items[0]?.closest('[role="menu"]')
         const r = content?.getBoundingClientRect()
         return {
           pins: items.map(el => ({
-            id: el.getAttribute('data-testid').replace('crew-pin-', ''),
+            id: el.getAttribute('data-testid').replace('instance-pin-', ''),
             checked: el.getAttribute('aria-checked'),
             name: el.getAttribute('aria-label'),
             // Fill is the ONLY thing separating pinned from unpinned, so it is
-            // read back rather than assumed: an outline pin on a pinned crew
+            // read back rather than assumed: an outline pin on a pinned instance
             // reads as "not pinned" and invites a click that unpins it.
             filled: !!el.querySelector('svg')?.getAttribute('class')?.includes('fill-current'),
           })),
-          // One switch target per crew: the old design listed every crew a second
-          // time under a "Pin crews…" heading, which is what this replaces.
+          // One switch target per instance: the old design listed every instance a
+          // second time under a "Pin instances…" heading, which is what this replaces.
           destinations: content ? content.querySelectorAll('[role="menuitemradio"]').length : 0,
           // Same measure the geometry scenarios use: a chip whose trailing edge
           // passes the row's visible width is cut off, which is what puts a
-          // pinned crew into the `noRoom` state this scenario exists to cover.
+          // pinned instance into the `noRoom` state this scenario exists to cover.
           chipsClipped: (() => {
-            const row = document.querySelector('[data-testid="crew-chip-row"]')
+            const row = document.querySelector('[data-testid="instance-chip-row"]')
             if (!row) return 0
             return [...row.children].filter(
               k => k.offsetLeft + k.offsetWidth > row.clientWidth + 1,
@@ -236,7 +236,7 @@ async function main() {
         const r = el.getBoundingClientRect()
         return { left: Math.round(r.left), right: Math.round(r.right), width: Math.round(r.width) }
       }
-      const row = document.querySelector('[data-testid="crew-chip-row"]')
+      const row = document.querySelector('[data-testid="instance-chip-row"]')
       const chevron = document.querySelector('[aria-label^="Switch instance"]')
       const kids = row ? [...row.children] : []
       return {
@@ -285,7 +285,7 @@ async function main() {
     await context.close()
   }
 
-  // 1. Nothing pinned — the default. No chip row at all, so a single-crew user
+  // 1. Nothing pinned — the default. No chip row at all, so a single-instance user
   //    pays no header width for the feature.
   await scenario('01-nothing-pinned', [])
 
@@ -301,12 +301,12 @@ async function main() {
   })
 
   // 4. The menu itself: every row carries its own pin, lit for the two pinned
-  //    crews and unlit for the rest — one list of crews, not two.
+  //    instances and unlit for the rest — one list of instances, not two.
   await scenario('04-menu-row-pins', ['devdesk', 'sandbox'], { openMenu: true })
 
-  // 5. The same menu with the header row OVERFLOWING, so some pinned crews have
+  // 5. The same menu with the header row OVERFLOWING, so some pinned instances have
   //    no visible chip. That state must still render a FILLED pin: the only case
-  //    where a pinned crew could be mistaken for an unpinned one, and the one
+  //    where a pinned instance could be mistaken for an unpinned one, and the one
   //    jsdom cannot produce because it has no layout. Narrow on purpose — the chip
   //    row adapts to its own track, so four host-shaped names fit at 1280px.
   await scenario('05-menu-pins-with-clipped-chips', ['devdesk', 'prod', 'staging', 'sandbox'], {
@@ -322,18 +322,18 @@ async function main() {
 
   console.log('--- geometry (the switcher must never reach the centered search overlay) ---')
   for (const r of results) console.log(JSON.stringify(r))
-  console.log('--- open menu (one row per crew, each with its own pin state) ---')
+  console.log('--- open menu (one row per instance, each with its own pin state) ---')
   for (const r of menuResults) console.log(JSON.stringify(r))
 
   // Every destination owns exactly one pin, and it reads checked for exactly the
-  // pinned crews. A screenshot of a pin that reports the wrong state would
+  // pinned instances. A screenshot of a pin that reports the wrong state would
   // document a feature that does not work.
   for (const m of menuResults) {
     const lit = m.pins.filter(p => p.checked === 'true').map(p => p.id).sort()
     const want = [...m.expectedPinned].sort()
-    if (m.pins.length !== CREWS.length + 1 || m.destinations !== m.pins.length) {
+    if (m.pins.length !== INSTANCES.length + 1 || m.destinations !== m.pins.length) {
       console.error(`FAIL: ${m.name} has ${m.pins.length} pins for ${m.destinations} destinations`)
-      console.error('      (expected one pin per row, Local included, and no second crew list)')
+      console.error('      (expected one pin per row, Local included, and no second instance list)')
       process.exit(1)
     }
     if (lit.join(',') !== want.join(',')) {
@@ -341,13 +341,13 @@ async function main() {
       process.exit(1)
     }
     if (m.pins.some(p => !p.name)) {
-      console.error(`FAIL: ${m.name} has an unnamed pin — an icon-only control must say which crew it pins`)
+      console.error(`FAIL: ${m.name} has an unnamed pin — an icon-only control must say which instance it pins`)
       process.exit(1)
     }
     const unfilled = m.pins.filter(p => p.checked === 'true' && !p.filled).map(p => p.id)
     if (unfilled.length) {
-      console.error(`FAIL: ${m.name} rendered pinned crew(s) ${unfilled.join(',')} WITHOUT fill.`)
-      console.error('      An outline pin on a pinned crew reads as "not pinned" and invites an accidental unpin.')
+      console.error(`FAIL: ${m.name} rendered pinned instance(s) ${unfilled.join(',')} WITHOUT fill.`)
+      console.error('      An outline pin on a pinned instance reads as "not pinned" and invites an accidental unpin.')
       process.exit(1)
     }
     if (m.pins.some(p => p.checked === 'false' && p.filled)) {
@@ -355,7 +355,7 @@ async function main() {
       process.exit(1)
     }
     if (m.requireClipped && m.chipsClipped === 0) {
-      console.error(`FAIL: ${m.name} was meant to photograph pinned crews whose header chip is cut off,`)
+      console.error(`FAIL: ${m.name} was meant to photograph pinned instances whose header chip is cut off,`)
       console.error('      but nothing clipped at this width, so the filled-while-clipped evidence is vacuous.')
       process.exit(1)
     }
@@ -371,7 +371,7 @@ async function main() {
     process.exit(1)
   }
   if (pinnedShots.some(r => r.chips === 0)) {
-    console.error('FAIL: a scenario pinned crews but rendered no chips — the UI path is broken,')
+    console.error('FAIL: a scenario pinned instances but rendered no chips — the UI path is broken,')
     console.error('      so these screenshots would document a feature that does not work.')
     process.exit(1)
   }

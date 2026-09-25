@@ -335,7 +335,7 @@ describe('SlackPanel save payload', () => {
     await hydrated()
 
     fireEvent.change(screen.getByPlaceholderText('U0123ABC456'), { target: { value: '  U000NEW  ' } })
-    fireEvent.change(screen.getByPlaceholderText('junction'), { target: { value: ' crew ' } })
+    fireEvent.change(screen.getByPlaceholderText('junction'), { target: { value: ' devbox ' } })
     fireEvent.click(screen.getByRole('switch', { name: 'Phase reactions' }))
     fireEvent.click(screen.getByRole('switch', { name: 'Show thinking' }))
     fireEvent.click(saveBtn())
@@ -343,7 +343,7 @@ describe('SlackPanel save payload', () => {
     await waitFor(() => expect(save).toHaveBeenCalledTimes(1))
     expect(save.mock.calls[0][0]).toEqual({
       owner_id: 'U000NEW',
-      command: 'crew',
+      command: 'devbox',
       allowed_enterprise_ids: ['E000ONE'],
       reactions_enabled: true,
       show_thinking: true,

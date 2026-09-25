@@ -1,4 +1,4 @@
-"""Project a Crew agent spec onto KAS's ``ClientCustomAgent`` shape.
+"""Project a Junction agent spec onto KAS's ``ClientCustomAgent`` shape.
 
 kiro-cli reads agent definitions from ``~/.kiro/agents/*.json`` and selects one
 with a ``--agent`` flag. KAS has no such flag: it advertises only its own
@@ -18,7 +18,7 @@ Two properties of KAS's schema drive the mapping and are easy to get wrong:
 Deliberately NOT projected, each for a reason a reader would otherwise have to
 rediscover:
 
-* ``mcpServers`` — Crew injects broker stubs as the session-level ``mcpServers``
+* ``mcpServers`` — Junction injects broker stubs as the session-level ``mcpServers``
   param, and a session-injected server outranks an agent-declared one. Carrying
   them twice risks a double registration. ``@server`` entries in ``tools`` still
   resolve, because KAS tags every MCP tool with ``@<server>`` from the server's
@@ -28,14 +28,14 @@ rediscover:
 
 ``permissions`` IS projected, and is the one field that changes behaviour rather
 than just describing it. KAS's policy is keyed by its own capability vocabulary
-instead of by tool name, so it is not a rename of Crew's ``allowedTools`` — see
+instead of by tool name, so it is not a rename of Junction's ``allowedTools`` — see
 :mod:`junction.acp.kas_permissions` for the mapping and for why an entry it
 cannot classify is left to prompt. Omitting the field is not the neutral choice
 it looks like: with no policy, KAS resolves every request to ``ask``, so a spec
 that auto-approves a dozen tools on kiro-cli would prompt for all of them here.
 It is derived from ``allowedTools`` and from nothing else: a ``permissions``
 block already in the spec is NOT relayed, because ``allowedTools`` is the only
-auto-approve input Crew's governance ceiling has filtered.
+auto-approve input Junction's governance ceiling has filtered.
 """
 
 from __future__ import annotations
@@ -65,7 +65,7 @@ _PSEUDO_FS_ROOTS = ("/proc", "/sys", "/dev")
 #: "No slot on the wire" is NOT "no such capability in KAS" — conflating the two
 #: is what kept ``hooks`` written off as unsupported. KAS runs pre/post-tool-use
 #: hooks natively and loads them from an agent profile ON DISK (it even accepts
-#: Crew's object form), so what is lost here is a delivery path, not a feature:
+#: Junction's object form), so what is lost here is a delivery path, not a feature:
 #: an agent injected over the wire cannot carry them.
 #:
 #: ``allowedTools`` is deliberately NOT in this set. It has no slot either, but
@@ -86,7 +86,7 @@ class KasAgentTranslationError(ValueError):
 
 #: System prompt fed to a prompt-less agent when projecting onto KAS. KAS
 #: requires a non-empty prompt where kiro-cli tolerates an empty one, so any
-#: agent that ships ``"prompt": ""`` (today only Crew's ``junction-lite``, but
+#: agent that ships ``"prompt": ""`` (today only Junction's ``junction-lite``, but
 #: the fallback is deliberately not tied to it) would otherwise crash KAS
 #: session creation. Deliberately generic and small: prompt-less agents run
 #: small system-issued text tasks (titles, summaries, tags, rephrases), so the
@@ -149,7 +149,7 @@ def resolve_prompt(
       pseudo-filesystem (see :func:`_is_unsafe_prompt_path`).
 
     KAS requires a non-empty prompt where kiro-cli tolerates an empty one, so a
-    spec with no prompt (Crew's own utility agents such as ``junction-lite``
+    spec with no prompt (Junction's own utility agents such as ``junction-lite``
     ship ``"prompt": ""``) falls back to the small :data:`_KAS_FALLBACK_PROMPT`
     constant instead of crashing the session. The fallback is an inline literal,
     not a file read, so it carries none of the ``file://`` path's exfiltration /
@@ -288,7 +288,7 @@ def to_client_custom_agent(
     spec: dict[str, Any],
     prompt: str,
 ) -> dict[str, Any]:
-    """Project one Crew agent spec onto a KAS ``ClientCustomAgent`` descriptor.
+    """Project one Junction agent spec onto a KAS ``ClientCustomAgent`` descriptor.
 
     Pure: *prompt* is already-resolved content (see :func:`resolve_prompt`).
     """
@@ -320,13 +320,13 @@ def to_client_custom_agent(
     # Derived from `allowedTools` and from nothing else. A `permissions` block
     # sitting in the spec is deliberately NOT forwarded, even though it is already
     # in KAS's vocabulary and forwarding it would be one line: it has not passed
-    # Crew's governance ceiling, so projecting one would hand any editor of the
+    # Junction's governance ceiling, so projecting one would hand any editor of the
     # file a grant the ceiling never saw — and an auto-approved call never reaches
-    # Crew's permission callback, so the deny-list and the audit trail are skipped
+    # Junction's permission callback, so the deny-list and the audit trail are skipped
     # with it. One governed input, one derivation.
     #
-    # A hand-written block is not ignored, just not Crew's to relay: it lives in
-    # the profile on disk, which the backend reads itself when Crew is not
+    # A hand-written block is not ignored, just not Junction's to relay: it lives in
+    # the profile on disk, which the backend reads itself when Junction is not
     # injecting an agent over the wire.
     permissions = allowed_tools_to_permissions(
         _ceiling_permitted(spec.get("allowedTools"), agent_id), agent_id=agent_id

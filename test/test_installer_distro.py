@@ -382,7 +382,7 @@ def test_cli_relinks_the_interpreter_when_rebuilding_a_venv(tmp_path: Path) -> N
     a_python = a_dir / f"python{ver}"
     a_python.symlink_to(sys.executable)
 
-    venv_dir = tmp_path / "crew-venv"
+    venv_dir = tmp_path / "junction-venv"
     subprocess.run(
         [str(a_python), "-m", "venv", "--without-pip", str(venv_dir)],
         check=True,

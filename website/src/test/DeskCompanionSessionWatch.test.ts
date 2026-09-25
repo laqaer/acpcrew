@@ -358,17 +358,17 @@ describe('session completion → bubble', () => {
     // The REAL wire shape: event_bus.py puts the name in `event` and strips
     // `type`. This test used to send `type`, which is why it passed while the
     // doorbell never actually rang against a live gateway.
-    send('app_event', { app: 'crew-companion', event: 'crew-companion:fire' })
+    send('app_event', { app: 'desk-companion', event: 'desk-companion:fire' })
     expect(rung).toBe(1)
 
     // Another app's events ride the same envelope and must not ring this bell.
     send('app_event', { app: 'mochi', event: 'mochi:notify' })
-    send('app_event', { app: 'crew-companion', event: 'crew-companion:other' })
+    send('app_event', { app: 'desk-companion', event: 'desk-companion:other' })
     expect(rung).toBe(1)
 
     // And the field the envelope does NOT carry must not ring it either --
     // otherwise this test would keep passing if the code regressed to `type`.
-    send('app_event', { app: 'crew-companion', type: 'crew-companion:fire' })
+    send('app_event', { app: 'desk-companion', type: 'desk-companion:fire' })
     expect(rung).toBe(1)
     stop()
   })

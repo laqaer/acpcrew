@@ -1431,7 +1431,7 @@ class TestWorkItemTimeline(AzureReadTestCase):
         return events, az
 
     def test_a_comment_carries_the_id_and_modified_time_the_claim_protocol_needs(self):
-        """The crew claim protocol keeps ONE comment as its public ledger.
+        """The steward claim protocol keeps ONE comment as its public ledger.
 
         It addresses that comment by id to rewrite it, and proves the claim is
         alive from the MODIFIED time -- ``created_at`` on an edited comment is

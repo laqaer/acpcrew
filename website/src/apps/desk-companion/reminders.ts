@@ -21,10 +21,10 @@ export function sortedReminders(list: Reminder[]): Reminder[] {
 
 /** "every 2h" / "daily" — the repeat, not the next fire time. */
 export function repeatLabel(mins: number): string {
-  if (mins === 1440) return i18nT('apps.crewCompanion.time.repeat_daily')
-  if (mins % 1440 === 0) return i18nT('apps.crewCompanion.time.repeat_days', { n: mins / 1440 })
-  if (mins % 60 === 0) return i18nT('apps.crewCompanion.time.repeat_hours', { n: mins / 60 })
-  return i18nT('apps.crewCompanion.time.repeat_minutes', { n: mins })
+  if (mins === 1440) return i18nT('apps.deskCompanion.time.repeat_daily')
+  if (mins % 1440 === 0) return i18nT('apps.deskCompanion.time.repeat_days', { n: mins / 1440 })
+  if (mins % 60 === 0) return i18nT('apps.deskCompanion.time.repeat_hours', { n: mins / 60 })
+  return i18nT('apps.deskCompanion.time.repeat_minutes', { n: mins })
 }
 
 function sameDay(a: Date, b: Date): boolean {
@@ -55,14 +55,14 @@ export function labelFor(fireAt: string, now: Date): { absLabel?: string; relLab
   const mins = Math.round(diffMs / 60_000)
 
   if (mins < 60) {
-    return { relLabel: mins <= 0 ? i18nT('apps.crewCompanion.time.now') : i18nT('apps.crewCompanion.time.in_min', { n: mins }) }
+    return { relLabel: mins <= 0 ? i18nT('apps.deskCompanion.time.now') : i18nT('apps.deskCompanion.time.in_min', { n: mins }) }
   }
   if (sameDay(at, now)) {
     const h = Math.floor(mins / 60)
     const m = mins % 60
     return {
       absLabel: clockLabel(at),
-      relLabel: m ? i18nT('apps.crewCompanion.time.in_hm', { h, m }) : i18nT('apps.crewCompanion.time.in_h', { h }),
+      relLabel: m ? i18nT('apps.deskCompanion.time.in_hm', { h, m }) : i18nT('apps.deskCompanion.time.in_h', { h }),
     }
   }
   const days = Math.round((at.getTime() - now.getTime()) / 86_400_000)
@@ -70,7 +70,7 @@ export function labelFor(fireAt: string, now: Date): { absLabel?: string; relLab
     absLabel: days <= 1
       ? clockLabel(at)
       : `${at.toLocaleDateString(activeLocale(), { weekday: 'short' })} ${clockLabel(at)}`,
-    relLabel: days <= 1 ? i18nT('apps.crewCompanion.time.tomorrow') : i18nT('apps.crewCompanion.time.in_days', { n: days }),
+    relLabel: days <= 1 ? i18nT('apps.deskCompanion.time.tomorrow') : i18nT('apps.deskCompanion.time.in_days', { n: days }),
   }
 }
 

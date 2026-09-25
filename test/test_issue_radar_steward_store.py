@@ -1,27 +1,27 @@
-"""Tests for the crew store — records, work items, the event ledger and the
+"""Tests for the steward store — records, work items, the event ledger and the
 shared skip index.
 
 The coverage here is deliberately weighted toward the invariants whose failure is
 SILENT, because those are the ones that corrupt the claim protocol rather than
 raising:
 
-  * **Name reuse.** A retired crew's name still appears in the check-in comments
+  * **Name reuse.** A retired steward's name still appears in the check-in comments
     it left on the forge, so reusing it makes an old comment look like a live
     claim. Uniqueness is checked in the store because the name field is free text.
   * **``last_progress_at``.** The claim TTL is measured from this field, so a
-    read-back or a no-op write must not renew a claim. If it did, a dead crew
+    read-back or a no-op write must not renew a claim. If it did, a dead steward
     would hold an issue forever and nothing would report it.
   * **One editing item.** Two worktrees with uncommitted changes is how a fix for
     one issue gets committed onto another issue's branch. The store refuses the
     second one; a warning would not.
   * **Slot accounting.** Every unfinished item consumes a work slot, because a
-    crew never holds an issue waiting for a human: one it cannot progress alone is
+    steward never holds an issue waiting for a human: one it cannot progress alone is
     recorded as a pass and its claim released.
   * **Ledger dedupe.** Duplicate lines merge on read, so an append retried after a
     crash does not double-report.
   * **The skip index is repo-wide and first-writer-wins.** It is one file every
-    crew writes, so it must take the repo-wide lock — under a per-crew lock two
-    crews would each read an index that predates the other and drop a decision,
+    steward writes, so it must take the repo-wide lock — under a per-steward lock two
+    stewards would each read an index that predates the other and drop a decision,
     and the dropped issue silently goes back to being re-investigated by everyone.
     Behavioural assertions cannot detect that: sequential calls see each other
     whatever lock is held, so the lock test asserts WHICH file is locked.
@@ -43,30 +43,30 @@ from junction.apps.builtins.issue_radar.backend import steward_store as cs
 OWNER, REPO = "laqaer", "junction"
 
 
-def _crew(root, name="Andromeda", **spec):
-    return cs.create_crew(OWNER, REPO, {"name": name, **spec}, root)
+def _steward(root, name="Andromeda", **spec):
+    return cs.create_steward(OWNER, REPO, {"name": name, **spec}, root)
 
 
-# ── crews ───────────────────────────────────────────────────────────────────
+# ── stewards ────────────────────────────────────────────────────────────────
 
 
 def test_create_assigns_id_slot_key_and_seed(tmp_path):
-    crew = _crew(tmp_path)
-    assert crew["id"].startswith("c_")
-    assert crew["slot_key"] == f"crew-{crew['id']}"
+    steward = _steward(tmp_path)
+    assert steward["id"].startswith("c_")
+    assert steward["slot_key"] == f"steward-{steward['id']}"
     # The seed defaults to the name but is a SEPARATE field, so a later rename
     # keeps the face.
-    assert crew["avatar_seed"] == "Andromeda"
-    assert crew["schema"] == cs.CREW_SCHEMA
-    assert crew["max_open"] == 3
-    assert "max_escalated" not in crew, "a crew never holds work for a human"
-    assert crew["auto_merge"] is True and crew["unattended"] is True
+    assert steward["avatar_seed"] == "Andromeda"
+    assert steward["schema"] == cs.STEWARD_SCHEMA
+    assert steward["max_open"] == 3
+    assert "max_escalated" not in steward, "a steward never holds work for a human"
+    assert steward["auto_merge"] is True and steward["unattended"] is True
 
 
 def test_duplicate_name_is_refused(tmp_path):
-    _crew(tmp_path)
-    with pytest.raises(cs.CrewStoreError, match="already taken"):
-        _crew(tmp_path)
+    _steward(tmp_path)
+    with pytest.raises(cs.StewardStoreError, match="already taken"):
+        _steward(tmp_path)
 
 
 @pytest.mark.parametrize(
@@ -81,72 +81,72 @@ def test_duplicate_name_is_refused(tmp_path):
         "",
     ],
 )
-def test_a_crew_id_cannot_escape_the_store(tmp_path, bad_id):
+def test_a_steward_id_cannot_escape_the_store(tmp_path, bad_id):
     """Every path constructor must refuse an id it did not mint.
 
     `Path(store) / "/etc/policy"` evaluates to `/etc/policy` — the base is thrown
-    away — so an unchecked id turns `GET /crew` into an arbitrary-file read and
-    `PUT /crew` into an arbitrary-file write. `work_item_path` also mkdirs the
+    away — so an unchecked id turns `GET /steward` into an arbitrary-file read and
+    `PUT /steward` into an arbitrary-file write. `work_item_path` also mkdirs the
     joined path, so a traversal would create directories outside the store.
     """
     for build in (
-        lambda: cs.crew_path(OWNER, REPO, bad_id, tmp_path),
-        lambda: cs._crew_lock_path(OWNER, REPO, bad_id, tmp_path),
+        lambda: cs.steward_path(OWNER, REPO, bad_id, tmp_path),
+        lambda: cs._steward_lock_path(OWNER, REPO, bad_id, tmp_path),
         lambda: cs.work_item_path(OWNER, REPO, bad_id, 1, tmp_path),
     ):
-        with pytest.raises(cs.CrewStoreError, match="invalid crew id"):
+        with pytest.raises(cs.StewardStoreError, match="invalid steward id"):
             build()
 
 
 def test_a_minted_id_is_accepted_by_every_constructor(tmp_path):
-    """The gate must not reject what `create_crew` actually produces."""
-    crew = _crew(tmp_path)
-    assert cs.crew_path(OWNER, REPO, crew["id"], tmp_path).name.endswith(".json")
-    assert cs._crew_lock_path(OWNER, REPO, crew["id"], tmp_path).name.endswith(".lock")
-    assert cs.work_item_path(OWNER, REPO, crew["id"], 7, tmp_path).is_absolute()
+    """The gate must not reject what `create_steward` actually produces."""
+    steward = _steward(tmp_path)
+    assert cs.steward_path(OWNER, REPO, steward["id"], tmp_path).name.endswith(".json")
+    assert cs._steward_lock_path(OWNER, REPO, steward["id"], tmp_path).name.endswith(".lock")
+    assert cs.work_item_path(OWNER, REPO, steward["id"], 7, tmp_path).is_absolute()
     # And the store's own directory is the parent — nothing escaped.
-    assert cs.crews_dir(OWNER, REPO, tmp_path) in cs.crew_path(
-        OWNER, REPO, crew["id"], tmp_path
+    assert cs.stewards_dir(OWNER, REPO, tmp_path) in cs.steward_path(
+        OWNER, REPO, steward["id"], tmp_path
     ).parents
 
 
 def test_a_rename_takes_the_repo_wide_record_lock(tmp_path):
-    """A rename must serialise on the REPO-WIDE lock, not this crew's.
+    """A rename must serialise on the REPO-WIDE lock, not this steward's.
 
     Asserted by watching which lock file the call opens, because the outcome alone
     cannot show it: run two renames sequentially and the second sees the first's
     write whatever lock is held, so a sequential test passes against the bug. The
-    race needs two renames of DIFFERENT crews to overlap, each reading a
+    race needs two renames of DIFFERENT stewards to overlap, each reading a
     ``taken_names()`` that predates the other — and the only thing preventing that
     is both calls contending on one lock.
     """
-    a = _crew(tmp_path, name="Andromeda")
-    _crew(tmp_path, name="Bode")
+    a = _steward(tmp_path, name="Andromeda")
+    _steward(tmp_path, name="Bode")
 
     locked: list[str] = []
     real_records = cs._records_lock_path
-    real_per_crew = cs._crew_lock_path
+    real_per_steward = cs._steward_lock_path
 
     def spy_records(owner, repo, root=None):
         locked.append("repo-wide")
         return real_records(owner, repo, root)
 
-    def spy_per_crew(owner, repo, crew_id, root=None):
-        locked.append("per-crew")
-        return real_per_crew(owner, repo, crew_id, root)
+    def spy_per_steward(owner, repo, steward_id, root=None):
+        locked.append("per-steward")
+        return real_per_steward(owner, repo, steward_id, root)
 
     cs._records_lock_path = spy_records
-    cs._crew_lock_path = spy_per_crew
+    cs._steward_lock_path = spy_per_steward
     try:
-        cs.update_crew(OWNER, REPO, a["id"], {"name": "Cocoon"}, tmp_path)
+        cs.update_steward(OWNER, REPO, a["id"], {"name": "Cocoon"}, tmp_path)
     finally:
         cs._records_lock_path = real_records
-        cs._crew_lock_path = real_per_crew
+        cs._steward_lock_path = real_per_steward
 
     assert locked == ["repo-wide"], (
         f"a rename must take only the repo-wide record lock, took {locked}"
     )
-    assert sorted(c["name"] for c in cs.list_crews(OWNER, REPO, tmp_path)) == [
+    assert sorted(c["name"] for c in cs.list_stewards(OWNER, REPO, tmp_path)) == [
         "Bode", "Cocoon",
     ]
 
@@ -157,46 +157,50 @@ def test_retire_takes_the_repo_wide_record_lock(tmp_path):
     On separate locks a retire and an update read-modify-write the same record
     concurrently and one silently drops the other's field.
     """
-    crew = _crew(tmp_path)
+    steward = _steward(tmp_path)
     locked: list[str] = []
     real_records = cs._records_lock_path
-    real_per_crew = cs._crew_lock_path
+    real_per_steward = cs._steward_lock_path
     cs._records_lock_path = lambda o, r, root=None: (
         locked.append("repo-wide") or real_records(o, r, root)
     )
-    cs._crew_lock_path = lambda o, r, cid, root=None: (
-        locked.append("per-crew") or real_per_crew(o, r, cid, root)
+    cs._steward_lock_path = lambda o, r, cid, root=None: (
+        locked.append("per-steward") or real_per_steward(o, r, cid, root)
     )
     try:
-        retired = cs.retire_crew(OWNER, REPO, crew["id"], tmp_path)
+        retired = cs.retire_steward(OWNER, REPO, steward["id"], tmp_path)
     finally:
         cs._records_lock_path = real_records
-        cs._crew_lock_path = real_per_crew
+        cs._steward_lock_path = real_per_steward
 
-    assert "per-crew" not in locked, f"retire took a per-crew lock: {locked}"
+    assert "per-steward" not in locked, f"retire took a per-steward lock: {locked}"
     assert retired["retired_at"] is not None
 
 
-def test_retired_crew_keeps_its_name_reserved(tmp_path):
-    crew = _crew(tmp_path)
-    cs.retire_crew(OWNER, REPO, crew["id"], tmp_path)
-    assert cs.list_crews(OWNER, REPO, tmp_path) == []
-    assert len(cs.list_crews(OWNER, REPO, tmp_path, include_retired=True)) == 1
-    with pytest.raises(cs.CrewStoreError, match="already taken"):
-        _crew(tmp_path)
+def test_retired_steward_keeps_its_name_reserved(tmp_path):
+    steward = _steward(tmp_path)
+    cs.retire_steward(OWNER, REPO, steward["id"], tmp_path)
+    assert cs.list_stewards(OWNER, REPO, tmp_path) == []
+    assert len(cs.list_stewards(OWNER, REPO, tmp_path, include_retired=True)) == 1
+    with pytest.raises(cs.StewardStoreError, match="already taken"):
+        _steward(tmp_path)
 
 
 def test_rename_keeps_the_avatar_seed(tmp_path):
-    crew = _crew(tmp_path)
-    renamed = cs.update_crew(OWNER, REPO, crew["id"], {"name": "Whirlpool"}, tmp_path)
+    steward = _steward(tmp_path)
+    renamed = cs.update_steward(OWNER, REPO, steward["id"], {"name": "Whirlpool"}, tmp_path)
     assert renamed["name"] == "Whirlpool"
     assert renamed["avatar_seed"] == "Andromeda"
 
 
 def test_unknown_patch_fields_are_dropped(tmp_path):
-    crew = _crew(tmp_path)
-    updated = cs.update_crew(
-        OWNER, REPO, crew["id"], {"max_open": 5, "not_a_field": "x", "unattended": False}, tmp_path
+    steward = _steward(tmp_path)
+    updated = cs.update_steward(
+        OWNER,
+        REPO,
+        steward["id"],
+        {"max_open": 5, "not_a_field": "x", "unattended": False},
+        tmp_path,
     )
     assert updated["max_open"] == 5
     assert updated["unattended"] is False
@@ -204,17 +208,17 @@ def test_unknown_patch_fields_are_dropped(tmp_path):
 
 
 def test_out_of_range_limits_are_ignored(tmp_path):
-    crew = _crew(tmp_path)
-    updated = cs.update_crew(OWNER, REPO, crew["id"], {"max_open": 0}, tmp_path)
+    steward = _steward(tmp_path)
+    updated = cs.update_steward(OWNER, REPO, steward["id"], {"max_open": 0}, tmp_path)
     assert updated["max_open"] == 3
 
 
 def test_suggest_names_skips_taken_and_degrades_when_pool_is_spent(tmp_path):
-    _crew(tmp_path, name="Andromeda")
+    _steward(tmp_path, name="Andromeda")
     assert "Andromeda" not in cs.suggest_names(OWNER, REPO, tmp_path)
     for name in cs.NAME_POOL:
         if name != "Andromeda":
-            _crew(tmp_path, name=name)
+            _steward(tmp_path, name=name)
     # Pool exhausted — the degraded form is astronomically correct (Leo II etc.)
     suggestions = cs.suggest_names(OWNER, REPO, tmp_path, limit=2)
     assert len(suggestions) == 2
@@ -243,17 +247,17 @@ def test_settings_rejects_nonsense(tmp_path):
 def test_the_needs_human_label_is_configurable_and_trimmed(tmp_path):
     """A repo with its own triage vocabulary configures it, and the stored value is
     trimmed — a label with a leading space is a DIFFERENT label on the forge, so the
-    person watching the queue would never see the issues the crew filed."""
+    person watching the queue would never see the issues the steward filed."""
     stored = cs.write_settings(OWNER, REPO, {"needs_human_label": "  needs: maintainer  "}, tmp_path)
     assert stored["needs_human_label"] == "needs: maintainer"
     assert cs.read_settings(OWNER, REPO, tmp_path)["needs_human_label"] == "needs: maintainer"
 
 
 @pytest.mark.parametrize(
-    "bad", ["", "   ", "\t\n", None, 42, True, ["crew: needs human"], {"a": 1}]
+    "bad", ["", "   ", "\t\n", None, 42, True, ["steward: needs human"], {"a": 1}]
 )
 def test_a_blank_or_wrong_typed_needs_human_label_falls_back_to_the_default(tmp_path, bad):
-    """A crew must always have a usable label. The write is dropped rather than
+    """A steward must always have a usable label. The write is dropped rather than
     stored, so the previous value stands and the default is what a fresh repo reads
     — never an empty string that would ask the forge to create a nameless label."""
     got = cs.write_settings(OWNER, REPO, {"needs_human_label": bad}, tmp_path)
@@ -265,7 +269,7 @@ def test_a_blank_or_wrong_typed_needs_human_label_falls_back_to_the_default(tmp_
 
 
 def test_an_over_long_needs_human_label_falls_back_to_the_default(tmp_path):
-    """It is written to the forge as a label and read back into a crew's prompt, so
+    """It is written to the forge as a label and read back into a steward's prompt, so
     it is bounded rather than trusted because a settings form produced it."""
     got = cs.write_settings(
         OWNER, REPO, {"needs_human_label": "x" * (cs.MAX_SETTING_TEXT + 1)}, tmp_path
@@ -284,10 +288,10 @@ def test_an_over_long_needs_human_label_falls_back_to_the_default(tmp_path):
 def test_a_hand_edited_settings_file_cannot_blank_the_needs_human_label(tmp_path, stored):
     """``settings.json`` is an ordinary file in the data home, so it can be
     hand-edited or restored from a backup written by another version. Validation on
-    READ is what stops that deciding which label a crew writes to someone's tracker.
+    READ is what stops that deciding which label a steward writes to someone's tracker.
     """
     path = cs.settings_path(OWNER, REPO, tmp_path)
-    path.write_text(json.dumps({"schema": cs.CREW_SCHEMA, "needs_human_label": stored}))
+    path.write_text(json.dumps({"schema": cs.STEWARD_SCHEMA, "needs_human_label": stored}))
     assert (
         cs.read_settings(OWNER, REPO, tmp_path)["needs_human_label"]
         == cs.DEFAULT_SETTINGS["needs_human_label"]
@@ -298,7 +302,7 @@ def test_a_settings_file_missing_the_needs_human_label_reads_the_default(tmp_pat
     """The key postdates the first release of this store, so a settings file written
     before it exists must still answer with a usable label."""
     path = cs.settings_path(OWNER, REPO, tmp_path)
-    path.write_text(json.dumps({"schema": cs.CREW_SCHEMA, "claim_ttl_hours": 24}))
+    path.write_text(json.dumps({"schema": cs.STEWARD_SCHEMA, "claim_ttl_hours": 24}))
     got = cs.read_settings(OWNER, REPO, tmp_path)
     assert got["claim_ttl_hours"] == 24
     assert got["needs_human_label"] == cs.DEFAULT_SETTINGS["needs_human_label"]
@@ -308,8 +312,8 @@ def test_a_settings_file_missing_the_needs_human_label_reads_the_default(tmp_pat
 
 
 def test_upsert_stamps_claimed_at_and_merges_per_field(tmp_path):
-    crew = _crew(tmp_path)
-    cid = crew["id"]
+    steward = _steward(tmp_path)
+    cid = steward["id"]
     first = cs.upsert_work_item(
         OWNER, REPO, cid, 2251, {"phase": "claimed", "next": "read the call sites"}, tmp_path
     )
@@ -333,14 +337,14 @@ def test_the_stored_text_is_exactly_the_serialisation_of_the_returned_record(tmp
     and utf-8 — because the property is byte equality, and universal-newline
     translation on either side would hide a real mismatch on Windows.
     """
-    crew = _crew(tmp_path)
+    steward = _steward(tmp_path)
     for patch in (
         {"phase": "claimed", "next": "read the call sites"},
         {"phase": "implementing", "why": "one-line fix", "tried_approach": "reverting"},
         {},
     ):
-        item = cs.upsert_work_item(OWNER, REPO, crew["id"], 2251, patch, tmp_path)
-        path = cs.work_item_path(OWNER, REPO, crew["id"], 2251, tmp_path)
+        item = cs.upsert_work_item(OWNER, REPO, steward["id"], 2251, patch, tmp_path)
+        path = cs.work_item_path(OWNER, REPO, steward["id"], 2251, tmp_path)
         with path.open("r", encoding="utf-8", newline="") as fh:
             assert fh.read() == cs.serialize_work_item(item)
 
@@ -362,9 +366,9 @@ def _backdate(tmp_path, cid, number, stamp="2020-01-01T00:00:00Z"):
 
 def test_no_op_write_does_not_renew_the_claim(tmp_path):
     """The TTL is measured from ``last_progress_at``. A write that carries no
-    progress must leave it alone, or a dead crew holds its claim forever."""
-    crew = _crew(tmp_path)
-    cid = crew["id"]
+    progress must leave it alone, or a dead steward holds its claim forever."""
+    steward = _steward(tmp_path)
+    cid = steward["id"]
     cs.upsert_work_item(OWNER, REPO, cid, 2251, {"phase": "claimed"}, tmp_path)
     stale = _backdate(tmp_path, cid, 2251)
 
@@ -378,8 +382,8 @@ def test_no_op_write_does_not_renew_the_claim(tmp_path):
 
 
 def test_real_progress_moves_the_stamp(tmp_path):
-    crew = _crew(tmp_path)
-    cid = crew["id"]
+    steward = _steward(tmp_path)
+    cid = steward["id"]
     cs.upsert_work_item(OWNER, REPO, cid, 2251, {"phase": "claimed"}, tmp_path)
 
     for patch in (
@@ -396,16 +400,16 @@ def test_real_progress_moves_the_stamp(tmp_path):
 
 
 def test_second_editing_item_is_refused(tmp_path):
-    crew = _crew(tmp_path)
-    cid = crew["id"]
+    steward = _steward(tmp_path)
+    cid = steward["id"]
     cs.upsert_work_item(OWNER, REPO, cid, 2251, {"phase": "implementing"}, tmp_path)
-    with pytest.raises(cs.CrewStoreError, match="already editing"):
+    with pytest.raises(cs.StewardStoreError, match="already editing"):
         cs.upsert_work_item(OWNER, REPO, cid, 2264, {"phase": "implementing"}, tmp_path)
 
 
 def test_editing_slot_frees_when_the_first_item_parks(tmp_path):
-    crew = _crew(tmp_path)
-    cid = crew["id"]
+    steward = _steward(tmp_path)
+    cid = steward["id"]
     cs.upsert_work_item(OWNER, REPO, cid, 2251, {"phase": "implementing"}, tmp_path)
     cs.upsert_work_item(OWNER, REPO, cid, 2251, {"phase": "awaiting-ci"}, tmp_path)
     other = cs.upsert_work_item(OWNER, REPO, cid, 2264, {"phase": "implementing"}, tmp_path)
@@ -413,8 +417,8 @@ def test_editing_slot_frees_when_the_first_item_parks(tmp_path):
 
 
 def test_staying_in_an_editing_phase_is_not_a_second_editor(tmp_path):
-    crew = _crew(tmp_path)
-    cid = crew["id"]
+    steward = _steward(tmp_path)
+    cid = steward["id"]
     cs.upsert_work_item(OWNER, REPO, cid, 2251, {"phase": "implementing"}, tmp_path)
     again = cs.upsert_work_item(
         OWNER, REPO, cid, 2251, {"phase": "implementing", "next": "keep going"}, tmp_path
@@ -423,16 +427,16 @@ def test_staying_in_an_editing_phase_is_not_a_second_editor(tmp_path):
 
 
 def test_unknown_phase_is_refused(tmp_path):
-    crew = _crew(tmp_path)
-    with pytest.raises(cs.CrewStoreError, match="unknown phase"):
-        cs.upsert_work_item(OWNER, REPO, crew["id"], 1, {"phase": "vibing"}, tmp_path)
+    steward = _steward(tmp_path)
+    with pytest.raises(cs.StewardStoreError, match="unknown phase"):
+        cs.upsert_work_item(OWNER, REPO, steward["id"], 1, {"phase": "vibing"}, tmp_path)
 
 
 def test_every_unfinished_item_consumes_a_slot(tmp_path):
-    """No phase is exempt any more. A crew that needs a human records a PASS, which
+    """No phase is exempt any more. A steward that needs a human records a PASS, which
     is terminal and frees the slot — it does not sit on one holding the issue."""
-    crew = _crew(tmp_path)
-    cid = crew["id"]
+    steward = _steward(tmp_path)
+    cid = steward["id"]
     cs.upsert_work_item(OWNER, REPO, cid, 1, {"phase": "awaiting-ci"}, tmp_path)
     cs.upsert_work_item(OWNER, REPO, cid, 2, {"phase": "awaiting-reply"}, tmp_path)
     assert cs.open_slot_count(OWNER, REPO, cid, tmp_path) == 2
@@ -443,42 +447,42 @@ def test_every_unfinished_item_consumes_a_slot(tmp_path):
 def test_escalated_is_no_longer_a_phase(tmp_path):
     """The store is the choke point every writer passes through, so refusing it here
     is what stops a stale caller — an older nudge, another installation's marker, a
-    crew resuming from a pre-change ledger — parking an issue on a human again."""
-    crew = _crew(tmp_path)
+    steward resuming from a pre-change ledger — parking an issue on a human again."""
+    steward = _steward(tmp_path)
     assert "escalated" not in cs.PHASES
-    with pytest.raises(cs.CrewStoreError, match="unknown phase"):
-        cs.upsert_work_item(OWNER, REPO, crew["id"], 1, {"phase": "escalated"}, tmp_path)
+    with pytest.raises(cs.StewardStoreError, match="unknown phase"):
+        cs.upsert_work_item(OWNER, REPO, steward["id"], 1, {"phase": "escalated"}, tmp_path)
 
 
 def test_escalate_is_no_longer_an_event_kind(tmp_path):
-    crew = _crew(tmp_path)
+    steward = _steward(tmp_path)
     assert "escalate" not in cs.EVENT_KINDS
-    with pytest.raises(cs.CrewStoreError, match="unknown event kind"):
-        cs.append_event(OWNER, REPO, crew["id"], 1, "escalate", "asking the owner", tmp_path)
+    with pytest.raises(cs.StewardStoreError, match="unknown event kind"):
+        cs.append_event(OWNER, REPO, steward["id"], 1, "escalate", "asking the owner", tmp_path)
 
 
 def test_a_stale_escalation_payload_is_dropped_rather_than_stored(tmp_path):
     """The record is assembled field by field, so an unknown key in a patch is
     dropped — the same discipline as every other unknown field.
 
-    Pinned because the write is a MERGE: if the field came back, a crew resuming from
+    Pinned because the write is a MERGE: if the field came back, a steward resuming from
     a pre-change ledger would carry an unanswerable question on its work item, and
     the surface would have something to render a "waiting on a human" card from.
     """
-    crew = _crew(tmp_path)
+    steward = _steward(tmp_path)
     item = cs.upsert_work_item(
-        OWNER, REPO, crew["id"], 1,
+        OWNER, REPO, steward["id"], 1,
         {"phase": "claimed", "escalation": {"question": "which behaviour?"}},
         tmp_path,
     )
     assert "escalation" not in item
-    stored = json.loads(cs.work_item_path(OWNER, REPO, crew["id"], 1, tmp_path).read_text())
+    stored = json.loads(cs.work_item_path(OWNER, REPO, steward["id"], 1, tmp_path).read_text())
     assert "escalation" not in stored
 
 
 def test_terminal_phase_frees_the_slot_and_stamps_finished(tmp_path):
-    crew = _crew(tmp_path)
-    cid = crew["id"]
+    steward = _steward(tmp_path)
+    cid = steward["id"]
     cs.upsert_work_item(OWNER, REPO, cid, 1, {"phase": "implementing"}, tmp_path)
     done = cs.upsert_work_item(OWNER, REPO, cid, 1, {"phase": "resolved"}, tmp_path)
     assert done["finished_at"]
@@ -490,12 +494,12 @@ def test_reopening_clears_the_finish_stamp_so_the_next_one_counts(tmp_path):
 
     REGRESSION: `finished_at` was written only when it was empty, so it recorded
     the FIRST time this item ever went terminal and nothing cleared it. An issue
-    that was resolved, reopened and handled again by the same crew reuses this
+    that was resolved, reopened and handled again by the same steward reuses this
     item, so it stayed stamped in the past — putting the new resolution outside
-    the `resolved24h` window and under-reporting work the crew had just done.
+    the `resolved24h` window and under-reporting work the steward had just done.
     """
-    crew = _crew(tmp_path)
-    cid = crew["id"]
+    steward = _steward(tmp_path)
+    cid = steward["id"]
     cs.upsert_work_item(OWNER, REPO, cid, 1, {"phase": "implementing"}, tmp_path)
     first = cs.upsert_work_item(
         OWNER, REPO, cid, 1, {"phase": "resolved", "outcome": "merged in #9"}, tmp_path
@@ -517,7 +521,7 @@ def test_reopening_clears_the_finish_stamp_so_the_next_one_counts(tmp_path):
     assert stored["finished_at"] is None
     assert stored["outcome"] is None
 
-    # The crew's memory of what it already ruled out must NOT be cleared with it:
+    # The steward's memory of what it already ruled out must NOT be cleared with it:
     # losing that makes it retry approaches it had rejected.
     assert live["next"] == first["next"]
 
@@ -527,8 +531,8 @@ def test_reopening_clears_the_finish_stamp_so_the_next_one_counts(tmp_path):
 
 
 def test_tried_entries_append_rather_than_replace(tmp_path):
-    crew = _crew(tmp_path)
-    cid = crew["id"]
+    steward = _steward(tmp_path)
+    cid = steward["id"]
     cs.upsert_work_item(
         OWNER, REPO, cid, 1,
         {"tried_approach": "hasattr guard", "tried_rejected_because": "loses the ACL"},
@@ -539,34 +543,34 @@ def test_tried_entries_append_rather_than_replace(tmp_path):
     assert second["tried"][0]["rejected_because"] == "loses the ACL"
 
 
-def test_work_items_are_scoped_per_crew(tmp_path):
-    a = _crew(tmp_path, name="Andromeda")
-    b = _crew(tmp_path, name="Whirlpool")
+def test_work_items_are_scoped_per_steward(tmp_path):
+    a = _steward(tmp_path, name="Andromeda")
+    b = _steward(tmp_path, name="Whirlpool")
     cs.upsert_work_item(OWNER, REPO, a["id"], 2251, {"phase": "implementing"}, tmp_path)
-    # Same issue number, different crew — must not collide, and must not trip the
-    # one-editor rule, which is per crew.
+    # Same issue number, different steward — must not collide, and must not trip the
+    # one-editor rule, which is per steward.
     cs.upsert_work_item(OWNER, REPO, b["id"], 2251, {"phase": "implementing"}, tmp_path)
-    assert cs.read_work_item(OWNER, REPO, a["id"], 2251, tmp_path)["crew_id"] == a["id"]
-    assert cs.read_work_item(OWNER, REPO, b["id"], 2251, tmp_path)["crew_id"] == b["id"]
+    assert cs.read_work_item(OWNER, REPO, a["id"], 2251, tmp_path)["steward_id"] == a["id"]
+    assert cs.read_work_item(OWNER, REPO, b["id"], 2251, tmp_path)["steward_id"] == b["id"]
 
 
 # ── event ledger ────────────────────────────────────────────────────────────
 
 
-def test_events_read_newest_first_and_filter_by_crew(tmp_path):
-    a = _crew(tmp_path, name="Andromeda")
-    b = _crew(tmp_path, name="Whirlpool")
+def test_events_read_newest_first_and_filter_by_steward(tmp_path):
+    a = _steward(tmp_path, name="Andromeda")
+    b = _steward(tmp_path, name="Whirlpool")
     cs.append_event(OWNER, REPO, a["id"], 1, "claim", "claimed", tmp_path)
     cs.append_event(OWNER, REPO, b["id"], 2, "ci", "CI round 3", tmp_path)
     all_events = cs.read_events(OWNER, REPO, tmp_path)
     assert [e["kind"] for e in all_events] == ["ci", "claim"]
-    mine = cs.read_events(OWNER, REPO, tmp_path, crew_id=a["id"])
+    mine = cs.read_events(OWNER, REPO, tmp_path, steward_id=a["id"])
     assert [e["kind"] for e in mine] == ["claim"]
 
 
 def test_duplicate_event_lines_collapse_on_read(tmp_path):
-    crew = _crew(tmp_path)
-    entry = cs.append_event(OWNER, REPO, crew["id"], 1, "claim", "claimed", tmp_path)
+    steward = _steward(tmp_path)
+    entry = cs.append_event(OWNER, REPO, steward["id"], 1, "claim", "claimed", tmp_path)
     # Simulate an append retried after a crash: the same content-addressed id.
     with open(cs.events_path(OWNER, REPO, tmp_path), "a", encoding="utf-8") as fd:
         fd.write(json.dumps(entry) + "\n")
@@ -574,8 +578,8 @@ def test_duplicate_event_lines_collapse_on_read(tmp_path):
 
 
 def test_malformed_line_does_not_hide_the_history_before_it(tmp_path):
-    crew = _crew(tmp_path)
-    cs.append_event(OWNER, REPO, crew["id"], 1, "claim", "claimed", tmp_path)
+    steward = _steward(tmp_path)
+    cs.append_event(OWNER, REPO, steward["id"], 1, "claim", "claimed", tmp_path)
     with open(cs.events_path(OWNER, REPO, tmp_path), "a", encoding="utf-8") as fd:
         fd.write("{ this is a torn tail\n")
     events = cs.read_events(OWNER, REPO, tmp_path)
@@ -583,9 +587,9 @@ def test_malformed_line_does_not_hide_the_history_before_it(tmp_path):
 
 
 def test_unknown_event_kind_is_refused(tmp_path):
-    crew = _crew(tmp_path)
-    with pytest.raises(cs.CrewStoreError, match="unknown event kind"):
-        cs.append_event(OWNER, REPO, crew["id"], 1, "vibes", "…", tmp_path)
+    steward = _steward(tmp_path)
+    with pytest.raises(cs.StewardStoreError, match="unknown event kind"):
+        cs.append_event(OWNER, REPO, steward["id"], 1, "vibes", "…", tmp_path)
 
 
 # ── phase classification ────────────────────────────────────────────────────
@@ -610,15 +614,15 @@ def test_the_two_phase_classifications_do_not_coincide(tmp_path):
 
 
 def test_a_skip_is_readable_by_number_and_by_predicate(tmp_path):
-    crew = _crew(tmp_path)
+    steward = _steward(tmp_path)
     entry, created = cs.record_skip(
         OWNER, REPO, 42, "needs an owner decision on the data model",
-        "needs-design", crew["id"], tmp_path,
+        "needs-design", steward["id"], tmp_path,
     )
     assert created is True
     assert entry["number"] == 42
     assert entry["scope"] == "needs-design"
-    assert entry["crew_id"] == crew["id"]
+    assert entry["steward_id"] == steward["id"]
     assert entry["decided_at"]
     # Keyed by the STRING form, because that is what a JSON object key is — a
     # reader that looked up the int would miss every entry.
@@ -627,29 +631,29 @@ def test_a_skip_is_readable_by_number_and_by_predicate(tmp_path):
     assert cs.is_skipped(OWNER, REPO, 43, tmp_path) is False
 
 
-def test_re_skipping_keeps_the_first_crews_reason(tmp_path):
+def test_re_skipping_keeps_the_first_stewards_reason(tmp_path):
     """First-writer-wins, because the first reason is the audit trail.
 
-    Two crews reaching the same pass is normal; the record a human reads when
+    Two stewards reaching the same pass is normal; the record a human reads when
     asking why an issue keeps being passed over must be the one that was actually
-    decided first, not whichever crew wrote most recently.
+    decided first, not whichever steward wrote most recently.
     """
-    first = _crew(tmp_path, "Andromeda")
-    second = _crew(tmp_path, "Whirlpool")
+    first = _steward(tmp_path, "Andromeda")
+    second = _steward(tmp_path, "Whirlpool")
     cs.record_skip(OWNER, REPO, 42, "first reason", "architecture", first["id"], tmp_path)
     returned, created = cs.record_skip(
         OWNER, REPO, 42, "second reason", "duplicate", second["id"], tmp_path
     )
-    # The first element is what now STANDS, so the second crew can see its own
+    # The first element is what now STANDS, so the second steward can see its own
     # reason was not the one kept — and `created` says the write was a no-op.
     assert created is False
     assert returned["reason"] == "first reason"
     assert returned["scope"] == "architecture"
-    assert returned["crew_id"] == first["id"]
+    assert returned["steward_id"] == first["id"]
     stored = cs.read_skips(OWNER, REPO, tmp_path)
     assert list(stored) == ["42"]
     assert stored["42"]["reason"] == "first reason"
-    assert stored["42"]["crew_id"] == first["id"]
+    assert stored["42"]["steward_id"] == first["id"]
 
 
 @pytest.mark.parametrize("scope", ["needs-decision", "needs-investigation"])
@@ -662,11 +666,11 @@ def test_a_needs_human_pass_is_accepted_and_indexed(tmp_path, scope):
     answer a question", and collapsing them loses the only signal that says a human
     owes something back.
     """
-    crew = _crew(tmp_path)
+    steward = _steward(tmp_path)
     assert scope in cs.SKIP_SCOPES
     assert cs.coerce_skip_scope(scope) == scope
     entry, _created = cs.record_skip(
-        OWNER, REPO, 42, "needs the owner's call", scope, crew["id"], tmp_path
+        OWNER, REPO, 42, "needs the owner's call", scope, steward["id"], tmp_path
     )
     assert entry["scope"] == scope
     assert cs.read_skips(OWNER, REPO, tmp_path)["42"]["scope"] == scope
@@ -683,16 +687,16 @@ def test_an_unknown_scope_coerces_to_other(tmp_path, given):
     Refusing would cost the whole skip record for a bad filter label, and a pass
     that fails to record is the exact duplicated investigation this index removes.
     """
-    crew = _crew(tmp_path)
-    entry, _created = cs.record_skip(OWNER, REPO, 42, "why", given, crew["id"], tmp_path)
+    steward = _steward(tmp_path)
+    entry, _created = cs.record_skip(OWNER, REPO, 42, "why", given, steward["id"], tmp_path)
     assert entry["scope"] == "other"
     assert cs.read_skips(OWNER, REPO, tmp_path)["42"]["scope"] == "other"
 
 
 def test_a_known_scope_survives_case_and_padding(tmp_path):
-    crew = _crew(tmp_path)
+    steward = _steward(tmp_path)
     entry, _created = cs.record_skip(
-        OWNER, REPO, 42, "why", "  Already-Fixed ", crew["id"], tmp_path
+        OWNER, REPO, 42, "why", "  Already-Fixed ", steward["id"], tmp_path
     )
     assert entry["scope"] == "already-fixed"
 
@@ -701,7 +705,7 @@ def test_record_skip_reports_whether_this_call_created_the_entry(tmp_path):
     """``created`` is decided under the lock, and it is the only honest source.
 
     A caller cannot work this out for itself, and that is the point: the index is
-    repo-wide and first-writer-wins, so two crews passing on one number with the
+    repo-wide and first-writer-wins, so two stewards passing on one number with the
     SAME reason and scope produce a standing entry that both of them would
     recognise as their own. Matching the stored fields against what was supplied —
     or pre-reading the index and finding the number absent — says "I wrote this" to
@@ -709,8 +713,8 @@ def test_record_skip_reports_whether_this_call_created_the_entry(tmp_path):
     its own request fails. Only the call that actually inserted the entry may report
     creation.
     """
-    author = _crew(tmp_path, "Andromeda")
-    other = _crew(tmp_path, "Whirlpool")
+    author = _steward(tmp_path, "Andromeda")
+    other = _steward(tmp_path, "Whirlpool")
 
     entry, created = cs.record_skip(
         OWNER, REPO, 42, "not reproducible on main", "not-reproducible", author["id"], tmp_path
@@ -724,7 +728,7 @@ def test_record_skip_reports_whether_this_call_created_the_entry(tmp_path):
     assert created_again is False
     assert again == entry
 
-    # A different crew reaching the same conclusion is the same answer.
+    # A different steward reaching the same conclusion is the same answer.
     _third, created_third = cs.record_skip(
         OWNER, REPO, 42, "not reproducible on main", "not-reproducible", other["id"], tmp_path
     )
@@ -739,17 +743,17 @@ def test_record_skip_reports_whether_this_call_created_the_entry(tmp_path):
 
 
 def test_recent_skips_are_newest_first_and_bounded(tmp_path):
-    crew = _crew(tmp_path)
+    steward = _steward(tmp_path)
     for number in range(1, 6):
-        cs.record_skip(OWNER, REPO, number, f"reason {number}", "other", crew["id"], tmp_path)
+        cs.record_skip(OWNER, REPO, number, f"reason {number}", "other", steward["id"], tmp_path)
     rows = cs.recent_skips(OWNER, REPO, tmp_path, limit=3)
     assert [r["number"] for r in rows] == [5, 4, 3]
 
 
 def test_a_malformed_index_reads_as_empty_rather_than_raising(tmp_path):
-    # Consulted on the path where a crew decides whether to investigate: a torn
-    # file must cost one wasted investigation, not stop the crew.
-    _crew(tmp_path)
+    # Consulted on the path where a steward decides whether to investigate: a torn
+    # file must cost one wasted investigation, not stop the steward.
+    _steward(tmp_path)
     cs.skips_path(OWNER, REPO, tmp_path).write_text("{ not json")
     assert cs.read_skips(OWNER, REPO, tmp_path) == {}
     assert cs.is_skipped(OWNER, REPO, 42, tmp_path) is False
@@ -757,10 +761,10 @@ def test_a_malformed_index_reads_as_empty_rather_than_raising(tmp_path):
 
 def test_an_entry_whose_number_was_stored_as_a_string_still_reads_back_as_an_int(tmp_path):
     # `skipped_numbers` is built from this field, so a string here would drop the
-    # issue out of the membership test every crew runs before investigating.
-    _crew(tmp_path)
+    # issue out of the membership test every steward runs before investigating.
+    _steward(tmp_path)
     cs.skips_path(OWNER, REPO, tmp_path).write_text(
-        json.dumps({"42": {"number": "42", "reason": "r", "scope": "other", "crew_id": "c"}})
+        json.dumps({"42": {"number": "42", "reason": "r", "scope": "other", "steward_id": "c"}})
     )
     assert cs.read_skips(OWNER, REPO, tmp_path)["42"]["number"] == 42
 
@@ -777,11 +781,11 @@ def test_the_skip_index_write_takes_the_repo_wide_lock(tmp_path, monkeypatch):
 
     A behavioural assertion cannot detect the wrong lock here: two sequential
     ``record_skip`` calls in one test see each other's writes whatever lock is
-    held, so a per-crew lock passes every functional test and only loses a
+    held, so a per-steward lock passes every functional test and only loses a
     decision under real concurrency. So this spies on the fd handed to
     ``file_lock`` and identifies the file by inode.
     """
-    crew = _crew(tmp_path)
+    steward = _steward(tmp_path)
     real_lock = cs.platform_compat.file_lock
     locked: list[int] = []
 
@@ -792,29 +796,29 @@ def test_the_skip_index_write_takes_the_repo_wide_lock(tmp_path, monkeypatch):
             yield
 
     monkeypatch.setattr(cs.platform_compat, "file_lock", _spy)
-    cs.record_skip(OWNER, REPO, 42, "why", "other", crew["id"], tmp_path)
+    cs.record_skip(OWNER, REPO, 42, "why", "other", steward["id"], tmp_path)
 
     records_lock = _inode(cs._records_lock_path(OWNER, REPO, tmp_path))
     assert records_lock is not None
-    # Exactly the repo-wide lock: not the crew's, and not nothing.
+    # Exactly the repo-wide lock: not the steward's, and not nothing.
     assert locked == [records_lock]
-    assert _inode(cs._crew_lock_path(OWNER, REPO, crew["id"], tmp_path)) not in locked
+    assert _inode(cs._steward_lock_path(OWNER, REPO, steward["id"], tmp_path)) not in locked
 
 
-# ── one crew's pass cannot be erased by another crew's rollback ─────────────
+# ── one steward's pass cannot be erased by another steward's rollback ───────
 #
 # `record_skip` taking the repo-wide lock makes ONE write of the index atomic. It
-# does NOT make a crew's OWNERSHIP of an entry outlive that write, and
+# does NOT make a steward's OWNERSHIP of an entry outlive that write, and
 # `commit_work_progress` needs exactly that: it may un-index the entry later, when
 # its ledger append fails.
 #
-# The crew lock cannot supply it. The index is repo-wide and the crew lock is
-# per-crew, so two crews passing on ONE issue hold two DIFFERENT crew locks and are
+# The steward lock cannot supply it. The index is repo-wide and the steward lock is
+# per-steward, so two stewards passing on ONE issue hold two DIFFERENT steward locks and are
 # serialised against each other by nothing: the second finds the first's entry,
 # reports no creation of its own, commits its item and its ledger line against it,
 # and the first's rollback then deletes it. The fleet is left with an issue that
-# reads as un-passed while a crew's own item and log say it passed on it — so every
-# crew re-investigates an issue somebody decided about, which is the most expensive
+# reads as un-passed while a steward's own item and log say it passed on it — so every
+# steward re-investigates an issue somebody decided about, which is the most expensive
 # mistake this store can make.
 #
 # So `commit_work_progress` holds `_skip_lock_path` for the ONE issue number from
@@ -844,7 +848,7 @@ _PARK_FOR = 60.0
 
 
 def _pass_body(**over):
-    """The arguments for one crew's pass, so two calls can be made byte-identical."""
+    """The arguments for one steward's pass, so two calls can be made byte-identical."""
     body = {
         "patch": {"phase": "skipped"},
         "event_kind": "skip",
@@ -856,10 +860,10 @@ def _pass_body(**over):
     return body
 
 
-def _pass(root, crew_id, number, **over):
+def _pass(root, steward_id, number, **over):
     body = _pass_body(**over)
     return cs.commit_work_progress(
-        OWNER, REPO, crew_id, number,
+        OWNER, REPO, steward_id, number,
         body["patch"], body["event_kind"], body["event_text"],
         skip_reason=body["skip_reason"], skip_scope=body["skip_scope"], root=root,
     )
@@ -878,8 +882,8 @@ def test_a_lock_that_cannot_be_acquired_still_rolls_the_item_back(tmp_path, monk
     Asserted on the DURABLE item, because the rollback's whole purpose is what the
     next reader sees on disk.
     """
-    crew = _crew(tmp_path, "Andromeda")
-    cid = crew["id"]
+    steward = _steward(tmp_path, "Andromeda")
+    cid = steward["id"]
     cs.upsert_work_item(OWNER, REPO, cid, 7, {"phase": "investigating"}, tmp_path)
 
     def _cannot_open_another_descriptor(owner, repo, number, root=None):
@@ -907,13 +911,13 @@ def test_a_lock_that_cannot_be_acquired_still_rolls_the_item_back(tmp_path, monk
     assert 7 not in cs.read_skips(OWNER, REPO, tmp_path).get("skipped_numbers", [])
 
 
-def test_a_rollback_cannot_erase_a_pass_another_crew_committed_on_the_same_issue(
+def test_a_rollback_cannot_erase_a_pass_another_steward_committed_on_the_same_issue(
     tmp_path, monkeypatch
 ):
-    """The interleaving in full: two DIFFERENT crews, ONE issue, first ledger fails.
+    """The interleaving in full: two DIFFERENT stewards, ONE issue, first ledger fails.
 
     The author indexes #7 and then fails at its ledger line. Whirlpool passes on the
-    SAME issue inside that window. Under a per-crew hold Whirlpool's ``record_skip``
+    SAME issue inside that window. Under a per-steward hold Whirlpool's ``record_skip``
     finds the author's entry, reports no creation, and its item and ledger line
     commit against it — and then the author's rollback deletes that entry, because
     the entry is still byte-for-byte the one the author inserted. Nothing readable
@@ -922,28 +926,28 @@ def test_a_rollback_cannot_erase_a_pass_another_crew_committed_on_the_same_issue
 
     Asserts the surviving entry is the COMMITTED one and that it is still there.
     Both halves matter: an empty index is the bug, and an index still naming the
-    crew whose transaction failed would be a different one.
+    steward whose transaction failed would be a different one.
     """
-    author = _crew(tmp_path, "Andromeda")
-    other = _crew(tmp_path, "Whirlpool")
+    author = _steward(tmp_path, "Andromeda")
+    other = _steward(tmp_path, "Whirlpool")
     real_append = cs.append_event
     indexed = threading.Event()
     other_committed = threading.Event()
 
     def _fail_only_the_authors_ledger_line(
-        owner, repo, crew_id, number, kind, text, root=None, **kwargs
+        owner, repo, steward_id, number, kind, text, root=None, **kwargs
     ):
-        if crew_id != author["id"]:
-            return real_append(owner, repo, crew_id, number, kind, text, root, **kwargs)
+        if steward_id != author["id"]:
+            return real_append(owner, repo, steward_id, number, kind, text, root, **kwargs)
         indexed.set()
-        # Bounded: with the hold in place the other crew CANNOT commit here, so this
+        # Bounded: with the hold in place the other steward CANNOT commit here, so this
         # times out and the transaction goes on to fail either way.
         other_committed.wait(timeout=_BLOCKED_FOR)
         raise OSError("no space left on device")
 
     monkeypatch.setattr(cs, "append_event", _fail_only_the_authors_ledger_line)
 
-    def _the_other_crews_pass():
+    def _the_other_stewards_pass():
         # Only after the author's entry is in the index, so this is strictly the
         # second writer — the position the bug needs.
         if not indexed.wait(timeout=_JOIN_TIMEOUT):
@@ -952,36 +956,36 @@ def test_a_rollback_cannot_erase_a_pass_another_crew_committed_on_the_same_issue
               skip_scope="already-fixed", event_text="passing on #7")
         other_committed.set()
 
-    thread = threading.Thread(target=_the_other_crews_pass, daemon=True)
+    thread = threading.Thread(target=_the_other_stewards_pass, daemon=True)
     thread.start()
     with pytest.raises(OSError):
         _pass(tmp_path, author["id"], 7, event_text="passing on #7")
     thread.join(timeout=_JOIN_TIMEOUT)
-    assert not thread.is_alive(), "the other crew's pass never completed"
+    assert not thread.is_alive(), "the other steward's pass never completed"
 
     standing = cs.read_skips(OWNER, REPO, tmp_path)
     assert list(standing) == ["7"], "the committed pass was un-indexed by the failed one"
-    assert standing["7"]["crew_id"] == other["id"]
+    assert standing["7"]["steward_id"] == other["id"]
     assert standing["7"]["reason"] == "already fixed upstream"
     # And it really did COMMIT — the entry above is backed by an item and a line.
     item = cs.read_work_item(OWNER, REPO, other["id"], 7, tmp_path)
     assert item is not None and item["phase"] == "skipped"
-    assert [e["crew_id"] for e in cs.read_events(OWNER, REPO, tmp_path)] == [other["id"]]
+    assert [e["steward_id"] for e in cs.read_events(OWNER, REPO, tmp_path)] == [other["id"]]
     # The failed transaction left nothing of its own behind.
     assert cs.read_work_item(OWNER, REPO, author["id"], 7, tmp_path) is None
 
 
 def test_a_failed_pass_does_not_erase_the_entry_it_adopted(tmp_path, monkeypatch):
-    """A re-skip that fails must leave the FIRST crew's entry alone.
+    """A re-skip that fails must leave the FIRST steward's entry alone.
 
     The mirror of the test above, and the reason ``created`` gates the un-index at
     all. Both calls supply byte-identical reason and scope, so the standing entry
-    matches what the second crew would have written and a field comparison reads as
+    matches what the second steward would have written and a field comparison reads as
     "mine"; only the flag ``record_skip`` returns from inside its own lock says
     otherwise.
     """
-    author = _crew(tmp_path, "Andromeda")
-    other = _crew(tmp_path, "Whirlpool")
+    author = _steward(tmp_path, "Andromeda")
+    other = _steward(tmp_path, "Whirlpool")
     _pass(tmp_path, author["id"], 7)
 
     monkeypatch.setattr(
@@ -993,7 +997,7 @@ def test_a_failed_pass_does_not_erase_the_entry_it_adopted(tmp_path, monkeypatch
 
     standing = cs.read_skips(OWNER, REPO, tmp_path)
     assert list(standing) == ["7"], "a re-skip's rollback removed somebody else's entry"
-    assert standing["7"]["crew_id"] == author["id"]
+    assert standing["7"]["steward_id"] == author["id"]
     assert standing["7"]["reason"] == "needs an owner decision"
     assert cs.read_work_item(OWNER, REPO, other["id"], 7, tmp_path) is None
 
@@ -1010,30 +1014,30 @@ def test_the_skip_hold_spans_the_ledger_write_and_is_scoped_to_the_one_issue(
     A pass on the SAME issue must not be able to commit, because the parked
     transaction can still withdraw the entry it would commit against. A pass on a
     DIFFERENT issue must go straight through: it contends for no entry this
-    transaction owns, and parking it would put every crew in the repo behind one
+    transaction owns, and parking it would put every steward in the repo behind one
     transaction's slowest write.
     """
-    author = _crew(tmp_path, "Andromeda")
-    other = _crew(tmp_path, "Whirlpool")
-    third = _crew(tmp_path, "Bode")
+    author = _steward(tmp_path, "Andromeda")
+    other = _steward(tmp_path, "Whirlpool")
+    third = _steward(tmp_path, "Bode")
     real_append = cs.append_event
     inside = threading.Event()
     release = threading.Event()
 
     def _park_at_the_ledger_write(
-        owner, repo, crew_id, number, kind, text, root=None, **kwargs
+        owner, repo, steward_id, number, kind, text, root=None, **kwargs
     ):
-        if crew_id != author["id"]:
-            return real_append(owner, repo, crew_id, number, kind, text, root, **kwargs)
+        if steward_id != author["id"]:
+            return real_append(owner, repo, steward_id, number, kind, text, root, **kwargs)
         inside.set()
         release.wait(timeout=_PARK_FOR)
-        return real_append(owner, repo, crew_id, number, kind, text, root, **kwargs)
+        return real_append(owner, repo, steward_id, number, kind, text, root, **kwargs)
 
     monkeypatch.setattr(cs, "append_event", _park_at_the_ledger_write)
 
-    def _probe(crew_id, number, started, done):
+    def _probe(steward_id, number, started, done):
         started.set()
-        _pass(tmp_path, crew_id, number, event_text=f"passing on #{number}")
+        _pass(tmp_path, steward_id, number, event_text=f"passing on #{number}")
         done.set()
 
     same = {"started": threading.Event(), "done": threading.Event()}
@@ -1078,39 +1082,39 @@ def test_the_skip_hold_spans_the_ledger_write_and_is_scoped_to_the_one_issue(
     # decision: the hold ORDERS the passes, it does not lose any of them.
     standing = cs.read_skips(OWNER, REPO, tmp_path)
     assert sorted(standing) == ["7", "99"]
-    assert standing["7"]["crew_id"] == author["id"]
-    assert standing["99"]["crew_id"] == third["id"]
+    assert standing["7"]["steward_id"] == author["id"]
+    assert standing["99"]["steward_id"] == third["id"]
 
 
-# ── a file in the crews directory that is not a crew ────────────────────────
+# ── a file in the stewards directory that is not a steward ──────────────────
 #
 # The directory holds `settings.json` and `skipped.json` beside the records.
-# Excluding siblings BY NAME meant the first recorded skip was read as a crew:
-# it carries no `id`, so the watchdog launched a session keyed `crew-None` and,
+# Excluding siblings BY NAME meant the first recorded skip was read as a steward:
+# it carries no `id`, so the watchdog launched a session keyed `steward-None` and,
 # because `unattended` defaults on, handed that phantom trust. The gate is the
-# crew-id SHAPE now, so any sibling added later is excluded without anyone
+# steward-id SHAPE now, so any sibling added later is excluded without anyone
 # remembering to extend a list.
 
 
-def test_sibling_files_are_never_enumerated_as_crews(tmp_path):
-    crew = _crew(tmp_path)
-    d = cs.crews_dir(OWNER, REPO, tmp_path)
+def test_sibling_files_are_never_enumerated_as_stewards(tmp_path):
+    steward = _steward(tmp_path)
+    d = cs.stewards_dir(OWNER, REPO, tmp_path)
     (d / "settings.json").write_text('{"claim_ttl_hours": 48}')
     (d / "skipped.json").write_text('{"12": {"number": 12, "reason": "dup"}}')
     # A plausible future sibling: the point is that nobody has to add it here.
     (d / "index.json").write_text("{}")
 
-    listed = cs.list_crews(OWNER, REPO, tmp_path)
+    listed = cs.list_stewards(OWNER, REPO, tmp_path)
 
-    assert [c["id"] for c in listed] == [crew["id"]]
+    assert [c["id"] for c in listed] == [steward["id"]]
     assert all(c.get("id") for c in listed), "a record with no id was enumerated"
 
 
-def test_recording_a_skip_does_not_create_a_phantom_crew(tmp_path):
-    crew = _crew(tmp_path)
-    before = [c["id"] for c in cs.list_crews(OWNER, REPO, tmp_path)]
-    cs.record_skip(OWNER, REPO, 12, "duplicate of #11", "duplicate", crew["id"], tmp_path)
-    after = [c["id"] for c in cs.list_crews(OWNER, REPO, tmp_path)]
+def test_recording_a_skip_does_not_create_a_phantom_steward(tmp_path):
+    steward = _steward(tmp_path)
+    before = [c["id"] for c in cs.list_stewards(OWNER, REPO, tmp_path)]
+    cs.record_skip(OWNER, REPO, 12, "duplicate of #11", "duplicate", steward["id"], tmp_path)
+    after = [c["id"] for c in cs.list_stewards(OWNER, REPO, tmp_path)]
     assert after == before
 
 
@@ -1203,21 +1207,21 @@ def test_a_non_finite_ttl_patch_leaves_the_stored_value_alone(tmp_path, literal)
 
 @pytest.mark.parametrize("literal", NON_FINITE_LITERALS)
 def test_a_non_finite_max_open_is_ignored_like_any_out_of_range_value(tmp_path, literal):
-    crew = _crew(tmp_path)
-    updated = cs.update_crew(
-        OWNER, REPO, crew["id"], {"max_open": json.loads(literal)}, tmp_path
+    steward = _steward(tmp_path)
+    updated = cs.update_steward(
+        OWNER, REPO, steward["id"], {"max_open": json.loads(literal)}, tmp_path
     )
-    assert updated["max_open"] == cs._DEFAULT_CREW["max_open"]
+    assert updated["max_open"] == cs._DEFAULT_STEWARD["max_open"]
 
 
 @pytest.mark.parametrize("literal", NON_FINITE_LITERALS)
 def test_a_non_finite_avatar_variant_stores_as_none(tmp_path, literal):
     """``None`` is what this field already stores for a non-number, so a non-finite
     number joins that case rather than getting a rule of its own."""
-    crew = _crew(tmp_path, avatar_variant=json.loads(literal))
-    assert crew["avatar_variant"] is None
-    updated = cs.update_crew(
-        OWNER, REPO, crew["id"], {"avatar_variant": json.loads(literal)}, tmp_path
+    steward = _steward(tmp_path, avatar_variant=json.loads(literal))
+    assert steward["avatar_variant"] is None
+    updated = cs.update_steward(
+        OWNER, REPO, steward["id"], {"avatar_variant": json.loads(literal)}, tmp_path
     )
     assert updated["avatar_variant"] is None
 
@@ -1225,42 +1229,42 @@ def test_a_non_finite_avatar_variant_stores_as_none(tmp_path, literal):
 @pytest.mark.parametrize("field", ("pr_number", "claim_comment_id"))
 @pytest.mark.parametrize("literal", NON_FINITE_LITERALS)
 def test_a_non_finite_work_item_number_stores_as_none(tmp_path, field, literal):
-    crew = _crew(tmp_path)
+    steward = _steward(tmp_path)
     item = cs.upsert_work_item(
-        OWNER, REPO, crew["id"], 2251, {field: json.loads(literal)}, tmp_path
+        OWNER, REPO, steward["id"], 2251, {field: json.loads(literal)}, tmp_path
     )
     assert item[field] is None
-    _assert_strict_json(cs.work_item_path(OWNER, REPO, crew["id"], 2251, tmp_path))
+    _assert_strict_json(cs.work_item_path(OWNER, REPO, steward["id"], 2251, tmp_path))
 
 
-def test_a_hand_edited_crew_record_cannot_defeat_the_slot_cap(tmp_path):
+def test_a_hand_edited_steward_record_cannot_defeat_the_slot_cap(tmp_path):
     """The read side, and the reason it matters more than the write side.
 
     Nothing in the app COMPARES against ``max_open`` with an exception to raise:
-    the crew's brief renders it as prose and the page tests ``open >= max_open``,
+    the steward's brief renders it as prose and the page tests ``open >= max_open``,
     which is False for every count once the value is ``inf``. So an unchecked read
     does not crash — it silently removes the cap.
     """
-    crew = _crew(tmp_path)
-    _poison(cs.crew_path(OWNER, REPO, crew["id"], tmp_path), "max_open", "1e309")
+    steward = _steward(tmp_path)
+    _poison(cs.steward_path(OWNER, REPO, steward["id"], tmp_path), "max_open", "1e309")
 
-    got = cs.read_crew(OWNER, REPO, crew["id"], tmp_path)
+    got = cs.read_steward(OWNER, REPO, steward["id"], tmp_path)
 
     assert got is not None
-    assert got["max_open"] == cs._DEFAULT_CREW["max_open"]
+    assert got["max_open"] == cs._DEFAULT_STEWARD["max_open"]
     assert 99 >= got["max_open"], "the cap must be a number a count can exceed"
-    assert [c["max_open"] for c in cs.list_crews(OWNER, REPO, tmp_path)] == [
-        cs._DEFAULT_CREW["max_open"]
+    assert [c["max_open"] for c in cs.list_stewards(OWNER, REPO, tmp_path)] == [
+        cs._DEFAULT_STEWARD["max_open"]
     ]
 
 
-def test_a_hand_edited_crew_record_stays_serialisable(tmp_path):
-    """One poisoned record must not take the page down for every crew: ``GET /crews``
+def test_a_hand_edited_steward_record_stays_serialisable(tmp_path):
+    """One poisoned record must not take the page down for every steward: ``GET /stewards``
     returns them all in one body, and a bare ``Infinity`` in it is not JSON."""
-    crew = _crew(tmp_path)
-    _poison(cs.crew_path(OWNER, REPO, crew["id"], tmp_path), "avatar_variant", "NaN")
+    steward = _steward(tmp_path)
+    _poison(cs.steward_path(OWNER, REPO, steward["id"], tmp_path), "avatar_variant", "NaN")
 
-    got = cs.read_crew(OWNER, REPO, crew["id"], tmp_path)
+    got = cs.read_steward(OWNER, REPO, steward["id"], tmp_path)
 
     assert got is not None
     assert got["avatar_variant"] is None
@@ -1271,12 +1275,12 @@ def test_a_hand_edited_crew_record_stays_serialisable(tmp_path):
 def test_a_hand_edited_pr_number_is_not_written_back(tmp_path):
     """A carried-forward value is re-serialised by the next write, so leaving it
     alone would make the corruption permanent rather than transient."""
-    crew = _crew(tmp_path)
-    cs.upsert_work_item(OWNER, REPO, crew["id"], 2251, {"pr_number": 2271}, tmp_path)
-    path = cs.work_item_path(OWNER, REPO, crew["id"], 2251, tmp_path)
+    steward = _steward(tmp_path)
+    cs.upsert_work_item(OWNER, REPO, steward["id"], 2251, {"pr_number": 2271}, tmp_path)
+    path = cs.work_item_path(OWNER, REPO, steward["id"], 2251, tmp_path)
     _poison(path, "pr_number", "1e309")
 
-    item = cs.upsert_work_item(OWNER, REPO, crew["id"], 2251, {"next": "rebase"}, tmp_path)
+    item = cs.upsert_work_item(OWNER, REPO, steward["id"], 2251, {"next": "rebase"}, tmp_path)
 
     assert item["pr_number"] is None
     _assert_strict_json(path)
@@ -1288,23 +1292,24 @@ def test_legitimate_numbers_still_round_trip(tmp_path):
     cs.write_settings(OWNER, REPO, {"claim_ttl_hours": 72}, tmp_path)
     assert cs.read_settings(OWNER, REPO, tmp_path)["claim_ttl_hours"] == 72
 
-    crew = _crew(tmp_path, max_open=5, avatar_variant=2)
-    assert (crew["max_open"], crew["avatar_variant"]) == (5, 2)
-    reread = cs.read_crew(OWNER, REPO, crew["id"], tmp_path)
+    steward = _steward(tmp_path, max_open=5, avatar_variant=2)
+    assert (steward["max_open"], steward["avatar_variant"]) == (5, 2)
+    reread = cs.read_steward(OWNER, REPO, steward["id"], tmp_path)
     assert reread is not None
     assert (reread["max_open"], reread["avatar_variant"]) == (5, 2)
 
     item = cs.upsert_work_item(
-        OWNER, REPO, crew["id"], 2251,
+        OWNER, REPO, steward["id"], 2251,
         {"pr_number": 2271, "claim_comment_id": 9911}, tmp_path,
     )
     assert (item["pr_number"], item["claim_comment_id"]) == (2271, 9911)
     # The carry-forward path preserves them too — a later write must not blank a
     # field it was not given.
-    carried = cs.upsert_work_item(OWNER, REPO, crew["id"], 2251, {"next": "rebase"}, tmp_path)
+    carried = cs.upsert_work_item(OWNER, REPO, steward["id"], 2251, {"next": "rebase"}, tmp_path)
     assert (carried["pr_number"], carried["claim_comment_id"]) == (2271, 9911)
     # The bound still rejects a finite out-of-range value, unchanged.
-    assert cs.update_crew(OWNER, REPO, crew["id"], {"max_open": 21}, tmp_path)["max_open"] == 5
+    rebounded = cs.update_steward(OWNER, REPO, steward["id"], {"max_open": 21}, tmp_path)
+    assert rebounded["max_open"] == 5
 
 
 def _reject_constant(name: str):
@@ -1345,8 +1350,8 @@ def test_a_write_that_does_not_move_the_item_leaves_phase_off_the_event_line(tmp
     most often is the one whose stall would be hidden best, which is the exact
     inversion of what the view is for.
     """
-    crew = _crew(tmp_path)
-    cid = crew["id"]
+    steward = _steward(tmp_path)
+    cid = steward["id"]
 
     entered = cs.commit_work_progress(
         OWNER, REPO, cid, 7301, {"phase": "awaiting-ci"}, "ci", "round 1", root=tmp_path
@@ -1377,7 +1382,7 @@ def test_a_write_that_does_not_move_the_item_leaves_phase_off_the_event_line(tmp
 
     phases = [
         ev.get("phase")
-        for ev in cs.read_events(OWNER, REPO, tmp_path, crew_id=cid)
+        for ev in cs.read_events(OWNER, REPO, tmp_path, steward_id=cid)
         if ev.get("number") == 7301
     ]
     assert [p for p in phases if p] == [
@@ -1398,8 +1403,8 @@ def test_a_wrong_shaped_item_file_does_not_break_the_next_write(tmp_path):
     would restore the same bad bytes, and every retry would fail identically: the
     item becomes permanently unwritable.
     """
-    crew = _crew(tmp_path)
-    cid = crew["id"]
+    steward = _steward(tmp_path)
+    cid = steward["id"]
     cs.commit_work_progress(
         OWNER, REPO, cid, 7422, {"phase": "claimed"}, "claim", "mine", root=tmp_path
     )
@@ -1417,3 +1422,207 @@ def test_a_wrong_shaped_item_file_does_not_break_the_next_write(tmp_path):
         assert out["event"].get("phase") == "implementing", (
             f"a phase entry must still be recorded when the snapshot is {corrupt}"
         )
+
+
+# ── a data home an earlier build wrote ──────────────────────────────────────
+#
+# Three spellings changed and nothing else did: the directory a repository's stewards
+# live in, the key a work item, ledger line and skip entry record the steward's id
+# under, and the slot-key prefix. An existing data home holds all three, and losing
+# any of them loses stewards, history or attribution with no error anywhere.
+
+
+def test_the_legacy_spellings_are_the_ones_earlier_builds_wrote():
+    # Pinned rather than derived: an existing data home holds exactly these, so any
+    # other value reads every one of them as absent.
+    assert cs.LEGACY_STEWARDS_DIRNAME == "crews"
+    assert cs.LEGACY_STEWARD_ID_KEY == "crew_id"
+    assert cs.LEGACY_STEWARD_SLOT_PREFIXES == ("crew-",)
+
+
+def _in_legacy_spelling(value):
+    """*value* with the current id key and slot-key prefix respelled the old way."""
+    if isinstance(value, list):
+        return [_in_legacy_spelling(v) for v in value]
+    if not isinstance(value, dict):
+        return value
+    out = {}
+    for key, val in value.items():
+        if key == cs.STEWARD_ID_KEY:
+            key = cs.LEGACY_STEWARD_ID_KEY
+        elif key == "slot_key" and str(val).startswith(cs.STEWARD_SLOT_PREFIX):
+            val = cs.LEGACY_STEWARD_SLOT_PREFIXES[0] + val[len(cs.STEWARD_SLOT_PREFIX):]
+        out[key] = _in_legacy_spelling(val)
+    return out
+
+
+def _age_into_legacy_layout(root):
+    """Rewrite this repo's steward files into the layout an earlier build left behind.
+
+    Everything is created through the current API first and only then respelled, so
+    the fixture cannot drift from what the store really writes.
+    """
+    current = cs.stewards_dir(OWNER, REPO, root)
+    for path in current.rglob("*.json"):
+        path.write_text(json.dumps(_in_legacy_spelling(json.loads(path.read_text()))))
+    events = current / "events.jsonl"
+    if events.exists():
+        lines = [json.loads(line) for line in events.read_text().splitlines() if line]
+        events.write_text("".join(json.dumps(_in_legacy_spelling(e)) + "\n" for e in lines))
+    legacy = current.with_name(cs.LEGACY_STEWARDS_DIRNAME)
+    current.rename(legacy)
+    return legacy
+
+
+def _populated(root):
+    """One steward with a work item, a ledger line, a recorded pass and a setting."""
+    steward = _steward(root)
+    cid = steward["id"]
+    cs.commit_work_progress(
+        OWNER, REPO, cid, 2201, {"phase": "claimed"}, "claim", "claimed #2201", root=root
+    )
+    cs.record_skip(OWNER, REPO, 42, "duplicate of #41", "duplicate", cid, root)
+    cs.write_settings(OWNER, REPO, {"claim_ttl_hours": 24}, root)
+    return steward
+
+
+def test_a_legacy_stewards_dir_is_moved_into_place_on_first_use(tmp_path):
+    steward = _populated(tmp_path)
+    legacy = _age_into_legacy_layout(tmp_path)
+    assert not legacy.with_name(cs.STEWARDS_DIRNAME).exists()
+
+    listed = cs.list_stewards(OWNER, REPO, tmp_path)
+
+    assert [s["id"] for s in listed] == [steward["id"]]
+    assert not legacy.exists(), "the legacy directory was copied, not moved"
+    assert cs.stewards_dir(OWNER, REPO, tmp_path).name == cs.STEWARDS_DIRNAME
+    # Everything else the directory held came with it.
+    assert cs.read_settings(OWNER, REPO, tmp_path)["claim_ttl_hours"] == 24
+    assert cs.read_work_item(OWNER, REPO, steward["id"], 2201, tmp_path)["phase"] == "claimed"
+    assert [e["number"] for e in cs.read_events(OWNER, REPO, tmp_path)] == [2201]
+    assert cs.is_skipped(OWNER, REPO, 42, tmp_path)
+
+
+def test_a_legacy_steward_keeps_the_slot_key_it_was_minted_with(tmp_path):
+    # Its live session and its chat history run under that key, so a record that
+    # re-derived the key from the current prefix would orphan both.
+    steward = _populated(tmp_path)
+    _age_into_legacy_layout(tmp_path)
+    legacy_key = cs.LEGACY_STEWARD_SLOT_PREFIXES[0] + steward["id"]
+
+    assert cs.read_steward(OWNER, REPO, steward["id"], tmp_path)["slot_key"] == legacy_key
+    # Only a steward created from now on gets the current prefix.
+    fresh = _steward(tmp_path, name="Whirlpool")
+    assert fresh["slot_key"] == cs.steward_slot_key(fresh["id"])
+    assert fresh["slot_key"].startswith(cs.STEWARD_SLOT_PREFIX)
+
+
+def test_the_move_never_clobbers_a_current_dir(tmp_path, caplog):
+    # Both exist when an older build ran against this data home after the move. The
+    # two stores were written independently, so merging them is the operator's call:
+    # the current one wins untouched and the legacy one stays where it is.
+    old = _populated(tmp_path)
+    legacy = _age_into_legacy_layout(tmp_path)
+    # Set the legacy store aside while the current one is created, or creating it
+    # would adopt the legacy store instead.
+    aside = legacy.rename(legacy.with_name("aside"))
+    new = _steward(tmp_path, name="Whirlpool")
+    aside.rename(legacy)
+
+    with caplog.at_level("WARNING", logger=cs.logger.name):
+        assert [s["id"] for s in cs.list_stewards(OWNER, REPO, tmp_path)] == [new["id"]]
+        cs.list_stewards(OWNER, REPO, tmp_path)
+
+    assert (legacy / f"{old['id']}.json").is_file(), "the legacy store was touched"
+    shadowed = [r for r in caplog.records if str(legacy) in r.getMessage()]
+    assert len(shadowed) == 1, "the shadowed store must be reported once, not per call"
+
+
+def test_a_move_that_fails_leaves_no_empty_store_in_front_of_the_real_one(
+    tmp_path, monkeypatch
+):
+    # An empty current directory looks exactly like a repository that never had a
+    # steward, and it would shadow the real one for good. Raising instead leaves the
+    # legacy directory in place, so the next call tries the move again.
+    steward = _populated(tmp_path)
+    legacy = _age_into_legacy_layout(tmp_path)
+
+    real_rename = type(legacy).rename
+
+    def _refuse(self, target):
+        if self == legacy:
+            raise OSError("read-only file system")
+        return real_rename(self, target)
+
+    with monkeypatch.context() as patch:
+        patch.setattr(type(legacy), "rename", _refuse)
+        with pytest.raises(OSError):
+            cs.list_stewards(OWNER, REPO, tmp_path)
+    assert legacy.is_dir()
+    assert not legacy.with_name(cs.STEWARDS_DIRNAME).exists()
+
+    assert [s["id"] for s in cs.list_stewards(OWNER, REPO, tmp_path)] == [steward["id"]]
+
+
+def test_a_legacy_id_key_reads_back_under_the_current_one(tmp_path):
+    steward = _populated(tmp_path)
+    cid = steward["id"]
+    _age_into_legacy_layout(tmp_path)
+
+    item = cs.read_work_item(OWNER, REPO, cid, 2201, tmp_path)
+    [listed] = cs.list_work_items(OWNER, REPO, cid, tmp_path)
+    [event] = cs.read_events(OWNER, REPO, tmp_path, steward_id=cid)
+    skip = cs.read_skips(OWNER, REPO, tmp_path)["42"]
+
+    for record in (item, listed, event, skip):
+        assert record[cs.STEWARD_ID_KEY] == cid
+        # One spelling handed out, so no caller has to know there were two.
+        assert cs.LEGACY_STEWARD_ID_KEY not in record
+    # The recorded pass keeps its attribution, and the filter still finds the
+    # steward's own history — the steward page and the fabric both read through it.
+    assert cs.recent_skips(OWNER, REPO, tmp_path)[0][cs.STEWARD_ID_KEY] == cid
+    assert cs.read_events(OWNER, REPO, tmp_path, steward_id="c_00000000") == []
+
+
+def test_the_ledger_is_read_through_the_legacy_key_and_never_rewritten(tmp_path):
+    steward = _populated(tmp_path)
+    _age_into_legacy_layout(tmp_path)
+    before = cs.events_path(OWNER, REPO, tmp_path).read_bytes()
+
+    cs.read_events(OWNER, REPO, tmp_path, steward_id=steward["id"])
+    cs.commit_work_progress(
+        OWNER, REPO, steward["id"], 2201, {"phase": "implementing"}, "implement", "on it",
+        root=tmp_path,
+    )
+
+    after = cs.events_path(OWNER, REPO, tmp_path).read_bytes()
+    assert after.startswith(before), "an append-only ledger line was rewritten"
+    newest = json.loads(after[len(before):])
+    assert newest[cs.STEWARD_ID_KEY] == steward["id"]
+    assert cs.LEGACY_STEWARD_ID_KEY not in newest
+
+
+def test_the_next_write_to_a_legacy_work_item_leaves_one_id_key(tmp_path):
+    # A work item is rewritten whole on every write, so the legacy key goes away the
+    # first time the steward touches the item, and the two keys never disagree.
+    steward = _populated(tmp_path)
+    _age_into_legacy_layout(tmp_path)
+
+    cs.upsert_work_item(OWNER, REPO, steward["id"], 2201, {"next": "rebase"}, tmp_path)
+
+    stored = json.loads(cs.work_item_path(OWNER, REPO, steward["id"], 2201, tmp_path).read_text())
+    assert stored[cs.STEWARD_ID_KEY] == steward["id"]
+    assert cs.LEGACY_STEWARD_ID_KEY not in stored
+
+
+def test_the_current_id_key_wins_when_a_record_carries_both(tmp_path):
+    cid = _steward(tmp_path)["id"]
+    path = cs.events_path(OWNER, REPO, tmp_path)
+    line = {"id": "e1", "ts": "2026-08-08T20:44:12Z", "number": 7, "kind": "note",
+            "text": "t", cs.STEWARD_ID_KEY: cid, cs.LEGACY_STEWARD_ID_KEY: "c_00000000"}
+    path.write_text(json.dumps(line) + "\n")
+
+    [event] = cs.read_events(OWNER, REPO, tmp_path, steward_id=cid)
+
+    assert event[cs.STEWARD_ID_KEY] == cid
+    assert cs.LEGACY_STEWARD_ID_KEY not in event

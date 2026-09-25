@@ -2,7 +2,7 @@ import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { render, screen, fireEvent, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
-import type { CrewSettings, RepoRef } from '../apps/issue-radar/api'
+import type { StewardSettings, RepoRef } from '../apps/issue-radar/api'
 
 const api = {
   labels: vi.fn(),
@@ -11,8 +11,8 @@ const api = {
   issues: vi.fn(),
   members: vi.fn(),
   disconnect: vi.fn(),
-  getCrewSettings: vi.fn(),
-  putCrewSettings: vi.fn(),
+  getStewardSettings: vi.fn(),
+  putStewardSettings: vi.fn(),
 }
 class SettingsConflictError extends Error {
   current: Record<string, unknown>
@@ -52,20 +52,20 @@ function setCtx(active: { owner: string; repo: string }) {
   }
 }
 
-/** The repo-wide crew protocol, one document per SCOPE. The two differ in every
+/** The repo-wide steward protocol, one document per SCOPE. The two differ in every
  *  field, so a value on screen names the repository it came from. */
-const PROTOCOL: Record<string, CrewSettings> = {
+const PROTOCOL: Record<string, StewardSettings> = {
   github: {
     schema: 1,
     claim_ttl_hours: 48,
-    needs_human_label: 'crew: needs human',
-    commit_trailer: 'Crew: {name}',
+    needs_human_label: 'steward: needs human',
+    commit_trailer: 'Steward: {name}',
   },
   gitlab: {
     schema: 1,
     claim_ttl_hours: 12,
-    needs_human_label: 'crew: ask a human',
-    commit_trailer: 'Crew: {name} <{id}>',
+    needs_human_label: 'steward: ask a human',
+    commit_trailer: 'Steward: {name} <{id}>',
   },
 }
 
@@ -81,12 +81,12 @@ beforeEach(() => {
   })
   api.issues.mockResolvedValue({ owner: 'o', repo: 'other-one', issues: [], from_cache: true })
   api.members.mockResolvedValue({ owner: 'o', repo: 'other-one', members: [], source: 'derived', from_cache: true })
-  // Per-ref, not a fixed document: the crew protocol card is asserted to pick up
+  // Per-ref, not a fixed document: the steward protocol card is asserted to pick up
   // the settings of the repo it is currently mounted for.
-  api.getCrewSettings.mockImplementation(async (ref: RepoRef) => ({
+  api.getStewardSettings.mockImplementation(async (ref: RepoRef) => ({
     settings: PROTOCOL[ref.provider ?? 'github'],
   }))
-  api.putCrewSettings.mockImplementation(async (ref: RepoRef, patch: Partial<CrewSettings>) => ({
+  api.putStewardSettings.mockImplementation(async (ref: RepoRef, patch: Partial<StewardSettings>) => ({
     settings: { ...PROTOCOL[ref.provider ?? 'github'], ...patch },
   }))
 })
@@ -357,7 +357,7 @@ describe('RepoSettings — Open Tagging', () => {
 })
 
 /**
- * The crew protocol card is identified by the repo SCOPE, not by the slug.
+ * The steward protocol card is identified by the repo SCOPE, not by the slug.
  *
  * That card holds an uncommitted draft until the server answers, and KEEPS the
  * text when a write fails — which is what makes an unkeyed instance dangerous
@@ -372,12 +372,12 @@ describe('RepoSettings — Open Tagging', () => {
  * one: a remount replaces the node, and a stale reference reports the old
  * instance's value forever.
  */
-describe('RepoSettings — the crew protocol card is keyed by scope', () => {
+describe('RepoSettings — the steward protocol card is keyed by scope', () => {
   const GITHUB: RepoRef = { owner: 'o', repo: 'widget', provider: 'github', host: 'github.com' }
   const GITLAB: RepoRef = { owner: 'o', repo: 'widget', provider: 'gitlab', host: 'gitlab.example.com' }
 
-  const ttl = () => screen.getByTestId('crew-desk-claim-ttl') as HTMLInputElement
-  const state = () => screen.getByTestId('crew-desk-protocol-status').getAttribute('data-state')
+  const ttl = () => screen.getByTestId('steward-desk-claim-ttl') as HTMLInputElement
+  const state = () => screen.getByTestId('steward-desk-protocol-status').getAttribute('data-state')
 
   /** Render the page for one ref, and return the navigation the rail performs. */
   function open(ref: RepoRef) {
@@ -400,7 +400,7 @@ describe('RepoSettings — the crew protocol card is keyed by scope', () => {
 
   /** A REFUSED write of `24` on the GitHub scope, leaving the draft on screen. */
   async function failedDraft() {
-    api.putCrewSettings.mockRejectedValue(new Error('403 forbidden'))
+    api.putStewardSettings.mockRejectedValue(new Error('403 forbidden'))
     const navigate = open(GITHUB)
     await waitFor(() => expect(ttl().value).toBe('48'))
     commitTtl('24')
@@ -422,8 +422,8 @@ describe('RepoSettings — the crew protocol card is keyed by scope', () => {
     await waitFor(() => expect(ttl().value).toBe('12'))
     // And the only write attempted is still the original one, addressed to the
     // repo it was typed for.
-    expect(api.putCrewSettings).toHaveBeenCalledTimes(1)
-    expect(api.putCrewSettings).toHaveBeenCalledWith(GITHUB, { claim_ttl_hours: 24 })
+    expect(api.putStewardSettings).toHaveBeenCalledTimes(1)
+    expect(api.putStewardSettings).toHaveBeenCalledWith(GITHUB, { claim_ttl_hours: 24 })
   })
 
   it('keeps a retained draft across a re-render that is not a scope change', async () => {
@@ -452,7 +452,7 @@ describe('RepoSettings — the crew protocol card is keyed by scope', () => {
     // A write that never answers. The indicator belongs to the old repository, so
     // the new one must not open underneath a spinner for a write it has no part
     // in.
-    api.putCrewSettings.mockImplementation(() => new Promise(() => {}))
+    api.putStewardSettings.mockImplementation(() => new Promise(() => {}))
     const navigate = open(GITHUB)
     await waitFor(() => expect(ttl().value).toBe('48'))
     commitTtl('24')

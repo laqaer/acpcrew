@@ -341,10 +341,10 @@ class TestOriginSet:
         origins = build_allowed_origins(
             5476,
             local_only=True,
-            dashboard_url="https://crew.example.com",
+            dashboard_url="https://junction.example.com",
             tailnet_host=_GOOD,
         )
-        assert origins.issuperset({f"https://{_GOOD}", "https://crew.example.com"})
+        assert origins.issuperset({f"https://{_GOOD}", "https://junction.example.com"})
 
     def test_loopback_floor_is_untouched(self) -> None:
         origins = build_allowed_origins(5476, local_only=True, tailnet_host=_GOOD)

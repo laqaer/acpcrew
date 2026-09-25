@@ -1,22 +1,22 @@
-"""Tests for the crew runtime — session, brief injection, nudge, watcher sweep.
+"""Tests for the steward runtime — session, brief injection, nudge, watcher sweep.
 
 Nothing here spawns a real session or touches the network: the dashboard state is a
 fake that records what was asked of it, the provider client is patched, and every
 store read/write is scoped to ``tmp_path``.
 
-The coverage is weighted toward the failures that are SILENT, because a crew runs
+The coverage is weighted toward the failures that are SILENT, because a steward runs
 with nobody watching:
 
   * **The length guard on brief injection.** A compaction summary that merely
     quotes the sentinel is the failure mode that matters: a sentinel-only check
-    reads it as a hit and the crew spends the rest of the day running on a
+    reads it as a hit and the steward spends the rest of the day running on a
     paraphrase of its own instructions, with no error anywhere. So the guard has a
     test of its own, and it is one of the two tests falsified below.
-  * **Trust.** Granting it to an attended crew is an unattended-tool-execution
-    bug; failing to re-establish it for an unattended one parks the crew in an
+  * **Trust.** Granting it to an attended steward is an unattended-tool-execution
+    bug; failing to re-establish it for an unattended one parks the steward in an
     approval prompt for two hours and then denies it.
   * **First observation.** A cold fingerprint must report NOTHING, or every
-    gateway restart wakes every crew on every open item at once.
+    gateway restart wakes every steward on every open item at once.
   * **Each of the six signals.** Missing one means an item stalls forever with no
     trace, which is exactly what the sweep exists to prevent.
 """
@@ -25,6 +25,7 @@ import ast
 import asyncio
 import contextlib
 import inspect
+import json
 import re
 import tempfile
 import threading
@@ -33,7 +34,7 @@ from pathlib import Path
 from typing import Any, cast
 from unittest import mock
 
-from junction.apps.builtins.issue_radar.backend import provider
+from junction.apps.builtins.issue_radar.backend import github_client, provider
 from junction.apps.builtins.issue_radar.backend import steward_runtime as cr
 from junction.apps.builtins.issue_radar.backend import steward_store as cs
 from junction.apps.builtins.issue_radar.backend import store as store_mod
@@ -48,8 +49,8 @@ _KEY = provider.key_from_parts(OWNER, REPO)
 def _effectively_trusted(slot: Any) -> bool:
     """Would the SHARED approval path auto-approve this slot's tools right now?
 
-    The one assertion worth making about a crew's trust. Every alternative is a
-    proxy that can pass while the crew is in fact untrusted (or vice versa): the
+    The one assertion worth making about a steward's trust. Every alternative is a
+    proxy that can pass while the steward is in fact untrusted (or vice versa): the
     ``unattended`` flag is only intent, and ``slot._trust`` is a different grant
     this module must never write. So the tests below ask the real consumer.
     """
@@ -62,7 +63,9 @@ def _effectively_trusted(slot: Any) -> bool:
 class _FakeSlot:
     """Stand-in for _ChatSlot: records the prompt a turn would have run with."""
 
-    def __init__(self, key: str = "crew-c_1", agent: str = "", model: str = "", workspace: str = ""):
+    def __init__(
+        self, key: str = "steward-c_1", agent: str = "", model: str = "", workspace: str = ""
+    ):
         self.key = key
         self.title = ""
         self._titled = False
@@ -104,7 +107,7 @@ class _FakeState:
     async def run_background_turn(self, slot: Any, coro: Any) -> Any:
         """The app-owned concurrency cap, recording what was charged against it.
 
-        Present on the fake precisely because the runtime MUST route every crew
+        Present on the fake precisely because the runtime MUST route every steward
         turn through it: a fake without this method would let a dispatch that calls
         ``_run_chat`` itself pass unnoticed, which is the defect these tests pin.
         The real one queues at the cap and abandons the turn after its own wait
@@ -186,12 +189,12 @@ def _app(state: _FakeState | None) -> Any:
     return cast(Any, {"state": state})
 
 
-def _crew(root, name="Andromeda", **spec) -> dict[str, Any]:
-    return cs.create_crew(OWNER, REPO, {"name": name, **spec}, root)
+def _steward(root, name="Andromeda", **spec) -> dict[str, Any]:
+    return cs.create_steward(OWNER, REPO, {"name": name, **spec}, root)
 
 
-def _item(root, crew_id, number, **patch) -> dict[str, Any]:
-    return cs.upsert_work_item(OWNER, REPO, crew_id, number, patch, root)
+def _item(root, steward_id, number, **patch) -> dict[str, Any]:
+    return cs.upsert_work_item(OWNER, REPO, steward_id, number, patch, root)
 
 
 # ── brief injection ─────────────────────────────────────────────────────────
@@ -203,7 +206,7 @@ class TestBriefInjection(unittest.TestCase):
 
     def test_injects_when_sentinel_absent(self):
         slot = _FakeSlot()
-        slot.append("nudge", "[crew turn] Andromeda · o/r — advance one item")
+        slot.append("nudge", "[steward turn] Andromeda · o/r — advance one item")
         self.assertFalse(cr.brief_is_present(slot))
 
     def test_does_not_inject_when_brief_present(self):
@@ -216,7 +219,7 @@ class TestBriefInjection(unittest.TestCase):
 
         A compaction summary quotes the marker it saw. It contains the sentinel and
         it is far shorter than the brief, so it must NOT count as a hit — otherwise
-        the crew keeps running on a summary of its own instructions.
+        the steward keeps running on a summary of its own instructions.
         """
         slot = _FakeSlot()
         slot.append(
@@ -233,12 +236,12 @@ class TestBriefInjection(unittest.TestCase):
         self.assertFalse(cr.brief_is_present(slot))
 
     def test_the_brief_says_publish_and_move_on_instead_of_waiting(self):
-        """The brief is the only place the crew learns what to do with a decision.
+        """The brief is the only place the steward learns what to do with a decision.
 
         Both halves are pinned because either one alone is the old behaviour: a
         brief that says to comment but not to release holds the claim anyway, and
         one that says to release but not to comment leaves a label nobody can act
-        on. The prohibition on polling is pinned separately — a crew that comes back
+        on. The prohibition on polling is pinned separately — a steward that comes back
         to check is holding the issue in everything but name.
         """
         brief = cr.brief_text()
@@ -253,23 +256,23 @@ class TestBriefInjection(unittest.TestCase):
             self.assertIn(phrase, brief)
 
     def test_the_brief_carries_no_escalation_concept(self):
-        crew_words = ("escalat", "hand back", "hand-back", "handback", "crew: needs decision")
+        steward_words = ("escalat", "hand back", "hand-back", "handback", "steward: needs decision")
         lowered = cr.brief_text().lower()
-        for word in crew_words:
+        for word in steward_words:
             self.assertNotIn(word, lowered)
 
     def test_turn_prompt_carries_the_brief_only_on_a_miss(self):
         with tempfile.TemporaryDirectory() as tmp:
             root = Path(tmp)
-            crew = _crew(root)
+            steward = _steward(root)
             slot = _FakeSlot()
-            first = cr.compose_turn_prompt(slot, OWNER, REPO, crew, root)
+            first = cr.compose_turn_prompt(slot, OWNER, REPO, steward, root)
             self.assertIn(cr.BRIEF_SENTINEL, first)
             # The carrying message is brief + nudge, so it satisfies its own guard.
             slot.append("user", first)
-            second = cr.compose_turn_prompt(slot, OWNER, REPO, crew, root)
+            second = cr.compose_turn_prompt(slot, OWNER, REPO, steward, root)
             self.assertNotIn(cr.BRIEF_SENTINEL, second)
-            self.assertIn("[crew turn]", second)
+            self.assertIn("[steward turn]", second)
 
 
 # ── nudge composition ───────────────────────────────────────────────────────
@@ -282,15 +285,15 @@ class TestNudge(unittest.TestCase):
         self.root = Path(self._tmp.name)
 
     def test_nudge_carries_the_volatile_fields(self):
-        crew = _crew(self.root, labels=["bug", "area:cli"], max_open=3)
-        cid = crew["id"]
+        steward = _steward(self.root, labels=["bug", "area:cli"], max_open=3)
+        cid = steward["id"]
         _item(self.root, cid, 2201, phase="implementing", next="add the Windows branch")
         _item(self.root, cid, 2244, phase="awaiting-ci", next="round 3")
-        nudge = cr.compose_nudge(cr.build_snapshot(OWNER, REPO, crew, self.root))
+        nudge = cr.compose_nudge(cr.build_snapshot(OWNER, REPO, steward, self.root))
 
         self.assertIn("Andromeda", nudge)
         self.assertIn(f"{OWNER}/{REPO}", nudge)
-        self.assertIn(cid, nudge)                       # crew id, not just the name
+        self.assertIn(cid, nudge)                       # steward id, not just the name
         self.assertIn("bug, area:cli", nudge)           # label scope
         self.assertIn("Open 2/3", nudge)
         self.assertIn("#2201 implementing", nudge)
@@ -301,73 +304,73 @@ class TestNudge(unittest.TestCase):
             self.assertIn(label, nudge)
 
     def test_the_nudge_names_exactly_the_writable_labels_and_no_others(self):
-        """The `Writable labels:` line is the crew's whole authority on labels.
+        """The `Writable labels:` line is the steward's whole authority on labels.
 
         Pinned as an EQUALITY on the rendered line rather than a membership check,
         because both failure directions are silent and land on a stranger's issue:
-        naming one label too few leaves a crew unable to hand an issue to a human,
-        and naming one too many is a label of the crew's own invention on someone
+        naming one label too few leaves a steward unable to hand an issue to a human,
+        and naming one too many is a label of the steward's own invention on someone
         else's repository. A membership check passes on both.
         """
-        crew = _crew(self.root)
-        nudge = cr.compose_nudge(cr.build_snapshot(OWNER, REPO, crew, self.root))
+        steward = _steward(self.root)
+        nudge = cr.compose_nudge(cr.build_snapshot(OWNER, REPO, steward, self.root))
         line = next(ln for ln in nudge.splitlines() if ln.startswith("Writable labels:"))
         named = re.findall(r"`([^`]+)`", line)
         resolved = list(cr.writable_labels(cs.read_settings(OWNER, REPO, self.root)))
         self.assertEqual(named, resolved)
-        self.assertEqual(named, ["crew: in progress", "crew: needs human"])
+        self.assertEqual(named, ["steward: in progress", "steward: needs human"])
         # The two labels escalation owned are gone, and neither may be written now.
-        for retired in ("crew: needs decision", "crew: awaiting reply"):
+        for retired in ("steward: needs decision", "steward: awaiting reply"):
             self.assertNotIn(retired, nudge)
 
     def test_a_renamed_needs_human_label_reaches_the_nudge(self):
-        """The label is a repo setting, so a rename has to reach the crew.
+        """The label is a repo setting, so a rename has to reach the steward.
 
-        A constant would keep telling every crew in every install to write
-        `crew: needs human`, which on this repo is a label nobody is watching — the
-        crew would believe it had handed the issue over and nothing would have.
+        A constant would keep telling every steward in every install to write
+        `steward: needs human`, which on this repo is a label nobody is watching — the
+        steward would believe it had handed the issue over and nothing would have.
         """
         cs.write_settings(OWNER, REPO, {"needs_human_label": "triage: human"}, self.root)
-        crew = _crew(self.root)
-        nudge = cr.compose_nudge(cr.build_snapshot(OWNER, REPO, crew, self.root))
+        steward = _steward(self.root)
+        nudge = cr.compose_nudge(cr.build_snapshot(OWNER, REPO, steward, self.root))
         line = next(ln for ln in nudge.splitlines() if ln.startswith("Writable labels:"))
-        self.assertEqual(re.findall(r"`([^`]+)`", line), ["crew: in progress", "triage: human"])
+        self.assertEqual(re.findall(r"`([^`]+)`", line), ["steward: in progress", "triage: human"])
         # The Never block travels on every turn and must agree with that line.
-        self.assertIn("other than `crew: in progress`, `triage: human`", nudge)
-        self.assertNotIn("crew: needs human", nudge)
+        self.assertIn("other than `steward: in progress`, `triage: human`", nudge)
+        self.assertNotIn("steward: needs human", nudge)
 
     def test_the_nudge_never_mentions_escalation(self):
-        """A crew must not be told a concept the protocol no longer has.
+        """A steward must not be told a concept the protocol no longer has.
 
         The nudge is re-sent every turn and is the most recent instruction in the
-        window, so a stale counter here outranks the brief: a crew reading
+        window, so a stale counter here outranks the brief: a steward reading
         `escalated 0/3` would look for the mechanism, not find it, and improvise.
         """
-        crew = _crew(self.root, labels=["bug"])
-        _item(self.root, crew["id"], 2201, phase="awaiting-reply", next="asked for a repro")
-        nudge = cr.compose_nudge(cr.build_snapshot(OWNER, REPO, crew, self.root))
+        steward = _steward(self.root, labels=["bug"])
+        _item(self.root, steward["id"], 2201, phase="awaiting-reply", next="asked for a repro")
+        nudge = cr.compose_nudge(cr.build_snapshot(OWNER, REPO, steward, self.root))
         lowered = nudge.lower()
         for word in ("escalat", "needs decision", "hand back", "handback"):
             self.assertNotIn(word, lowered)
 
     def test_an_empty_label_scope_means_every_open_issue(self):
-        """A crew is created with no labels by default and none are required.
+        """A steward is created with no labels by default and none are required.
 
         Reading empty as "pick up nothing" — which this line did — told every
-        default-configured crew to do nothing, and it would idle for its whole life
+        default-configured steward to do nothing, and it would idle for its whole life
         with no error anywhere to explain it. Nothing in the backend filters on this
-        list; the crew self-applies it from the brief, so this wording IS the
+        list; the steward self-applies it from the brief, so this wording IS the
         contract.
         """
-        crew = _crew(self.root, labels=[])
-        nudge = cr.compose_nudge(cr.build_snapshot(OWNER, REPO, crew, self.root))
+        steward = _steward(self.root, labels=[])
+        nudge = cr.compose_nudge(cr.build_snapshot(OWNER, REPO, steward, self.root))
         self.assertIn("every open issue", nudge)
         self.assertNotIn("pick up nothing", nudge)
 
     def test_nudge_carries_the_never_block(self):
-        crew = _crew(self.root)
+        steward = _steward(self.root)
         settings = cs.read_settings(OWNER, REPO, self.root)
-        nudge = cr.compose_nudge(cr.build_snapshot(OWNER, REPO, crew, self.root))
+        nudge = cr.compose_nudge(cr.build_snapshot(OWNER, REPO, steward, self.root))
         self.assertIn(cr.never_block(cr.writable_labels(settings)), nudge)
         for fragment in (
             "CI or gate configuration",
@@ -380,8 +383,8 @@ class TestNudge(unittest.TestCase):
         ):
             self.assertIn(fragment, nudge)
         # The prefix rule it replaces cannot express a configurable label, and would
-        # read as permission for any `crew:`-prefixed label this protocol dropped.
-        self.assertNotIn("outside the `crew:` prefix", nudge)
+        # read as permission for any `steward:`-prefixed label this protocol dropped.
+        self.assertNotIn("outside the `steward:` prefix", nudge)
 
     def test_never_block_is_compressed(self):
         # It rides on EVERY turn, so its size is a running cost. The ceiling is a
@@ -401,9 +404,9 @@ class TestNudge(unittest.TestCase):
             self.assertTrue(label.strip())
 
     def test_item_without_a_next_says_so(self):
-        crew = _crew(self.root)
-        _item(self.root, crew["id"], 7, phase="claimed")
-        nudge = cr.compose_nudge(cr.build_snapshot(OWNER, REPO, crew, self.root))
+        steward = _steward(self.root)
+        _item(self.root, steward["id"], 7, phase="claimed")
+        nudge = cr.compose_nudge(cr.build_snapshot(OWNER, REPO, steward, self.root))
         self.assertIn("no next step recorded", nudge)
 
 
@@ -413,12 +416,12 @@ class TestNudge(unittest.TestCase):
 class TestProviderVocabulary(unittest.TestCase):
     """The nudge and the Never block must speak the repo's forge, not GitHub's.
 
-    ``provider.terms`` existed with no callers, so every crew on every provider was
+    ``provider.terms`` existed with no callers, so every steward on every provider was
     told GitHub's vocabulary. Two of those are not cosmetic:
 
       * ``#12`` and ``!12`` address DIFFERENT items on GitLab and Azure DevOps, so a
-        crew that quotes the nudge back into a comment points at an unrelated item.
-      * "Never merge a PR" is the prohibition a crew is most likely to reason
+        steward that quotes the nudge back into a comment points at an unrelated item.
+      * "Never merge a PR" is the prohibition a steward is most likely to reason
         around, and one phrased in a vocabulary its forge does not use reads as
         being about something else.
     """
@@ -430,10 +433,10 @@ class TestProviderVocabulary(unittest.TestCase):
 
     def _nudge(self, provider_name: str) -> str:
         key = provider.key_from_parts(OWNER, REPO, provider_name, "gitlab.example")
-        # Crew names are unique per repo, and these fixtures share one root.
-        crew = _crew(self.root, name=f"Andromeda-{provider_name}-{len(self.root.name)}", labels=[])
-        _item(self.root, crew["id"], 2201, phase="awaiting-ci", pr_number=88, next="round 3")
-        return cr.compose_nudge(cr.build_snapshot(OWNER, REPO, crew, self.root, key))
+        # Steward names are unique per repo, and these fixtures share one root.
+        steward = _steward(self.root, name=f"Andromeda-{provider_name}-{len(self.root.name)}", labels=[])
+        _item(self.root, steward["id"], 2201, phase="awaiting-ci", pr_number=88, next="round 3")
+        return cr.compose_nudge(cr.build_snapshot(OWNER, REPO, steward, self.root, key))
 
     def test_github_rendering_is_unchanged(self):
         nudge = self._nudge("github")
@@ -454,7 +457,7 @@ class TestProviderVocabulary(unittest.TestCase):
         nudge = self._nudge("azure")
         self.assertIn("(PR !88)", nudge)
         self.assertIn("every open work item", nudge)
-        # Azure DevOps has no `issue` primitive, so naming one sends the crew
+        # Azure DevOps has no `issue` primitive, so naming one sends the steward
         # looking for a work item TYPE it was never told to filter on.
         self.assertNotIn("every open issue", nudge)
         self.assertIn("- #2201 awaiting-ci", nudge)
@@ -475,16 +478,16 @@ class TestProviderVocabulary(unittest.TestCase):
         """A snapshot built before this field existed, or a corrupted record, must
         still render a complete prompt rather than raising mid-turn."""
         self.assertEqual(cr.vocabulary(), provider.terms(provider.RepoKey()))
-        crew = _crew(self.root)
-        snapshot = cr.build_snapshot(OWNER, REPO, crew, self.root)
+        steward = _steward(self.root)
+        snapshot = cr.build_snapshot(OWNER, REPO, steward, self.root)
         snapshot.pop("provider")
         self.assertIn("merge a PR yourself", cr.compose_nudge(snapshot))
 
     def test_the_snapshot_carries_the_provider(self):
-        crew = _crew(self.root)
+        steward = _steward(self.root)
         key = provider.key_from_parts(OWNER, REPO, "azure")
         self.assertEqual(
-            cr.build_snapshot(OWNER, REPO, crew, self.root, key)["provider"], "azure"
+            cr.build_snapshot(OWNER, REPO, steward, self.root, key)["provider"], "azure"
         )
 
     def test_every_prompt_path_forwards_the_key(self):
@@ -495,24 +498,24 @@ class TestProviderVocabulary(unittest.TestCase):
             cr.build_snapshot,
             cr.compose_turn_prompt,
             cr.compose_turn_prompt_async,
-            cr.launch_crew,
-            cr.wake_crew,
+            cr.launch_steward,
+            cr.wake_steward,
             cr.watchdog_cycle,
         ):
             self.assertIn("key", inspect.signature(fn).parameters, fn.__name__)
         # The sweep is the only production caller, and it holds the real key.
         source = inspect.getsource(cr.sweep_repo)
-        self.assertIn("watchdog_cycle(state, key.owner, key.repo, crews, scope, key)", source)
-        self.assertRegex(source, r"wake_crew\(\s*state,\s*key\.owner,\s*key\.repo,[\s\S]*?\bkey,")
+        self.assertIn("watchdog_cycle(state, key.owner, key.repo, stewards, scope, key)", source)
+        self.assertRegex(source, r"wake_steward\(\s*state,\s*key\.owner,\s*key\.repo,[\s\S]*?\bkey,")
 
 
-# ── provider scoping of the crew ledger ─────────────────────────────────────
+# ── provider scoping of the steward ledger ──────────────────────────────────
 
 
-class TestCrewStoreScoping(unittest.TestCase):
-    """Every crew-ledger path is provider-separated ONLY by its ``root=``.
+class TestStewardStoreScoping(unittest.TestCase):
+    """Every steward-ledger path is provider-separated ONLY by its ``root=``.
 
-    ``steward_store.crews_dir(owner, repo, root)`` is the base of the crew records, the
+    ``steward_store.stewards_dir(owner, repo, root)`` is the base of the steward records, the
     events log and the repo-wide shared skip index, and no signature in that module
     carries a provider or a host. So the separation is entirely a CALLER discipline:
     a call that forgets the scoped root writes one provider's skip decisions into
@@ -526,7 +529,7 @@ class TestCrewStoreScoping(unittest.TestCase):
     """
 
     #: ``steward_store`` members that are not per-repo and take no ``root``.
-    _ROOTLESS = frozenset({"is_crew_id"})
+    _ROOTLESS = frozenset({"is_steward_id", "steward_slot_key"})
 
     def _offenders(self, module: Any) -> list[str]:
         tree = ast.parse(Path(inspect.getfile(module)).read_text(encoding="utf-8"))
@@ -556,10 +559,12 @@ class TestCrewStoreScoping(unittest.TestCase):
     def _is_scope(arg: Any) -> bool:
         """Whether an argument is plausibly the provider-scoped root.
 
-        A NAME (``root`` / ``scope``) or a call to the scope helper. Deliberately
-        syntactic: what this gate can prove is that the scope was passed at all,
-        which is the mistake with no symptom. Whether the name holds the right value
-        is what ``routes._scope`` and ``store.provider_root`` are tested for.
+        A NAME (``root`` / ``scope``), a call to the scope helper, or a repo data
+        dir built from a scoped root (``store.repo_data_dir(owner, repo, root)``, the
+        parent ``steward_store.adopt_legacy_path`` moves a legacy file inside).
+        Deliberately syntactic: what this gate can prove is that the scope was passed
+        at all, which is the mistake with no symptom. Whether the name holds the right
+        value is what ``routes._scope`` and ``store.provider_root`` are tested for.
         """
         if isinstance(arg, ast.Name):
             return arg.id in {"root", "scope"}
@@ -567,10 +572,17 @@ class TestCrewStoreScoping(unittest.TestCase):
             return arg.attr in {"root", "scope"}
         if isinstance(arg, ast.Call):
             fn = arg.func
-            return isinstance(fn, ast.Attribute) and fn.attr in {"_scope", "provider_root"}
+            if not isinstance(fn, ast.Attribute):
+                return False
+            if fn.attr in {"_scope", "provider_root"}:
+                return True
+            if fn.attr == "repo_data_dir":
+                return any(TestStewardStoreScoping._is_scope(a) for a in arg.args) or any(
+                    kw.arg in {"root", "scope"} for kw in arg.keywords
+                )
         return False
 
-    def test_no_unscoped_crew_store_call_survives(self):
+    def test_no_unscoped_steward_store_call_survives(self):
         from junction.apps.builtins.issue_radar.backend import steward_routes
 
         for module in (steward_routes, cr):
@@ -585,7 +597,7 @@ class TestCrewStoreScoping(unittest.TestCase):
         Two providers, same ``owner/repo`` — which is entirely ordinary, the same
         slug exists on github.com and on a self-managed GitLab. Scoped, their skip
         indexes are independent; handed the same root they are ONE index, and the
-        second crew reads the first's decision as its own repository's.
+        second steward reads the first's decision as its own repository's.
         """
         with tempfile.TemporaryDirectory() as tmp:
             base = Path(tmp)
@@ -617,12 +629,12 @@ class TestSession(unittest.IsolatedAsyncioTestCase):
         self.addCleanup(reset_singleton)
 
     async def test_session_key_agent_workspace_and_model_come_from_the_record(self):
-        crew = _crew(self.root, agent="junction", model="claude-opus-5")
+        steward = _steward(self.root, agent="junction", model="claude-opus-5")
         state = _FakeState()
-        slot = await cr.ensure_crew_session(state, OWNER, REPO, crew)
-        self.assertEqual(slot.key, f"crew-{crew['id']}")
+        slot = await cr.ensure_steward_session(state, OWNER, REPO, steward)
+        self.assertEqual(slot.key, f"steward-{steward['id']}")
         created = state.created[-1]
-        self.assertEqual(created["name"], f"crew-{crew['id']}")
+        self.assertEqual(created["name"], f"steward-{steward['id']}")
         self.assertEqual(created["agent"], "junction")
         self.assertEqual(created["app"], "issue-radar")
         # The record's model is passed EXPLICITLY, which is what overrides the
@@ -630,31 +642,31 @@ class TestSession(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(created["model"], "claude-opus-5")
 
     async def test_title_is_locked_so_the_auto_titler_never_fires(self):
-        crew = _crew(self.root)
+        steward = _steward(self.root)
         state = _FakeState()
-        slot = await cr.ensure_crew_session(state, OWNER, REPO, crew)
+        slot = await cr.ensure_steward_session(state, OWNER, REPO, steward)
         self.assertTrue(slot._titled)
         self.assertIn("Andromeda", slot.title)
         self.assertIn(f"{OWNER}/{REPO}", slot.title)
 
     async def test_trust_only_when_unattended(self):
         state = _FakeState()
-        unattended = _crew(self.root, name="Whirlpool", unattended=True)
-        attended = _crew(self.root, name="Draco", unattended=False)
-        hot = await cr.ensure_crew_session(state, OWNER, REPO, unattended)
-        cold = await cr.ensure_crew_session(state, OWNER, REPO, attended)
+        unattended = _steward(self.root, name="Whirlpool", unattended=True)
+        attended = _steward(self.root, name="Draco", unattended=False)
+        hot = await cr.ensure_steward_session(state, OWNER, REPO, unattended)
+        cold = await cr.ensure_steward_session(state, OWNER, REPO, attended)
         self.assertTrue(_effectively_trusted(hot))
         self.assertFalse(_effectively_trusted(cold))
 
     async def test_trust_comes_from_the_scope_and_never_from_the_session_flag(self):
-        """THE finding. An unattended crew must end up auto-approved, and the thing
+        """THE finding. An unattended steward must end up auto-approved, and the thing
         that makes it so must be an expiring audited grant — not ``slot._trust``,
         which never expires and which only a human's click should ever set."""
-        crew = _crew(self.root, unattended=True)
-        slot = await cr.ensure_crew_session(_FakeState(), OWNER, REPO, crew)
+        steward = _steward(self.root, unattended=True)
+        slot = await cr.ensure_steward_session(_FakeState(), OWNER, REPO, steward)
         self.assertTrue(_effectively_trusted(slot))
         self.assertFalse(slot._trust)  # the unbounded flag was NOT stamped
-        scope = cr.autoapprove_scope(crew["id"])
+        scope = cr.autoapprove_scope(steward["id"])
         self.assertEqual(slot._trust_scope, scope)
         self.assertTrue(safety_override().is_scope_active(scope))
         # And it is genuinely bounded, rather than a scope with no deadline.
@@ -664,37 +676,37 @@ class TestSession(unittest.IsolatedAsyncioTestCase):
     async def test_trust_is_reestablished_every_cycle(self):
         """The grant is in-memory only, so a restart drops it — the watchdog is
         what makes it restart-durable."""
-        crew = _crew(self.root, unattended=True)
+        steward = _steward(self.root, unattended=True)
         state = _FakeState()
-        slot = await cr.ensure_crew_session(state, OWNER, REPO, crew)
+        slot = await cr.ensure_steward_session(state, OWNER, REPO, steward)
         # As a gateway restart leaves it: slot rehydrated, grant gone.
-        safety_override().deactivate_scope(cr.autoapprove_scope(crew["id"]))
+        safety_override().deactivate_scope(cr.autoapprove_scope(steward["id"]))
         slot._trust_scope = ""
         self.assertFalse(_effectively_trusted(slot))
-        await cr.watchdog_cycle(state, OWNER, REPO, [crew], self.root)
+        await cr.watchdog_cycle(state, OWNER, REPO, [steward], self.root)
         self.assertTrue(_effectively_trusted(slot))
 
     async def test_trust_is_revoked_when_unattended_is_turned_off(self):
-        crew = _crew(self.root, unattended=True)
+        steward = _steward(self.root, unattended=True)
         state = _FakeState()
-        slot = await cr.ensure_crew_session(state, OWNER, REPO, crew)
+        slot = await cr.ensure_steward_session(state, OWNER, REPO, steward)
         self.assertTrue(_effectively_trusted(slot))
-        flipped = cs.update_crew(OWNER, REPO, crew["id"], {"unattended": False}, self.root)
+        flipped = cs.update_steward(OWNER, REPO, steward["id"], {"unattended": False}, self.root)
         await cr.watchdog_cycle(state, OWNER, REPO, [flipped], self.root)
         self.assertFalse(_effectively_trusted(slot))
         # Revoked at the SOURCE, not merely unhooked from the slot: a stale scope
-        # left live would re-trust the crew the moment any slot picked the key up.
-        self.assertFalse(safety_override().is_scope_active(cr.autoapprove_scope(crew["id"])))
+        # left live would re-trust the steward the moment any slot picked the key up.
+        self.assertFalse(safety_override().is_scope_active(cr.autoapprove_scope(steward["id"])))
 
     async def test_a_lapsed_grant_is_not_trusted(self):
         """What the finding was actually about: with nothing renewing it, the grant
         RUNS OUT. Driven by making the scope inactive, never by sleeping."""
-        crew = _crew(self.root, unattended=True)
-        slot = await cr.ensure_crew_session(_FakeState(), OWNER, REPO, crew)
+        steward = _steward(self.root, unattended=True)
+        slot = await cr.ensure_steward_session(_FakeState(), OWNER, REPO, steward)
         self.assertTrue(_effectively_trusted(slot))
         # The slot still names the scope — the record still says unattended — and
         # that must not be enough on its own.
-        self.assertEqual(slot._trust_scope, cr.autoapprove_scope(crew["id"]))
+        self.assertEqual(slot._trust_scope, cr.autoapprove_scope(steward["id"]))
         with mock.patch.object(
             type(safety_override()), "is_scope_active", return_value=False
         ):
@@ -702,83 +714,83 @@ class TestSession(unittest.IsolatedAsyncioTestCase):
 
     async def test_a_grant_whose_audit_fails_is_never_usable(self):
         """Fail-closed. ``activate_scoped`` audits to the SEL BEFORE committing, so
-        a SEL that cannot be written must leave the crew untrusted rather than
+        a SEL that cannot be written must leave the steward untrusted rather than
         auto-approving tools with no record that it was ever allowed to."""
-        crew = _crew(self.root, unattended=True)
+        steward = _steward(self.root, unattended=True)
         with mock.patch(
             "junction.safety_override.sel", side_effect=OSError("SEL unavailable")
         ):
-            slot = await cr.ensure_crew_session(_FakeState(), OWNER, REPO, crew)
+            slot = await cr.ensure_steward_session(_FakeState(), OWNER, REPO, steward)
         self.assertFalse(_effectively_trusted(slot))
         self.assertEqual(slot._trust_scope, "")
         self.assertFalse(slot._trust)  # and no fallback onto the unbounded flag
-        self.assertFalse(safety_override().is_scope_active(cr.autoapprove_scope(crew["id"])))
+        self.assertFalse(safety_override().is_scope_active(cr.autoapprove_scope(steward["id"])))
 
-    async def test_watchdog_revokes_trust_for_a_paused_or_retired_crew(self):
-        crew = _crew(self.root, unattended=True)
+    async def test_watchdog_revokes_trust_for_a_paused_or_retired_steward(self):
+        steward = _steward(self.root, unattended=True)
         state = _FakeState()
-        slot = await cr.ensure_crew_session(state, OWNER, REPO, crew)
-        paused = cs.update_crew(
-            OWNER, REPO, crew["id"], {"paused_reason": "operator paused"}, self.root
+        slot = await cr.ensure_steward_session(state, OWNER, REPO, steward)
+        paused = cs.update_steward(
+            OWNER, REPO, steward["id"], {"paused_reason": "operator paused"}, self.root
         )
         self.assertFalse(cr.is_live(paused))
         await cr.watchdog_cycle(state, OWNER, REPO, [paused], self.root)
         self.assertFalse(_effectively_trusted(slot))
 
-    async def test_sync_trust_refuses_a_crew_that_is_not_live_whatever_calls_it(self):
+    async def test_sync_trust_refuses_a_steward_that_is_not_live_whatever_calls_it(self):
         """Liveness is re-checked inside the grant, not only by the watchdog that
-        usually calls it — so no future caller can hand a paused crew a grant."""
-        crew = _crew(self.root, unattended=True)
-        paused = cs.update_crew(
-            OWNER, REPO, crew["id"], {"paused_reason": "operator paused"}, self.root
+        usually calls it — so no future caller can hand a paused steward a grant."""
+        steward = _steward(self.root, unattended=True)
+        paused = cs.update_steward(
+            OWNER, REPO, steward["id"], {"paused_reason": "operator paused"}, self.root
         )
-        slot = _FakeSlot(f"crew-{crew['id']}")
+        slot = _FakeSlot(f"steward-{steward['id']}")
         self.assertFalse(cr.sync_trust(slot, paused))
         self.assertFalse(_effectively_trusted(slot))
 
     async def test_wake_runs_a_turn_carrying_the_brief_and_the_nudge(self):
-        crew = _crew(self.root, unattended=True)
+        steward = _steward(self.root, unattended=True)
         state = _FakeState()
-        slot = await cr.ensure_crew_session(state, OWNER, REPO, crew)
-        _item(self.root, crew["id"], 2201, phase="awaiting-ci", next="round 3")
+        slot = await cr.ensure_steward_session(state, OWNER, REPO, steward)
+        _item(self.root, steward["id"], 2201, phase="awaiting-ci", next="round 3")
         runner = mock.Mock()
         # ``_run_chat`` is bound at this module's scope, so it is patched by name
         # here rather than through ``sys.modules``. The slot is handed the CAPPED
         # wrapper, not ``_run_chat`` itself — see :class:`TestTurnDispatch`.
         with mock.patch.object(cr, "_run_chat", runner):
-            started = await cr.wake_crew(
-                state, OWNER, REPO, crew, "#2201 ci-changed", self.root
+            started = await cr.wake_steward(
+                state, OWNER, REPO, steward, "#2201 ci-changed", self.root
             )
         self.assertTrue(started)
         self.assertEqual(slot.runners, [cr._capped_run_chat])
         self.assertEqual(len(slot.prompts), 1)
         prompt = slot.prompts[0]
-        self.assertIn("[crew wake: #2201 ci-changed]", prompt)
+        self.assertIn("[steward wake: #2201 ci-changed]", prompt)
         self.assertIn(cr.BRIEF_SENTINEL, prompt)     # first turn — brief injected
         self.assertIn("#2201 awaiting-ci", prompt)
         settings = cs.read_settings(OWNER, REPO, self.root)
         self.assertIn(cr.never_block(cr.writable_labels(settings)), prompt)
 
-    async def test_wake_is_dropped_not_queued_while_the_crew_is_mid_turn(self):
+    async def test_wake_is_dropped_not_queued_while_the_steward_is_mid_turn(self):
         """A queued wake can carry the whole brief. Three busy sweeps would hand the
-        crew three stacked copies of its own instructions, so a wake it cannot use
-        is dropped — the refreshed loop message and the crew's own per-turn
+        steward three stacked copies of its own instructions, so a wake it cannot use
+        is dropped — the refreshed loop message and the steward's own per-turn
         reconciliation both still cover the signal."""
-        crew = _crew(self.root, unattended=True)
+        steward = _steward(self.root, unattended=True)
         state = _FakeState()
-        slot = await cr.ensure_crew_session(state, OWNER, REPO, crew)
+        slot = await cr.ensure_steward_session(state, OWNER, REPO, steward)
         slot.running = True
         with mock.patch.object(cr, "_run_chat", mock.Mock()):
-            started = await cr.wake_crew(state, OWNER, REPO, crew, "ci-changed", self.root)
+            started = await cr.wake_steward(state, OWNER, REPO, steward, "ci-changed", self.root)
         self.assertFalse(started)
         self.assertEqual(slot.prompts, [])
 
     async def test_wake_without_a_session_is_not_a_crash(self):
-        crew = _crew(self.root)
+        steward = _steward(self.root)
         state = _FakeState()
         with mock.patch.object(cr, "_rehydrate", return_value=None):
             self.assertFalse(
-                await cr.wake_crew(state, OWNER, REPO, crew, "signal", self.root)
+                await cr.wake_steward(state, OWNER, REPO, steward, "signal", self.root)
             )
 
     # ── the snapshot never runs on the event loop ──────────────────────────
@@ -801,29 +813,29 @@ class TestSession(unittest.IsolatedAsyncioTestCase):
         self.assertNotIn(loop_thread, seen)
 
     async def test_launch_composes_the_prompt_off_the_event_loop(self):
-        """The snapshot globs the crew's item dir and parses every open item, and it
-        grows with the crew's workload — on the loop it stalls the gateway and the
-        always-on poll loop that is the only thing able to wake a crew when CI
+        """The snapshot globs the steward's item dir and parses every open item, and it
+        grows with the steward's workload — on the loop it stalls the gateway and the
+        always-on poll loop that is the only thing able to wake a steward when CI
         turns red."""
-        crew = _crew(self.root, unattended=True)
+        steward = _steward(self.root, unattended=True)
         state = _FakeState()
-        _item(self.root, crew["id"], 2201, phase="awaiting-ci", next="round 3")
+        _item(self.root, steward["id"], 2201, phase="awaiting-ci", next="round 3")
         svc = _FakeNudge()
         loop_thread = threading.get_ident()
         with mock.patch.object(cr, "_autonudge_instance", lambda: svc):
             with self._snapshot_threads() as seen:
-                await cr.launch_crew(state, OWNER, REPO, crew, self.root)
+                await cr.launch_steward(state, OWNER, REPO, steward, self.root)
         self._assert_off_loop(seen, loop_thread)
-        self.assertEqual(svc.added, [f"crew-{crew['id']}"])
+        self.assertEqual(svc.added, [f"steward-{steward['id']}"])
 
     async def test_wake_composes_the_prompt_off_the_event_loop(self):
-        crew = _crew(self.root, unattended=True)
+        steward = _steward(self.root, unattended=True)
         state = _FakeState()
-        slot = await cr.ensure_crew_session(state, OWNER, REPO, crew)
-        _item(self.root, crew["id"], 2201, phase="awaiting-ci", next="round 3")
+        slot = await cr.ensure_steward_session(state, OWNER, REPO, steward)
+        _item(self.root, steward["id"], 2201, phase="awaiting-ci", next="round 3")
         loop_thread = threading.get_ident()
         with self._snapshot_threads() as seen:
-            started = await cr.wake_crew(state, OWNER, REPO, crew, "ci-changed", self.root)
+            started = await cr.wake_steward(state, OWNER, REPO, steward, "ci-changed", self.root)
         self._assert_off_loop(seen, loop_thread)
         self.assertTrue(started)
         # Off-loop composition must still produce the same prompt: brief + nudge.
@@ -834,9 +846,9 @@ class TestSession(unittest.IsolatedAsyncioTestCase):
         """``slot.messages`` is loop-affine — a running turn appends to it — so only
         the store read is hoisted, the same split ``rehydrate_slot_from_history_async``
         documents."""
-        crew = _crew(self.root, unattended=True)
+        steward = _steward(self.root, unattended=True)
         state = _FakeState()
-        slot = await cr.ensure_crew_session(state, OWNER, REPO, crew)
+        slot = await cr.ensure_steward_session(state, OWNER, REPO, steward)
         loop_thread = threading.get_ident()
         seen: list[int] = []
         real = cr.brief_is_present
@@ -846,20 +858,20 @@ class TestSession(unittest.IsolatedAsyncioTestCase):
             return real(arg)
 
         with mock.patch.object(cr, "brief_is_present", _record):
-            await cr.compose_turn_prompt_async(slot, OWNER, REPO, crew, self.root)
+            await cr.compose_turn_prompt_async(slot, OWNER, REPO, steward, self.root)
         self.assertEqual(seen, [loop_thread])
 
     # ── restart: a persisted loop that outlived its slot ───────────────────
 
-    async def test_watchdog_rehydrates_and_trusts_a_crew_whose_loop_outlived_its_slot(self):
+    async def test_watchdog_rehydrates_and_trusts_a_steward_whose_loop_outlived_its_slot(self):
         """The silent one. An armed loop is PERSISTED and fires against the slot key
         whether or not the gateway still holds the slot, while the auto-approve grant
         is in-memory and does not survive a restart. Skipping the rehydrate here left
-        the crew's first post-restart turn untrusted, and an unattended crew then
+        the steward's first post-restart turn untrusted, and an unattended steward then
         parks on an approval nobody is there to answer — no error, no symptom, until
-        someone notices the crew stopped."""
-        crew = _crew(self.root, unattended=True)
-        slot_key = f"crew-{crew['id']}"
+        someone notices the steward stopped."""
+        steward = _steward(self.root, unattended=True)
+        slot_key = f"steward-{steward['id']}"
         state = _FakeState()  # no resident slot, as a restart leaves it
         revived = _FakeSlot(slot_key)
         svc = _FakeNudge([_FakeLoop("nl_0", slot_key, active=True)])
@@ -868,34 +880,34 @@ class TestSession(unittest.IsolatedAsyncioTestCase):
             "rehydrate_slot_from_history_async",
             new=mock.AsyncMock(return_value=revived),
         ) as rehydrate:
-            await cr.watchdog_cycle(state, OWNER, REPO, [crew], self.root)
+            await cr.watchdog_cycle(state, OWNER, REPO, [steward], self.root)
         rehydrate.assert_awaited_once()
         self.assertTrue(_effectively_trusted(revived))
         # The loop already existed, so it must NOT be re-armed — a second loop on
-        # one slot would double every crew's turn rate.
+        # one slot would double every steward's turn rate.
         self.assertEqual(svc.added, [])
 
     async def test_watchdog_creates_the_session_when_there_is_no_history_to_rehydrate(self):
-        """A crew armed and then never given a turn has nothing on disk. The loop
+        """A steward armed and then never given a turn has nothing on disk. The loop
         still needs a trusted session to fire into, so the session is created."""
-        crew = _crew(self.root, unattended=True)
-        slot_key = f"crew-{crew['id']}"
+        steward = _steward(self.root, unattended=True)
+        slot_key = f"steward-{steward['id']}"
         state = _FakeState()
         svc = _FakeNudge([_FakeLoop("nl_0", slot_key, active=True)])
         with mock.patch.object(cr, "_autonudge_instance", lambda: svc), mock.patch.object(
             cr, "rehydrate_slot_from_history_async", new=mock.AsyncMock(return_value=None)
         ):
-            await cr.watchdog_cycle(state, OWNER, REPO, [crew], self.root)
+            await cr.watchdog_cycle(state, OWNER, REPO, [steward], self.root)
         self.assertIn(slot_key, state.slots)
         self.assertTrue(_effectively_trusted(state.slots[slot_key]))
         self.assertEqual(svc.added, [])  # still no second loop
 
     async def test_watchdog_reactivates_a_deactivated_loop_after_rehydrating(self):
-        """Reactivation and rehydration are independent: a crew that came back with
+        """Reactivation and rehydration are independent: a steward that came back with
         no resident slot AND a deactivated loop needs both, so neither branch may
         shadow the other."""
-        crew = _crew(self.root, unattended=True)
-        slot_key = f"crew-{crew['id']}"
+        steward = _steward(self.root, unattended=True)
+        slot_key = f"steward-{steward['id']}"
         state = _FakeState()
         revived = _FakeSlot(slot_key)
         svc = _FakeNudge([_FakeLoop("nl_0", slot_key, active=False)])
@@ -904,19 +916,19 @@ class TestSession(unittest.IsolatedAsyncioTestCase):
             "rehydrate_slot_from_history_async",
             new=mock.AsyncMock(return_value=revived),
         ):
-            await cr.watchdog_cycle(state, OWNER, REPO, [crew], self.root)
+            await cr.watchdog_cycle(state, OWNER, REPO, [steward], self.root)
         self.assertTrue(_effectively_trusted(revived))
         self.assertTrue(svc.get_by_slot(slot_key).active)
 
-    async def test_watchdog_does_not_rehydrate_a_crew_that_is_not_live(self):
-        """A retired or paused crew must not be brought back into memory — the
-        rehydrate exists to keep an armed loop trusted, and a dead crew has no
+    async def test_watchdog_does_not_rehydrate_a_steward_that_is_not_live(self):
+        """A retired or paused steward must not be brought back into memory — the
+        rehydrate exists to keep an armed loop trusted, and a dead steward has no
         business holding a session."""
-        crew = _crew(self.root, unattended=True)
-        retired = cs.update_crew(
-            OWNER, REPO, crew["id"], {"paused_reason": "operator paused"}, self.root
+        steward = _steward(self.root, unattended=True)
+        retired = cs.update_steward(
+            OWNER, REPO, steward["id"], {"paused_reason": "operator paused"}, self.root
         )
-        svc = _FakeNudge([_FakeLoop("nl_0", f"crew-{crew['id']}", active=True)])
+        svc = _FakeNudge([_FakeLoop("nl_0", f"steward-{steward['id']}", active=True)])
         with mock.patch.object(cr, "_autonudge_instance", lambda: svc), mock.patch.object(
             cr, "rehydrate_slot_from_history_async", new=mock.AsyncMock()
         ) as rehydrate:
@@ -929,15 +941,15 @@ class TestSession(unittest.IsolatedAsyncioTestCase):
 
 
 class TestRevocation(unittest.IsolatedAsyncioTestCase):
-    """Stopping a crew has to reach state the crew RECORD cannot express.
+    """Stopping a steward has to reach state the steward RECORD cannot express.
 
     ``enabled``, ``paused_reason`` and ``retired_at`` are all on disk; the two
-    things that actually give a crew a turn are not. Its autonudge loop is a live
+    things that actually give a steward a turn are not. Its autonudge loop is a live
     timer owned by another service, and its auto-approve grant is an in-memory
     ``SafetyOverride`` scope that makes its tool calls auto-approve. Anything that
     writes only the record leaves both armed until the watchdog notices — and that
     runs on the app's poll interval, which is long enough for an idle timer to fire
-    one more unattended turn on a crew a human just stopped.
+    one more unattended turn on a steward a human just stopped.
 
     One helper serves the routes and the watchdog, so these tests pin the helper and
     the watchdog's use of it; the routes' own timing is pinned in the route tests.
@@ -951,65 +963,65 @@ class TestRevocation(unittest.IsolatedAsyncioTestCase):
         self.addCleanup(reset_singleton)
 
     async def _armed(self, **spec) -> tuple[dict[str, Any], _FakeState, _FakeSlot, _FakeNudge]:
-        """A crew that is genuinely running: trusted slot, active loop."""
-        crew = _crew(self.root, unattended=True, **spec)
+        """A steward that is genuinely running: trusted slot, active loop."""
+        steward = _steward(self.root, unattended=True, **spec)
         state = _FakeState()
-        slot = await cr.ensure_crew_session(state, OWNER, REPO, crew)
+        slot = await cr.ensure_steward_session(state, OWNER, REPO, steward)
         # the grant this revocation has to remove
         self.assertTrue(_effectively_trusted(slot))
-        return crew, state, slot, _FakeNudge([_FakeLoop("nl_0", slot.key, active=True)])
+        return steward, state, slot, _FakeNudge([_FakeLoop("nl_0", slot.key, active=True)])
 
     async def test_it_clears_trust_and_deactivates_the_loop(self):
-        crew, state, slot, svc = await self._armed()
+        steward, state, slot, svc = await self._armed()
         with mock.patch.object(cr, "_autonudge_instance", lambda: svc):
-            self.assertTrue(await cr.revoke_crew_execution(state, crew, "paused"))
+            self.assertTrue(await cr.revoke_steward_execution(state, steward, "paused"))
         self.assertFalse(_effectively_trusted(slot))
-        self.assertFalse(safety_override().is_scope_active(cr.autoapprove_scope(crew["id"])))
+        self.assertFalse(safety_override().is_scope_active(cr.autoapprove_scope(steward["id"])))
         self.assertFalse(svc.get_by_slot(slot.key).active)
 
     async def test_it_also_clears_an_interactive_grant_a_human_left_behind(self):
-        """Stopping a crew means stopped. ``sync_trust`` runs unprompted every cycle
+        """Stopping a steward means stopped. ``sync_trust`` runs unprompted every cycle
         and so leaves a human's session trust alone, but this runs only because
-        someone decided the crew must not run — including its slot."""
-        crew, state, slot, svc = await self._armed()
+        someone decided the steward must not run — including its slot."""
+        steward, state, slot, svc = await self._armed()
         slot._trust = True  # as the approval card's "Trust all tools" leaves it
         with mock.patch.object(cr, "_autonudge_instance", lambda: svc):
-            await cr.revoke_crew_execution(state, crew, "retired")
+            await cr.revoke_steward_execution(state, steward, "retired")
         self.assertFalse(slot._trust)
         self.assertFalse(_effectively_trusted(slot))
 
     async def test_revoking_twice_is_a_no_op_rather_than_an_error(self):
-        """Retiring an already-paused crew, or a route racing the watchdog."""
-        crew, state, slot, svc = await self._armed()
+        """Retiring an already-paused steward, or a route racing the watchdog."""
+        steward, state, slot, svc = await self._armed()
         with mock.patch.object(cr, "_autonudge_instance", lambda: svc):
-            await cr.revoke_crew_execution(state, crew, "paused")
-            self.assertFalse(await cr.revoke_crew_execution(state, crew, "retired"))
+            await cr.revoke_steward_execution(state, steward, "paused")
+            self.assertFalse(await cr.revoke_steward_execution(state, steward, "retired"))
         self.assertEqual(svc.updates, [("nl_0", {"active": False})])
 
     async def test_a_failing_loop_service_still_clears_trust(self):
         """Best-effort, and the halves are independent: the grant that lets a turn
         run auto-approved must go even when the timer service cannot be reached."""
-        crew, state, slot, svc = await self._armed()
+        steward, state, slot, svc = await self._armed()
         svc.update = mock.AsyncMock(side_effect=RuntimeError("registry busy"))  # type: ignore[method-assign]
         with mock.patch.object(cr, "_autonudge_instance", lambda: svc):
-            await cr.revoke_crew_execution(state, crew, "retired")
+            await cr.revoke_steward_execution(state, steward, "retired")
         self.assertFalse(_effectively_trusted(slot))
 
-    async def test_a_crew_with_no_resident_slot_is_still_un_armed(self):
+    async def test_a_steward_with_no_resident_slot_is_still_un_armed(self):
         """After a restart the loop is persisted and the slot is not. Revocation
-        must still reach the timer, or the crew gets a turn with no session."""
-        crew = _crew(self.root, unattended=True)
-        svc = _FakeNudge([_FakeLoop("nl_0", f"crew-{crew['id']}", active=True)])
+        must still reach the timer, or the steward gets a turn with no session."""
+        steward = _steward(self.root, unattended=True)
+        svc = _FakeNudge([_FakeLoop("nl_0", f"steward-{steward['id']}", active=True)])
         with mock.patch.object(cr, "_autonudge_instance", lambda: svc):
-            self.assertTrue(await cr.revoke_crew_execution(_FakeState(), crew, "paused"))
+            self.assertTrue(await cr.revoke_steward_execution(_FakeState(), steward, "paused"))
         self.assertFalse(svc.loops[0].active)
 
     async def test_the_watchdog_remains_the_backstop(self):
-        """A crew stopped by editing the record directly never went through a
+        """A steward stopped by editing the record directly never went through a
         route, so the sweep has to keep revoking on its own."""
-        crew, state, slot, svc = await self._armed()
-        paused = cs.update_crew(
-            OWNER, REPO, crew["id"], {"paused_reason": "operator paused"}, self.root
+        steward, state, slot, svc = await self._armed()
+        paused = cs.update_steward(
+            OWNER, REPO, steward["id"], {"paused_reason": "operator paused"}, self.root
         )
         with mock.patch.object(cr, "_autonudge_instance", lambda: svc):
             await cr.watchdog_cycle(state, OWNER, REPO, [paused], self.root)
@@ -1021,16 +1033,16 @@ class TestRevocation(unittest.IsolatedAsyncioTestCase):
 
 
 class TestTurnDispatch(unittest.IsolatedAsyncioTestCase):
-    """Every crew turn must be charged against the background-turn cap.
+    """Every steward turn must be charged against the background-turn cap.
 
     The cap lives INSIDE ``DashboardState.run_background_turn``, so a dispatch that
     hands ``_run_chat`` straight to ``enqueue_or_run_prompt`` is not merely
-    uncounted — it is uncapped. Crews are the one fleet in the product that arms N
+    uncounted — it is uncapped. Stewards are the one fleet in the product that arms N
     independent loops, so simultaneous wakes plus a human's guidance injection could
     put more turns on the runtime than the cap allows while its counters reported a
     smaller number, which reads as a healthy fleet.
 
-    Both dispatch sites go through :func:`steward_runtime.dispatch_crew_turn`; the wake
+    Both dispatch sites go through :func:`steward_runtime.dispatch_steward_turn`; the wake
     is pinned here and the guidance route in the route tests.
     """
 
@@ -1040,10 +1052,10 @@ class TestTurnDispatch(unittest.IsolatedAsyncioTestCase):
         self.root = Path(self._tmp.name)
 
     async def test_a_wake_hands_the_slot_the_capped_runner(self):
-        crew = _crew(self.root, unattended=True)
+        steward = _steward(self.root, unattended=True)
         state = _FakeState()
-        slot = await cr.ensure_crew_session(state, OWNER, REPO, crew)
-        started = await cr.wake_crew(state, OWNER, REPO, crew, "ci-changed", self.root)
+        slot = await cr.ensure_steward_session(state, OWNER, REPO, steward)
+        started = await cr.wake_steward(state, OWNER, REPO, steward, "ci-changed", self.root)
         self.assertTrue(started)
         self.assertEqual(slot.runners, [cr._capped_run_chat])
 
@@ -1066,7 +1078,7 @@ class TestTurnDispatch(unittest.IsolatedAsyncioTestCase):
             origins.append(_directive_user_origin)
 
         with mock.patch.object(cr, "_run_chat", _turn):
-            self.assertTrue(cr.dispatch_crew_turn(state, slot, "advance one item"))
+            self.assertTrue(cr.dispatch_steward_turn(state, slot, "advance one item"))
             await slot.runners[-1](state, slot, slot.prompts[-1])
         self.assertEqual(state.capped, [slot.key])
         self.assertEqual(ran, ["advance one item"])
@@ -1076,8 +1088,8 @@ class TestTurnDispatch(unittest.IsolatedAsyncioTestCase):
         """A refused turn and a finished one must not look the same.
 
         ``run_background_turn`` queues rather than rejecting, so reaching this means
-        the cap's whole wait budget expired and NOTHING ran. Reported in the crew's
-        own session because that is where a human looks when a crew seems stalled.
+        the cap's whole wait budget expired and NOTHING ran. Reported in the steward's
+        own session because that is where a human looks when a steward seems stalled.
         """
         state = _FakeState()
         state.permit_timeout = True
@@ -1093,7 +1105,7 @@ class TestTurnDispatch(unittest.IsolatedAsyncioTestCase):
             raise AssertionError("the turn must not run without a permit")
 
         with mock.patch.object(cr, "_run_chat", _turn):
-            cr.dispatch_crew_turn(state, slot, "advance one item")
+            cr.dispatch_steward_turn(state, slot, "advance one item")
             await slot.runners[-1](state, slot, slot.prompts[-1])
         cards = [m for m in slot.messages if m["role"] == "error"]
         self.assertEqual(len(cards), 1)
@@ -1103,7 +1115,7 @@ class TestTurnDispatch(unittest.IsolatedAsyncioTestCase):
         state = _FakeState()
         slot = _FakeSlot()
         with mock.patch.object(cr, "_run_chat", mock.AsyncMock()):
-            cr.dispatch_crew_turn(state, slot, "advance one item")
+            cr.dispatch_steward_turn(state, slot, "advance one item")
             await slot.runners[-1](state, slot, slot.prompts[-1])
         self.assertEqual([m for m in slot.messages if m["role"] == "error"], [])
 
@@ -1126,7 +1138,7 @@ class TestDetectUnblocks(unittest.TestCase):
         return cr.detect_unblocks(dict(self.BASE), {**self.BASE, **changes})
 
     def test_first_observation_reports_nothing(self):
-        # Cold start seeds the mark. Reporting here would wake every crew on every
+        # Cold start seeds the mark. Reporting here would wake every steward on every
         # open item the moment the gateway restarts.
         self.assertEqual(cr.detect_unblocks(None, dict(self.BASE)), [])
         self.assertEqual(cr.detect_unblocks({}, dict(self.BASE)), [])
@@ -1146,7 +1158,7 @@ class TestDetectUnblocks(unittest.TestCase):
 
     def test_unknown_ci_is_not_a_ci_change(self):
         # A failed enrichment call reports None. Treating unknown-vs-known as
-        # movement would wake the crew every time the GraphQL leg flakes.
+        # movement would wake the steward every time the GraphQL leg flakes.
         self.assertEqual(self._detect(checks=None, check_counts=None), [])
 
     def test_review_approved_and_changes_requested(self):
@@ -1245,59 +1257,59 @@ class TestSweep(unittest.IsolatedAsyncioTestCase):
     async def _sweep(self, client, state=None):
         with mock.patch.object(provider, "client_for", return_value=client), \
              mock.patch.object(cr.provider, "client_for", return_value=client), \
-             mock.patch.object(cr, "wake_crew", new=mock.AsyncMock(return_value=True)) as wake:
+             mock.patch.object(cr, "wake_steward", new=mock.AsyncMock(return_value=True)) as wake:
             woken = await cr.sweep_repo(_app(state), _KEY, self.root)
         return woken, wake
 
     async def test_first_sweep_seeds_without_waking(self):
-        crew = _crew(self.root, unattended=True)
-        _item(self.root, crew["id"], 2201, phase="awaiting-ci")
+        steward = _steward(self.root, unattended=True)
+        _item(self.root, steward["id"], 2201, phase="awaiting-ci")
         client = _FakeClient(issue={"comments": 2, "state": "open"})
         woken, wake = await self._sweep(client, _FakeState())
         self.assertEqual(woken, {})
         wake.assert_not_awaited()
         # The mark is stored, so the SECOND sweep has something to compare against.
         stored = cr.read_signals(OWNER, REPO, self.root)
-        self.assertIn(f"{crew['id']}:2201", stored)
+        self.assertIn(f"{steward['id']}:2201", stored)
 
-    async def test_second_sweep_wakes_the_owning_crew_on_a_reply(self):
-        crew = _crew(self.root, unattended=True)
-        _item(self.root, crew["id"], 2201, phase="awaiting-reply")
+    async def test_second_sweep_wakes_the_owning_steward_on_a_reply(self):
+        steward = _steward(self.root, unattended=True)
+        _item(self.root, steward["id"], 2201, phase="awaiting-reply")
         client = _FakeClient(issue={"comments": 2, "state": "open"})
         await self._sweep(client, _FakeState())
         # Backdate the mark so the phase's recheck interval has elapsed.
         stored = cr.read_signals(OWNER, REPO, self.root)
-        stored[f"{crew['id']}:2201"]["checked_at"] = 0
+        stored[f"{steward['id']}:2201"]["checked_at"] = 0
         cr.write_signals(OWNER, REPO, stored, self.root)
 
         client.issue = {"comments": 3, "state": "open"}
         woken, wake = await self._sweep(client, _FakeState())
-        self.assertEqual(woken, {crew["id"]: [cr.SIG_REPLY]})
+        self.assertEqual(woken, {steward["id"]: [cr.SIG_REPLY]})
         wake.assert_awaited_once()
         self.assertIn("requester-replied", wake.await_args.args[4])
 
     async def test_selected_items_are_never_fetched(self):
         # Pre-claim and local only: there is nothing public to watch, and reading
-        # it would cost an API call per crew per minute for every shortlisted issue.
-        crew = _crew(self.root)
-        _item(self.root, crew["id"], 42, phase="selected")
+        # it would cost an API call per steward per minute for every shortlisted issue.
+        steward = _steward(self.root)
+        _item(self.root, steward["id"], 42, phase="selected")
         client = _FakeClient()
         woken, _ = await self._sweep(client, _FakeState())
         self.assertEqual(woken, {})
         self.assertEqual(client.calls, [])
 
-    async def test_a_retired_crew_is_not_swept(self):
-        crew = _crew(self.root)
-        _item(self.root, crew["id"], 2201, phase="awaiting-ci")
-        cs.retire_crew(OWNER, REPO, crew["id"], self.root)
+    async def test_a_retired_steward_is_not_swept(self):
+        steward = _steward(self.root)
+        _item(self.root, steward["id"], 2201, phase="awaiting-ci")
+        cs.retire_steward(OWNER, REPO, steward["id"], self.root)
         client = _FakeClient()
         woken, _ = await self._sweep(client, _FakeState())
         self.assertEqual(woken, {})
         self.assertEqual(client.calls, [])
 
     async def test_api_cost_per_item_is_two_reads_plus_one_batched_enrichment(self):
-        crew = _crew(self.root)
-        cid = crew["id"]
+        steward = _steward(self.root)
+        cid = steward["id"]
         _item(self.root, cid, 2201, phase="awaiting-ci", pr_number=101)
         _item(self.root, cid, 2202, phase="awaiting-ci", pr_number=102)
         client = _FakeClient(
@@ -1317,8 +1329,8 @@ class TestSweep(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(len([c for c in client.calls if c.startswith("timeline")]), 2)
 
     async def test_review_read_is_skipped_when_the_pr_did_not_move(self):
-        crew = _crew(self.root)
-        _item(self.root, crew["id"], 2201, phase="awaiting-ci", pr_number=101)
+        steward = _steward(self.root)
+        _item(self.root, steward["id"], 2201, phase="awaiting-ci", pr_number=101)
         client = _FakeClient(
             issue={"comments": 1, "state": "open"},
             pr={"comments": 0, "updated_at": "t0", "merged": False, "mergeable": True},
@@ -1326,7 +1338,7 @@ class TestSweep(unittest.IsolatedAsyncioTestCase):
         )
         await self._sweep(client, _FakeState())
         stored = cr.read_signals(OWNER, REPO, self.root)
-        stored[f"{crew['id']}:2201"]["checked_at"] = 0
+        stored[f"{steward['id']}:2201"]["checked_at"] = 0
         cr.write_signals(OWNER, REPO, stored, self.root)
         client.calls.clear()
         await self._sweep(client, _FakeState())
@@ -1334,8 +1346,8 @@ class TestSweep(unittest.IsolatedAsyncioTestCase):
         self.assertNotIn("timeline:101", client.calls)
 
     async def test_review_verdict_is_read_when_the_pr_moved(self):
-        crew = _crew(self.root, unattended=True)
-        _item(self.root, crew["id"], 2201, phase="addressing-review", pr_number=101)
+        steward = _steward(self.root, unattended=True)
+        _item(self.root, steward["id"], 2201, phase="addressing-review", pr_number=101)
         client = _FakeClient(
             issue={"comments": 1, "state": "open"},
             pr={"comments": 0, "updated_at": "t0", "merged": False, "mergeable": True},
@@ -1343,7 +1355,7 @@ class TestSweep(unittest.IsolatedAsyncioTestCase):
         )
         await self._sweep(client, _FakeState())
         stored = cr.read_signals(OWNER, REPO, self.root)
-        stored[f"{crew['id']}:2201"]["checked_at"] = 0
+        stored[f"{steward['id']}:2201"]["checked_at"] = 0
         cr.write_signals(OWNER, REPO, stored, self.root)
 
         client.pr = {"comments": 0, "updated_at": "t1", "merged": False, "mergeable": True}
@@ -1351,12 +1363,12 @@ class TestSweep(unittest.IsolatedAsyncioTestCase):
             {"kind": "reviewed", "review_state": "APPROVED", "created_at": "t1"},
         ]
         woken, wake = await self._sweep(client, _FakeState())
-        self.assertEqual(woken, {crew["id"]: [cr.SIG_REVIEW]})
+        self.assertEqual(woken, {steward["id"]: [cr.SIG_REVIEW]})
         wake.assert_awaited_once()
 
     async def test_a_failed_item_read_leaves_its_mark_untouched(self):
-        crew = _crew(self.root)
-        _item(self.root, crew["id"], 2201, phase="awaiting-ci")
+        steward = _steward(self.root)
+        _item(self.root, steward["id"], 2201, phase="awaiting-ci")
         client = _FakeClient()
         client.get_issue_detail = mock.Mock(side_effect=RuntimeError("gh exploded"))
         woken, _ = await self._sweep(client, _FakeState())
@@ -1373,9 +1385,9 @@ class TestSweep(unittest.IsolatedAsyncioTestCase):
         # A mark in the future (clock correction) must not park the item forever.
         self.assertTrue(cr._is_due({"phase": "awaiting-reply"}, stored, 900.0))
 
-    async def test_two_signalling_items_wake_the_crew_once_with_both_reasons(self):
-        crew = _crew(self.root, unattended=True)
-        cid = crew["id"]
+    async def test_two_signalling_items_wake_the_steward_once_with_both_reasons(self):
+        steward = _steward(self.root, unattended=True)
+        cid = steward["id"]
         _item(self.root, cid, 2201, phase="awaiting-reply")
         _item(self.root, cid, 2202, phase="awaiting-reply")
         client = _FakeClient(issue={"comments": 1, "state": "open"})
@@ -1389,21 +1401,21 @@ class TestSweep(unittest.IsolatedAsyncioTestCase):
         woken, wake = await self._sweep(client, _FakeState())
         self.assertEqual(woken, {cid: [cr.SIG_REPLY, cr.SIG_REPLY]})
         # ONE turn, both reasons — the second call would have been dropped as
-        # mid-turn, so the crew would only have heard about the first item.
+        # mid-turn, so the steward would only have heard about the first item.
         wake.assert_awaited_once()
         reason = wake.await_args.args[4]
         self.assertIn("#2201", reason)
         self.assertIn("#2202", reason)
 
     async def test_marks_for_finished_items_are_pruned(self):
-        crew = _crew(self.root, unattended=True)
-        cid = crew["id"]
+        steward = _steward(self.root, unattended=True)
+        cid = steward["id"]
         _item(self.root, cid, 2201, phase="awaiting-ci")
         client = _FakeClient(issue={"comments": 1, "state": "open"})
         await self._sweep(client, _FakeState())
         self.assertIn(f"{cid}:2201", cr.read_signals(OWNER, REPO, self.root))
         # Resolved items leave the open set, so their fingerprints must go too —
-        # otherwise a long-lived crew rewrites every issue it ever closed, every
+        # otherwise a long-lived steward rewrites every issue it ever closed, every
         # minute, forever.
         _item(self.root, cid, 2201, phase="resolved")
         await self._sweep(client, _FakeState())
@@ -1420,16 +1432,16 @@ class TestSweep(unittest.IsolatedAsyncioTestCase):
 
 
 class TestDismissal(unittest.IsolatedAsyncioTestCase):
-    """Closing a crew's chat tab must PAUSE that crew — and only that case.
+    """Closing a steward's chat tab must PAUSE that steward — and only that case.
 
-    The bug this pins: the watchdog re-establishes a live crew's missing nudge loop
+    The bug this pins: the watchdog re-establishes a live steward's missing nudge loop
     (correct after a restart, which drops the in-memory registry) and so undid the
     close handler's deliberate loop removal on the very next sweep, resurrecting a
     tab the user had just dismissed.
 
     Both directions are asserted here on purpose. Gating the re-arm on any signal
     idle archival also writes (``closed``/``closed_at`` — both paths stamp both)
-    would trade a visible resurrection for a silent death: a crew that was merely
+    would trade a visible resurrection for a silent death: a steward that was merely
     quiet would never be re-armed and would sit enabled and stopped with nothing
     explaining why.
     """
@@ -1444,7 +1456,7 @@ class TestDismissal(unittest.IsolatedAsyncioTestCase):
 
         A ``setUp`` that touches the hook registry makes EVERY test in the class
         fail with an ``AttributeError`` the moment the seam is missing — including
-        ``test_a_crew_with_no_loop_and_no_dismissal_IS_re_armed``, whose whole job
+        ``test_a_steward_with_no_loop_and_no_dismissal_IS_re_armed``, whose whole job
         is to stay green when the fix is removed. A shared fixture that couples an
         independent assertion to the change under test destroys the only signal
         that assertion carries.
@@ -1462,17 +1474,17 @@ class TestDismissal(unittest.IsolatedAsyncioTestCase):
             return_value=[{"owner": OWNER, "repo": REPO}],
         )
 
-    async def _sweep(self, crew, state, nudge):
+    async def _sweep(self, steward, state, nudge):
         with mock.patch.object(cr, "_autonudge_instance", return_value=nudge):
-            await cr.watchdog_cycle(state, OWNER, REPO, [crew], self.root)
+            await cr.watchdog_cycle(state, OWNER, REPO, [steward], self.root)
 
     # ── the fix ─────────────────────────────────────────────────────────────
 
-    async def test_dismissing_the_tab_pauses_the_crew(self):
-        crew = _crew(self.root)
+    async def test_dismissing_the_tab_pauses_the_steward(self):
+        steward = _steward(self.root)
         with self._repos():
-            await cr._on_slot_closed(crew["slot_key"], root=self.root)
-        after = cs.read_crew(OWNER, REPO, crew["id"], self.root)
+            await cr._on_slot_closed(steward["slot_key"], root=self.root)
+        after = cs.read_steward(OWNER, REPO, steward["id"], self.root)
         assert after is not None
         self.assertFalse(after["enabled"])
         self.assertEqual(after["paused_reason"], cr.DISMISSED_PAUSE_REASON)
@@ -1480,73 +1492,73 @@ class TestDismissal(unittest.IsolatedAsyncioTestCase):
         # from here — no new watchdog state.
         self.assertFalse(cr.is_live(after))
 
-    async def test_taking_the_dismissal_back_resumes_the_crew(self):
+    async def test_taking_the_dismissal_back_resumes_the_steward(self):
         """A close that failed after the pause must not leave the worker stopped.
 
-        The close cannot make the slot table, the history file and the crew store
+        The close cannot make the slot table, the history file and the steward store
         atomic, so the pause has to be undoable: without this the user gets an
-        error AND a silently disabled crew.
+        error AND a silently disabled steward.
         """
-        crew = _crew(self.root)
+        steward = _steward(self.root)
         with self._repos():
-            await cr._on_slot_closed(crew["slot_key"], root=self.root)
-            paused = cs.read_crew(OWNER, REPO, crew["id"], self.root)
+            await cr._on_slot_closed(steward["slot_key"], root=self.root)
+            paused = cs.read_steward(OWNER, REPO, steward["id"], self.root)
             assert paused is not None
             self.assertFalse(paused["enabled"])
-            await cr._on_slot_close_undone(crew["slot_key"], root=self.root)
-        after = cs.read_crew(OWNER, REPO, crew["id"], self.root)
+            await cr._on_slot_close_undone(steward["slot_key"], root=self.root)
+        after = cs.read_steward(OWNER, REPO, steward["id"], self.root)
         assert after is not None
-        self.assertTrue(after["enabled"], "the crew stayed paused after a failed close")
+        self.assertTrue(after["enabled"], "the steward stayed paused after a failed close")
         self.assertFalse(after.get("paused_reason"))
 
     async def test_taking_it_back_never_resumes_a_pause_someone_else_set(self):
         """Only THIS hook's own pause is undone.
 
         ``_on_slot_closed`` refuses to overwrite an existing ``paused_reason``, so a
-        crew stopped for any other cause was never touched by the close — resuming
+        steward stopped for any other cause was never touched by the close — resuming
         it would turn a failed tab close into a worker restart nobody asked for.
         """
-        crew = _crew(self.root)
-        cs.set_crew_paused(OWNER, REPO, crew["id"], True, "you paused this", self.root)
+        steward = _steward(self.root)
+        cs.set_steward_paused(OWNER, REPO, steward["id"], True, "you paused this", self.root)
         with self._repos():
-            await cr._on_slot_closed(crew["slot_key"], root=self.root)
-            await cr._on_slot_close_undone(crew["slot_key"], root=self.root)
-        after = cs.read_crew(OWNER, REPO, crew["id"], self.root)
+            await cr._on_slot_closed(steward["slot_key"], root=self.root)
+            await cr._on_slot_close_undone(steward["slot_key"], root=self.root)
+        after = cs.read_steward(OWNER, REPO, steward["id"], self.root)
         assert after is not None
         self.assertFalse(after["enabled"], "someone else's pause was overridden")
         self.assertEqual(after.get("paused_reason"), "you paused this")
 
-    async def test_a_dismissed_crew_is_not_re_armed(self):
-        """The regression. A live crew, loop removed, tab dismissed."""
-        crew = _crew(self.root)
+    async def test_a_dismissed_steward_is_not_re_armed(self):
+        """The regression. A live steward, loop removed, tab dismissed."""
+        steward = _steward(self.root)
         state = _FakeState()
         nudge = _FakeNudge()  # the close handler already removed the loop
         with self._repos():
-            await cr._on_slot_closed(crew["slot_key"], root=self.root)
-        dismissed = cs.read_crew(OWNER, REPO, crew["id"], self.root)
+            await cr._on_slot_closed(steward["slot_key"], root=self.root)
+        dismissed = cs.read_steward(OWNER, REPO, steward["id"], self.root)
         assert dismissed is not None
         await self._sweep(dismissed, state, nudge)
         self.assertEqual(nudge.added, [])
         self.assertEqual(state.created, [])
 
-    async def test_a_crew_with_no_loop_and_no_dismissal_IS_re_armed(self):
+    async def test_a_steward_with_no_loop_and_no_dismissal_IS_re_armed(self):
         """The behaviour the fix must not cost: recovery after a restart.
 
-        Same observable input as the test above — live crew, no loop, no resident
-        slot — differing only in that nobody dismissed it. An unattended crew with
+        Same observable input as the test above — live steward, no loop, no resident
+        slot — differing only in that nobody dismissed it. An unattended steward with
         no loop has no clock at all, so this MUST re-arm.
         """
-        crew = _crew(self.root)
+        steward = _steward(self.root)
         state = _FakeState()
         nudge = _FakeNudge()
         with mock.patch.object(cr, "_rehydrate", new=mock.AsyncMock(return_value=None)):
-            await self._sweep(crew, state, nudge)
-        self.assertEqual(nudge.added, [crew["slot_key"]])
+            await self._sweep(steward, state, nudge)
+        self.assertEqual(nudge.added, [steward["slot_key"]])
 
     async def test_idle_archival_does_not_reach_the_hook(self):
         """Only a deliberate ✕ pauses. Quietness must leave the record alone."""
         teardown = self._teardown_mod()
-        crew = _crew(self.root)
+        steward = _steward(self.root)
         calls: list[str] = []
 
         async def _hook(slot_key: str) -> None:
@@ -1555,10 +1567,10 @@ class TestDismissal(unittest.IsolatedAsyncioTestCase):
         teardown.register_slot_close_hook(cr.APP_NAME, _hook)
         # The bulk idle-archive path persists ``closed=True`` + ``closed_at`` for
         # this same slot and never notifies — which is the whole distinction.
-        await teardown.notify_slot_closed("some-other-app", crew["slot_key"])
+        await teardown.notify_slot_closed("some-other-app", steward["slot_key"])
         self.assertEqual(calls, [])
-        await teardown.notify_slot_closed(cr.APP_NAME, crew["slot_key"])
-        self.assertEqual(calls, [crew["slot_key"]])
+        await teardown.notify_slot_closed(cr.APP_NAME, steward["slot_key"])
+        self.assertEqual(calls, [steward["slot_key"]])
 
     # ── the seam ────────────────────────────────────────────────────────────
 
@@ -1566,9 +1578,9 @@ class TestDismissal(unittest.IsolatedAsyncioTestCase):
         """The registry is process memory, so a one-shot registration would leave
         the ✕ silently ignored for the rest of that process's life."""
         teardown = self._teardown_mod()
-        crew = _crew(self.root)
+        steward = _steward(self.root)
         teardown.unregister_slot_close_hook(cr.APP_NAME)
-        await self._sweep(crew, _FakeState(), _FakeNudge())
+        await self._sweep(steward, _FakeState(), _FakeNudge())
         self.assertIn(cr.APP_NAME, teardown._SLOT_CLOSE_HOOKS)
 
     async def test_the_watcher_registers_the_hook_before_it_ever_sweeps(self):
@@ -1577,7 +1589,7 @@ class TestDismissal(unittest.IsolatedAsyncioTestCase):
         ``_watch_loop`` sleeps ``POLL_INTERVAL_SEC`` before its first sweep, so a
         registration that only happens inside that sweep leaves the ✕ ignored for
         the first minute of every process — and the sweep that finally arrives is
-        the thing that resurrects the crew the user just closed.
+        the thing that resurrects the steward the user just closed.
 
         ``_poll_once`` is stubbed to abort the loop, so the sweep (and therefore
         the watchdog's own idempotent registration) never runs. The hook can only
@@ -1602,7 +1614,7 @@ class TestDismissal(unittest.IsolatedAsyncioTestCase):
         """Same timing argument, sharper consequence.
 
         Until the disable hook is registered, switching the app off only writes a
-        flag: the crews keep their auto-approve grants and their armed loops until
+        flag: the stewards keep their auto-approve grants and their armed loops until
         this loop next wakes, which is the whole window the hook exists to close. So
         it cannot wait for the first sweep either, and the state it captures must be
         the gateway's — a hook holding nothing revokes nothing.
@@ -1624,29 +1636,29 @@ class TestDismissal(unittest.IsolatedAsyncioTestCase):
             await watch_mod._watch_loop(cast(Any, {"state": "the-gateway-state"}))
         self.assertEqual(installed, ["the-gateway-state"])
 
-    async def test_a_crew_on_another_providers_root_is_still_found(self):
+    async def test_a_steward_on_another_providers_root_is_still_found(self):
         """The registry holds ONE hook per app, and the watchdog registers it per
         swept repo with that repo's PROVIDER root — so the last sweep's provider won.
         A mixed GitHub/GitLab install keeps each provider's records under its own
-        root, so closing the tab of a crew on the losing provider found nothing: the
-        crew stayed live and the next sweep re-armed its auto-approved session.
+        root, so closing the tab of a steward on the losing provider found nothing: the
+        steward stayed live and the next sweep re-armed its auto-approved session.
 
-        Here the hook is registered scoped to a root that does NOT hold the crew, and
-        the crew must still be found through the provider fallback.
+        Here the hook is registered scoped to a root that does NOT hold the steward, and
+        the steward must still be found through the provider fallback.
         """
         teardown = self._teardown_mod()
-        crew = _crew(self.root)
+        steward = _steward(self.root)
         elsewhere = Path(self._tmp.name) / "other-provider"
         elsewhere.mkdir(parents=True, exist_ok=True)
 
-        # Registered against a root with no crews in it at all.
+        # Registered against a root with no stewards in it at all.
         cr.install_slot_close_hook(elsewhere)
         with self._repos(), mock.patch.object(
             cr, "_lookup_scopes", return_value=[elsewhere, self.root]
         ):
-            await teardown.notify_slot_closed(cr.APP_NAME, str(crew["slot_key"]))
+            await teardown.notify_slot_closed(cr.APP_NAME, str(steward["slot_key"]))
 
-        after = cs.read_crew(OWNER, REPO, str(crew["id"]), self.root)
+        after = cs.read_steward(OWNER, REPO, str(steward["id"]), self.root)
         assert after is not None
         self.assertEqual(after.get("paused_reason"), cr.DISMISSED_PAUSE_REASON)
 
@@ -1657,34 +1669,34 @@ class TestDismissal(unittest.IsolatedAsyncioTestCase):
             raise RuntimeError("store busy")
 
         teardown.register_slot_close_hook(cr.APP_NAME, _boom)
-        await teardown.notify_slot_closed(cr.APP_NAME, "crew-c_1")
+        await teardown.notify_slot_closed(cr.APP_NAME, "steward-c_1")
 
     async def test_an_unknown_slot_key_is_ignored(self):
         with self._repos():
-            await cr._on_slot_closed("crew-c_deadbeef", root=self.root)
+            await cr._on_slot_closed("steward-c_deadbeef", root=self.root)
 
     async def test_a_specific_pause_reason_is_not_overwritten(self):
-        crew = _crew(self.root)
-        cs.set_crew_paused(OWNER, REPO, crew["id"], True, "waiting on a decision", self.root)
+        steward = _steward(self.root)
+        cs.set_steward_paused(OWNER, REPO, steward["id"], True, "waiting on a decision", self.root)
         with self._repos():
-            await cr._on_slot_closed(crew["slot_key"], root=self.root)
-        after = cs.read_crew(OWNER, REPO, crew["id"], self.root)
+            await cr._on_slot_closed(steward["slot_key"], root=self.root)
+        after = cs.read_steward(OWNER, REPO, steward["id"], self.root)
         assert after is not None
         self.assertEqual(after["paused_reason"], "waiting on a decision")
 
     async def test_resuming_clears_the_reason_and_re_arms(self):
-        """Reversible: the existing pause route's resume brings the crew back."""
-        crew = _crew(self.root)
+        """Reversible: the existing pause route's resume brings the steward back."""
+        steward = _steward(self.root)
         with self._repos():
-            await cr._on_slot_closed(crew["slot_key"], root=self.root)
-        resumed = cs.set_crew_paused(OWNER, REPO, crew["id"], False, "", self.root)
+            await cr._on_slot_closed(steward["slot_key"], root=self.root)
+        resumed = cs.set_steward_paused(OWNER, REPO, steward["id"], False, "", self.root)
         self.assertTrue(resumed["enabled"])
         self.assertEqual(resumed["paused_reason"], "")
         self.assertTrue(cr.is_live(resumed))
         nudge = _FakeNudge()
         with mock.patch.object(cr, "_rehydrate", new=mock.AsyncMock(return_value=None)):
             await self._sweep(resumed, _FakeState(), nudge)
-        self.assertEqual(nudge.added, [crew["slot_key"]])
+        self.assertEqual(nudge.added, [steward["slot_key"]])
 
 
 class TestWatchGating(unittest.IsolatedAsyncioTestCase):
@@ -1693,7 +1705,7 @@ class TestWatchGating(unittest.IsolatedAsyncioTestCase):
     def _watch(self):
         from junction.apps.builtins.issue_radar.backend import watch
 
-        watch._crews_suspended = False
+        watch._stewards_suspended = False
         return watch
 
     async def test_sweep_does_not_inherit_the_notify_preference(self):
@@ -1717,7 +1729,7 @@ class TestWatchGating(unittest.IsolatedAsyncioTestCase):
                 )
             )
             await watch._poll_once(_app(_FakeState()))
-        # Muting the bell must not stop a crew reconciling its own pull requests.
+        # Muting the bell must not stop a steward reconciling its own pull requests.
         poll.assert_not_awaited()
         sweep.assert_awaited_once()
 
@@ -1748,14 +1760,14 @@ class TestWatchGating(unittest.IsolatedAsyncioTestCase):
             await watch._poll_once(_app(_FakeState()))
         sweep.assert_awaited_once()
 
-    async def test_disabling_the_app_suspends_the_crews(self):
+    async def test_disabling_the_app_suspends_the_stewards(self):
         watch = self._watch()
         with contextlib.ExitStack() as stack:
             use = stack.enter_context
             use(mock.patch.object(watch, "is_app_enabled", return_value=False))
             suspend = use(
                 mock.patch.object(
-                    watch.steward_runtime, "suspend_crews", new=mock.AsyncMock(return_value=0)
+                    watch.steward_runtime, "suspend_stewards", new=mock.AsyncMock(return_value=0)
                 )
             )
             repos = use(mock.patch.object(watch.store, "list_connected_repos"))
@@ -1766,19 +1778,19 @@ class TestWatchGating(unittest.IsolatedAsyncioTestCase):
         repos.assert_not_called()
         suspend.assert_awaited_once()
 
-    async def test_suspension_clears_trust_on_resident_crew_slots(self):
+    async def test_suspension_clears_trust_on_resident_steward_slots(self):
         reset_singleton()
         self.addCleanup(reset_singleton)
         state = _FakeState()
-        slot = _FakeSlot("crew-c_abc")
+        slot = _FakeSlot("steward-c_abc")
         slot._app = "issue-radar"
         cr.sync_trust(slot, {"id": "c_abc", "unattended": True, "enabled": True})
         self.assertTrue(_effectively_trusted(slot))
         other = _FakeSlot("chat-1")
         other._app = ""
         other._trust = True
-        state._slots = {"crew-c_abc": slot, "chat-1": other}
-        cleared = await cr.suspend_crews(state)
+        state._slots = {"steward-c_abc": slot, "chat-1": other}
+        cleared = await cr.suspend_stewards(state)
         self.assertEqual(cleared, 1)
         self.assertFalse(_effectively_trusted(slot))
         # Revoked at the source too, so re-attaching a slot cannot inherit it.
@@ -1787,7 +1799,7 @@ class TestWatchGating(unittest.IsolatedAsyncioTestCase):
 
 
 class TestDisablingTheAppRevokesInline(unittest.IsolatedAsyncioTestCase):
-    """Disabling the app must stop the crews IN THE REQUEST, not on the next sweep.
+    """Disabling the app must stop the stewards IN THE REQUEST, not on the next sweep.
 
     The window this pins: the sweep runs every ``POLL_INTERVAL_SEC``, so a
     suspension that only happened there left up to a full minute in which an
@@ -1808,7 +1820,7 @@ class TestDisablingTheAppRevokesInline(unittest.IsolatedAsyncioTestCase):
         # state; drop it again so these tests cannot change another's outcome.
         self.addCleanup(teardown.unregister_slot_close_hook, cr.APP_NAME)
         self.state = _FakeState()
-        self.slot = _FakeSlot("crew-c_d15ab1ed")
+        self.slot = _FakeSlot("steward-c_d15ab1ed")
         self.slot._app = cr.APP_NAME
         cr.sync_trust(self.slot, {"id": "c_d15ab1ed", "unattended": True, "enabled": True})
         self.assertTrue(_effectively_trusted(self.slot), "fixture never got its grant")
@@ -1855,7 +1867,7 @@ class TestDisablingTheAppRevokesInline(unittest.IsolatedAsyncioTestCase):
         self.assertFalse(_effectively_trusted(self.slot))
         # Revoked at the source too, so re-attaching a slot cannot inherit it.
         self.assertFalse(safety_override().is_scope_active(cr.autoapprove_scope("c_dis")))
-        # And the crew's clock is stopped, so no later turn is even scheduled.
+        # And the steward's clock is stopped, so no later turn is even scheduled.
         self.assertEqual(self.nudge.updates, [("nl_dis", {"active": False})])
         poll.assert_not_awaited()
 
@@ -1886,7 +1898,7 @@ class TestDisablingTheAppRevokesInline(unittest.IsolatedAsyncioTestCase):
 
         So the assertion that matters is not "did we call something" but what the
         shared approval path answers for this slot AFTER the disable — and it must
-        answer the same for the human ``_trust`` flag, which a crew session can also
+        answer the same for the human ``_trust`` flag, which a steward session can also
         be carrying when someone clicked it.
         """
         self.slot._trust = True
@@ -1904,8 +1916,8 @@ class TestDisablingTheAppRevokesInline(unittest.IsolatedAsyncioTestCase):
         ``installed.json`` can be edited on disk, so neither can reach an in-process
         hook. The sweep is the only thing that catches those, and it must keep
         working with no hook registered at all."""
-        watch_mod._crews_suspended = False
-        self.addCleanup(setattr, watch_mod, "_crews_suspended", False)
+        watch_mod._stewards_suspended = False
+        self.addCleanup(setattr, watch_mod, "_stewards_suspended", False)
         with (
             mock.patch.object(watch_mod, "is_app_enabled", return_value=False),
             mock.patch.object(cr, "_autonudge_instance", return_value=self.nudge),
@@ -1918,15 +1930,15 @@ class TestDisablingTheAppRevokesInline(unittest.IsolatedAsyncioTestCase):
 
     async def test_enabling_again_restores_trust_and_the_loop(self):
         """Reversible: the revocation is in-memory and the record is untouched, so
-        the next watchdog cycle for a still-live crew brings both back."""
+        the next watchdog cycle for a still-live steward brings both back."""
         hook = self._register()
         with mock.patch.object(cr, "_autonudge_instance", return_value=self.nudge):
             await hook(cr.APP_NAME)
         self.assertFalse(_effectively_trusted(self.slot))
 
-        crew = {"id": "c_d15ab1ed", "unattended": True, "enabled": True, "slot_key": self.slot.key}
+        steward = {"id": "c_d15ab1ed", "unattended": True, "enabled": True, "slot_key": self.slot.key}
         with mock.patch.object(cr, "_autonudge_instance", return_value=self.nudge):
-            await cr.watchdog_cycle(self.state, OWNER, REPO, [crew])
+            await cr.watchdog_cycle(self.state, OWNER, REPO, [steward])
         self.assertTrue(_effectively_trusted(self.slot))
         self.assertIn(("nl_dis", {"active": True}), self.nudge.updates)
 
@@ -1934,25 +1946,25 @@ class TestDisablingTheAppRevokesInline(unittest.IsolatedAsyncioTestCase):
         """Disabling this app must not touch a loop it does not own.
 
         The slot-key prefix is not a namespace this app owns: a person can name an
-        ordinary chat tab ``crew-notes`` and arm their own monitoring loop on it.
+        ordinary chat tab ``steward-notes`` and arm their own monitoring loop on it.
         Matching on the prefix alone deactivated that loop and PERSISTED it
         inactive, so someone else's monitoring silently stopped because an
         unrelated app was switched off — and nothing in the tab explains why.
 
-        The crew's own loop must still be deactivated in the same pass, or this
-        test would also pass on a build that had simply stopped suspending crews.
+        The steward's own loop must still be deactivated in the same pass, or this
+        test would also pass on a build that had simply stopped suspending stewards.
         """
         mine = _FakeLoop("nl_mine", self.slot.key)
         # Valid prefix, suffix that the store's id grammar rejects — which is
         # exactly what a hand-named tab looks like.
-        theirs = _FakeLoop("nl_theirs", "crew-notes")
+        theirs = _FakeLoop("nl_theirs", "steward-notes")
         nudge = _FakeNudge([mine, theirs])
 
         hook = self._register()
         with mock.patch.object(cr, "_autonudge_instance", return_value=nudge):
             await hook(cr.APP_NAME)
 
-        self.assertIn(("nl_mine", {"active": False}), nudge.updates, "the crew's loop survived")
+        self.assertIn(("nl_mine", {"active": False}), nudge.updates, "the steward's loop survived")
         self.assertNotIn(
             "nl_theirs",
             [lid for lid, _ in nudge.updates],
@@ -1977,7 +1989,7 @@ class TestGrantRenewal(unittest.TestCase):
     """Renewal is a SLIDE, not a re-activation, and that is a security property.
 
     The watchdog calls ``sync_trust`` every 60s. Re-activating on each of those
-    would write a critical SEL entry per cycle — 1,440 a day per crew, burying the
+    would write a critical SEL entry per cycle — 1,440 a day per steward, burying the
     activation an auditor came for — and would reset ``activated_at``, so
     ``SafetyOverride``'s 24h ceiling could never be reached: the grant would be
     perpetual with an audit trail that merely looked busy.
@@ -1986,8 +1998,8 @@ class TestGrantRenewal(unittest.TestCase):
     def setUp(self):
         reset_singleton()
         self.addCleanup(reset_singleton)
-        self.crew = {"id": "c_r", "unattended": True, "enabled": True}
-        self.slot = _FakeSlot("crew-c_r")
+        self.steward = {"id": "c_r", "unattended": True, "enabled": True}
+        self.slot = _FakeSlot("steward-c_r")
 
     def test_repeated_cycles_activate_once_and_slide_thereafter(self):
         so = safety_override()
@@ -1997,17 +2009,17 @@ class TestGrantRenewal(unittest.TestCase):
             type(so), "renew_scoped", wraps=so.renew_scoped
         ) as renew:
             for _ in range(5):
-                self.assertTrue(cr.sync_trust(self.slot, self.crew))
+                self.assertTrue(cr.sync_trust(self.slot, self.steward))
         self.assertEqual(activate.call_count, 1, "re-minted the grant on a live scope")
         self.assertEqual(renew.call_count, 4)
 
-    def test_a_slide_carries_the_crew_ttl_and_not_the_six_hour_default(self):
+    def test_a_slide_carries_the_steward_ttl_and_not_the_six_hour_default(self):
         """``renew_scoped``'s default TTL is the 6h ad-hoc one. Letting it default
         would silently widen the grant to 6h on the very first watchdog cycle."""
-        cr.sync_trust(self.slot, self.crew)
+        cr.sync_trust(self.slot, self.steward)
         so = safety_override()
         with mock.patch.object(type(so), "renew_scoped", wraps=so.renew_scoped) as renew:
-            cr.sync_trust(self.slot, self.crew)
+            cr.sync_trust(self.slot, self.steward)
         self.assertEqual(renew.call_args.kwargs.get("ttl"), cr.TRUST_TTL_SECS)
         self.assertLessEqual(
             so.scope_remaining_secs(cr.autoapprove_scope("c_r")), cr.TRUST_TTL_SECS
@@ -2015,8 +2027,8 @@ class TestGrantRenewal(unittest.TestCase):
 
     def test_a_grant_at_its_ceiling_is_reminted_rather_than_left_to_lapse(self):
         """At the 24h ceiling the slide is refused. Minting a fresh grant re-audits
-        the decision AND keeps a mid-turn crew from losing trust in the gap."""
-        cr.sync_trust(self.slot, self.crew)
+        the decision AND keeps a mid-turn steward from losing trust in the gap."""
+        cr.sync_trust(self.slot, self.steward)
         so = safety_override()
         refused = type(so).renew_scoped(so, "nope", source="x")  # renewed=False shape
         self.assertFalse(refused.renewed)
@@ -2025,7 +2037,7 @@ class TestGrantRenewal(unittest.TestCase):
         ), mock.patch.object(
             type(so), "activate_scoped", wraps=so.activate_scoped
         ) as activate:
-            self.assertTrue(cr.sync_trust(self.slot, self.crew))
+            self.assertTrue(cr.sync_trust(self.slot, self.steward))
         activate.assert_called_once()
 
 
@@ -2040,10 +2052,10 @@ class TestNoBackendTrustGrant(unittest.TestCase):
     drive.
 
     Revoking is not granting: ``= False`` writes are fine and are what
-    ``revoke_crew_execution`` and ``suspend_crews`` are for.
+    ``revoke_steward_execution`` and ``suspend_stewards`` are for.
     """
 
-    def test_crew_runtime_never_grants_slot_trust(self):
+    def test_steward_runtime_never_grants_slot_trust(self):
         src = inspect.getsource(cr)
         assert "slot._trust = True" not in src
         # And no revive-by-another-name: not via a variable, not via setattr, and
@@ -2111,7 +2123,7 @@ class TestSharedApprovalPathIsUnchangedWithoutAScope(unittest.TestCase):
         """A human's grant needs no scope and must not depend on one being live."""
         slot = _FakeSlot("chat-1")
         slot._trust = True
-        slot._trust_scope = "crew:c_x:autoapprove"  # not active
+        slot._trust_scope = "steward:c_x:autoapprove"  # not active
         self.assertTrue(_effectively_trusted(slot))
 
 
@@ -2121,18 +2133,154 @@ class TestAutoApproveProvenance(unittest.TestCase):
 
     def test_yolo_outranks_everything(self):
         slot = _FakeSlot("chat-1")
-        slot._trust_scope = "crew:c_x:autoapprove"
+        slot._trust_scope = "steward:c_x:autoapprove"
         self.assertEqual(chat_runner._auto_approve_reason(slot, True), "yolo")
 
     def test_a_scoped_grant_is_named_as_such(self):
-        slot = _FakeSlot("crew-c_x")
-        slot._trust_scope = "crew:c_x:autoapprove"
+        slot = _FakeSlot("steward-c_x")
+        slot._trust_scope = "steward:c_x:autoapprove"
         self.assertEqual(chat_runner._auto_approve_reason(slot, False), "trust_scope")
 
     def test_session_trust_is_still_reported_as_trust(self):
         slot = _FakeSlot("chat-1")
         slot._trust = True
         self.assertEqual(chat_runner._auto_approve_reason(slot, False), "trust")
+
+
+# ── what an earlier build left behind ──────────────────────────────────────
+
+
+def _legacy_slot_key(steward_id: str) -> str:
+    return cs.LEGACY_STEWARD_SLOT_PREFIXES[0] + steward_id
+
+
+def _legacy_steward(root: Path, **spec: Any) -> dict[str, Any]:
+    """A steward whose record carries the slot key an earlier build minted."""
+    steward = _steward(root, **spec)
+    path = cs.steward_path(OWNER, REPO, steward["id"], root)
+    record = json.loads(path.read_text())
+    record["slot_key"] = _legacy_slot_key(steward["id"])
+    path.write_text(json.dumps(record))
+    reread = cs.read_steward(OWNER, REPO, steward["id"], root)
+    assert reread is not None and reread["slot_key"] == record["slot_key"]
+    return reread
+
+
+class TestLegacySpellings(unittest.IsolatedAsyncioTestCase):
+    """An upgrade keeps what an earlier build left behind working.
+
+    Three things outlive the rename: the sweep's fingerprint file, the sessions of
+    every steward created before it (whose slot keys carry the legacy prefix), and
+    the claims those stewards wrote on the forge. The session walks are security
+    controls, so a key they fail to recognise keeps its auto-approve grant and its
+    nudge loop after the app is switched off.
+    """
+
+    def setUp(self):
+        self._tmp = tempfile.TemporaryDirectory()
+        self.addCleanup(self._tmp.cleanup)
+        self.root = Path(self._tmp.name)
+        reset_singleton()
+        self.addCleanup(reset_singleton)
+        from junction.apps import teardown
+
+        # ``watchdog_cycle`` registers both hooks, which are process-wide state.
+        self.addCleanup(teardown.unregister_slot_close_hook, cr.APP_NAME)
+        self.addCleanup(teardown.unregister_app_disable_hook, cr.APP_NAME)
+
+    def test_the_legacy_spellings_are_the_ones_earlier_builds_wrote(self):
+        # Pinned rather than derived: a data home and a forge already hold exactly
+        # these, so any other value reads every one of them as absent.
+        self.assertEqual(cr.LEGACY_SIGNALS_FILENAME, "crew-signals.json")
+        self.assertEqual(cr.LEGACY_CLAIM_LABEL_PREFIXES, ("crew:",))
+        # The store mints the key and owns its spellings; the runtime only walks them.
+        self.assertIs(cr.LEGACY_STEWARD_SLOT_PREFIXES, cs.LEGACY_STEWARD_SLOT_PREFIXES)
+
+    # ── the fingerprint file ────────────────────────────────────────────────
+
+    def test_a_legacy_signals_file_is_moved_into_place_on_first_read(self):
+        # Losing the marks costs no wake outright, but every item re-seeds and then
+        # waits one more cycle for a signal that had already moved.
+        marks = {"c_1a2b3c4d:2201": {"checked_at": 5, "comments": 2}}
+        cr.write_signals(OWNER, REPO, marks, self.root)
+        current = cr.signals_path(OWNER, REPO, self.root)
+        legacy = current.with_name(cr.LEGACY_SIGNALS_FILENAME)
+        current.rename(legacy)
+
+        self.assertEqual(cr.read_signals(OWNER, REPO, self.root), marks)
+        self.assertFalse(legacy.exists())
+        self.assertEqual(current.name, cr.SIGNALS_FILENAME)
+        self.assertTrue(current.is_file())
+
+    # ── sessions keyed with the legacy prefix ───────────────────────────────
+
+    def test_a_legacy_slot_key_names_a_steward_session(self):
+        cid = "c_1a2b3c4d"
+        self.assertTrue(cr._is_steward_slot_key(_legacy_slot_key(cid)))
+        self.assertTrue(cr._is_steward_slot_key(cs.steward_slot_key(cid)))
+        # The id grammar guards the legacy prefix too: a hand-named tab is not ours.
+        self.assertFalse(cr._is_steward_slot_key(_legacy_slot_key("notes")))
+
+    async def test_disabling_the_app_stops_a_legacy_keyed_session(self):
+        cid = "c_1a2b3c4d"
+        slot = _FakeSlot(_legacy_slot_key(cid))
+        slot._app = cr.APP_NAME
+        cr.sync_trust(slot, {"id": cid, "unattended": True, "enabled": True})
+        self.assertTrue(_effectively_trusted(slot), "fixture never got its grant")
+        state = _FakeState()
+        state.slots[slot.key] = slot
+        state._slots = {slot.key: slot}
+        nudge = _FakeNudge(
+            [_FakeLoop("nl_legacy", slot.key), _FakeLoop("nl_theirs", _legacy_slot_key("notes"))]
+        )
+
+        with mock.patch.object(cr, "_autonudge_instance", return_value=nudge):
+            cleared = await cr.suspend_stewards(state)
+
+        # Both walks: the grant walk over resident slots, and the loop walk.
+        self.assertEqual(cleared, 1)
+        self.assertFalse(_effectively_trusted(slot))
+        self.assertFalse(safety_override().is_scope_active(cr.autoapprove_scope(cid)))
+        self.assertEqual(nudge.updates, [("nl_legacy", {"active": False})])
+
+    async def test_the_watchdog_keeps_a_legacy_steward_on_its_own_session(self):
+        # The record is the authority for the key. Deriving it from the current
+        # prefix instead would open a second session and run the steward twice, with
+        # the original session's transcript and brief left behind.
+        steward = _legacy_steward(self.root, unattended=True)
+        state = _FakeState()
+        slot = state.get_or_create_slot(steward["slot_key"], app=cr.APP_NAME)
+        state.created.clear()
+        nudge = _FakeNudge([_FakeLoop("nl_0", steward["slot_key"], active=True)])
+
+        with mock.patch.object(cr, "_autonudge_instance", return_value=nudge):
+            await cr.watchdog_cycle(state, OWNER, REPO, [steward], self.root)
+
+        self.assertEqual(state.created, [])
+        self.assertEqual(nudge.added, [])
+        self.assertTrue(_effectively_trusted(slot))
+
+    async def test_closing_a_legacy_stewards_tab_pauses_it(self):
+        steward = _legacy_steward(self.root)
+        repos = [{"owner": OWNER, "repo": REPO}]
+        with mock.patch.object(cr.store, "list_connected_repos", return_value=repos):
+            await cr._on_slot_closed(steward["slot_key"], root=self.root)
+        after = cs.read_steward(OWNER, REPO, steward["id"], self.root)
+        assert after is not None
+        self.assertEqual(after["paused_reason"], cr.DISMISSED_PAUSE_REASON)
+
+    # ── claims written on the forge ─────────────────────────────────────────
+
+    def test_the_brief_tells_a_steward_that_legacy_claims_still_count(self):
+        # A steward reads claims off the forge itself, so the brief is the only place
+        # it learns what a claim written by an earlier build looks like. Without it,
+        # such an issue reads as untouched and a second steward claims it.
+        brief = cr.brief_text()
+        self.assertNotIn(cr.LEGACY_CLAIMS_TOKEN, brief)
+        self.assertIn(cr.legacy_claims_paragraph(), brief)
+        legacy = (*cr.LEGACY_CLAIM_LABEL_PREFIXES, *github_client.LEGACY_STEWARD_CLAIM_MARKER_NAMES)
+        for spelling in legacy:
+            self.assertIn(f"`{spelling}`", brief)
 
 
 if __name__ == "__main__":  # pragma: no cover

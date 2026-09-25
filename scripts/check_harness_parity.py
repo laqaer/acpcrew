@@ -135,12 +135,12 @@ RULES: tuple[Rule, ...] = (
     Rule(
         rule_id="sandbox-delegation",
         invariant="H7",
-        # The flag makes wrap_argv SKIP Crew's own seatbelt, so it fails OPEN.
+        # The flag makes wrap_argv SKIP Junction's own seatbelt, so it fails OPEN.
         # A bool literal is fine (the argv is known statically at that site);
         # anything derived from a negation is not.
         pattern=re.compile(r"is_kiro_cli\s*=\s*(?!True\b|False\b)(?=.*(?:\bnot\b|!=))"),
         message="sandbox delegation derived from a negative harness test "
-        "(fails OPEN: Crew's seatbelt is skipped for a harness with no "
+        "(fails OPEN: Junction's seatbelt is skipped for a harness with no "
         "internal sandbox of its own)",
         fix="`is_kiro_cli=<backend> in ACP_BACKENDS_INTERNAL_SANDBOX`",
     ),

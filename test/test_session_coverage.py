@@ -175,20 +175,20 @@ class TestSessionModel:
         cfg.agent.model = "sonnet"
         assert _session_model(cfg, None) == "sonnet"
 
-    def test_crew_pin_wins_verbatim(self, cfg) -> None:
-        """The factory never sees the crew name, so its pin must be returned
+    def test_agent_pin_wins_verbatim(self, cfg) -> None:
+        """The factory never sees the agent name, so its pin must be returned
         as-is rather than left for a lower tier to rediscover."""
         cfg.agent.model = "sonnet"
         cfg.agents["research"] = JunctionAgentConfig(model="opus")
         assert _session_model(cfg, "research") == "opus"
 
-    def test_crew_inherit_spelling_is_not_a_pin(self, cfg) -> None:
-        """``auto`` on the crew tier means inherit, not "pin the default"."""
+    def test_agent_inherit_spelling_is_not_a_pin(self, cfg) -> None:
+        """``auto`` on the agent tier means inherit, not "pin the default"."""
         cfg.agent.model = "sonnet"
         cfg.agents["research"] = JunctionAgentConfig(model="auto")
         assert _session_model(cfg, "research") == "sonnet"
 
-    def test_crew_that_defers_continues_on_its_bound_template(self, cfg, monkeypatch) -> None:
+    def test_agent_that_defers_continues_on_its_bound_template(self, cfg, monkeypatch) -> None:
         seen: list[str] = []
 
         def _resolve(agent: str) -> str:
@@ -200,7 +200,7 @@ class TestSessionModel:
         monkeypatch.setattr(cfg, "_resolve_named_agent_model", _resolve)
         # A template pin returns None: the factory resolves the JSON itself.
         assert _session_model(cfg, "research") is None
-        assert seen == ["tmpl"], "the crew's bound template, not the crew name"
+        assert seen == ["tmpl"], "the agent's bound template, not the agent name"
 
     def test_base_agent_name_skips_the_per_agent_lookup(self, cfg, monkeypatch) -> None:
         """``junction`` is the built-in template; globbing the agents dir for it

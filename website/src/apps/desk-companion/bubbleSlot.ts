@@ -45,7 +45,7 @@ export interface SlotResult {
 
 /** Copy for N collapsed completions, translated with a {{count}} placeholder. */
 export function collapsedText(count: number): string {
-  return i18nT('apps.crewCompanion.notif.jobs_finished', { count })
+  return i18nT('apps.deskCompanion.notif.jobs_finished', { count })
 }
 
 /**

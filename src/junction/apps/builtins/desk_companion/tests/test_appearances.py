@@ -13,6 +13,7 @@ import json
 import pytest
 
 from junction.apps.builtins.desk_companion.appearances import (
+    COLOURS_FILENAME,
     DEFAULT_PACK,
     AppearanceStore,
 )
@@ -238,7 +239,7 @@ class TestColours:
         assert store.colour_map(DEFAULT_PACK) == {"#000": "#111"}
 
     def test_a_corrupt_colour_file_does_not_stop_loading(self, tmp_path):
-        (tmp_path / "crew-companion-colours.json").write_text("{ broken", "utf-8")
+        (tmp_path / COLOURS_FILENAME).write_text("{ broken", "utf-8")
         s = AppearanceStore(tmp_path)
         s.load()  # must not raise
         assert s.colour_map(DEFAULT_PACK) == {}

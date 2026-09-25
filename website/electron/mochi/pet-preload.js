@@ -386,8 +386,8 @@ exposePetApi({
    * Core's instance list for THIS MACHINE's host gateway.
    *
    * The switcher's own `fetch('/api/instances')` is same-origin, so on a remote
-   * pet it listed the REMOTE's registry — possibly empty, possibly a different
-   * set of crews, and missing the one the user wanted to go back to. The host owns
+   * pet lists the REMOTE's registry — possibly empty, possibly a different set
+   * of instances, and missing the one the user wants to go back to. The host owns
    * the registry the stored ids refer to.
    */
   instancesList: () => ipcRenderer.invoke("mochi-instances:list"),

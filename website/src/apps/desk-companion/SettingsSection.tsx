@@ -27,14 +27,14 @@ export default function SettingsSection({ rem, remError, onCfg, customMins, setC
   const isPreset = BREAK_PRESETS.includes(mins)
 
   return (
-    <Card title={i18nT('apps.crewCompanion.settings.title')} icon={SlidersHorizontal}>
+    <Card title={i18nT('apps.deskCompanion.settings.title')} icon={SlidersHorizontal}>
       {/* Rendered even when the backend is unreachable: always show what it can
           control, and say why it cannot right now, rather than hiding it. */}
-      {remError ? <div className="cc-hint">{i18nT('apps.crewCompanion.settings.offline_hint')}</div> : null}
+      {remError ? <div className="cc-hint">{i18nT('apps.deskCompanion.settings.offline_hint')}</div> : null}
 
       <ToggleRow
-        label={i18nT('apps.crewCompanion.settings.break_nudges')}
-        hint={i18nT('apps.crewCompanion.settings.break_nudges_hint', { mins })}
+        label={i18nT('apps.deskCompanion.settings.break_nudges')}
+        hint={i18nT('apps.deskCompanion.settings.break_nudges_hint', { mins })}
         on={rem?.breakNudgesEnabled ?? false}
         disabled={!rem}
         onChange={(v) => onCfg({ breakNudgesEnabled: v })}
@@ -43,14 +43,14 @@ export default function SettingsSection({ rem, remError, onCfg, customMins, setC
       {/* How often, shown only when nudges are on — same rule as the desktop panel. */}
       {rem?.breakNudgesEnabled ? (
         <div className="cc-every">
-          <span className="cc-every-label">{i18nT('apps.crewCompanion.settings.how_often')}</span>
+          <span className="cc-every-label">{i18nT('apps.deskCompanion.settings.how_often')}</span>
           {BREAK_PRESETS.map((m) => (
             <button
               key={m}
               type="button"
               className="cc-pill"
               aria-pressed={mins === m}
-              aria-label={i18nT('apps.crewCompanion.settings.preset_aria', { mins: m })}
+              aria-label={i18nT('apps.deskCompanion.settings.preset_aria', { mins: m })}
               onClick={() => { setCustomMins(null); onCfg({ breakReminderMins: m }) }}
             >
               {m}
@@ -62,8 +62,8 @@ export default function SettingsSection({ rem, remError, onCfg, customMins, setC
             className={`cc-num${isPreset ? '' : ' is-custom'}`}
             min={BREAK_MIN_MINS}
             max={BREAK_MAX_MINS}
-            aria-label={i18nT('apps.crewCompanion.settings.custom_minutes')}
-            placeholder={i18nT('apps.crewCompanion.settings.custom_placeholder')}
+            aria-label={i18nT('apps.deskCompanion.settings.custom_minutes')}
+            placeholder={i18nT('apps.deskCompanion.settings.custom_placeholder')}
             value={customMins !== null ? customMins : (isPreset ? '' : String(mins))}
             {...ime.bindComposition({
               onFocus: () => setCustomMins(isPreset ? '' : String(mins)),
@@ -85,15 +85,15 @@ export default function SettingsSection({ rem, remError, onCfg, customMins, setC
       ) : null}
 
       <ToggleRow
-        label={i18nT('apps.crewCompanion.settings.session_done')}
-        hint={i18nT('apps.crewCompanion.settings.session_done_hint')}
+        label={i18nT('apps.deskCompanion.settings.session_done')}
+        hint={i18nT('apps.deskCompanion.settings.session_done_hint')}
         on={rem?.sessionNotificationsEnabled ?? false}
         disabled={!rem}
         onChange={(v) => onCfg({ sessionNotificationsEnabled: v })}
       />
 
       {/* One section-level note below both toggles. */}
-      <div className="cc-note">{i18nT('apps.crewCompanion.settings.always_notify_note')}</div>
+      <div className="cc-note">{i18nT('apps.deskCompanion.settings.always_notify_note')}</div>
     </Card>
   )
 }

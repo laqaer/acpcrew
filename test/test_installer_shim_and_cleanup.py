@@ -969,7 +969,7 @@ def _simulate_bundled_app_honest(monkeypatch, tmp_path, exe):
 
 def _foreign_working_launcher(tmp_path):
     """A launcher for another install: a pip console script whose venv exists."""
-    venv_bin = tmp_path / "crew-venv" / "bin"
+    venv_bin = tmp_path / "junction-venv" / "bin"
     venv_bin.mkdir(parents=True)
     interpreter = venv_bin / "python3"
     interpreter.write_text("")

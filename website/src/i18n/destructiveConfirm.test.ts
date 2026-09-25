@@ -168,7 +168,7 @@ describe('destructive confirmations are translated', () => {
  */
 export const QUOTED_OPERAND_CONFIRM_KEYS = [
   'apps.codeReviewSage.components.learningRail.confirm_delete', // quoted since #4653
-  'apps.crewCompanion.gallery.deleteConfirm', // ASCII quotes → locale pair #4821
+  'apps.deskCompanion.gallery.deleteConfirm', // ASCII quotes → locale pair #4821
   'apps.meetings.list.deleteConfirm', // already quoted; pin + fr/it glyph fix #4821
   'apps.mochi.gallery.delete_confirm', // ASCII quotes → locale pair #4821
   'apps.mochi.reset.title', // quoted by #4677
@@ -186,7 +186,7 @@ export const QUOTED_OPERAND_CONFIRM_KEYS = [
   'pages.overview.skillsTab.dismiss_confirm',
   'pages.overview.steeringTab.delete_confirm',
   'pages.schedulePage.cronFolders.confirm_delete_folder',
-  'pages.settings.remoteCrewPanel.confirm_delete_of', // was fully bare #4821
+  'pages.settings.remoteInstancesPanel.confirm_delete_of', // was fully bare #4821
   'pages.settings.securityPanel.trustedApps.revoke_confirm_title',
   'pages.settings.securityPanel.trustedApps.revoke_confirm_body',
 ]
@@ -218,7 +218,7 @@ export const EXEMPT_CONFIRM_PLACEHOLDER_NAMES = new Set([
  * Keys matching `/confirm/i` that interpolate a user-facing placeholder but
  * are intentionally left unquoted, with the reason a later author needs.
  * Kind-word exemptions (#4657): the object kind sits next to the operand
- * ("the template {{name}}", "crew {{name}}"), so the name cannot parse as
+ * ("the template {{name}}", "agent {{name}}"), so the name cannot parse as
  * the rest of the sentence. Do not add a new key here just because quoting
  * it would be more catalog work — quote it, or change the English to a
  * kind-word form and record that decision.
@@ -226,8 +226,8 @@ export const EXEMPT_CONFIRM_PLACEHOLDER_NAMES = new Set([
 export const CONFIRM_OPERAND_KEY_EXEMPTIONS: Record<string, string> = {
   'pages.agentsPage.delete_the_template_named_confirm':
     'kind word "template" sits next to the operand (#4657)',
-  'pages.junctionAgentsPage.delete_crew_named_confirm':
-    'kind word "crew" sits next to the operand (#4657)',
+  'pages.junctionAgentsPage.delete_agent_named_confirm':
+    'kind word "agent" sits next to the operand (#4657)',
 }
 
 function placeholdersIn(value: string): string[] {

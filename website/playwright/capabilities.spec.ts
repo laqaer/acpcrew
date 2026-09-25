@@ -3,10 +3,10 @@ import { test, expect } from '@playwright/test'
 /**
  * /capabilities — Agent Capabilities page.
  * SidePanelLayout with 7 tabs: Agents, Agent Templates, Connections,
- * Skills, Steering, Hooks, Prompts. Default tab is "crews" (JunctionAgentsPage).
+ * Skills, Steering, Hooks, Prompts. Default tab is "agents" (JunctionAgentsPage).
  *
  * Covers: page load + heading, tab navigation with content change assertion,
- * the crew roster read + a create/delete round-trip mutation through the
+ * the agent roster read + a create/delete round-trip mutation through the
  * roster's editor sheet.
  */
 
@@ -37,17 +37,17 @@ test.describe('Capabilities Page — /capabilities', () => {
     }
   })
 
-  test('crews tab renders the crew roster as cards', async ({ page }) => {
+  test('agents tab renders the agent roster as cards', async ({ page }) => {
     // The roster is a card grid with a side editor sheet — no StatCard row and
     // no table any more, so everything here keys off a testid or an accessible
     // name rather than a tag, which restyling cannot invalidate.
-    await expect(page.getByTestId('new-crew')).toBeVisible({ timeout: 5000 })
+    await expect(page.getByTestId('new-agent')).toBeVisible({ timeout: 5000 })
 
-    const cards = page.getByTestId('crew-card')
+    const cards = page.getByTestId('agent-card')
     await expect(cards.first()).toBeVisible({ timeout: 5000 })
 
-    // The minimal fixture seeds one crew bound to the "junction" agent template.
-    // The crew's own NAME is "default" there (config/loader.py seeds
+    // The minimal fixture seeds one agent bound to the "junction" agent template.
+    // The agent's own NAME is "default" there (config/loader.py seeds
     // agents["default"] when config.json has no agents section), so the template
     // value is what identifies it — the same string the retired assertion
     // matched, which was a table cell in the Agent Template column, not a name.
@@ -61,7 +61,7 @@ test.describe('Capabilities Page — /capabilities', () => {
 
     // The trailing dashed tile is the roster's second entry point into the
     // create sheet, so it is part of the contract rather than decoration.
-    await expect(page.getByRole('button', { name: 'Create a new crew', exact: true })).toBeVisible()
+    await expect(page.getByRole('button', { name: 'Create a new agent', exact: true })).toBeVisible()
   })
 
   test('switching to Skills tab renders skills content', async ({ page }) => {
@@ -87,22 +87,22 @@ test.describe('Capabilities Page — /capabilities', () => {
     await expect(page.locator('#main-content').getByText('Installed Agents')).toBeVisible({ timeout: 10000 })
   })
 
-  test('create and delete crew round-trip via the editor panel', async ({ page, request }) => {
-    // Both mutations now live in the side sheet: creation is New crew → dialog →
-    // Create, deletion is card → dialog → Delete crew. Driving them through the
+  test('create and delete agent round-trip via the editor panel', async ({ page, request }) => {
+    // Both mutations now live in the side sheet: creation is New agent → dialog →
+    // Create, deletion is card → dialog → Delete agent. Driving them through the
     // UI is the round-trip now, since neither control exists on the page itself.
     const agentName = `pw-cap-${Date.now()}`
-    const card = page.getByRole('button', { name: `Edit crew ${agentName}`, exact: true })
+    const card = page.getByRole('button', { name: `Edit agent ${agentName}`, exact: true })
 
     try {
-      await page.getByTestId('new-crew').click()
-      const createSheet = page.getByRole('dialog', { name: 'Create a new crew' })
+      await page.getByTestId('new-agent').click()
+      const createSheet = page.getByRole('dialog', { name: 'Create a new agent' })
       await expect(createSheet).toBeVisible({ timeout: 5000 })
 
       // The Name field's label is a <span>, not a <label for>, so the input has
       // no accessible name — the placeholder is its stable handle. Workspace and
       // memory store keep their defaults; the Agent Template does NOT have one and
-      // must be chosen, because pre-filling it made a new crew a silent alias for
+      // must be chosen, because pre-filling it made a new agent a silent alias for
       // the default agent, so Create now refuses until it is set.
       await createSheet.getByPlaceholder('e.g. oncall').fill(agentName)
       await createSheet.getByRole('combobox', { name: 'Agent Template' }).click()
@@ -113,25 +113,25 @@ test.describe('Capabilities Page — /capabilities', () => {
       await expect(createSheet).toBeHidden({ timeout: 10000 })
       await expect(card).toBeVisible({ timeout: 10000 })
 
-      // Delete through the same panel — the danger zone only renders for a crew
+      // Delete through the same panel — the danger zone only renders for an agent
       // that is not the default, which a freshly created one never is.
       await card.click()
-      const editSheet = page.getByRole('dialog', { name: `Edit crew ${agentName}` })
+      const editSheet = page.getByRole('dialog', { name: `Edit agent ${agentName}` })
       await expect(editSheet).toBeVisible({ timeout: 5000 })
       // The editor is a rail plus one pane, so removal lives on its own pane and
       // the button is not mounted until that pane is showing. This is the click a
       // user makes; without it the button below is simply absent.
-      await editSheet.getByTestId('crew-rail-danger').click()
-      await editSheet.getByRole('button', { name: 'Delete crew', exact: true }).click()
+      await editSheet.getByTestId('agent-rail-danger').click()
+      await editSheet.getByRole('button', { name: 'Delete agent', exact: true }).click()
       // Delete is a two-step confirm: the first press only arms it, so without
       // this second press the sheet never closes and the delete never happens.
-      await editSheet.getByTestId('confirm-delete-crew').click()
+      await editSheet.getByTestId('confirm-delete-agent').click()
 
       await expect(editSheet).toBeHidden({ timeout: 10000 })
       await expect(card).toHaveCount(0, { timeout: 10000 })
     } finally {
       // Best-effort cleanup: a failure part-way through (or a CI retry) must not
-      // leave the crew behind in the gateway's config for the next run. A 404
+      // leave the agent behind in the gateway's config for the next run. A 404
       // here is the expected outcome of the happy path.
       await request.delete(`/api/agents/${encodeURIComponent(agentName)}`).catch(() => {})
     }

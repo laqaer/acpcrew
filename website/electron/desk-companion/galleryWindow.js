@@ -64,7 +64,7 @@ function setGalleryLogger(fn) {
 
 function openGalleryWindow() {
   if (!baseUrl) {
-    log("crew-companion: no gateway origin yet, deferring gallery");
+    log("desk-companion: no gateway origin yet, deferring gallery");
     return null;
   }
 
@@ -124,17 +124,17 @@ function galleryIsOpen() {
 }
 
 function registerGalleryIpc() {
-  ipcMain.on("crew-companion:gallery-open", () => openGalleryWindow());
-  ipcMain.on("crew-companion:gallery-close", () => closeGalleryWindow());
-  ipcMain.on("crew-companion:appearance-changed", () => {
+  ipcMain.on("desk-companion:gallery-open", () => openGalleryWindow());
+  ipcMain.on("desk-companion:gallery-close", () => closeGalleryWindow());
+  ipcMain.on("desk-companion:appearance-changed", () => {
     if (onAppearanceChanged) onAppearanceChanged();
   });
-  ipcMain.on("crew-companion:open-external", (_event, url) => {
+  ipcMain.on("desk-companion:open-external", (_event, url) => {
     // Only http(s) reaches the OS handler. A renderer is web content, so anything it
     // hands over is untrusted — and a `file://` or custom scheme here would ask the
     // system to open a local file or launch another app.
     if (typeof url !== "string" || !/^https:\/\//i.test(url)) {
-      log(`crew-companion: refusing to open a non-HTTPS link: ${String(url).slice(0, 40)}`);
+      log(`desk-companion: refusing to open a non-HTTPS link: ${String(url).slice(0, 40)}`);
       return;
     }
     void shell.openExternal(url);

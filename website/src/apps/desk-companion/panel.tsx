@@ -42,7 +42,7 @@ interface PanelBridge {
 }
 
 function bridge(): PanelBridge | undefined {
-  return (window as unknown as { crewCompanion?: PanelBridge }).crewCompanion
+  return (window as unknown as { deskCompanion?: PanelBridge }).deskCompanion
 }
 
 function Panel() {
@@ -55,7 +55,7 @@ function Panel() {
    * Which side of the companion the panel opened on. Aims the spring's transform
    * origin (see PanelCard + panel.css) so the card grows out of the companion rather
    * than away from it. The main process resolves the side from placement and sends it
-   * over `crew-companion:panel-opened`.
+   * over `desk-companion:panel-opened`.
    */
   const [openSide, setOpenSide] = useState<'left' | 'right'>('right')
 

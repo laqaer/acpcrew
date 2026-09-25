@@ -630,7 +630,7 @@ class TestRenderAgents:
         skipped so the escaping is pinned on every platform.
         """
         install_dir = tmp_path / "install"
-        win_root = r"C:\Users\runneradmin\.kiro\crew\apps\pptx-maker\data\vendor\sdpm"
+        win_root = r"C:\Users\runneradmin\.junction\apps\pptx-maker\data\vendor\sdpm"
         log: list[str] = []
         with (
             mock.patch.object(provision.paths, "engine_root", return_value=Path(win_root)),

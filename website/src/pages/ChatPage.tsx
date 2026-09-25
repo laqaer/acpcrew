@@ -784,7 +784,7 @@ export default function ChatPage({ mode, embedded, embedMode, popout, noUrlSync 
   // that effect is defined well above where the layout hooks start.
   const isMobile = useIsMobile()
   const slots = useAppSelector(s => s.dashboard.slots)
-  // Unified chat view: show default, orchestrator and crew slots together.
+  // Unified chat view: show default, orchestrator and multitask slots together.
   // App-owned worker slots (s.app) are excluded by the sidebar itself.
   const filteredSlots = useMemo(
     () => slots.filter(s => isChatPageSurface(s.surface ?? s.mode)),
@@ -1150,7 +1150,7 @@ export default function ChatPage({ mode, embedded, embedMode, popout, noUrlSync 
   // -- but only when the named agent does not pin its own model ... and the
   // global is not a sentinel value like 'auto', in which case it stays None to
   // let the backend resolve from the agent's own JSON config". So omitting it
-  // honours the crew pin, the template pin, the global default and Auto, in that
+  // honours the agent pin, the template pin, the global default and Auto, in that
   // order, at session-create time.
   //
   // Sending the literal 'auto' would NOT be equivalent: it is truthy, so it

@@ -42,8 +42,8 @@ test("petInstance defaults to self, and round-trips a chosen id", () => {
   const store = fakeStore();
   assert.strictEqual(petInstanceOf(store), SELF_INSTANCE);
 
-  setPetInstanceIn(store, "crew-abc");
-  assert.strictEqual(petInstanceOf(store), "crew-abc");
+  setPetInstanceIn(store, "inst-abc");
+  assert.strictEqual(petInstanceOf(store), "inst-abc");
 
   // Store the identifier the resolver keys on, so a re-read lands on the same
   // target rather than on something derived from it.
@@ -79,19 +79,19 @@ test("shortcuts keep only string values, and clearing returns to defaults", () =
 test("migration seeds both prefs from the host's settings, exactly once", () => {
   const store = fakeStore();
   const migrated = migrateMachinePrefs(store, {
-    petInstance: "crew-remote",
+    petInstance: "inst-remote",
     shortcuts: { hideAll: "Alt+Shift+H" },
   });
 
   assert.strictEqual(migrated, true);
-  assert.strictEqual(petInstanceOf(store), "crew-remote");
+  assert.strictEqual(petInstanceOf(store), "inst-remote");
   assert.deepStrictEqual(shortcutsOf(store), { hideAll: "Alt+Shift+H" });
   assert.strictEqual(store.get(MIGRATED_KEY), true);
 
   // A later choice must survive: re-importing the gateway's stale copy over the
   // user's own pick is the failure a value-based guard would have caused.
   setPetInstanceIn(store, SELF_INSTANCE);
-  assert.strictEqual(migrateMachinePrefs(store, { petInstance: "crew-remote" }), false);
+  assert.strictEqual(migrateMachinePrefs(store, { petInstance: "inst-remote" }), false);
   assert.strictEqual(petInstanceOf(store), SELF_INSTANCE);
 });
 
@@ -108,8 +108,8 @@ test("a NON-ANSWER never burns the one-shot migration flag", () => {
   // ...and the real answer still lands afterwards.
   const store = fakeStore();
   migrateMachinePrefs(store, null);
-  assert.strictEqual(migrateMachinePrefs(store, { petInstance: "crew-x" }), true);
-  assert.strictEqual(petInstanceOf(store), "crew-x");
+  assert.strictEqual(migrateMachinePrefs(store, { petInstance: "inst-x" }), true);
+  assert.strictEqual(petInstanceOf(store), "inst-x");
 });
 
 test("an answer with neither pref still completes the migration", () => {
@@ -136,14 +136,14 @@ test("a later migration does NOT overwrite a user-set pointer", () => {
   assert.strictEqual(store.get(MIGRATED_KEY), false);
 
   // The user picks an instance through the IPC while migration is still pending.
-  setPetInstanceIn(store, "crew-user-picked", { byUser: true });
+  setPetInstanceIn(store, "inst-user-picked", { byUser: true });
 
   // Tick N: the probe finally answers, carrying the STALE gateway value.
-  assert.strictEqual(migrateMachinePrefs(store, { petInstance: "crew-stale" }), true);
+  assert.strictEqual(migrateMachinePrefs(store, { petInstance: "inst-stale" }), true);
 
   assert.strictEqual(
     petInstanceOf(store),
-    "crew-user-picked",
+    "inst-user-picked",
     "a delayed migration reverted the user's own choice",
   );
   // ...and it still stops retrying.
@@ -164,14 +164,14 @@ test("migration still seeds the key the user did NOT touch", () => {
   // migration.
   const store = fakeStore();
   migrateMachinePrefs(store, null);
-  setPetInstanceIn(store, "crew-user-picked", { byUser: true });
+  setPetInstanceIn(store, "inst-user-picked", { byUser: true });
 
   migrateMachinePrefs(store, {
-    petInstance: "crew-stale",
+    petInstance: "inst-stale",
     shortcuts: { hideAll: "Alt+Shift+H" },
   });
 
-  assert.strictEqual(petInstanceOf(store), "crew-user-picked");
+  assert.strictEqual(petInstanceOf(store), "inst-user-picked");
   assert.deepStrictEqual(shortcutsOf(store), { hideAll: "Alt+Shift+H" });
 });
 
@@ -179,10 +179,10 @@ test("a write WITHOUT byUser stays migratable — only intent protects a key", (
   // The migration itself writes through the same setters; if those writes marked
   // the keys as user-set, nothing would distinguish "imported" from "chosen".
   const store = fakeStore();
-  setPetInstanceIn(store, "crew-imported");
+  setPetInstanceIn(store, "inst-imported");
   assert.deepStrictEqual(userSetOf(store), []);
-  assert.strictEqual(migrateMachinePrefs(store, { petInstance: "crew-from-gateway" }), true);
-  assert.strictEqual(petInstanceOf(store), "crew-from-gateway");
+  assert.strictEqual(migrateMachinePrefs(store, { petInstance: "inst-from-gateway" }), true);
+  assert.strictEqual(petInstanceOf(store), "inst-from-gateway");
 });
 
 test("no gateway is consulted to read the pointer", () => {

@@ -17,7 +17,7 @@ const config = { activeAppearance: 'petdex-pack' }
 
 vi.mock('../apps/desk-companion/petBridge', () => ({
   petBridge: {
-    getCrewCompanionConfig: () => Promise.resolve(config),
+    getDeskCompanionConfig: () => Promise.resolve(config),
     presetsGetColorMap: () => Promise.resolve(null),
     galleryGetPackDetail: () =>
       Promise.resolve({

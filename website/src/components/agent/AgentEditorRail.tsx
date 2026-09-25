@@ -1,7 +1,7 @@
 /**
- * The crew editor's vertical rail.
+ * The agent editor's vertical rail.
  *
- * Renders whatever `useCrewEditorSections` returns, so a new surface never edits
+ * Renders whatever `useAgentEditorSections` returns, so a new surface never edits
  * this file. Group headings come from consecutive rows sharing a `group`, which
  * means the registry's ORDER defines the grouping and there is no second list to
  * keep in step with it.
@@ -13,17 +13,17 @@
  */
 import { useRef } from 'react'
 import { nextEnabledIndex, edgeEnabledIndex } from '../UnderlineTabs'
-import type { CrewEditorSection, CrewPaneKey } from './agentEditorSections'
+import type { AgentEditorSection, AgentPaneKey } from './agentEditorSections'
 
-export interface CrewEditorRailProps {
+export interface AgentEditorRailProps {
   /** Wording for the unsaved-edit marker, used in each row's title and as the
    *  marker's own accessible name — the dot alone is invisible to a reader. */
   unsavedLabel: string
   /** Wording for the shared-storage dot, for the same reason. */
   sharedLabel: string
-  sections: CrewEditorSection[]
-  value: CrewPaneKey
-  onChange: (key: CrewPaneKey) => void
+  sections: AgentEditorSection[]
+  value: AgentPaneKey
+  onChange: (key: AgentPaneKey) => void
   /** Names the rail for assistive tech — the dialog holds no other tablist, but
    *  an unlabelled one is still announced without saying what it navigates. */
   ariaLabel: string
@@ -31,9 +31,9 @@ export interface CrewEditorRailProps {
   panelIdPrefix: string
 }
 
-export default function CrewEditorRail({
+export default function AgentEditorRail({
   sections, value, onChange, ariaLabel, panelIdPrefix, unsavedLabel, sharedLabel,
-}: CrewEditorRailProps) {
+}: AgentEditorRailProps) {
   const refs = useRef<Array<HTMLButtonElement | null>>([])
 
   // `nextEnabledIndex` takes `UnderlineTab`s; only `key` and `disabled` are read,
@@ -116,7 +116,7 @@ export default function CrewEditorRail({
               // pane, so pointing at an id that never exists would be a broken
               // reference rather than a relationship.
               {...(isDisabled ? {} : { 'aria-controls': `${panelIdPrefix}-${s.key}` })}
-              data-testid={`crew-rail-${s.key}`}
+              data-testid={`agent-rail-${s.key}`}
               onClick={() => {
                 if (!isDisabled) onChange(s.key)
               }}
@@ -150,7 +150,7 @@ export default function CrewEditorRail({
                   className="h-2 w-2 shrink-0 rounded-full border-[1.5px] border-accent"
                   role="img"
                   aria-label={unsavedLabel}
-                  data-testid={`crew-rail-dirty-${s.key}`}
+                  data-testid={`agent-rail-dirty-${s.key}`}
                 />
               )}
               {s.shared && (
@@ -158,7 +158,7 @@ export default function CrewEditorRail({
                   className="h-1.5 w-1.5 shrink-0 rounded-full bg-info"
                   role="img"
                   aria-label={sharedLabel}
-                  data-testid={`crew-rail-shared-${s.key}`}
+                  data-testid={`agent-rail-shared-${s.key}`}
                 />
               )}
               {s.count && (
@@ -169,7 +169,7 @@ export default function CrewEditorRail({
                 <span
                   className="shrink-0 text-[10px] leading-snug text-muted-strong
                              sm:whitespace-normal sm:pl-[23px]"
-                  data-testid={`crew-rail-reason-${s.key}`}
+                  data-testid={`agent-rail-reason-${s.key}`}
                 >
                   {s.reason}
                 </span>

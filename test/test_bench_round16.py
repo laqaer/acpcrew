@@ -54,7 +54,7 @@ def _swap_after_first_check(
 
 @pytest.fixture
 def trust_root(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> Path:
-    root = tmp_path / "crew"
+    root = tmp_path / "data-home"
     root.mkdir()
     monkeypatch.setenv("JUNCTION_HOME", str(root))
     return root

@@ -1,7 +1,7 @@
 """Meetings — an AI meeting assistant with live transcription, notes and tasks.
 
 Transcribes a live meeting through Junction's own streaming speech-to-text, fans
-each line out to a small crew of background agents (a note-taker, a diagram
+each line out to a small team of background agents (a note-taker, a diagram
 sketcher, a task extractor), and lets the user review the extracted action items
 before filing them.
 

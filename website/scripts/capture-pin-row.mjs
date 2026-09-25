@@ -168,7 +168,7 @@ async function main() {
     if (path === '/api/agents/resolved-model') return json(route, { model: MODEL, agent: AGENT })
     if (path === '/api/agents') {
       return json(route, {
-        agents: [{ name: AGENT, kiro_agent: 'junction', description: 'Default crew agent' }],
+        agents: [{ name: AGENT, kiro_agent: 'junction', description: 'Default agent' }],
         default_agent: AGENT,
       })
     }

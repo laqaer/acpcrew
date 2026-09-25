@@ -173,15 +173,15 @@ export const PanelCard: React.FC<PanelCardProps> = ({
         */
         <div style={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
           <ViewHeader
-            title={view === 'all' ? i18nT('apps.crewCompanion.view.allTitle') : i18nT('apps.crewCompanion.view.settingsTitle')}
+            title={view === 'all' ? i18nT('apps.deskCompanion.view.allTitle') : i18nT('apps.deskCompanion.view.settingsTitle')}
             onBack={() => onBack?.()}
           />
           {/* 14px matches the main view's inset so content does not shift on switch. */}
           <div style={{ flex: 1, overflowY: 'auto', padding: '0 14px 14px' }}>
             <ViewBoundary
               onBack={() => onBack?.()}
-              label={i18nT('apps.crewCompanion.view.failed')}
-              back={i18nT('apps.crewCompanion.view.back')}
+              label={i18nT('apps.deskCompanion.view.failed')}
+              back={i18nT('apps.deskCompanion.view.back')}
             >
               {view === 'all'
                 ? <AllRemindersView onAdd={onAdd} />
@@ -196,8 +196,8 @@ export const PanelCard: React.FC<PanelCardProps> = ({
           {onClose && (
             <button
               onClick={onClose}
-              aria-label={i18nT('apps.crewCompanion.panel.close')}
-              title={i18nT('apps.crewCompanion.panel.close')}
+              aria-label={i18nT('apps.deskCompanion.panel.close')}
+              title={i18nT('apps.deskCompanion.panel.close')}
               style={{
                 /**
                  * 28px, not 20px. The glyph is small but the TARGET must not be:
@@ -257,10 +257,10 @@ export const PanelCard: React.FC<PanelCardProps> = ({
             marginRight: 34,
           } as AppRegionStyle}>
             <div style={{ fontSize: 14, fontWeight: 700, lineHeight: 1.25, paddingRight: 22 }}>
-              {i18nT('apps.crewCompanion.panel.breathe.title')}
+              {i18nT('apps.deskCompanion.panel.breathe.title')}
             </div>
             <div style={{ fontSize: 11, color: skin.muted, marginTop: 4 }}>
-              {i18nT('apps.crewCompanion.panel.breathe.sub')}
+              {i18nT('apps.deskCompanion.panel.breathe.sub')}
             </div>
           </div>
           <button
@@ -270,7 +270,7 @@ export const PanelCard: React.FC<PanelCardProps> = ({
               background: skin.accent, color: skin.onAccent, fontWeight: 700,
               border: 'none', cursor: 'pointer', fontFamily: FONT,
             }}
-          >{i18nT('apps.crewCompanion.panel.breathe.cta')}</button>
+          >{i18nT('apps.deskCompanion.panel.breathe.cta')}</button>
         </div>
 
         {/* 2 — up next */}
@@ -286,17 +286,17 @@ export const PanelCard: React.FC<PanelCardProps> = ({
                */
               padding: '7px 4px', margin: '-7px -4px',
               cursor: 'pointer', fontFamily: FONT,
-            }}>{i18nT('apps.crewCompanion.panel.seeAll')}</button>
-          }>{i18nT('apps.crewCompanion.panel.upNext')}</SectionLabel>
+            }}>{i18nT('apps.deskCompanion.panel.seeAll')}</button>
+          }>{i18nT('apps.deskCompanion.panel.upNext')}</SectionLabel>
 
           {empty ? (
             <div style={{
               margin: '0 14px', background: skin.row, borderRadius: skin.rowRadius,
               padding: '12px 11px', textAlign: 'center',
             }}>
-              <div style={{ fontSize: 12, fontWeight: 600 }}>{i18nT('apps.crewCompanion.panel.empty.title')}</div>
+              <div style={{ fontSize: 12, fontWeight: 600 }}>{i18nT('apps.deskCompanion.panel.empty.title')}</div>
               <div style={{ fontSize: 10.5, color: skin.muted, marginTop: 3, lineHeight: 1.4 }}>
-                {i18nT('apps.crewCompanion.panel.empty.sub')}
+                {i18nT('apps.deskCompanion.panel.empty.sub')}
               </div>
             </div>
           ) : (
@@ -360,20 +360,20 @@ export const PanelCard: React.FC<PanelCardProps> = ({
                       {item.recurring && (
                         <button
                           onClick={() => onSkip?.(item.id)}
-                          aria-label={i18nT('apps.crewCompanion.view.skip')}
-                          title={i18nT('apps.crewCompanion.view.skip')}
+                          aria-label={i18nT('apps.deskCompanion.view.skip')}
+                          title={i18nT('apps.deskCompanion.view.skip')}
                           style={{
                             height: 24, padding: '0 7px', borderRadius: 999,
                             border: 'none', background: skin.hairline, color: skin.ink,
                             fontSize: 9.5, fontWeight: 700, cursor: 'pointer',
                             fontFamily: FONT,
                           }}
-                        >{i18nT('apps.crewCompanion.view.skip')}</button>
+                        >{i18nT('apps.deskCompanion.view.skip')}</button>
                       )}
                       <button
                         onClick={() => onRemove?.(item.id)}
-                        aria-label={i18nT('apps.crewCompanion.view.remove')}
-                        title={i18nT('apps.crewCompanion.view.remove')}
+                        aria-label={i18nT('apps.deskCompanion.view.remove')}
+                        title={i18nT('apps.deskCompanion.view.remove')}
                         style={{
                           width: 24, height: 24, borderRadius: '50%', flexShrink: 0,
                           display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
@@ -398,11 +398,11 @@ export const PanelCard: React.FC<PanelCardProps> = ({
         {/* 4 — footer: the one fact worth a glance, plus a door to settings */}
         <div style={{ display: 'flex', alignItems: 'center', padding: '1px 14px 13px' }}>
           <span style={{ flex: 1, fontSize: 10, color: skin.faint }}>
-            {i18nT('apps.crewCompanion.panel.breakSummary', { mins: String(breakMins) })}
+            {i18nT('apps.deskCompanion.panel.breakSummary', { mins: String(breakMins) })}
             {/* Both nudge settings at a glance, so the footer states what the pet
                 will actually interrupt you for. */}
             {' · '}
-            {i18nT(sessionOn ? 'apps.crewCompanion.panel.sessionOn' : 'apps.crewCompanion.panel.sessionOff')}
+            {i18nT(sessionOn ? 'apps.deskCompanion.panel.sessionOn' : 'apps.deskCompanion.panel.sessionOff')}
           </span>
           <button
             onClick={onSettings}
@@ -412,7 +412,7 @@ export const PanelCard: React.FC<PanelCardProps> = ({
               // Same hit-area expansion as the other text links.
               padding: '7px 4px', margin: '-7px -4px -7px 0',
             }}
-          >{i18nT('apps.crewCompanion.view.settingsTitle')}</button>
+          >{i18nT('apps.deskCompanion.view.settingsTitle')}</button>
         </div>
       </div>
       )}

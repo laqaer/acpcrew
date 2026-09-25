@@ -23,7 +23,7 @@ import type { PackMeta } from '../apps/desk-companion/appearanceTypes'
 
 const mocks = vi.hoisted(() => ({
   api: {
-    getCrewCompanionConfig: vi.fn(),
+    getDeskCompanionConfig: vi.fn(),
     galleryGetPackDetail: vi.fn(),
     galleryImportFile: vi.fn(),
     gallerySavePack: vi.fn(),
@@ -145,7 +145,7 @@ beforeEach(() => {
   vi.clearAllMocks()
   // `useLang` reads the config on mount; answer with no language so it never
   // schedules a state update the tests would have to await.
-  api.getCrewCompanionConfig.mockResolvedValue({})
+  api.getDeskCompanionConfig.mockResolvedValue({})
   api.galleryGetPackDetail.mockResolvedValue(null)
   api.galleryImportFile.mockResolvedValue(null)
   api.gallerySavePack.mockResolvedValue({ ok: true, value: { ...existing } })

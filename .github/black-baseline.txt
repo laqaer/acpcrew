@@ -76,7 +76,6 @@ src/junction/apps/builtins/design_critique/tests/test_manifest.py
 src/junction/apps/builtins/design_tweak/backend/server.py
 src/junction/apps/builtins/desk_companion/appearances.py
 src/junction/apps/builtins/desk_companion/backend/routes.py
-src/junction/apps/builtins/desk_companion/pack_transfer.py
 src/junction/apps/builtins/desk_companion/reminders.py
 src/junction/apps/builtins/desk_companion/store.py
 src/junction/apps/builtins/desk_companion/tests/test_appearances.py

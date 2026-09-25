@@ -12,7 +12,7 @@ import { repoWebUrl, userUrlFor, membersUrlFor, providerTerms, repoScopeKey } fr
 import { useIssueRadar } from '../../context'
 import ReadOnlyTag, { isReadOnly } from '../../components/ReadOnlyTag'
 import LabelPicker from '../../components/LabelPicker'
-import CrewProtocolSettings from './StewardProtocolSettings'
+import StewardProtocolSettings from './StewardProtocolSettings'
 import { asArray } from '../../lib/format'
 
 import { i18nT } from '../../../../i18n/t'
@@ -63,12 +63,12 @@ const ROLE_MUTED = new Set(['read'])
 
 /** One repo's settings — full width. Local-only triage preferences that teach
  * Issue Radar how this repo labels its work (which labels mean "needs triage",
- * which mark newcomer-friendly issues), the crew protocol every crew in this repo
+ * which mark newcomer-friendly issues), the steward protocol every steward in this repo
  * negotiates by, plus a per-repo data refresh and a local disconnect. Nothing here
  * is written back to GitHub.
  *
- * The crew protocol block is hosted here, and not on Your Desk, because it is
- * repo-wide: `/crews/settings` is keyed by owner+repo, and this is the page a
+ * The steward protocol block is hosted here, and not on Your Desk, because it is
+ * repo-wide: `/stewards/settings` is keyed by owner+repo, and this is the page a
  * value scoped to one repository is expected to live on. It needs no navigation
  * entry of its own — the rail's Settings accordion already lists one row per
  * connected repo, and each opens this page. */
@@ -107,14 +107,14 @@ export default function RepoSettings({ repoRef }: { repoRef: RepoRef }) {
     queryFn: () => issueRadarApi.members(repoRef),
     enabled: issuesQuery.isSuccess,
   })
-  /** The repo's crew protocol settings — a separate document from `settings`
-   *  above (`/crews/settings` vs `/settings`, its own merge-patch write path and
+  /** The repo's steward protocol settings — a separate document from `settings`
+   *  above (`/stewards/settings` vs `/settings`, its own merge-patch write path and
    *  no revision guard), so it gets its own query rather than being folded in.
    *  The key is the one Your Desk already reads, so a save on this page reaches
    *  the desk's hand-back window without a refetch. */
-  const crewSettingsQuery = useQuery({
-    queryKey: ['issue-radar', 'crew-settings', scopeKey],
-    queryFn: () => issueRadarApi.getCrewSettings(repoRef),
+  const stewardSettingsQuery = useQuery({
+    queryKey: ['issue-radar', 'steward-settings', scopeKey],
+    queryFn: () => issueRadarApi.getStewardSettings(repoRef),
   })
 
   const labels = asArray<RepoLabel>(labelsQuery.data?.labels)
@@ -484,8 +484,8 @@ export default function RepoSettings({ repoRef }: { repoRef: RepoRef }) {
 
       <Card
         icon={Handshake}
-        title={i18nT('apps.issueRadar.views.crews.desk.protocol_title')}
-        desc={i18nT('apps.issueRadar.views.crews.desk.protocol_repo_wide')}
+        title={i18nT('apps.issueRadar.views.stewards.desk.protocol_title')}
+        desc={i18nT('apps.issueRadar.views.stewards.desk.protocol_repo_wide')}
       >
         {/* Keyed by the FULL repo scope, so a scope change remounts the card and
             no state can cross it. The card holds an uncommitted draft until the
@@ -501,10 +501,10 @@ export default function RepoSettings({ repoRef }: { repoRef: RepoRef }) {
             on GitHub and `acme/widget` on a GitLab instance are two different
             repositories with one slug, and the settings route keys on owner/repo
             alone — so that navigation reuses this whole page. */}
-        <CrewProtocolSettings
+        <StewardProtocolSettings
           key={scopeKey}
           repoRef={repoRef}
-          settings={crewSettingsQuery.data?.settings}
+          settings={stewardSettingsQuery.data?.settings}
         />
       </Card>
 

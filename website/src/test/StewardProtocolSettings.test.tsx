@@ -1,5 +1,5 @@
 /**
- * CrewProtocolSettings — the repo's crew protocol, on the repo's settings page.
+ * StewardProtocolSettings — the repo's steward protocol, on the repo's settings page.
  *
  * Five behaviours are pinned:
  *
@@ -27,112 +27,112 @@ import { render, screen, fireEvent, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { i18nT } from '../i18n/t'
-import type { CrewSettings } from '../apps/issue-radar/api'
+import type { StewardSettings } from '../apps/issue-radar/api'
 import { repoScopeKey } from '../apps/issue-radar/lib/links'
 
 const PAGE_REPO = { owner: 'laqaer', repo: 'junction' }
 
 const api = {
-  getCrewSettings: vi.fn(),
-  putCrewSettings: vi.fn(),
+  getStewardSettings: vi.fn(),
+  putStewardSettings: vi.fn(),
 }
 vi.mock('../apps/issue-radar/api', async (importOriginal) => ({
   ...(await importOriginal<typeof import('../apps/issue-radar/api')>()),
   issueRadarApi: api,
 }))
 
-const CrewProtocolSettings = (
+const StewardProtocolSettings = (
   await import('../apps/issue-radar/views/settings/StewardProtocolSettings')
 ).default
 
-const SETTINGS: CrewSettings = {
+const SETTINGS: StewardSettings = {
   schema: 1,
   claim_ttl_hours: 48,
-  needs_human_label: 'crew: needs human',
-  commit_trailer: 'Crew: {name} (Junction Issue Radar)',
+  needs_human_label: 'steward: needs human',
+  commit_trailer: 'Steward: {name} (Junction Issue Radar)',
 }
 
 /** `settings` is passed EXPLICITLY, with no default: a default parameter is used
  *  for `undefined` too, so the "still loading" case could never be reached. */
-function mount(settings: CrewSettings | undefined) {
+function mount(settings: StewardSettings | undefined) {
   const client = new QueryClient({ defaultOptions: { queries: { retry: false } } })
   return render(
     <QueryClientProvider client={client}>
-      <CrewProtocolSettings repoRef={PAGE_REPO} settings={settings} />
+      <StewardProtocolSettings repoRef={PAGE_REPO} settings={settings} />
     </QueryClientProvider>,
   )
 }
 
 beforeEach(() => {
   vi.clearAllMocks()
-  api.getCrewSettings.mockResolvedValue({ settings: SETTINGS })
-  api.putCrewSettings.mockImplementation(async (_ref: unknown, patch: Partial<CrewSettings>) => ({
+  api.getStewardSettings.mockResolvedValue({ settings: SETTINGS })
+  api.putStewardSettings.mockImplementation(async (_ref: unknown, patch: Partial<StewardSettings>) => ({
     settings: { ...SETTINGS, ...patch },
   }))
 })
 
-describe('CrewProtocolSettings', () => {
+describe('StewardProtocolSettings', () => {
   it('sends a one-key merge patch for the field that changed', async () => {
     // A whole-document write would need a revision guard; a one-key merge does
     // not, and it is what makes two tabs editing different fields safe.
     mount(SETTINGS)
-    const ttl = screen.getByTestId('crew-desk-claim-ttl')
+    const ttl = screen.getByTestId('steward-desk-claim-ttl')
     expect((ttl as HTMLInputElement).value).toBe('48')
     await userEvent.clear(ttl)
     await userEvent.type(ttl, '24')
     await userEvent.tab()
-    await waitFor(() => expect(api.putCrewSettings).toHaveBeenCalledTimes(1))
+    await waitFor(() => expect(api.putStewardSettings).toHaveBeenCalledTimes(1))
     // Addressed to the repo whose settings page this is — NOT to the active repo.
     // The rail opens this page for any connected repository.
-    expect(api.putCrewSettings).toHaveBeenCalledWith(PAGE_REPO, { claim_ttl_hours: 24 })
+    expect(api.putStewardSettings).toHaveBeenCalledWith(PAGE_REPO, { claim_ttl_hours: 24 })
     // Exactly one key: the other two fields must not ride along.
-    expect(Object.keys(api.putCrewSettings.mock.calls[0][1])).toEqual(['claim_ttl_hours'])
+    expect(Object.keys(api.putStewardSettings.mock.calls[0][1])).toEqual(['claim_ttl_hours'])
   })
 
   it('writes nothing when a field is committed unchanged', async () => {
     mount(SETTINGS)
-    const trailer = screen.getByTestId('crew-desk-commit-trailer')
+    const trailer = screen.getByTestId('steward-desk-commit-trailer')
     expect((trailer as HTMLInputElement).value).toBe(SETTINGS.commit_trailer)
     await userEvent.click(trailer)
     await userEvent.tab()
-    expect(api.putCrewSettings).not.toHaveBeenCalled()
+    expect(api.putStewardSettings).not.toHaveBeenCalled()
   })
 
   it('reports a rejected write in place, and says so out loud', async () => {
-    api.putCrewSettings.mockRejectedValue(new Error('403 forbidden'))
+    api.putStewardSettings.mockRejectedValue(new Error('403 forbidden'))
     mount(SETTINGS)
-    const label = screen.getByTestId('crew-desk-needs-human')
+    const label = screen.getByTestId('steward-desk-needs-human')
     await userEvent.clear(label)
     await userEvent.type(label, 'needs: human')
     await userEvent.tab()
-    const status = await screen.findByTestId('crew-desk-protocol-status')
+    const status = await screen.findByTestId('steward-desk-protocol-status')
     await waitFor(() => expect(status.getAttribute('data-state')).toBe('failed'))
     // It updates in place, so assistive technology has to be told.
     expect(status.getAttribute('aria-live')).toBe('polite')
   })
 
   it('sends the needs-human label as its own one-key patch', async () => {
-    // The label is what a crew applies when a call is the human's to make, so a
-    // repo with two crews needs exactly one value — and editing it must not drag
+    // The label is what a steward applies when a call is the human's to make, so a
+    // repo with two stewards needs exactly one value — and editing it must not drag
     // the TTL or the trailer along.
     mount(SETTINGS)
-    const label = screen.getByTestId('crew-desk-needs-human')
-    expect((label as HTMLInputElement).value).toBe('crew: needs human')
+    const label = screen.getByTestId('steward-desk-needs-human')
+    expect((label as HTMLInputElement).value).toBe('steward: needs human')
     await userEvent.clear(label)
     await userEvent.type(label, 'needs: a human')
     await userEvent.tab()
-    await waitFor(() => expect(api.putCrewSettings).toHaveBeenCalledTimes(1))
-    expect(api.putCrewSettings).toHaveBeenCalledWith(PAGE_REPO, {
+    await waitFor(() => expect(api.putStewardSettings).toHaveBeenCalledTimes(1))
+    expect(api.putStewardSettings).toHaveBeenCalledWith(PAGE_REPO, {
       needs_human_label: 'needs: a human',
     })
-    expect(Object.keys(api.putCrewSettings.mock.calls[0][1])).toEqual(['needs_human_label'])
+    expect(Object.keys(api.putStewardSettings.mock.calls[0][1])).toEqual(['needs_human_label'])
   })
 
   it('disables every field until the settings have loaded', () => {
     // Without the saved values a commit cannot tell a real edit from a no-op, so
     // the form is disabled rather than merely empty.
     mount(undefined)
-    for (const id of ['crew-desk-claim-ttl', 'crew-desk-needs-human', 'crew-desk-commit-trailer']) {
+    for (const id of ['steward-desk-claim-ttl', 'steward-desk-needs-human', 'steward-desk-commit-trailer']) {
       expect((screen.getByTestId(id) as HTMLInputElement).disabled).toBe(true)
     }
   })
@@ -142,8 +142,8 @@ describe('CrewProtocolSettings', () => {
     // field that hardcodes it ignores the app's font setting. Only the commit
     // trailer — a git template written verbatim into a commit — opts in.
     mount(SETTINGS)
-    expect(screen.getByTestId('crew-desk-needs-human').className).not.toMatch(/font-mono/)
-    expect(screen.getByTestId('crew-desk-commit-trailer').className).toMatch(/font-mono/)
+    expect(screen.getByTestId('steward-desk-needs-human').className).not.toMatch(/font-mono/)
+    expect(screen.getByTestId('steward-desk-commit-trailer').className).toMatch(/font-mono/)
   })
 })
 
@@ -156,7 +156,7 @@ describe('CrewProtocolSettings', () => {
  * snaps back to the saved value with no message, which is exactly what a
  * successful save of that value would look like.
  */
-describe('CrewProtocolSettings — a refused value', () => {
+describe('StewardProtocolSettings — a refused value', () => {
   /** Set a field and commit it, the way a blur does. `fireEvent`, not
    *  `userEvent.type`: user-event enforces a number input's own validity as it
    *  goes, so an intermediate `-` is swallowed and the negative case could never
@@ -171,11 +171,11 @@ describe('CrewProtocolSettings — a refused value', () => {
   /** Every value the store would drop: `> 0` for the number, non-blank for the
    *  label and the trailer. */
   const REFUSED: Array<[string, string]> = [
-    ['crew-desk-claim-ttl', '0'],
-    ['crew-desk-claim-ttl', '-4'],
-    ['crew-desk-claim-ttl', ''],
-    ['crew-desk-needs-human', '   '],
-    ['crew-desk-commit-trailer', '   '],
+    ['steward-desk-claim-ttl', '0'],
+    ['steward-desk-claim-ttl', '-4'],
+    ['steward-desk-claim-ttl', ''],
+    ['steward-desk-needs-human', '   '],
+    ['steward-desk-commit-trailer', '   '],
   ]
 
   it.each(REFUSED)('keeps %s visible when it is set to "%s", and sends nothing', async (testId, typed) => {
@@ -183,7 +183,7 @@ describe('CrewProtocolSettings — a refused value', () => {
     const input = commit(testId, typed)
 
     // Not written — the store would have dropped it anyway.
-    expect(api.putCrewSettings).not.toHaveBeenCalled()
+    expect(api.putStewardSettings).not.toHaveBeenCalled()
     // Still on screen, so the user can correct it instead of retyping it. This is
     // the whole finding: the old code deleted the draft here, and the field then
     // showed the saved value again, which is indistinguishable from a save.
@@ -201,17 +201,17 @@ describe('CrewProtocolSettings — a refused value', () => {
     // free-text fields. Asserted through the catalog rather than against English
     // prose, so a copy edit cannot fail a behaviour test.
     mount(SETTINGS)
-    commit('crew-desk-claim-ttl', '0')
-    expect(await screen.findByTestId('crew-desk-claim-ttl-error')).toHaveTextContent(
-      i18nT('apps.issueRadar.views.crews.desk.claim_ttl_min'),
+    commit('steward-desk-claim-ttl', '0')
+    expect(await screen.findByTestId('steward-desk-claim-ttl-error')).toHaveTextContent(
+      i18nT('apps.issueRadar.views.stewards.desk.claim_ttl_min'),
     )
-    commit('crew-desk-needs-human', '')
-    expect(await screen.findByTestId('crew-desk-needs-human-error')).toHaveTextContent(
-      i18nT('apps.issueRadar.views.crews.desk.needs_human_required'),
+    commit('steward-desk-needs-human', '')
+    expect(await screen.findByTestId('steward-desk-needs-human-error')).toHaveTextContent(
+      i18nT('apps.issueRadar.views.stewards.desk.needs_human_required'),
     )
-    commit('crew-desk-commit-trailer', '')
-    expect(await screen.findByTestId('crew-desk-commit-trailer-error')).toHaveTextContent(
-      i18nT('apps.issueRadar.views.crews.desk.trailer_required'),
+    commit('steward-desk-commit-trailer', '')
+    expect(await screen.findByTestId('steward-desk-commit-trailer-error')).toHaveTextContent(
+      i18nT('apps.issueRadar.views.stewards.desk.trailer_required'),
     )
   })
 
@@ -219,29 +219,29 @@ describe('CrewProtocolSettings — a refused value', () => {
     // Typing IS the user answering the message, so it must not sit there until the
     // next blur — and the correction has to actually go through.
     mount(SETTINGS)
-    const ttl = commit('crew-desk-claim-ttl', '0')
-    await screen.findByTestId('crew-desk-claim-ttl-error')
+    const ttl = commit('steward-desk-claim-ttl', '0')
+    await screen.findByTestId('steward-desk-claim-ttl-error')
 
     fireEvent.change(ttl, { target: { value: '12' } })
-    expect(screen.queryByTestId('crew-desk-claim-ttl-error')).not.toBeInTheDocument()
+    expect(screen.queryByTestId('steward-desk-claim-ttl-error')).not.toBeInTheDocument()
     expect(ttl).not.toHaveAttribute('aria-invalid')
 
     fireEvent.blur(ttl)
-    await waitFor(() => expect(api.putCrewSettings).toHaveBeenCalledTimes(1))
-    expect(api.putCrewSettings).toHaveBeenCalledWith(PAGE_REPO, { claim_ttl_hours: 12 })
+    await waitFor(() => expect(api.putStewardSettings).toHaveBeenCalledTimes(1))
+    expect(api.putStewardSettings).toHaveBeenCalledWith(PAGE_REPO, { claim_ttl_hours: 12 })
   })
 
   it('reports only the field that was refused', async () => {
     // The three fields commit independently, so a rejected trailer must not blank
     // the message under the claim TTL, and neither may speak for the third field.
     mount(SETTINGS)
-    commit('crew-desk-claim-ttl', '0')
-    await screen.findByTestId('crew-desk-claim-ttl-error')
+    commit('steward-desk-claim-ttl', '0')
+    await screen.findByTestId('steward-desk-claim-ttl-error')
 
-    commit('crew-desk-commit-trailer', '')
-    expect(await screen.findByTestId('crew-desk-commit-trailer-error')).toBeInTheDocument()
-    expect(screen.getByTestId('crew-desk-claim-ttl-error')).toBeInTheDocument()
-    expect(screen.queryByTestId('crew-desk-needs-human-error')).not.toBeInTheDocument()
+    commit('steward-desk-commit-trailer', '')
+    expect(await screen.findByTestId('steward-desk-commit-trailer-error')).toBeInTheDocument()
+    expect(screen.getByTestId('steward-desk-claim-ttl-error')).toBeInTheDocument()
+    expect(screen.queryByTestId('steward-desk-needs-human-error')).not.toBeInTheDocument()
   })
 
   it('refuses text the STORE would silently drop, instead of appearing to save it', async () => {
@@ -251,18 +251,18 @@ describe('CrewProtocolSettings — a refused value', () => {
     // the form looked like it had saved — the operator then waits on a queue that
     // was never configured. Nothing must be sent at all.
     mount(SETTINGS)
-    commit('crew-desk-needs-human', 'x'.repeat(201))
-    expect(await screen.findByTestId('crew-desk-needs-human-error')).toHaveTextContent(
-      i18nT('apps.issueRadar.views.crews.desk.text_too_long', { max: 200 }),
+    commit('steward-desk-needs-human', 'x'.repeat(201))
+    expect(await screen.findByTestId('steward-desk-needs-human-error')).toHaveTextContent(
+      i18nT('apps.issueRadar.views.stewards.desk.text_too_long', { max: 200 }),
     )
-    expect(api.putCrewSettings).not.toHaveBeenCalled()
+    expect(api.putStewardSettings).not.toHaveBeenCalled()
 
     // The bound is INCLUSIVE: exactly 200 is a value the store keeps, so it must
     // go through. Without this half, rejecting everything would also pass.
     const ok = 'y'.repeat(200)
-    commit('crew-desk-needs-human', ok)
-    await waitFor(() => expect(api.putCrewSettings).toHaveBeenCalledTimes(1))
-    expect(api.putCrewSettings).toHaveBeenCalledWith(PAGE_REPO, { needs_human_label: ok })
+    commit('steward-desk-needs-human', ok)
+    await waitFor(() => expect(api.putStewardSettings).toHaveBeenCalledTimes(1))
+    expect(api.putStewardSettings).toHaveBeenCalledWith(PAGE_REPO, { needs_human_label: ok })
   })
 
   it('reads the scientific notation a number input hands back, rather than truncating it', async () => {
@@ -271,9 +271,9 @@ describe('CrewProtocolSettings — a refused value', () => {
     // verbatim, so a 100-hour TTL was persisted as 1: a claim expiring almost
     // immediately, silently, with the form reporting success.
     mount(SETTINGS)
-    commit('crew-desk-claim-ttl', '1e2')
-    await waitFor(() => expect(api.putCrewSettings).toHaveBeenCalledTimes(1))
-    expect(api.putCrewSettings).toHaveBeenCalledWith(PAGE_REPO, { claim_ttl_hours: 100 })
+    commit('steward-desk-claim-ttl', '1e2')
+    await waitFor(() => expect(api.putStewardSettings).toHaveBeenCalledTimes(1))
+    expect(api.putStewardSettings).toHaveBeenCalledWith(PAGE_REPO, { claim_ttl_hours: 100 })
   })
 
   it('refuses a fractional TTL rather than flooring it behind the user', async () => {
@@ -281,9 +281,9 @@ describe('CrewProtocolSettings — a refused value', () => {
     // rounded-down value the user never typed is the same class of silent
     // substitution as the case above, so it is refused visibly instead.
     mount(SETTINGS)
-    commit('crew-desk-claim-ttl', '1.5')
-    expect(await screen.findByTestId('crew-desk-claim-ttl-error')).toBeInTheDocument()
-    expect(api.putCrewSettings).not.toHaveBeenCalled()
+    commit('steward-desk-claim-ttl', '1.5')
+    expect(await screen.findByTestId('steward-desk-claim-ttl-error')).toBeInTheDocument()
+    expect(api.putStewardSettings).not.toHaveBeenCalled()
   })
 })
 
@@ -291,7 +291,7 @@ describe('CrewProtocolSettings — a refused value', () => {
  * The draft is the only copy of what the user typed, so the SERVER's answer is
  * what releases it.
  *
- * These fields are repo-wide rules — the claim TTL every crew negotiates by, the
+ * These fields are repo-wide rules — the claim TTL every steward negotiates by, the
  * trailer they sign commits with, the label they apply when a call is a human's
  * to make. Releasing the draft on submit meant a rejected write fell the field
  * back to the old saved value: the typed text was gone, and the only surviving
@@ -302,7 +302,7 @@ describe('CrewProtocolSettings — a refused value', () => {
  * at once — because a draft equal to the saved value would leave the field
  * looking edited for the rest of the session.
  */
-describe('CrewProtocolSettings — a draft and the answer that releases it', () => {
+describe('StewardProtocolSettings — a draft and the answer that releases it', () => {
   const set = (testId: string, value: string) => {
     const input = screen.getByTestId(testId) as HTMLInputElement
     fireEvent.change(input, { target: { value } })
@@ -311,11 +311,11 @@ describe('CrewProtocolSettings — a draft and the answer that releases it', () 
   }
 
   it('keeps the typed text in the field when the write FAILS', async () => {
-    api.putCrewSettings.mockRejectedValue(new Error('403 forbidden'))
+    api.putStewardSettings.mockRejectedValue(new Error('403 forbidden'))
     mount(SETTINGS)
-    const ttl = set('crew-desk-claim-ttl', '24')
+    const ttl = set('steward-desk-claim-ttl', '24')
 
-    const status = await screen.findByTestId('crew-desk-protocol-status')
+    const status = await screen.findByTestId('steward-desk-protocol-status')
     await waitFor(() => expect(status.getAttribute('data-state')).toBe('failed'))
     // The value the user chose, not the one the server still holds. Releasing the
     // draft on submit left '48' here — indistinguishable from a save that worked,
@@ -325,11 +325,11 @@ describe('CrewProtocolSettings — a draft and the answer that releases it', () 
 
   it('releases the draft and reports saved when the write LANDS', async () => {
     let landed: (v: unknown) => void = () => {}
-    api.putCrewSettings.mockImplementation(() => new Promise((res) => { landed = res }))
+    api.putStewardSettings.mockImplementation(() => new Promise((res) => { landed = res }))
     mount(SETTINGS)
-    const ttl = set('crew-desk-claim-ttl', '24')
+    const ttl = set('steward-desk-claim-ttl', '24')
 
-    const status = await screen.findByTestId('crew-desk-protocol-status')
+    const status = await screen.findByTestId('steward-desk-protocol-status')
     // In flight: the draft is still the only copy, so it is still on screen.
     await waitFor(() => expect(status.getAttribute('data-state')).toBe('saving'))
     expect(ttl.value).toBe('24')
@@ -357,41 +357,41 @@ describe('CrewProtocolSettings — a draft and the answer that releases it', () 
     // what the cache holds. The cache is what the fix changes and what the owning
     // query feeds back into the page.
     const client = new QueryClient({ defaultOptions: { queries: { retry: false } } })
-    const key = ['issue-radar', 'crew-settings', repoScopeKey(PAGE_REPO)]
+    const key = ['issue-radar', 'steward-settings', repoScopeKey(PAGE_REPO)]
     client.setQueryData(key, { settings: SETTINGS })
 
     const landers: ((v: unknown) => void)[] = []
-    api.putCrewSettings.mockImplementation(
+    api.putStewardSettings.mockImplementation(
       () => new Promise((res) => { landers.push(res) }),
     )
     render(
       <QueryClientProvider client={client}>
-        <CrewProtocolSettings repoRef={PAGE_REPO} settings={SETTINGS} />
+        <StewardProtocolSettings repoRef={PAGE_REPO} settings={SETTINGS} />
       </QueryClientProvider>,
     )
 
     // Two DIFFERENT fields, both committed before either reply lands.
-    set('crew-desk-claim-ttl', '24')
-    set('crew-desk-needs-human', 'crew: over to you')
+    set('steward-desk-claim-ttl', '24')
+    set('steward-desk-needs-human', 'steward: over to you')
     await waitFor(() => expect(landers.length).toBe(2))
 
     // The LABEL's reply lands first...
-    landers[1]({ settings: { ...SETTINGS, needs_human_label: 'crew: over to you' } })
+    landers[1]({ settings: { ...SETTINGS, needs_human_label: 'steward: over to you' } })
     await waitFor(() =>
-      expect((client.getQueryData(key) as { settings: CrewSettings }).settings.needs_human_label)
-        .toBe('crew: over to you'),
+      expect((client.getQueryData(key) as { settings: StewardSettings }).settings.needs_human_label)
+        .toBe('steward: over to you'),
     )
 
     // ...then the TTL's older reply, still carrying the PRE-EDIT label.
     landers[0]({ settings: { ...SETTINGS, claim_ttl_hours: 24 } })
     await waitFor(() =>
-      expect((client.getQueryData(key) as { settings: CrewSettings }).settings.claim_ttl_hours)
+      expect((client.getQueryData(key) as { settings: StewardSettings }).settings.claim_ttl_hours)
         .toBe(24),
     )
 
     // Both fields hold their own newest answer. The label is the half that broke.
-    const cached = (client.getQueryData(key) as { settings: CrewSettings }).settings
-    expect(cached.needs_human_label).toBe('crew: over to you')
+    const cached = (client.getQueryData(key) as { settings: StewardSettings }).settings
+    expect(cached.needs_human_label).toBe('steward: over to you')
     expect(cached.claim_ttl_hours).toBe(24)
   })
 
@@ -403,13 +403,13 @@ describe('CrewProtocolSettings — a draft and the answer that releases it', () 
     // and deleted its draft — discarding the only copy of the newer edit, which is
     // precisely what holding the draft until the write lands exists to prevent.
     const landers: ((v: unknown) => void)[] = []
-    api.putCrewSettings.mockImplementation(
+    api.putStewardSettings.mockImplementation(
       () => new Promise((res) => { landers.push(res) }),
     )
     mount(SETTINGS)
 
-    const ttl = set('crew-desk-claim-ttl', '24')
-    const status = await screen.findByTestId('crew-desk-protocol-status')
+    const ttl = set('steward-desk-claim-ttl', '24')
+    const status = await screen.findByTestId('steward-desk-protocol-status')
     await waitFor(() => expect(status.getAttribute('data-state')).toBe('saving'))
 
     // Second edit to the SAME field while the first write is still outstanding.
@@ -426,7 +426,7 @@ describe('CrewProtocolSettings — a draft and the answer that releases it', () 
     expect(ttl.value).toBe('72')
     // And only ONE write went out: a second concurrent PATCH on the same field is
     // what created the race in the first place.
-    expect(api.putCrewSettings).toHaveBeenCalledTimes(1)
+    expect(api.putStewardSettings).toHaveBeenCalledTimes(1)
   })
 
   it('releases an UNCHANGED commit at once, leaving the field clean', async () => {
@@ -434,10 +434,10 @@ describe('CrewProtocolSettings — a draft and the answer that releases it', () 
     // would take does not. Nothing is written, and the field must not sit there
     // holding the padded text as though an edit were pending.
     mount(SETTINGS)
-    const label = set('crew-desk-needs-human', `  ${SETTINGS.needs_human_label}  `)
+    const label = set('steward-desk-needs-human', `  ${SETTINGS.needs_human_label}  `)
 
-    expect(api.putCrewSettings).not.toHaveBeenCalled()
+    expect(api.putStewardSettings).not.toHaveBeenCalled()
     expect(label.value).toBe(SETTINGS.needs_human_label)
-    expect(screen.getByTestId('crew-desk-protocol-status').getAttribute('data-state')).toBe('idle')
+    expect(screen.getByTestId('steward-desk-protocol-status').getAttribute('data-state')).toBe('idle')
   })
 })

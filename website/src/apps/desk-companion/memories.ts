@@ -30,13 +30,13 @@ export function shouldShowStat(value: number | string): boolean {
 export function formatCompanionTime(seconds: number): string {
   if (seconds < 3600) {
     const mins = Math.max(1, Math.floor(seconds / 60))
-    return i18nT('apps.crewCompanion.memories.dur_min', { n: mins })
+    return i18nT('apps.deskCompanion.memories.dur_min', { n: mins })
   }
   const hours = Math.floor(seconds / 3600)
   const mins = Math.floor((seconds % 3600) / 60)
   return mins === 0
-    ? i18nT('apps.crewCompanion.memories.dur_hours', { h: hours })
-    : i18nT('apps.crewCompanion.memories.dur_hm', { h: hours, m: mins })
+    ? i18nT('apps.deskCompanion.memories.dur_hours', { h: hours })
+    : i18nT('apps.deskCompanion.memories.dur_hm', { h: hours, m: mins })
 }
 
 /** Build the read-only Memories rows from the companion stats. */
@@ -47,28 +47,28 @@ export function memoryRows(stats: CompanionStats, petName: string): MemoryRow[] 
   // a formatted string makes resolution fail and renders the raw key on screen.
 
   if (shouldShowStat(stats.companionSeconds)) {
-    let text = i18nT('apps.crewCompanion.memories.row_time', { time: formatCompanionTime(stats.companionSeconds) })
+    let text = i18nT('apps.deskCompanion.memories.row_time', { time: formatCompanionTime(stats.companionSeconds) })
     if (shouldShowStat(stats.streak)) {
       // A separator, not a space: "for 63 h 18 min 3-day streak" read as one
       // run-on fact.
-      text += ' \u00b7 ' + i18nT('apps.crewCompanion.memories.row_streak', { streak: n(stats.streak) })
+      text += ' \u00b7 ' + i18nT('apps.deskCompanion.memories.row_streak', { streak: n(stats.streak) })
     }
     rows.push({ icon: Clock, text })
   }
   if (shouldShowStat(stats.breathingSessions)) {
     rows.push({
       icon: Wind,
-      text: i18nT('apps.crewCompanion.memories.row_breathing', { count: stats.breathingSessions, name: petName }),
+      text: i18nT('apps.deskCompanion.memories.row_breathing', { count: stats.breathingSessions, name: petName }),
     })
   }
   if (shouldShowStat(stats.remindersCreated)) {
-    rows.push({ icon: Bell, text: i18nT('apps.crewCompanion.memories.row_reminders', { count: stats.remindersCreated }) })
+    rows.push({ icon: Bell, text: i18nT('apps.deskCompanion.memories.row_reminders', { count: stats.remindersCreated }) })
   }
   if (shouldShowStat(stats.latestActiveTime)) {
-    rows.push({ icon: Moon, text: i18nT('apps.crewCompanion.memories.row_latest', { time: stats.latestActiveTime }) })
+    rows.push({ icon: Moon, text: i18nT('apps.deskCompanion.memories.row_latest', { time: stats.latestActiveTime }) })
   }
   if (shouldShowStat(stats.earliestActiveTime)) {
-    rows.push({ icon: Sun, text: i18nT('apps.crewCompanion.memories.row_earliest', { time: stats.earliestActiveTime }) })
+    rows.push({ icon: Sun, text: i18nT('apps.deskCompanion.memories.row_earliest', { time: stats.earliestActiveTime }) })
   }
   return rows
 }

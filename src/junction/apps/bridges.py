@@ -913,7 +913,7 @@ def _register_agents(app_name: str, manifest: AppManifest, app_root: Path) -> li
         # The agent name is app-controlled (read from the agent JSON) and is
         # about to become a filesystem path component. Reject any path separator
         # or parent-dir token BEFORE constructing link_path: on Windows a name
-        # like "..\\..\\crew\\config" would otherwise traverse out of the agents
+        # like "..\\..\\.junction\\config" would otherwise traverse out of the agents
         # dir (backslash is a separator there) and atomic_write would overwrite
         # an arbitrary JSON file such as ~/.junction/config.json.
         if (

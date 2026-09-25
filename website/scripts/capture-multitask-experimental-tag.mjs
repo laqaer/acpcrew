@@ -1,10 +1,11 @@
 /**
- * Screenshot harness for "Crew Mode is tagged Experimental at the point of choice".
+ * Screenshot harness for "Multitask Mode is tagged Experimental at the point of
+ * choice".
  *
  * What the shots have to prove, and why a unit test cannot:
  *
  *   1. The tag is legible in the create menu BEFORE the mode is chosen. The
- *      vitest spec asserts the tag is inside the crew menu item and not the
+ *      vitest spec asserts the tag is inside the multitask menu item and not the
  *      autopilot one; it cannot say whether the row reads as a caution or as
  *      decoration next to a 13px label.
  *   2. It survives a long localised label. The menu settles at its
@@ -20,12 +21,13 @@
  *      the twelve labels still fits on one line. What this pass therefore proves
  *      is the absence of clipping, not the presence of a wrap.
  *
- *      The third pass uses `es`, whose "Nuevo chat de Crew Mode" is the longest
- *      of the twelve shipped labels. NOT the `en-XA` pseudolocale, which would
- *      be the obvious choice and is silently useless here: it is `devOnly`, so
- *      `isRestorableLanguage` drops it in a production build and a persisted
- *      `mc-lang=en-XA` resolves back to `en` — the pass then renders English,
- *      reports success, and proves nothing.
+ *      The third pass uses `es`, whose new-chat label is the longest of the
+ *      twelve shipped labels; when a catalog change makes another locale's label
+ *      longer, the pass moves to that locale. NOT the `en-XA` pseudolocale,
+ *      which would be the obvious choice and is silently useless here: it is
+ *      `devOnly`, so `isRestorableLanguage` drops it in a production build and
+ *      a persisted `mc-lang=en-XA` resolves back to `en` — the pass then
+ *      renders English, reports success, and proves nothing.
  *
  * Runs the REAL built SPA (website/dist) behind the shared loopback static
  * server with every /api/** call answered from fixtures (gateway-free — no
@@ -42,7 +44,7 @@ import { mkdirSync } from 'node:fs'
 import { serveDist } from './lib/serve-dist.mjs'
 import { logPageProblems, stubDashboardApi, json } from './lib/stub-dashboard-api.mjs'
 
-const OUT = process.argv[2] || '../temp-screenshots/crew-experimental-tag'
+const OUT = process.argv[2] || '../temp-screenshots/multitask-experimental-tag'
 mkdirSync(OUT, { recursive: true })
 
 /**
@@ -72,7 +74,7 @@ const extra = (path, route) => {
 /**
  * Open the create menu without depending on any translated string.
  *
- * Clicks each menu trigger in turn and keeps the one that reveals the crew
+ * Clicks each menu trigger in turn and keeps the one that reveals the multitask
  * entry, whose `data-testid` is the only locale-invariant handle in the menu.
  * Returns the menu locator so the caller can shoot it directly.
  */
@@ -113,16 +115,16 @@ async function openCreateMenu(page) {
   if (n === 0) throw new Error('no menu triggers found — did the SPA boot?')
   for (let i = 0; i < n; i++) {
     await triggers.nth(i).click()
-    const crew = page.locator('[data-testid="new-crew-chat"]')
-    if (await crew.count()) {
-      await crew.first().waitFor({ state: 'visible', timeout: 5000 })
-      return crew.first().locator('xpath=ancestor::*[@role="menu"][1]')
+    const multitask = page.locator('[data-testid="new-multitask-chat"]')
+    if (await multitask.count()) {
+      await multitask.first().waitFor({ state: 'visible', timeout: 5000 })
+      return multitask.first().locator('xpath=ancestor::*[@role="menu"][1]')
     }
     // Wrong trigger: close whatever it opened before probing the next one.
     await page.keyboard.press('Escape')
     await page.waitForTimeout(120)
   }
-  throw new Error(`probed ${n} menu trigger(s); none revealed the crew entry`)
+  throw new Error(`probed ${n} menu trigger(s); none revealed the multitask entry`)
 }
 
 async function shoot(page, menu, label) {
@@ -176,11 +178,11 @@ async function main() {
       }
       if (anim.running !== 0) throw new Error(`${label}: ${anim.running} animation(s) still attached`)
 
-      const crewItem = page.locator('[data-testid="new-crew-chat"]').first()
-      const tag = crewItem.locator('[data-testid="crew-experimental-tag"]')
+      const multitaskItem = page.locator('[data-testid="new-multitask-chat"]').first()
+      const tag = multitaskItem.locator('[data-testid="multitask-experimental-tag"]')
 
       if (await tag.count() !== 1) {
-        throw new Error(`${label}: expected exactly 1 tag inside the crew item, got ${await tag.count()}`)
+        throw new Error(`${label}: expected exactly 1 tag inside the multitask item, got ${await tag.count()}`)
       }
       // The bound the wrap exists to respect. Asserted rather than eyeballed so
       // a future label change cannot quietly reintroduce the clipping.
@@ -205,7 +207,7 @@ async function main() {
         const t = el.getBoundingClientRect()
         const l = labelEl.getBoundingClientRect()
         return t.top >= l.bottom - 2
-      }, await crewItem.locator('span').first().elementHandle())
+      }, await multitaskItem.locator('span').first().elementHandle())
 
       const box = await shoot(page, menu, label)
       const text = (await tag.textContent() || '').trim()

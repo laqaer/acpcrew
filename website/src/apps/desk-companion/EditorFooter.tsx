@@ -36,11 +36,11 @@ export const EditorFooter: React.FC<Props> = ({ missingStates, canSave, saving, 
     <div style={S.footer}>
       {missingStates.length > 0 && (
         <span style={{ fontSize: 11, color: 'var(--danger)', flex: 1 }}>
-          {i18nT('apps.crewCompanion.editor.missing', { slots: missingStates.map((s) => slotLabel(s)).join(', ') })}
+          {i18nT('apps.deskCompanion.editor.missing', { slots: missingStates.map((s) => slotLabel(s)).join(', ') })}
         </span>
       )}
       <div style={{ flex: missingStates.length > 0 ? undefined : 1 }} />
-      <button style={S.cancelBtn} onClick={onCancel}>{i18nT('apps.crewCompanion.editor.cancel')}</button>
+      <button style={S.cancelBtn} onClick={onCancel}>{i18nT('apps.deskCompanion.editor.cancel')}</button>
       <button
         disabled={disabled}
         onClick={onSave}
@@ -52,7 +52,7 @@ export const EditorFooter: React.FC<Props> = ({ missingStates, canSave, saving, 
           opacity: disabled ? 0.5 : 1,
         }}
       >
-        {saving ? i18nT('apps.crewCompanion.editor.saving') : i18nT('apps.crewCompanion.editor.save')}
+        {saving ? i18nT('apps.deskCompanion.editor.saving') : i18nT('apps.deskCompanion.editor.save')}
       </button>
     </div>
   )

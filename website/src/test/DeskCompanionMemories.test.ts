@@ -4,7 +4,7 @@
  * This is not a hypothetical. `memoryRows` passed i18next a locale-FORMATTED
  * count (`v.toLocaleString()`, a string) as `count`. Plural selection needs a
  * number, so resolution silently failed and the Memories list rendered
- * `apps.crewCompanion.memories.row_reminders` on screen. Every gate was green at
+ * `apps.deskCompanion.memories.row_reminders` on screen. Every gate was green at
  * the time -- types, catalog parity, the i18n ratchet -- because none of them
  * evaluates a call site against the catalog. Only looking at the page caught it.
  *
@@ -17,7 +17,7 @@ import { memoryRows } from '../apps/desk-companion/memories'
 import type { CompanionStats } from '../apps/desk-companion/types'
 
 /** A resolved string never still contains its own key path. */
-const looksLikeAKey = (s: string) => /apps\.crewCompanion\./.test(s)
+const looksLikeAKey = (s: string) => /apps\.deskCompanion\./.test(s)
 
 const stats = (over: Partial<CompanionStats> = {}): CompanionStats => ({
   companionSeconds: 227_700,

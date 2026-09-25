@@ -4,7 +4,7 @@
  * The identity group's width is a pure function of the WINDOW: `.topbar`'s two
  * side tracks are both `minmax(0,1fr)` and each group carries
  * `container-type:inline-size`, which by design keeps its content out of the track
- * calculation (see scripts/measure-crew-chip-track.mjs for the numbers). So a
+ * calculation. So a
  * group short of room cannot borrow from the centred search — it has to absorb the
  * shortage internally. It now does that by letting every pinned chip give up name
  * width; before, the chips were `shrink-0` and whichever one landed on the clip
@@ -18,7 +18,7 @@
  *  - before reproduces the defect: at least one chip is cut
  *  - after cuts strictly fewer chips, and every label still on screen is at least
  *    the 5ch floor wide (a name squeezed to one or two characters would not
- *    identify a crew, so past the floor the chip is cut instead)
+ *    identify an instance, so past the floor the chip is cut instead)
  *  - THE SEARCH DOES NOT MOVE: same left edge, same width, still centred in the
  *    header's content box (what the three-track grid centres; the header's own
  *    padding is not symmetric, so window-relative would misreport it)
@@ -31,29 +31,29 @@ import { mkdirSync } from 'node:fs'
 import { serveDist } from './lib/serve-dist.mjs'
 import { stubDashboardApi, json } from './lib/stub-dashboard-api.mjs'
 
-const OUT = process.argv[2] || '../temp-screenshots/crew-chip-shrink'
+const OUT = process.argv[2] || '../temp-screenshots/instance-chip-shrink'
 mkdirSync(OUT, { recursive: true })
 
 /** The one declaration that separates the two states. */
-const BEFORE_CSS = '.crew-chip-row > button{flex-shrink:0}'
+const BEFORE_CSS = '.instance-chip-row > button{flex-shrink:0}'
 
-const crew = (id, name, sshHost, port) => ({
+const instance = (id, name, sshHost, port) => ({
   id, name, ssh_host: sshHost, remote_port: 7777, local_port: port, ttl: '20h',
   remote_bin: '', connection_method: 'ssh', ssm_target: '', ssm_run_as: '',
   aws_profile: '', aws_region: '', was_connected: false,
   status: { instance_id: id, state: 'connected', local_port: port, remote_port: 7777 },
 })
 
-const CREWS = [
-  crew('devdesk', 'devdesk', 'dev-dsk-alias', 7801),
-  crew('prod', 'prod-us-east-1', 'prod-use1-alias', 7802),
-  crew('staging', 'staging-eu-west-1', 'stg-euw1-alias', 7803),
-  crew('sandbox', 'sandbox', 'sandbox-alias', 7804),
+const INSTANCES = [
+  instance('devdesk', 'devdesk', 'dev-dsk-alias', 7801),
+  instance('prod', 'prod-us-east-1', 'prod-use1-alias', 7802),
+  instance('staging', 'staging-eu-west-1', 'stg-euw1-alias', 7803),
+  instance('sandbox', 'sandbox', 'sandbox-alias', 7804),
 ]
 const PINS = ['devdesk', 'prod', 'staging', 'sandbox']
 const SSO = { state: 'ok', seconds_remaining: 72000, expires_at: null, reason: 'valid' }
 const SLOTS = [{
-  key: 'crew-chip-shrink', title: 'Pinned chips adapt to their track', running: false,
+  key: 'instance-chip-shrink', title: 'Pinned chips adapt to their track', running: false,
   last_message: '', messages: 2, agent: 'junction', memory_mode: 'persistent',
   folder_id: '', modified: Math.floor(Date.now() / 1000), source_links: [], source_links_total: 0,
 }]
@@ -61,8 +61,8 @@ const SLOTS = [{
 /** 1280 is the reported case (49px short); 900 is a deeper shortage. */
 const WIDTHS = [1280, 900]
 const TRIGGER = '[aria-label^="Switch instance"]'
-const CHIP_ROW = '[data-testid="crew-chip-row"]'
-const PINNED_KEY = 'mc-crew-switcher-pinned'
+const CHIP_ROW = '[data-testid="instance-chip-row"]'
+const PINNED_KEY = 'mc-instance-switcher-pinned'
 
 let failures = 0
 /** Widths where the fix strictly reduced the cut count, so the pair is not inert. */
@@ -72,12 +72,12 @@ const near = (a, b, tol = 0.5) => Math.abs(a - b) <= tol
 
 const extra = async (path, route) => {
   if (path === '/api/instances') {
-    await json(route, { active: true, instances: CREWS, warm_set_cap: 5, sso: SSO })
+    await json(route, { active: true, instances: INSTANCES, warm_set_cap: 5, sso: SSO })
     return true
   }
   const tunnel = /^\/api\/instances\/([^/]+)\/(connect|refresh-token)$/.exec(path)
   if (tunnel) {
-    const found = CREWS.find((c) => c.id === decodeURIComponent(tunnel[1]))
+    const found = INSTANCES.find((c) => c.id === decodeURIComponent(tunnel[1]))
     await json(route, { ...(found ? found.status : { state: 'connected' }), token: 'stub-token' })
     return true
   }
@@ -105,7 +105,7 @@ async function shot(width, state) {
   await page.waitForTimeout(250)
 
   const m = await page.evaluate(() => {
-    const row = document.querySelector('[data-testid="crew-chip-row"]')
+    const row = document.querySelector('[data-testid="instance-chip-row"]')
     const trig = document.querySelector('[aria-label^="Switch instance"]')
     const search = document.querySelector('[data-topbar-overlay]')
     const kids = [...row.children]
@@ -115,7 +115,7 @@ async function shot(width, state) {
     // assumed: `ch` is the advance of the "0" glyph, which no constant can stand
     // in for across the theme's font choices.
     const probe = document.createElement('span')
-    const nameEl = kids[0]?.querySelector('.tb-drop-crew-name')
+    const nameEl = kids[0]?.querySelector('.tb-drop-instance-name')
     if (nameEl) {
       probe.style.cssText = 'position:absolute;visibility:hidden;width:5ch'
       probe.style.font = getComputedStyle(nameEl).font
@@ -130,20 +130,20 @@ async function shot(width, state) {
       // badge, so "on screen" is about the chip box, not the label.
       onScreen: kids.filter((k) => k.offsetLeft + k.offsetWidth <= row.clientWidth + 1).length,
       floorPx: +floorPx.toFixed(1),
-      labels: kids.map((k) => k.querySelector('.tb-drop-crew-name')?.textContent ?? ''),
+      labels: kids.map((k) => k.querySelector('.tb-drop-instance-name')?.textContent ?? ''),
       labelWidths: kids.map((k) =>
-        Math.round(k.querySelector('.tb-drop-crew-name')?.getBoundingClientRect().width ?? 0)),
+        Math.round(k.querySelector('.tb-drop-instance-name')?.getBoundingClientRect().width ?? 0)),
       // Labels belonging to chips that are actually on screen — the only ones a
-      // reader can be asked to identify a crew from.
+      // reader can be asked to identify an instance from.
       visibleLabelWidths: kids
         .filter((k) => k.offsetLeft + k.offsetWidth <= row.clientWidth + 1)
         .map((k) =>
-          Math.round(k.querySelector('.tb-drop-crew-name')?.getBoundingClientRect().width ?? 0)),
+          Math.round(k.querySelector('.tb-drop-instance-name')?.getBoundingClientRect().width ?? 0)),
       // The declared floor vs the measured one. The chip's floor is written in the
       // component as `calc(5ch + <fixed>px)` arithmetic over its own classes; if a
       // class changes and the arithmetic does not, the two diverge here.
       floors: kids.map((k) => {
-        const n = k.querySelector('.tb-drop-crew-name')
+        const n = k.querySelector('.tb-drop-instance-name')
         if (!n) return null
         const declared = parseFloat(getComputedStyle(k).minWidth)
         if (!Number.isFinite(declared) || declared === 0) return null
@@ -155,7 +155,7 @@ async function shot(width, state) {
       // A chip squeezed below its own content paints the name outside its border.
       // Count the chips whose label is wider than the chip's inner box.
       nameOverflows: kids.filter((k) => {
-        const n = k.querySelector('.tb-drop-crew-name')
+        const n = k.querySelector('.tb-drop-instance-name')
         if (!n) return false
         const cs = getComputedStyle(k)
         const inner = k.getBoundingClientRect().width
@@ -191,7 +191,7 @@ async function shot(width, state) {
 for (const width of WIDTHS) {
   const before = await shot(width, 'before')
   const after = await shot(width, 'after')
-  console.log(`\n=== ${width}px, ${PINS.length} crews pinned ===`)
+  console.log(`\n=== ${width}px, ${PINS.length} instances pinned ===`)
   for (const [name, m] of [['before', before], ['after', after]]) {
     console.log(`  ${name}: ${m.onScreen}/${m.chips} chips on screen, ${m.cut} cut`)
     console.log(`    labels ${JSON.stringify(m.labels)} widths ${JSON.stringify(m.labelWidths)}`)
@@ -227,7 +227,7 @@ for (const width of WIDTHS) {
   }
   if (after.cut < before.cut) improved.push(width)
   // The floor is the whole point of choosing 5ch over 0: a label still on screen
-  // has to be wide enough to identify a crew. 1px of tolerance for subpixel
+  // has to be wide enough to identify an instance. 1px of tolerance for subpixel
   // layout; a name shorter than the floor is legitimately narrower than it.
   const tooNarrow = after.visibleLabelWidths.filter((w, i) => {
     const label = after.labels[i] ?? ''
@@ -235,7 +235,7 @@ for (const width of WIDTHS) {
   })
   if (tooNarrow.length) {
     fail(`${width}px: ${tooNarrow.length} visible label(s) below the ${after.floorPx}px floor ` +
-      `(${JSON.stringify(tooNarrow)}) — a two-character name identifies no crew`)
+      `(${JSON.stringify(tooNarrow)}) — a two-character name identifies no instance`)
   }
   // The user's constraint, asserted rather than asserted-by-eye.
   if (!near(before.searchLeft, after.searchLeft) || !near(before.searchWidth, after.searchWidth)) {

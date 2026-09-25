@@ -16,7 +16,7 @@
  *   - "Session done" is pure FYI.
  *
  * Ported from the desktop app's `src/shared/notificationPolicy.ts`. The i18n keys
- * are rebased onto Junction's `apps.crewCompanion.*` namespace; the timings and the
+ * are rebased onto Junction's `apps.deskCompanion.*` namespace; the timings and the
  * persistent/transient split are unchanged, because they are the behaviour.
  */
 
@@ -67,7 +67,7 @@ export function policyFor(kind: NotifKind): BubblePolicy {
       return {
         dismissMs: BREAK_MS,
         countdown: true,
-        ctaKey: 'apps.crewCompanion.breathe.start',
+        ctaKey: 'apps.deskCompanion.breathe.start',
         action: 'breathe',
       }
 
@@ -83,7 +83,7 @@ export function policyFor(kind: NotifKind): BubblePolicy {
       return {
         dismissMs: null,
         countdown: false,
-        ctaKey: 'apps.crewCompanion.notif.open_session',
+        ctaKey: 'apps.deskCompanion.notif.open_session',
         action: 'open-session',
       }
 

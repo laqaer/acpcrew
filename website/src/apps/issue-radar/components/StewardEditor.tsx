@@ -1,9 +1,9 @@
 /**
- * CrewEditor — the create / edit dialog for one Issue Radar crew.
+ * StewardEditor — the create / edit dialog for one Issue Radar steward.
  *
- * `crew` absent or null means CREATE; a record means EDIT. The two modes share
+ * `steward` absent or null means CREATE; a record means EDIT. The two modes share
  * every field, and differ in three places only: the title, the submit verb, and
- * what is SENT — create posts a full `CrewSpec`, edit sends a `CrewPatch` holding
+ * what is SENT — create posts a full `StewardSpec`, edit sends a `StewardPatch` holding
  * just the fields that actually moved. Sending the whole record as a "patch"
  * would make this dialog overwrite a field another surface changed while it sat
  * open (pause writes `paused_reason`, the roster can flip `enabled`), so the diff
@@ -13,15 +13,15 @@
  *
  * **The 409 is matched on the message, not a status code.** `issueRadarApi`
  * flattens every failure through `parseErrorBody` into `new Error(body.error)`,
- * so the route's `code: "crew_conflict"` and the 409 itself are both gone by the
+ * so the route's `code: "steward_conflict"` and the 409 itself are both gone by the
  * time a caller sees it. Widening the client to carry the status is the right
  * long-term fix and belongs in `api.ts`, which this component does not own. Until
  * then `isNameTakenError` reads the store's own phrase — see its comment for why
  * the match is safe on this route.
  *
  * **Backstop wake is read-only.** The mock shows it as a field, but no
- * `backstop_wake_*` key exists on `Crew`, `CrewSpec`, `CrewPatch` or
- * `steward_store._DEFAULT_CREW` — `_validated_crew_patch` would drop it silently. An
+ * `backstop_wake_*` key exists on `Steward`, `StewardSpec`, `StewardPatch` or
+ * `steward_store._DEFAULT_STEWARD` — `_validated_steward_patch` would drop it silently. An
  * editable input would therefore be a control that appears to save and does not,
  * which is worse than an honest read-only one. It is rendered with its real
  * value and a line saying it is fixed, exactly as the editing cap one section
@@ -53,8 +53,8 @@ import { Badge, Btn, IconButton, Input, Toggle } from '../../../components/ui'
 import SimpleSelect from '../../../components/SimpleSelect'
 import { useAgents } from '../../../hooks/useAgents'
 import { useAvailableModels } from '../../../hooks/useAvailableModels'
-import CrewPlate, { crewPlateVariant, crewPlateVariantCount } from './StewardPlate'
-import { issueRadarApi, type Crew, type CrewPatch, type CrewSpec } from '../api'
+import StewardPlate, { stewardPlateVariant, stewardPlateVariantCount } from './StewardPlate'
+import { issueRadarApi, type Steward, type StewardPatch, type StewardSpec } from '../api'
 import { repoScopeKey } from '../lib/links'
 import { useIssueRadar } from '../context'
 import { useImeGuard } from '../../../hooks/useImeGuard'
@@ -62,7 +62,7 @@ import { useImeGuard } from '../../../hooks/useImeGuard'
 /** Backstop wake, in seconds. A CONSTANT, not state: see the file header. */
 const BACKSTOP_WAKE_SECONDS = 120
 
-/** `steward_store._DEFAULT_CREW`, mirrored so a fresh dialog shows what the store
+/** `steward_store._DEFAULT_STEWARD`, mirrored so a fresh dialog shows what the store
  *  would have stored anyway — a create form that disagrees with the server's
  *  defaults teaches the user the wrong numbers. */
 const DEFAULTS = {
@@ -77,7 +77,7 @@ const DEFAULTS = {
   worktreeRoot: '',
 }
 
-/** `max_open` bounds, mirroring `_validated_crew_patch`, which DROPS an
+/** `max_open` bounds, mirroring `_validated_steward_patch`, which DROPS an
  *  out-of-range value rather than clamping it — so a 0 typed here would silently
  *  keep the old number if it were not clamped before sending.
  *
@@ -106,8 +106,8 @@ interface Draft {
   worktreeRoot: string
 }
 
-function draftFromCrew(crew: Crew | null | undefined): Draft {
-  if (!crew) {
+function draftFromSteward(steward: Steward | null | undefined): Draft {
+  if (!steward) {
     return {
       name: '',
       variant: null,
@@ -123,17 +123,17 @@ function draftFromCrew(crew: Crew | null | undefined): Draft {
     }
   }
   return {
-    name: crew.name,
-    variant: crew.avatar_variant,
-    agent: crew.agent,
-    model: crew.model,
-    extraPrompt: crew.extra_prompt,
-    labels: Array.isArray(crew.labels) ? [...crew.labels] : [],
-    autoResolveConflicts: crew.auto_resolve_conflicts,
-    autoMerge: crew.auto_merge,
-    unattended: crew.unattended,
-    maxOpen: crew.max_open,
-    worktreeRoot: crew.worktree_root,
+    name: steward.name,
+    variant: steward.avatar_variant,
+    agent: steward.agent,
+    model: steward.model,
+    extraPrompt: steward.extra_prompt,
+    labels: Array.isArray(steward.labels) ? [...steward.labels] : [],
+    autoResolveConflicts: steward.auto_resolve_conflicts,
+    autoMerge: steward.auto_merge,
+    unattended: steward.unattended,
+    maxOpen: steward.max_open,
+    worktreeRoot: steward.worktree_root,
   }
 }
 
@@ -164,13 +164,13 @@ function sameDraft(a: Draft, b: Draft): boolean {
 }
 
 /**
- * Whether a failed crew write was the duplicate-name conflict.
+ * Whether a failed steward write was the duplicate-name conflict.
  *
- * The phrase comes from `steward_store.create_crew` / `update_crew`
- * (`crew name {name!r} is already taken…`), which is the ONLY text either raise
+ * The phrase comes from `steward_store.create_steward` / `update_steward`
+ * (`steward name {name!r} is already taken…`), which is the ONLY text either raise
  * puts on that condition. `HTTP 409` is the second shape: `parseErrorBody` falls
  * back to it when a 409's body is not json, and on these two routes the only
- * other `CrewStoreError` is the empty-name guard — which the submit button's own
+ * other `StewardStoreError` is the empty-name guard — which the submit button's own
  * disabled state makes unreachable — so attributing a bare 409 here to the name
  * cannot mislabel a different conflict.
  */
@@ -232,7 +232,7 @@ function Field({
  *  `mono` is OPT-IN, and only for a chip whose text is a token rather than
  *  prose: the app font is user-configurable through `--font-body`, while
  *  Tailwind's `font-mono` reads `--mono`, so a chip that hardcodes it ignores
- *  the user's choice. A repo label IS a token; a crew's name is not. */
+ *  the user's choice. A repo label IS a token; a steward's name is not. */
 function Chip({
   on,
   onClick,
@@ -265,22 +265,22 @@ function Chip({
   )
 }
 
-export interface CrewEditorProps {
+export interface StewardEditorProps {
   open: boolean
   onClose: () => void
-  /** Absent or null = create. A record = edit that crew. */
-  crew?: Crew | null
+  /** Absent or null = create. A record = edit that steward. */
+  steward?: Steward | null
 }
 
-export default function CrewEditor({ open, onClose, crew }: CrewEditorProps) {
+export default function StewardEditor({ open, onClose, steward }: StewardEditorProps) {
   const ime = useImeGuard()
   const { t } = useTranslation()
   const { active } = useIssueRadar()
   const scopeKey = repoScopeKey(active)
   const qc = useQueryClient()
-  const editing = !!crew
+  const editing = !!steward
 
-  const [draft, setDraft] = useState<Draft>(() => draftFromCrew(crew))
+  const [draft, setDraft] = useState<Draft>(() => draftFromSteward(steward))
   /** The values the form OPENED with, and the only thing the close guard measures
    *  dirtiness against.
    *
@@ -289,7 +289,7 @@ export default function CrewEditor({ open, onClose, crew }: CrewEditorProps) {
    *  because that write is the DIALOG's, not the user's — counting it would make
    *  an untouched create form ask for confirmation on its first Escape, which is
    *  the annoyance this guard exists to avoid inflicting. */
-  const baseline = useRef<Draft>(draftFromCrew(crew))
+  const baseline = useRef<Draft>(draftFromSteward(steward))
   /** True while the discard confirmation is up. Only reachable when the form is
    *  dirty, so an untouched dialog still closes on one Escape. */
   const [confirmingDiscard, setConfirmingDiscard] = useState(false)
@@ -305,17 +305,17 @@ export default function CrewEditor({ open, onClose, crew }: CrewEditorProps) {
   const nameTouched = useRef(false)
   const addLabelRef = useRef<HTMLInputElement>(null)
 
-  // Re-seed on every open, and when the dialog is re-pointed at a DIFFERENT crew
+  // Re-seed on every open, and when the dialog is re-pointed at a DIFFERENT steward
   // without closing. The component itself stays mounted while closed (Radix owns
   // the exit animation), so nothing resets on its own.
   //
-  // Keyed on `crew?.id`, deliberately NOT on `crew`: the roster query this record
+  // Keyed on `steward?.id`, deliberately NOT on `steward`: the roster query this record
   // comes from refetches in the background, and every refetch hands down a new
-  // object for the same crew. Depending on the object identity would therefore
+  // object for the same steward. Depending on the object identity would therefore
   // wipe a half-typed form the moment an unrelated poll landed.
   useEffect(() => {
     if (!open) return
-    const seeded = draftFromCrew(crew)
+    const seeded = draftFromSteward(steward)
     baseline.current = seeded
     setDraft(seeded)
     setNameError(null)
@@ -323,13 +323,13 @@ export default function CrewEditor({ open, onClose, crew }: CrewEditorProps) {
     setConfirmingDiscard(false)
     setAddingLabel(false)
     setNewLabel('')
-    nameTouched.current = !!crew
-    // eslint-disable-next-line react-hooks/exhaustive-deps -- `crew?.id`, not `crew`: see above.
-  }, [open, crew?.id])
+    nameTouched.current = !!steward
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- `steward?.id`, not `steward`: see above.
+  }, [open, steward?.id])
 
   const namesQuery = useQuery({
-    queryKey: ['issue-radar', 'crew-names', scopeKey],
-    queryFn: () => issueRadarApi.suggestCrewNames(active),
+    queryKey: ['issue-radar', 'steward-names', scopeKey],
+    queryFn: () => issueRadarApi.suggestStewardNames(active),
     enabled: open,
   })
   const labelsQuery = useQuery({
@@ -339,20 +339,20 @@ export default function CrewEditor({ open, onClose, crew }: CrewEditorProps) {
   })
 
   /** The app's own agent roster — the same `/api/agents` list the chat and
-   *  schedule pickers read, so a crew can only be pointed at an agent that
+   *  schedule pickers read, so a steward can only be pointed at an agent that
    *  actually exists. `0` = never force a refresh; `App` owns the sync. */
   const { agents } = useAgents(0)
   /** THE model list, gated on `open`: this dialog stays mounted while closed
    *  (Radix owns the exit animation), and an ungated observer would spawn
-   *  kiro-cli's `--list-models` merely because the Crews view is on screen. */
+   *  kiro-cli's `--list-models` merely because the Stewards view is on screen. */
   const availableModels = useAvailableModels({ enabled: open })
 
   /**
    * Roster names, with the CURRENT agent kept present even when the roster no
    * longer lists it.
    *
-   * A crew outlives the agent config it names: deleting an agent template must
-   * not make this dialog silently re-point the crew at whatever happens to sort
+   * A steward outlives the agent config it names: deleting an agent template must
+   * not make this dialog silently re-point the steward at whatever happens to sort
    * first. The stale value leads the list instead, selected and visible, so the
    * user is the one who decides to change it.
    */
@@ -386,7 +386,7 @@ export default function CrewEditor({ open, onClose, crew }: CrewEditorProps) {
   }, [namesQuery.data])
 
   /** Repo labels first, in the repo's own order, then any free entry the user
-   *  added or the crew already owned that the repo does not (or no longer) list —
+   *  added or the steward already owned that the repo does not (or no longer) list —
    *  dropping those would silently un-own a label on the next save. */
   const labelChoices = useMemo(() => {
     const raw = labelsQuery.data?.labels
@@ -396,7 +396,7 @@ export default function CrewEditor({ open, onClose, crew }: CrewEditorProps) {
   }, [labelsQuery.data, draft.labels])
 
   // Pre-fill create mode from the first unused name, so the dialog opens on a
-  // valid crew instead of an empty required field. Guarded on `nameTouched`.
+  // valid steward instead of an empty required field. Guarded on `nameTouched`.
   //
   // The baseline moves with it. This is the dialog writing to its own form, so a
   // user who opens it and immediately presses Escape has changed nothing and must
@@ -413,15 +413,15 @@ export default function CrewEditor({ open, onClose, crew }: CrewEditorProps) {
     setDraft(d => ({ ...d, [key]: value }))
 
   const trimmedName = draft.name.trim()
-  /** In edit mode the face is pinned to the crew's stored seed, so a rename keeps
+  /** In edit mode the face is pinned to the steward's stored seed, so a rename keeps
    *  it (which is what the hint promises). In create mode there is no record yet,
    *  so the name IS the seed and the preview tracks it as the user types. */
-  const seed = crew ? crew.avatar_seed : trimmedName
+  const seed = steward ? steward.avatar_seed : trimmedName
   /** What the plates render from while the name is still empty. */
-  const plateSeed = seed || 'crew'
+  const plateSeed = seed || 'steward'
   /** The face in effect, resolved exactly as the plate resolves it, so the strip
    *  marks the face the preview is showing even for an out-of-range stored pin. */
-  const shownVariant = crewPlateVariant(plateSeed, draft.variant)
+  const shownVariant = stewardPlateVariant(plateSeed, draft.variant)
 
   const rollName = () => {
     if (suggestions.length === 0) return
@@ -474,26 +474,26 @@ export default function CrewEditor({ open, onClose, crew }: CrewEditorProps) {
 
   const submit = useMutation({
     mutationFn: async () => {
-      if (crew) {
-        const p: CrewPatch = {}
-        if (trimmedName !== crew.name) p.name = trimmedName
-        if (draft.variant !== crew.avatar_variant) p.avatar_variant = draft.variant
-        if (draft.agent !== crew.agent) p.agent = draft.agent
-        if (draft.model !== crew.model) p.model = draft.model
-        if (draft.extraPrompt !== crew.extra_prompt) p.extra_prompt = draft.extraPrompt
-        if (!sameLabels(draft.labels, Array.isArray(crew.labels) ? crew.labels : [])) {
+      if (steward) {
+        const p: StewardPatch = {}
+        if (trimmedName !== steward.name) p.name = trimmedName
+        if (draft.variant !== steward.avatar_variant) p.avatar_variant = draft.variant
+        if (draft.agent !== steward.agent) p.agent = draft.agent
+        if (draft.model !== steward.model) p.model = draft.model
+        if (draft.extraPrompt !== steward.extra_prompt) p.extra_prompt = draft.extraPrompt
+        if (!sameLabels(draft.labels, Array.isArray(steward.labels) ? steward.labels : [])) {
           p.labels = draft.labels
         }
-        if (draft.autoResolveConflicts !== crew.auto_resolve_conflicts) {
+        if (draft.autoResolveConflicts !== steward.auto_resolve_conflicts) {
           p.auto_resolve_conflicts = draft.autoResolveConflicts
         }
-        if (draft.autoMerge !== crew.auto_merge) p.auto_merge = draft.autoMerge
-        if (draft.unattended !== crew.unattended) p.unattended = draft.unattended
-        if (draft.maxOpen !== crew.max_open) p.max_open = draft.maxOpen
-        if (draft.worktreeRoot !== crew.worktree_root) p.worktree_root = draft.worktreeRoot
-        return issueRadarApi.updateCrew(active, crew.id, p)
+        if (draft.autoMerge !== steward.auto_merge) p.auto_merge = draft.autoMerge
+        if (draft.unattended !== steward.unattended) p.unattended = draft.unattended
+        if (draft.maxOpen !== steward.max_open) p.max_open = draft.maxOpen
+        if (draft.worktreeRoot !== steward.worktree_root) p.worktree_root = draft.worktreeRoot
+        return issueRadarApi.updateSteward(active, steward.id, p)
       }
-      const spec: CrewSpec = {
+      const spec: StewardSpec = {
         name: trimmedName,
         avatar_variant: draft.variant,
         agent: draft.agent,
@@ -506,25 +506,25 @@ export default function CrewEditor({ open, onClose, crew }: CrewEditorProps) {
         max_open: draft.maxOpen,
         worktree_root: draft.worktreeRoot,
       }
-      return issueRadarApi.createCrew(active, spec)
+      return issueRadarApi.createSteward(active, spec)
     },
     onMutate: () => {
       setNameError(null)
       setFormError(null)
     },
     onSuccess: () => {
-      qc.invalidateQueries({ queryKey: ['issue-radar', 'crews', scopeKey] })
-      if (crew) qc.invalidateQueries({ queryKey: ['issue-radar', 'crew', scopeKey, crew.id] })
-      qc.invalidateQueries({ queryKey: ['issue-radar', 'crew-names', scopeKey] })
+      qc.invalidateQueries({ queryKey: ['issue-radar', 'stewards', scopeKey] })
+      if (steward) qc.invalidateQueries({ queryKey: ['issue-radar', 'steward', scopeKey, steward.id] })
+      qc.invalidateQueries({ queryKey: ['issue-radar', 'steward-names', scopeKey] })
       onClose()
     },
     onError: (err: unknown) => {
       if (isNameTakenError(err)) {
-        setNameError(t('apps.issueRadar.views.crews.editor.name_taken'))
+        setNameError(t('apps.issueRadar.views.stewards.editor.name_taken'))
         return
       }
       setFormError(
-        t('apps.issueRadar.views.crews.editor.save_failed', {
+        t('apps.issueRadar.views.stewards.editor.save_failed', {
           message: err instanceof Error ? err.message : String(err ?? ''),
         }),
       )
@@ -532,15 +532,15 @@ export default function CrewEditor({ open, onClose, crew }: CrewEditorProps) {
   })
 
   const title = editing
-    ? t('apps.issueRadar.views.crews.editor.title_edit')
-    : t('apps.issueRadar.views.crews.editor.title_create')
+    ? t('apps.issueRadar.views.stewards.editor.title_edit')
+    : t('apps.issueRadar.views.stewards.editor.title_create')
   // The dialog's accessible name, which `DialogContent` lets `aria-label`
-  // outrank the visible title for: in edit mode the title alone ("Edit crew")
-  // does not say WHICH crew, and that is the one thing a screen-reader user
+  // outrank the visible title for: in edit mode the title alone ("Edit steward")
+  // does not say WHICH steward, and that is the one thing a screen-reader user
   // needs before typing into it.
   const dialogName = editing
-    ? t('apps.issueRadar.views.crews.editor.aria_edit', { name: crew?.name ?? '' })
-    : t('apps.issueRadar.views.crews.editor.aria_create')
+    ? t('apps.issueRadar.views.stewards.editor.aria_edit', { name: steward?.name ?? '' })
+    : t('apps.issueRadar.views.stewards.editor.aria_create')
 
   const toggles: Array<{
     key: 'autoResolveConflicts' | 'autoMerge' | 'unattended'
@@ -550,21 +550,21 @@ export default function CrewEditor({ open, onClose, crew }: CrewEditorProps) {
   }> = [
     {
       key: 'autoResolveConflicts',
-      label: t('apps.issueRadar.views.crews.editor.conflicts_label'),
-      hint: t('apps.issueRadar.views.crews.editor.conflicts_hint'),
-      testId: 'crew-editor-auto-resolve',
+      label: t('apps.issueRadar.views.stewards.editor.conflicts_label'),
+      hint: t('apps.issueRadar.views.stewards.editor.conflicts_hint'),
+      testId: 'steward-editor-auto-resolve',
     },
     {
       key: 'autoMerge',
-      label: t('apps.issueRadar.views.crews.editor.automerge_label'),
-      hint: t('apps.issueRadar.views.crews.editor.automerge_hint'),
-      testId: 'crew-editor-auto-merge',
+      label: t('apps.issueRadar.views.stewards.editor.automerge_label'),
+      hint: t('apps.issueRadar.views.stewards.editor.automerge_hint'),
+      testId: 'steward-editor-auto-merge',
     },
     {
       key: 'unattended',
-      label: t('apps.issueRadar.views.crews.editor.unattended_label'),
-      hint: t('apps.issueRadar.views.crews.editor.unattended_hint'),
-      testId: 'crew-editor-unattended',
+      label: t('apps.issueRadar.views.stewards.editor.unattended_label'),
+      hint: t('apps.issueRadar.views.stewards.editor.unattended_hint'),
+      testId: 'steward-editor-unattended',
     },
   ]
 
@@ -603,7 +603,7 @@ export default function CrewEditor({ open, onClose, crew }: CrewEditorProps) {
       <DialogContent
         maxWidth={660}
         aria-label={dialogName}
-        data-testid="crew-editor"
+        data-testid="steward-editor"
         // The label entry box is a layer inside this one, and Radix has no
         // concept of it — so the first Escape has to retract it instead of
         // discarding the whole half-filled form. Handled HERE, not on the input:
@@ -617,7 +617,7 @@ export default function CrewEditor({ open, onClose, crew }: CrewEditorProps) {
         }}
       >
         <DialogHeader>
-          <CrewPlate seed={plateSeed} variant={draft.variant} size={26} />
+          <StewardPlate seed={plateSeed} variant={draft.variant} size={26} />
           <DialogTitle>{title}</DialogTitle>
           <Badge variant="muted" className="ml-auto">
             {active.owner}/{active.repo}
@@ -626,26 +626,26 @@ export default function CrewEditor({ open, onClose, crew }: CrewEditorProps) {
 
         <DialogBody>
           {/* ── Identity ── */}
-          <SectionLabel>{t('apps.issueRadar.views.crews.editor.section_identity')}</SectionLabel>
+          <SectionLabel>{t('apps.issueRadar.views.stewards.editor.section_identity')}</SectionLabel>
           <div className="flex items-start gap-4">
             <div className="flex h-[104px] w-[104px] shrink-0 items-center justify-center rounded-lg border border-border bg-bg-elevated">
-              <CrewPlate seed={plateSeed} variant={draft.variant} size={78} />
+              <StewardPlate seed={plateSeed} variant={draft.variant} size={78} />
             </div>
             <div className="min-w-0 flex-1">
               <div
                 role="group"
-                aria-label={t('apps.issueRadar.views.crews.editor.face_strip_label')}
+                aria-label={t('apps.issueRadar.views.stewards.editor.face_strip_label')}
                 className="flex flex-wrap gap-1.5"
               >
-                {Array.from({ length: crewPlateVariantCount }, (_, i) => (
+                {Array.from({ length: stewardPlateVariantCount }, (_, i) => (
                   <button
                     key={i}
                     type="button"
                     aria-pressed={shownVariant === i}
-                    aria-label={t('apps.issueRadar.views.crews.editor.face_variant', {
+                    aria-label={t('apps.issueRadar.views.stewards.editor.face_variant', {
                       index: i + 1,
                     })}
-                    data-testid={`crew-face-${i}`}
+                    data-testid={`steward-face-${i}`}
                     onClick={() => pickVariant(i)}
                     className={`flex h-[52px] w-[52px] items-center justify-center rounded-md border transition-colors focus-ring ${
                       shownVariant === i
@@ -653,12 +653,12 @@ export default function CrewEditor({ open, onClose, crew }: CrewEditorProps) {
                         : 'border-border bg-bg-elevated hover:border-border-strong'
                     }`}
                   >
-                    <CrewPlate seed={plateSeed} variant={i} size={40} />
+                    <StewardPlate seed={plateSeed} variant={i} size={40} />
                   </button>
                 ))}
               </div>
               <p className="mt-2 text-[12px] leading-relaxed text-muted">
-                {t('apps.issueRadar.views.crews.editor.face_hint')}
+                {t('apps.issueRadar.views.stewards.editor.face_hint')}
               </p>
             </div>
           </div>
@@ -669,17 +669,17 @@ export default function CrewEditor({ open, onClose, crew }: CrewEditorProps) {
                   an interactive descendant of a label is a second thing to click
                   in one hit area. */}
               {/* eslint-disable-next-line jsx-a11y/label-has-for -- nested + htmlFor→id both hold; the deprecated rule cannot see through the custom `Input`. */}
-              <label htmlFor="crew-editor-name" className="min-w-0 flex-1">
+              <label htmlFor="steward-editor-name" className="min-w-0 flex-1">
                 <span className="mb-1.5 block text-[13px] font-semibold text-text">
-                  {t('apps.issueRadar.views.crews.editor.name_label')}
+                  {t('apps.issueRadar.views.stewards.editor.name_label')}
                 </span>
                 <Input
-                  id="crew-editor-name"
-                  data-testid="crew-editor-name"
+                  id="steward-editor-name"
+                  data-testid="steward-editor-name"
                   className="w-full"
                   value={draft.name}
                   aria-invalid={nameError ? true : undefined}
-                  aria-describedby={nameError ? 'crew-editor-name-error' : undefined}
+                  aria-describedby={nameError ? 'steward-editor-name-error' : undefined}
                   onChange={e => {
                     nameTouched.current = true
                     setNameError(null)
@@ -693,14 +693,14 @@ export default function CrewEditor({ open, onClose, crew }: CrewEditorProps) {
                 disabled={suggestions.length === 0}
                 className="shrink-0 py-2"
               >
-                {t('apps.issueRadar.views.crews.editor.name_roll')}
+                {t('apps.issueRadar.views.stewards.editor.name_roll')}
               </Btn>
             </div>
             {nameError && (
               <p
-                id="crew-editor-name-error"
+                id="steward-editor-name-error"
                 role="alert"
-                data-testid="crew-editor-name-error"
+                data-testid="steward-editor-name-error"
                 className="mt-1.5 text-[12px] font-medium text-danger"
               >
                 {nameError}
@@ -716,12 +716,12 @@ export default function CrewEditor({ open, onClose, crew }: CrewEditorProps) {
               </div>
             )}
             <p className="mt-1.5 text-[12px] leading-relaxed text-muted">
-              {t('apps.issueRadar.views.crews.editor.name_hint')}
+              {t('apps.issueRadar.views.stewards.editor.name_hint')}
             </p>
           </div>
 
           {/* ── Behaviour ── */}
-          <SectionLabel>{t('apps.issueRadar.views.crews.editor.section_behaviour')}</SectionLabel>
+          <SectionLabel>{t('apps.issueRadar.views.stewards.editor.section_behaviour')}</SectionLabel>
           {/* Both pickers render a <button>, not a <select>, so an external
               `<label htmlFor>` cannot associate with them — the heading is a
               plain span and the control carries the same string as its
@@ -735,43 +735,43 @@ export default function CrewEditor({ open, onClose, crew }: CrewEditorProps) {
               reads that as focus-outside and dismisses itself on open. Radix
               Select nests inside a modal dialog by design. */}
           <div className="grid grid-cols-2 gap-4">
-            <div className="min-w-0" data-testid="crew-editor-agent">
+            <div className="min-w-0" data-testid="steward-editor-agent">
               <span className="mb-1.5 block text-[13px] font-semibold text-text">
-                {t('apps.issueRadar.views.crews.editor.agent_label')}
+                {t('apps.issueRadar.views.stewards.editor.agent_label')}
               </span>
               <SimpleSelect
-                aria-label={t('apps.issueRadar.views.crews.editor.agent_label')}
+                aria-label={t('apps.issueRadar.views.stewards.editor.agent_label')}
                 options={agentOptions}
                 value={draft.agent}
                 onChange={v => patch('agent', v)}
               />
               <p className="mt-1.5 text-[12px] leading-relaxed text-muted">
-                {t('apps.issueRadar.views.crews.editor.agent_hint')}
+                {t('apps.issueRadar.views.stewards.editor.agent_hint')}
               </p>
             </div>
-            <div className="min-w-0" data-testid="crew-editor-model">
+            <div className="min-w-0" data-testid="steward-editor-model">
               <span className="mb-1.5 block text-[13px] font-semibold text-text">
-                {t('apps.issueRadar.views.crews.editor.model_label')}
+                {t('apps.issueRadar.views.stewards.editor.model_label')}
               </span>
               <SimpleSelect
-                aria-label={t('apps.issueRadar.views.crews.editor.model_label')}
+                aria-label={t('apps.issueRadar.views.stewards.editor.model_label')}
                 options={modelOptions}
                 value={draft.model}
                 // The inherit-the-agent's-default row. `clearLabel` is the one
                 // affordance that can SET `''` back, so without it a user who
-                // picked a model could never return the crew to inheriting.
-                clearLabel={t('apps.issueRadar.views.crews.editor.model_auto')}
+                // picked a model could never return the steward to inheriting.
+                clearLabel={t('apps.issueRadar.views.stewards.editor.model_auto')}
                 onChange={v => patch('model', v)}
               />
               <p className="mt-1.5 text-[12px] leading-relaxed text-muted">
-                {t('apps.issueRadar.views.crews.editor.model_hint')}
+                {t('apps.issueRadar.views.stewards.editor.model_hint')}
               </p>
             </div>
           </div>
           <div className="mt-4">
             <Field
-              id="crew-editor-prompt"
-              label={t('apps.issueRadar.views.crews.editor.prompt_label')}
+              id="steward-editor-prompt"
+              label={t('apps.issueRadar.views.stewards.editor.prompt_label')}
             >
               {/* No shared textarea primitive exists; Input's class string is
                   reused verbatim so the two controls cannot drift apart.
@@ -779,11 +779,11 @@ export default function CrewEditor({ open, onClose, crew }: CrewEditorProps) {
                   which no static rule can follow across that boundary. */}
               {/* eslint-disable-next-line jsx-a11y/control-has-associated-label */}
               <textarea
-                id="crew-editor-prompt"
-                data-testid="crew-editor-prompt"
+                id="steward-editor-prompt"
+                data-testid="steward-editor-prompt"
                 rows={3}
                 value={draft.extraPrompt}
-                placeholder={t('apps.issueRadar.views.crews.editor.prompt_placeholder')}
+                placeholder={t('apps.issueRadar.views.stewards.editor.prompt_placeholder')}
                 onChange={e => patch('extraPrompt', e.target.value)}
                 className="w-full resize-y rounded-md border border-border bg-bg-elevated px-3 py-2 font-body text-sm text-text outline-none transition-colors focus-ring"
               />
@@ -791,12 +791,12 @@ export default function CrewEditor({ open, onClose, crew }: CrewEditorProps) {
           </div>
 
           {/* ── Scope ── */}
-          <SectionLabel>{t('apps.issueRadar.views.crews.editor.section_scope')}</SectionLabel>
+          <SectionLabel>{t('apps.issueRadar.views.stewards.editor.section_scope')}</SectionLabel>
           <div>
-            <span className="mb-1.5 block text-[13px] font-semibold text-text" id="crew-editor-labels-label">
-              {t('apps.issueRadar.views.crews.editor.labels_label')}
+            <span className="mb-1.5 block text-[13px] font-semibold text-text" id="steward-editor-labels-label">
+              {t('apps.issueRadar.views.stewards.editor.labels_label')}
             </span>
-            <div className="flex flex-wrap items-center gap-1.5" aria-labelledby="crew-editor-labels-label" role="group">
+            <div className="flex flex-wrap items-center gap-1.5" aria-labelledby="steward-editor-labels-label" role="group">
               {labelChoices.map(name => (
                 <Chip
                   key={name}
@@ -811,8 +811,8 @@ export default function CrewEditor({ open, onClose, crew }: CrewEditorProps) {
                 <span className="inline-flex items-center gap-1">
                   <Input
                     ref={addLabelRef}
-                    aria-label={t('apps.issueRadar.views.crews.editor.labels_add_placeholder')}
-                    data-testid="crew-editor-new-label"
+                    aria-label={t('apps.issueRadar.views.stewards.editor.labels_add_placeholder')}
+                    data-testid="steward-editor-new-label"
                     className="w-40 py-1 font-mono text-[12px]"
                     value={newLabel}
                     onChange={e => setNewLabel(e.target.value)}
@@ -823,14 +823,14 @@ export default function CrewEditor({ open, onClose, crew }: CrewEditorProps) {
                     {...ime.bindEnter({ onEnter: commitNewLabel })}
                   />
                   <IconButton
-                    aria-label={t('apps.issueRadar.views.crews.editor.labels_add_commit')}
+                    aria-label={t('apps.issueRadar.views.stewards.editor.labels_add_commit')}
                     variant="accent"
                     onClick={commitNewLabel}
                   >
                     <Plus size={14} className="lucide-inline" />
                   </IconButton>
                   <IconButton
-                    aria-label={t('apps.issueRadar.views.crews.editor.labels_add_cancel')}
+                    aria-label={t('apps.issueRadar.views.stewards.editor.labels_add_cancel')}
                     onClick={closeAddLabel}
                   >
                     <X size={14} className="lucide-inline" />
@@ -843,15 +843,15 @@ export default function CrewEditor({ open, onClose, crew }: CrewEditorProps) {
                     // Focus after paint: the input does not exist yet on this tick.
                     requestAnimationFrame(() => addLabelRef.current?.focus())
                   }}
-                  ariaLabel={t('apps.issueRadar.views.crews.editor.labels_add')}
+                  ariaLabel={t('apps.issueRadar.views.stewards.editor.labels_add')}
                 >
                   <Plus size={12} className="lucide-inline" />
-                  {t('apps.issueRadar.views.crews.editor.labels_add')}
+                  {t('apps.issueRadar.views.stewards.editor.labels_add')}
                 </Chip>
               )}
             </div>
             <p className="mt-1.5 text-[12px] leading-relaxed text-muted">
-              {t('apps.issueRadar.views.crews.editor.labels_hint')}
+              {t('apps.issueRadar.views.stewards.editor.labels_hint')}
             </p>
           </div>
 
@@ -881,16 +881,16 @@ export default function CrewEditor({ open, onClose, crew }: CrewEditorProps) {
           </div>
 
           {/* ── Limits ── */}
-          <SectionLabel>{t('apps.issueRadar.views.crews.editor.section_limits')}</SectionLabel>
+          <SectionLabel>{t('apps.issueRadar.views.stewards.editor.section_limits')}</SectionLabel>
           <div className="grid grid-cols-2 gap-4">
             <Field
-              id="crew-editor-max-open"
-              label={t('apps.issueRadar.views.crews.editor.max_open_label')}
-              hint={t('apps.issueRadar.views.crews.editor.max_open_hint')}
+              id="steward-editor-max-open"
+              label={t('apps.issueRadar.views.stewards.editor.max_open_label')}
+              hint={t('apps.issueRadar.views.stewards.editor.max_open_hint')}
             >
               <Input
-                id="crew-editor-max-open"
-                data-testid="crew-editor-max-open"
+                id="steward-editor-max-open"
+                data-testid="steward-editor-max-open"
                 className="w-full tabular-nums"
                 type="number"
                 min={SLOT_MIN}
@@ -903,19 +903,19 @@ export default function CrewEditor({ open, onClose, crew }: CrewEditorProps) {
                 there is to say about this field, and two muted lines under one
                 control read as two different facts. */}
             <Field
-              id="crew-editor-backstop"
-              label={t('apps.issueRadar.views.crews.editor.backstop_label')}
+              id="steward-editor-backstop"
+              label={t('apps.issueRadar.views.stewards.editor.backstop_label')}
             >
               <Input
-                id="crew-editor-backstop"
-                data-testid="crew-editor-backstop"
+                id="steward-editor-backstop"
+                data-testid="steward-editor-backstop"
                 className="w-full tabular-nums"
                 readOnly
                 value={BACKSTOP_WAKE_SECONDS}
-                aria-describedby="crew-editor-backstop-fixed"
+                aria-describedby="steward-editor-backstop-fixed"
               />
-              <p id="crew-editor-backstop-fixed" className="mt-1.5 text-[12px] text-muted">
-                {t('apps.issueRadar.views.crews.editor.backstop_fixed', {
+              <p id="steward-editor-backstop-fixed" className="mt-1.5 text-[12px] text-muted">
+                {t('apps.issueRadar.views.stewards.editor.backstop_fixed', {
                   seconds: BACKSTOP_WAKE_SECONDS,
                 })}
               </p>
@@ -923,18 +923,18 @@ export default function CrewEditor({ open, onClose, crew }: CrewEditorProps) {
           </div>
 
           {/* ── Workspace ── */}
-          <SectionLabel>{t('apps.issueRadar.views.crews.editor.section_workspace')}</SectionLabel>
+          <SectionLabel>{t('apps.issueRadar.views.stewards.editor.section_workspace')}</SectionLabel>
           <Field
-            id="crew-editor-worktree"
-            label={t('apps.issueRadar.views.crews.editor.worktree_label')}
-            hint={t('apps.issueRadar.views.crews.editor.worktree_hint')}
+            id="steward-editor-worktree"
+            label={t('apps.issueRadar.views.stewards.editor.worktree_label')}
+            hint={t('apps.issueRadar.views.stewards.editor.worktree_hint')}
           >
             <Input
-              id="crew-editor-worktree"
-              data-testid="crew-editor-worktree"
+              id="steward-editor-worktree"
+              data-testid="steward-editor-worktree"
               className="w-full font-mono"
               value={draft.worktreeRoot}
-              placeholder={t('apps.issueRadar.views.crews.editor.worktree_placeholder')}
+              placeholder={t('apps.issueRadar.views.stewards.editor.worktree_placeholder')}
               onChange={e => patch('worktreeRoot', e.target.value)}
             />
           </Field>
@@ -944,28 +944,28 @@ export default function CrewEditor({ open, onClose, crew }: CrewEditorProps) {
           {formError && (
             <p
               role="alert"
-              data-testid="crew-editor-error"
+              data-testid="steward-editor-error"
               className="mr-auto text-[12px] font-medium text-danger"
             >
               {formError}
             </p>
           )}
           <Btn type="button" onClick={requestClose} className="py-1.5">
-            {t('apps.issueRadar.views.crews.editor.cancel')}
+            {t('apps.issueRadar.views.stewards.editor.cancel')}
           </Btn>
           <Btn
             type="button"
             primary
             className="py-1.5"
-            data-testid="crew-editor-submit"
+            data-testid="steward-editor-submit"
             disabled={!canSubmit}
             onClick={() => submit.mutate()}
           >
             {submit.isPending
-              ? t('apps.issueRadar.views.crews.editor.saving')
+              ? t('apps.issueRadar.views.stewards.editor.saving')
               : editing
-                ? t('apps.issueRadar.views.crews.editor.submit_edit')
-                : t('apps.issueRadar.views.crews.editor.submit_create')}
+                ? t('apps.issueRadar.views.stewards.editor.submit_edit')
+                : t('apps.issueRadar.views.stewards.editor.submit_create')}
           </Btn>
         </DialogFooter>
       </DialogContent>
@@ -986,13 +986,13 @@ export default function CrewEditor({ open, onClose, crew }: CrewEditorProps) {
         if (!next) setConfirmingDiscard(false)
       }}
     >
-      <DialogContent maxWidth={420} hideClose data-testid="crew-editor-discard">
+      <DialogContent maxWidth={420} hideClose data-testid="steward-editor-discard">
         <DialogHeader>
-          <DialogTitle>{t('apps.issueRadar.views.crews.editor.discard_title')}</DialogTitle>
+          <DialogTitle>{t('apps.issueRadar.views.stewards.editor.discard_title')}</DialogTitle>
         </DialogHeader>
         <DialogBody>
           <DialogDescription>
-            {t('apps.issueRadar.views.crews.editor.discard_body')}
+            {t('apps.issueRadar.views.stewards.editor.discard_body')}
           </DialogDescription>
         </DialogBody>
         <DialogFooter>
@@ -1000,22 +1000,22 @@ export default function CrewEditor({ open, onClose, crew }: CrewEditorProps) {
             type="button"
             primary
             className="py-1.5"
-            data-testid="crew-editor-discard-keep"
+            data-testid="steward-editor-discard-keep"
             onClick={() => setConfirmingDiscard(false)}
           >
-            {t('apps.issueRadar.views.crews.editor.discard_keep')}
+            {t('apps.issueRadar.views.stewards.editor.discard_keep')}
           </Btn>
           <Btn
             type="button"
             danger
             className="py-1.5"
-            data-testid="crew-editor-discard-confirm"
+            data-testid="steward-editor-discard-confirm"
             onClick={() => {
               setConfirmingDiscard(false)
               onClose()
             }}
           >
-            {t('apps.issueRadar.views.crews.editor.discard_confirm')}
+            {t('apps.issueRadar.views.stewards.editor.discard_confirm')}
           </Btn>
         </DialogFooter>
       </DialogContent>

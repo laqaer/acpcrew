@@ -1,13 +1,13 @@
 /**
- * The pinned-crew chip row's cut edge must be marked ON the boundary, never
+ * The pinned-instance chip row's cut edge must be marked ON the boundary, never
  * ACROSS the chips.
  *
  * The row is one nowrap line with `overflow:hidden`, so the chip at the boundary
- * is cut rather than dropped (see InstanceTabBar.CrewChipRow). An alpha mask over
+ * is cut rather than dropped (see InstanceTabBar.InstanceChipRow). An alpha mask over
  * the row's trailing pixels marks that cut by ERASING it: a chip's unread badge
  * is its trailing element, so any cut reaches the badge first, and a ramp wider
  * than the 16px badge dissolves the count the chip exists to show. At the rungs
- * where the crew name has already collapsed, the badge is nearly all the chip has.
+ * where the instance name has already collapsed, the badge is nearly all the chip has.
  *
  * These pin the shape of the replacement, because both halves are invisible to
  * every other test: jsdom performs no layout, so no rendered-component test can
@@ -22,11 +22,11 @@ const __dirname = dirname(fileURLToPath(import.meta.url))
 const css = () => readFile(join(__dirname, '..', 'index.css'), 'utf8')
 const tsx = () => readFile(join(__dirname, '..', 'components', 'InstanceTabBar.tsx'), 'utf8')
 
-describe('crew chip row cut edge', () => {
+describe('instance chip row cut edge', () => {
   it('paints no alpha mask over the chip row', async () => {
     const s = await css()
     // Every rule that names the row, with its declarations.
-    const rules = s.match(/\.crew-chip-row[^{]*\{[^}]*\}/g) || []
+    const rules = s.match(/\.instance-chip-row[^{]*\{[^}]*\}/g) || []
     expect(rules.length, 'expected at least one rule for the chip row').toBeGreaterThan(0)
     for (const rule of rules) {
       expect(rule, 'a mask over the row erases the unread badge at the cut').not.toMatch(
@@ -37,7 +37,7 @@ describe('crew chip row cut edge', () => {
 
   it('marks the cut with a 1px rule that takes no layout', async () => {
     const s = await css()
-    const rule = /\.crew-chip-row\[data-cut='true'\]::after\s*\{([^}]*)\}/.exec(s)
+    const rule = /\.instance-chip-row\[data-cut='true'\]::after\s*\{([^}]*)\}/.exec(s)
     expect(rule, 'expected the cut-edge rule').not.toBeNull()
     const body = rule![1]
     // Absolute so the cue cannot change the row's width — which is the very
@@ -50,7 +50,7 @@ describe('crew chip row cut edge', () => {
 
   it('drives the cue off the measured clip, not off a constant', async () => {
     const t = await tsx()
-    expect(t, 'the row carries the cue hook').toMatch(/className="crew-chip-row /)
+    expect(t, 'the row carries the cue hook').toMatch(/className="instance-chip-row /)
     expect(t, "data-cut reflects the measurement").toMatch(
       /data-cut=\{clipped\.size > 0 \? 'true' : 'false'\}/,
     )
@@ -86,15 +86,15 @@ describe('pinned chips adapt to their own track', () => {
     )
     // One source of truth for the floor: the name carries no minimum of its own.
     expect(t, 'the name span carries no competing floor').toMatch(
-      /className="tb-drop-crew-name truncate max-w-\[140px\]"/,
+      /className="tb-drop-instance-name truncate max-w-\[140px\]"/,
     )
   })
 
-  it('keeps the crew on screen at full width', async () => {
+  it('keeps the instance on screen at full width', async () => {
     const t = await tsx()
     // The active chip is rendered by `Switcher`, outside the row, and must NOT be
     // shrinkable: it is the one label that says where you are.
-    const active = /className="tb-crew-active-chip"[\s\S]{0,200}?\/>/.exec(t)
+    const active = /className="tb-instance-active-chip"[\s\S]{0,200}?\/>/.exec(t)
       || /active\s*\n\s*onSelect=\{\(\) => onSelect\(active\.id\)\}[\s\S]{0,200}?\/>/.exec(t)
     expect(active, 'expected the active-chip render site').not.toBeNull()
     expect(active![0], 'the active chip must not be shrinkable').not.toMatch(/shrinkable/)

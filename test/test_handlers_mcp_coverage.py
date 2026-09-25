@@ -79,7 +79,7 @@ def sandbox(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> SimpleNamespace:
     global_json.parent.mkdir(parents=True, exist_ok=True)
     monkeypatch.setattr(mcp_mod, "_GLOBAL_MCP_JSON", global_json)
     monkeypatch.setattr(mcp_mod, "_MCP_LOCK_PATH", global_json.with_suffix(".lock"))
-    monkeypatch.setattr(mcp_mod, "_JUNCTION_MCP_JSON", tmp_path / "crew" / "mcp.json")
+    monkeypatch.setattr(mcp_mod, "_JUNCTION_MCP_JSON", tmp_path / "data-home" / "mcp.json")
     monkeypatch.setattr(mcp_mod, "_extra_mcp_scopes", list)
     sel = MagicMock()
     monkeypatch.setattr(mcp_mod, "sel", lambda: sel)

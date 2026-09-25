@@ -27,7 +27,7 @@ const mocks = vi.hoisted(() => ({
   api: {
     remindersList: vi.fn(),
     remindersRemove: vi.fn(),
-    getCrewCompanionConfig: vi.fn(),
+    getDeskCompanionConfig: vi.fn(),
     updateConfig: vi.fn(),
     onConfigUpdated: vi.fn(),
   },
@@ -71,7 +71,7 @@ beforeEach(() => {
   broadcast = () => {}
   api.remindersList.mockResolvedValue([])
   api.remindersRemove.mockResolvedValue(true)
-  api.getCrewCompanionConfig.mockResolvedValue({})
+  api.getDeskCompanionConfig.mockResolvedValue({})
   api.updateConfig.mockResolvedValue(true)
   api.onConfigUpdated.mockImplementation((cb: () => void) => {
     broadcast = cb
@@ -309,7 +309,7 @@ describe('AllRemindersView — the full list', () => {
 
 describe('SettingsView — reads once, then follows the broadcast', () => {
   it('shows both switches on and the stored cadence selected', async () => {
-    api.getCrewCompanionConfig.mockResolvedValue({
+    api.getDeskCompanionConfig.mockResolvedValue({
       breakNudgesEnabled: true,
       sessionNotificationsEnabled: true,
       breakReminderMins: 60,
@@ -325,14 +325,14 @@ describe('SettingsView — reads once, then follows the broadcast', () => {
   })
 
   it('keeps its defaults when the config answers with nothing usable', async () => {
-    api.getCrewCompanionConfig.mockResolvedValue({
+    api.getDeskCompanionConfig.mockResolvedValue({
       breakNudgesEnabled: 'yes',
       sessionNotificationsEnabled: null,
       breakReminderMins: '90',
     })
     render(<SettingsView />)
 
-    await waitFor(() => expect(api.getCrewCompanionConfig).toHaveBeenCalled())
+    await waitFor(() => expect(api.getDeskCompanionConfig).toHaveBeenCalled())
     // Wrong types are ignored rather than coerced, so the 45 default survives.
     expect(preset(45)).toHaveAttribute('aria-pressed', 'true')
     expect(switches()[0].checked).toBe(true)
@@ -340,18 +340,18 @@ describe('SettingsView — reads once, then follows the broadcast', () => {
   })
 
   it('survives a null config and a failed read', async () => {
-    api.getCrewCompanionConfig.mockResolvedValue(null)
+    api.getDeskCompanionConfig.mockResolvedValue(null)
     render(<SettingsView />)
     await waitFor(() => expect(preset(45)).toHaveAttribute('aria-pressed', 'true'))
 
     cleanup()
-    api.getCrewCompanionConfig.mockRejectedValue(new Error('bridge is down'))
+    api.getDeskCompanionConfig.mockRejectedValue(new Error('bridge is down'))
     render(<SettingsView />)
     await waitFor(() => expect(preset(45)).toHaveAttribute('aria-pressed', 'true'))
   })
 
   it('hides the cadence row while break nudges are off', async () => {
-    api.getCrewCompanionConfig.mockResolvedValue({ breakNudgesEnabled: false })
+    api.getDeskCompanionConfig.mockResolvedValue({ breakNudgesEnabled: false })
     render(<SettingsView />)
 
     await waitFor(() => expect(switches()[0].checked).toBe(false))
@@ -399,7 +399,7 @@ describe('SettingsView — reads once, then follows the broadcast', () => {
   })
 
   it('shows the live value in the custom field when the interval is not a preset', async () => {
-    api.getCrewCompanionConfig.mockResolvedValue({ breakReminderMins: 200 })
+    api.getDeskCompanionConfig.mockResolvedValue({ breakReminderMins: 200 })
     render(<SettingsView />)
 
     await waitFor(() => expect(customField().value).toBe('200'))
@@ -427,7 +427,7 @@ describe('SettingsView — reads once, then follows the broadcast', () => {
   })
 
   it('seeds the draft with the live value when that value is custom', async () => {
-    api.getCrewCompanionConfig.mockResolvedValue({ breakReminderMins: 200 })
+    api.getDeskCompanionConfig.mockResolvedValue({ breakReminderMins: 200 })
     render(<SettingsView />)
     await waitFor(() => expect(customField().value).toBe('200'))
 
@@ -497,7 +497,7 @@ describe('SettingsView — reads once, then follows the broadcast', () => {
     expect(customField().value).toBe('77')
 
     // The dashboard app page edits the same settings; this window only hears it.
-    api.getCrewCompanionConfig.mockResolvedValue({ breakReminderMins: 90 })
+    api.getDeskCompanionConfig.mockResolvedValue({ breakReminderMins: 90 })
     await act(async () => { broadcast() })
 
     await waitFor(() => expect(preset(90)).toHaveAttribute('aria-pressed', 'true'))

@@ -37,9 +37,9 @@ interface AskChoice {
    * the literal at the `i18nT` call site, and this one arrives through a variable.
    */
   key:
-    | 'apps.crewCompanion.panel.ask.in1h'
-    | 'apps.crewCompanion.panel.ask.tomorrow'
-    | 'apps.crewCompanion.panel.ask.daily'
+    | 'apps.deskCompanion.panel.ask.in1h'
+    | 'apps.deskCompanion.panel.ask.tomorrow'
+    | 'apps.deskCompanion.panel.ask.daily'
   /** null for a one-time reminder. */
   everyMinutes: number | null
   /** When it first fires. */
@@ -47,15 +47,15 @@ interface AskChoice {
 }
 
 const ASK_CHOICES: ReadonlyArray<AskChoice> = [  {
-    key: 'apps.crewCompanion.panel.ask.in1h' as const, everyMinutes: null,
+    key: 'apps.deskCompanion.panel.ask.in1h' as const, everyMinutes: null,
     at: (n) => new Date(n.getTime() + 60 * 60_000),
   },
   {
-    key: 'apps.crewCompanion.panel.ask.tomorrow' as const, everyMinutes: null,
+    key: 'apps.deskCompanion.panel.ask.tomorrow' as const, everyMinutes: null,
     at: (n) => { const d = new Date(n); d.setDate(d.getDate() + 1); d.setHours(9, 0, 0, 0); return d },
   },
   {
-    key: 'apps.crewCompanion.panel.ask.daily' as const, everyMinutes: 1440,
+    key: 'apps.deskCompanion.panel.ask.daily' as const, everyMinutes: 1440,
     at: (n) => new Date(n.getTime() + 1440 * 60_000),
   },
 ]
@@ -80,7 +80,7 @@ function confirmLabel(
 ): string {
   const time = fmtTime(fireAt)
   if (everyMinutes) {
-    if (everyMinutes === 1440) return i18nT('apps.crewCompanion.panel.confirm.daily', { time })
+    if (everyMinutes === 1440) return i18nT('apps.deskCompanion.panel.confirm.daily', { time })
     // fmtUnit rather than `${n}h`: the digits localize, the unit comes from the
     // locale's own narrow form, and the gap between them is whatever that locale
     // uses -- a welded Latin suffix is none of those things.
@@ -89,7 +89,7 @@ function confirmLabel(
       : everyMinutes % 60 === 0
         ? fmtUnit(everyMinutes / 60, 'hour')
         : fmtUnit(everyMinutes, 'minute')
-    return i18nT('apps.crewCompanion.panel.confirm.every', { unit })
+    return i18nT('apps.deskCompanion.panel.confirm.every', { unit })
   }
   const sameDay = fireAt.toDateString() === now.toDateString()
   return sameDay ? time : `${fmtDateFields(fireAt, { weekday: 'short' })} ${time}`
@@ -123,21 +123,21 @@ export const ReminderInput: React.FC<{
       every = choice.everyMinutes ?? undefined
       fireAtIso = choice.at(now).toISOString()
     } else if (parsed.needsSchedule) {
-      setNotice({ kind: 'ask', message: i18nT('apps.crewCompanion.panel.ask.when', { text: parsed.text }) })
+      setNotice({ kind: 'ask', message: i18nT('apps.deskCompanion.panel.ask.when', { text: parsed.text }) })
       return
     }
 
     if (!fireAtIso) return
     const ok = await onAdd?.(parsed.text, fireAtIso, every)
     if (!ok) {
-      setNotice({ kind: 'error', message: i18nT('apps.crewCompanion.panel.confirm.error') })
+      setNotice({ kind: 'error', message: i18nT('apps.deskCompanion.panel.confirm.error') })
       return
     }
 
     setDraft('')
     setNotice({
       kind: 'ok',
-      message: i18nT('apps.crewCompanion.panel.confirm.ok', {
+      message: i18nT('apps.deskCompanion.panel.confirm.ok', {
         when: confirmLabel(new Date(fireAtIso), every, now),
       }),
     })
@@ -165,8 +165,8 @@ export const ReminderInput: React.FC<{
           <input
             value={draft}
             onChange={(e) => { setDraft(e.target.value); setNotice(null) }}
-            placeholder={i18nT('apps.crewCompanion.panel.add.placeholder')}
-            aria-label={i18nT('apps.crewCompanion.panel.add.aria')}
+            placeholder={i18nT('apps.deskCompanion.panel.add.placeholder')}
+            aria-label={i18nT('apps.deskCompanion.panel.add.aria')}
             style={{
               flex: 1, fontSize: 11.5, color: skin.ink, background: 'none',
               border: 'none', outline: 'none', fontFamily: FONT, minWidth: 0,
@@ -174,7 +174,7 @@ export const ReminderInput: React.FC<{
           />
           <button
             type="submit"
-            aria-label={i18nT('apps.crewCompanion.panel.add.submit')}
+            aria-label={i18nT('apps.deskCompanion.panel.add.submit')}
             disabled={!draft.trim()}
             style={{
               // 26px, not 20px: a 20px box with a 50% radius is under the 24px

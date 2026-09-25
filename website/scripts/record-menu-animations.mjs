@@ -45,7 +45,7 @@ const iso = s => new Date(s * 1000).toISOString()
 
 const SLOTS = [
   {
-    key: 'chat-a', title: 'Crew 面板开场动画排查', running: true, messages: 4,
+    key: 'chat-a', title: 'Agent 面板开场动画排查', running: true, messages: 4,
     agent: 'junction', modified: now, last_ts: iso(now), folder_id: '',
     last_message: 'Reading ui/dialog.tsx.',
   },

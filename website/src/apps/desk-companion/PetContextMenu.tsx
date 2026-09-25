@@ -25,11 +25,11 @@ export function PetContextMenu({ x, y, onClose }: Props) {
       // The gallery is its own window, so this is its entry point. It is NOT in
       // Settings: importing and authoring packs are creation flows that don't
       // belong in a preferences column.
-      { label: i18nT('apps.crewCompanion.menu.change_avatar'), action: 'gallery' },
+      { label: i18nT('apps.deskCompanion.menu.change_avatar'), action: 'gallery' },
       { separator: true },
       // Quit names the APP, not the pet: "Quit <pet name>" would read as
       // dismissing the character rather than closing the Companion app.
-      { label: i18nT('apps.crewCompanion.menu.quit'), action: 'quit', danger: true },
+      { label: i18nT('apps.deskCompanion.menu.quit'), action: 'quit', danger: true },
     ]
     // Removed deliberately:
     //  • the 🎬 motion list and the 🔔 "Test notify" items — developer ingress that

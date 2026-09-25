@@ -78,12 +78,12 @@ class TestRefusalsCarryTheDiagnosis:
         _sk, err = ledger._strict_session_key()
         assert err.startswith("Error:") and self._MARKER in err
 
-    def test_crew_ledger_refusal_carries_it(self, monkeypatch) -> None:
+    def test_steward_ledger_refusal_carries_it(self, monkeypatch) -> None:
         from junction.mcp_tools import apps
 
         monkeypatch.setattr(mcp_core, "_resolve_session_key_strict", lambda: "")
         monkeypatch.setattr(mcp_core, "strict_identity_diagnosis", lambda *a: self._MARKER)
-        _sk, err = apps._crew_session_key()
+        _sk, err = apps._steward_session_key()
         assert err.startswith("Error:") and self._MARKER in err
 
     def test_every_strict_refusal_string_carries_it(self) -> None:

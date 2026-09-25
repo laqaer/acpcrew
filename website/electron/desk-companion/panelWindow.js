@@ -79,7 +79,7 @@ function setPanelClosedHandler(fn) {
  */
 function openPanelWindow(petRect) {
   if (!baseUrl) {
-    log("crew-companion: no gateway origin yet, deferring panel");
+    log("desk-companion: no gateway origin yet, deferring panel");
     return null;
   }
 
@@ -102,7 +102,7 @@ function openPanelWindow(petRect) {
     panelWin.setBounds(bounds);
     panelWin.showInactive();
     panelWin.focus();
-    panelWin.webContents.send("crew-companion:panel-opened", placement.side);
+    panelWin.webContents.send("desk-companion:panel-opened", placement.side);
     return panelWin;
   }
 
@@ -137,7 +137,7 @@ function openPanelWindow(petRect) {
     if (panelWin && !panelWin.isDestroyed()) {
       panelWin.show();
       panelWin.focus();
-      panelWin.webContents.send("crew-companion:panel-opened", placement.side);
+      panelWin.webContents.send("desk-companion:panel-opened", placement.side);
     }
   });
 
@@ -169,16 +169,16 @@ function panelIsOpen() {
 
 /** Register the renderer's requests. Called once from init. */
 function registerPanelIpc() {
-  ipcMain.on("crew-companion:panel-open", (_event, petRect) => {
+  ipcMain.on("desk-companion:panel-open", (_event, petRect) => {
     if (petRect && typeof petRect.x === "number") openPanelWindow(petRect);
   });
-  ipcMain.on("crew-companion:panel-close", () => closePanelWindow());
+  ipcMain.on("desk-companion:panel-close", () => closePanelWindow());
   // The renderer tells us when the exercise starts and stops, because only it knows
   // — and without that the first click elsewhere would discard the session.
-  ipcMain.on("crew-companion:panel-breathing", (_event, active) => {
+  ipcMain.on("desk-companion:panel-breathing", (_event, active) => {
     breathingActive = Boolean(active);
   });
-  ipcMain.on("crew-companion:panel-hold", (_event, hold) => {
+  ipcMain.on("desk-companion:panel-hold", (_event, hold) => {
     holdOpen = Boolean(hold);
   });
 }

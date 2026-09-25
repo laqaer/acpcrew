@@ -1,8 +1,8 @@
 """Tests for junction.conductor_skill — conductor SKILL.md generation.
 
-The conductor is now a STATIC delegation guide: the crew roster is resolved at
-call time via the `select_crew` tool, not inlined here. So the skill neither
-reads config nor lists individual crews.
+The conductor is a STATIC delegation guide: the agent roster is resolved at
+call time via the `select_agent` tool, not inlined here. So the skill neither
+reads config nor lists individual agents.
 """
 
 from __future__ import annotations
@@ -31,9 +31,9 @@ def _gen(skills_loader) -> str:
     return _read_skill(skills_loader._dir)
 
 
-def test_points_at_select_crew(skills_loader):
+def test_points_at_select_agent(skills_loader):
     content = _gen(skills_loader)
-    assert "select_crew" in content
+    assert "select_agent" in content
     assert "spawn_run" in content
 
 
@@ -45,10 +45,10 @@ def test_has_always_true_and_delegation_guidelines(skills_loader):
     assert "Default behavior" in content
 
 
-def test_does_not_inline_a_crew_roster(skills_loader):
-    # The roster moved into select_crew; the always-on skill must not dump crews.
+def test_does_not_inline_an_agent_roster(skills_loader):
+    # The roster lives in select_agent; the always-on skill must not dump agents.
     content = _gen(skills_loader)
-    assert "Available Crews" not in content
+    assert "Available Agents" not in content
     assert "### " not in content
 
 

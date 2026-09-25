@@ -1,6 +1,6 @@
 """HTTP routes for the Companion builtin, served in-process by the gateway.
 
-Mounted at ``/api/apps/crew-companion/`` — the same single-argument
+Mounted at ``/api/apps/desk-companion/`` — the same single-argument
 ``register_routes`` convention every builtin uses.
 
 WHY IN-PROCESS MATTERS, NOT JUST TIDINESS
@@ -45,7 +45,11 @@ logger = logging.getLogger(__name__)
 # letting them overflow deeper in the scheduler.
 _MAX_RECURRENCE_MINUTES = 10 * 366 * 24 * 60
 
-APP_NAME = "crew-companion"
+APP_NAME = "desk-companion"
+#: Earlier Junction builds installed the app under this id. ``install_migration``
+#: moves ``apps/<this id>/`` to ``apps/<APP_NAME>/`` before builtins register, so an
+#: existing data home keeps its reminders, packs and enabled state.
+LEGACY_APP_NAME = "crew-companion"
 _BASE = f"/api/apps/{APP_NAME}"
 
 Handler = Callable[[web.Request], Awaitable[web.StreamResponse]]
@@ -98,19 +102,15 @@ def _require_enabled(handler: Handler) -> Handler:
     @wraps(handler)
     async def _wrapped(request: web.Request) -> web.StreamResponse:
         if not await asyncio.to_thread(is_app_enabled, APP_NAME):
-            return _forbidden("crew-companion is disabled", "app_disabled")
+            return _forbidden("Companion is disabled", "app_disabled")
         if get_store() is None:
-            return _unavailable(
-                "crew-companion runtime not started", "runtime_not_started"
-            )
+            return _unavailable("Companion runtime not started", "runtime_not_started")
         try:
             return await handler(request)
         except OSError:
             # Retryable by nature: the disk may have room, or write permission
             # back, by the time the client tries again.
-            return _unavailable(
-                "crew-companion could not save to disk", "store_write_failed"
-            )
+            return _unavailable("Companion could not save to disk", "store_write_failed")
 
     return _wrapped
 

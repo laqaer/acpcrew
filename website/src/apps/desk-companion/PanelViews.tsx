@@ -35,11 +35,11 @@ export type PanelView = 'main' | 'all' | 'settings'
  * per-locale decision — `2h` is right in English and wrong in several others.
  */
 function repeatLabel(mins: number): string {
-  if (mins === 1440) return i18nT('apps.crewCompanion.view.daily')
+  if (mins === 1440) return i18nT('apps.deskCompanion.view.daily')
   const unit = mins % 1440 === 0 ? fmtUnit(mins / 1440, 'day')
     : mins % 60 === 0 ? fmtUnit(mins / 60, 'hour')
     : fmtUnit(mins, 'minute')
-  return i18nT('apps.crewCompanion.view.every', { unit })
+  return i18nT('apps.deskCompanion.view.every', { unit })
 }
 
 /** Back row: the only way out of a secondary view besides Escape. */
@@ -50,8 +50,8 @@ export const ViewHeader: React.FC<{ title: string; onBack: () => void }> =
     <div style={{ display: 'flex', alignItems: 'center', gap: 4, padding: '10px 14px 6px' }}>
       <button
         onClick={onBack}
-        aria-label={i18nT('apps.crewCompanion.view.back')}
-        title={i18nT('apps.crewCompanion.view.back')}
+        aria-label={i18nT('apps.deskCompanion.view.back')}
+        title={i18nT('apps.deskCompanion.view.back')}
         style={{
           // Opt out of the title's drag region below, or the click is swallowed.
           // This was a SECOND `style` attribute in the desktop app, where JSX kept
@@ -138,7 +138,7 @@ export const AllRemindersView: React.FC<{
     return (
       <div>
         {composer}
-        <div style={{ fontSize: 11, color: skin.muted, padding: '4px 2px' }}>{i18nT('apps.crewCompanion.view.loading')}</div>
+        <div style={{ fontSize: 11, color: skin.muted, padding: '4px 2px' }}>{i18nT('apps.deskCompanion.view.loading')}</div>
       </div>
     )
   }
@@ -150,8 +150,8 @@ export const AllRemindersView: React.FC<{
           background: skin.row, borderRadius: skin.rowRadius,
           padding: '14px 10px', textAlign: 'center',
         }}>
-          <div style={{ fontSize: 11.5, fontWeight: 600 }}>{i18nT('apps.crewCompanion.panel.empty.title')}</div>
-          <div style={{ fontSize: 10, color: skin.muted, marginTop: 3 }}>{i18nT('apps.crewCompanion.view.emptyHint')}</div>
+          <div style={{ fontSize: 11.5, fontWeight: 600 }}>{i18nT('apps.deskCompanion.panel.empty.title')}</div>
+          <div style={{ fontSize: 10, color: skin.muted, marginTop: 3 }}>{i18nT('apps.deskCompanion.view.emptyHint')}</div>
         </div>
       </div>
     )
@@ -187,8 +187,8 @@ export const AllRemindersView: React.FC<{
             )}
             <button
               onClick={() => remove(r.id)}
-              aria-label={i18nT('apps.crewCompanion.view.remove')}
-              title={i18nT('apps.crewCompanion.view.remove')}
+              aria-label={i18nT('apps.deskCompanion.view.remove')}
+              title={i18nT('apps.deskCompanion.view.remove')}
               style={{
                 width: 24, height: 24, borderRadius: '50%',
                 display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
@@ -309,10 +309,10 @@ export const SettingsView: React.FC = () => {
         setCustomDraft(null)
       }
     }
-    api?.getCrewCompanionConfig?.().then(apply).catch(() => {})
+    api?.getDeskCompanionConfig?.().then(apply).catch(() => {})
     // The change notification carries no payload — re-read on each one.
     const off = api?.onConfigUpdated?.(() => {
-      void api?.getCrewCompanionConfig?.().then(apply).catch(() => {})
+      void api?.getDeskCompanionConfig?.().then(apply).catch(() => {})
     })
     return () => off?.()
   }, [])
@@ -328,15 +328,15 @@ export const SettingsView: React.FC = () => {
         <Toggle
           on={breakOn}
           onChange={(v) => { setBreakOn(v); api?.updateConfig?.({ breakNudgesEnabled: v }) }}
-          label={i18nT('apps.crewCompanion.view.breaksLabel')}
-          hint={i18nT('apps.crewCompanion.view.breaksHint')}
+          label={i18nT('apps.deskCompanion.view.breaksLabel')}
+          hint={i18nT('apps.deskCompanion.view.breaksHint')}
         />
         {breakOn && (
           <div style={{
             display: 'flex', alignItems: 'center', gap: 6,
             padding: '8px 10px', borderTop: `1px solid ${skin.hairline}`,
           }}>
-            <span style={{ flex: 1, fontSize: 11, color: skin.muted }}>{i18nT('apps.crewCompanion.view.everyHowOften')}</span>
+            <span style={{ flex: 1, fontSize: 11, color: skin.muted }}>{i18nT('apps.deskCompanion.view.everyHowOften')}</span>
             {BREAK_PRESETS.map((m) => {
               const active = breakMins === m
               return (
@@ -365,8 +365,8 @@ export const SettingsView: React.FC = () => {
               type="number"
               min={BREAK_MIN_MINS}
               max={BREAK_MAX_MINS}
-              aria-label={i18nT('apps.crewCompanion.view.everyCustom')}
-              placeholder={i18nT('apps.crewCompanion.view.everyMinShort')}
+              aria-label={i18nT('apps.deskCompanion.view.everyCustom')}
+              placeholder={i18nT('apps.deskCompanion.view.everyMinShort')}
               value={customDraft !== null ? customDraft
                 : BREAK_PRESETS.includes(breakMins) ? '' : String(breakMins)}
               {...ime.bindComposition({
@@ -405,8 +405,8 @@ export const SettingsView: React.FC = () => {
         <Toggle
           on={sessionOn}
           onChange={(v) => { setSessionOn(v); api?.updateConfig?.({ sessionNotificationsEnabled: v }) }}
-          label={i18nT('apps.crewCompanion.view.sessionLabel')}
-          hint={i18nT('apps.crewCompanion.view.sessionHint')}
+          label={i18nT('apps.deskCompanion.view.sessionLabel')}
+          hint={i18nT('apps.deskCompanion.view.sessionHint')}
         />
       </div>
 
@@ -418,7 +418,7 @@ export const SettingsView: React.FC = () => {
       */}
       <div style={{
         fontSize: 10, color: skin.faint, lineHeight: 1.45, padding: '2px 10px 0',
-      }}>{i18nT('apps.crewCompanion.view.notifyNote')}</div>
+      }}>{i18nT('apps.deskCompanion.view.notifyNote')}</div>
     </div>
   )
 }

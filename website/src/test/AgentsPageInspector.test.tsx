@@ -46,7 +46,7 @@ import AgentsPage from '../pages/AgentsPage'
 
 const BUILTIN = {
   name: 'junction',
-  description: 'Full crew agent',
+  description: 'Full Junction agent',
   source: 'junction',
   model: 'claude-opus-4.8',
   skills: ['prepare-pr'],
@@ -185,13 +185,13 @@ describe('agent templates inspector — overview', () => {
     renderPage()
     await open('junction')
 
-    expect(await screen.findByText(/a crew set to inherit uses this model/i)).toBeInTheDocument()
+    expect(await screen.findByText(/an agent set to inherit uses this model/i)).toBeInTheDocument()
 
     await open('reviewer')
     expect(await screen.findByText(/falls back to the global default/i)).toBeInTheDocument()
   })
 
-  it('names the crews an edit would change', async () => {
+  it('names the agents an edit would change', async () => {
     renderPage()
     await open('junction')
 
@@ -202,12 +202,12 @@ describe('agent templates inspector — overview', () => {
     expect(screen.queryByText('research')).not.toBeInTheDocument()
   })
 
-  it('says so plainly when no crew is bound to the template', async () => {
+  it('says so plainly when no agent is bound to the template', async () => {
     mockApi.junctionAgents.mockResolvedValue({ agents: [], default_agent: '' })
     renderPage()
     await open('junction')
 
-    expect(await screen.findByText('No crews use this template yet')).toBeInTheDocument()
+    expect(await screen.findByText('No agents use this template yet')).toBeInTheDocument()
   })
 })
 
@@ -228,14 +228,14 @@ describe('agent templates inspector — roster filter', () => {
   })
 })
 
-describe('agent templates inspector — shared crews cache', () => {
-  /* The Crews tab owns ['junction-agents', <trigger>] and stores the whole
+describe('agent templates inspector — shared roster cache', () => {
+  /* The Agents tab owns ['junction-agents', <trigger>] and stores the whole
      response object. One QueryClient keeps ONE value per key, so if this page
      stored the unwrapped array instead, whichever tab mounted first would hand
-     the other the wrong shape: `crews.filter` on an object throws during
+     the other the wrong shape: `roster.filter` on an object throws during
      render here, and `agentsData?.agents` on an array silently empties the
-     Crews roster. Both directions are asserted. */
-  it('reads and leaves the cache in the shape the Crews tab stores', async () => {
+     Agents roster. Both directions are asserted. */
+  it('reads and leaves the cache in the shape the Agents tab stores', async () => {
     const qc = new QueryClient({ defaultOptions: { queries: { retry: false } } })
     qc.setQueryData(['junction-agents'], {
       agents: [{ name: 'default', kiro_agent: 'junction', workspace: 'default', memory_store: 'default', description: '', source: 'user' }],
@@ -356,10 +356,10 @@ describe('agent templates inspector — delete', () => {
   })
 
   /* Deleting a template something still points at leaves a dangling reference:
-     a crew bound to it boots from nothing, and the fallback name is handed to
+     an agent bound to it boots from nothing, and the fallback name is handed to
      kiro-cli as an agent id. Both guards say what to do first, because a button
      that silently disappears teaches nothing. */
-  it('refuses to delete a template a crew is still bound to, and says which', async () => {
+  it('refuses to delete a template an agent is still bound to, and says which', async () => {
     mockApi.junctionAgents.mockResolvedValue({
       agents: [{ name: 'research', kiro_agent: 'reviewer', workspace: 'r', memory_store: 'r', description: '', source: 'user' }],
       default_agent: 'default',
@@ -367,7 +367,7 @@ describe('agent templates inspector — delete', () => {
     renderPage()
     await open('reviewer')
 
-    expect(await screen.findByText(/research .*repoint them on the Crews tab/i)).toBeInTheDocument()
+    expect(await screen.findByText(/research .*repoint them on the Agents tab/i)).toBeInTheDocument()
     expect(screen.queryByTestId('delete-template')).not.toBeInTheDocument()
   })
 
@@ -381,17 +381,17 @@ describe('agent templates inspector — delete', () => {
     expect(screen.queryByTestId('delete-template')).not.toBeInTheDocument()
   })
 
-  it('withholds delete until the crew roster has actually loaded', async () => {
+  it('withholds delete until the agent roster has actually loaded', async () => {
     // An unresolved query makes `usedBy` empty, which must not read as
     // "nothing uses it" — that is exactly how a bound template gets deleted.
-    let landCrews: (v: unknown) => void = () => {}
-    mockApi.junctionAgents.mockImplementation(() => new Promise(resolve => { landCrews = resolve }))
+    let landRoster: (v: unknown) => void = () => {}
+    mockApi.junctionAgents.mockImplementation(() => new Promise(resolve => { landRoster = resolve }))
     renderPage()
     await open('reviewer')
 
     expect(screen.queryByTestId('delete-template')).not.toBeInTheDocument()
 
-    landCrews({ agents: [], default_agent: '' })
+    landRoster({ agents: [], default_agent: '' })
     expect(await screen.findByTestId('delete-template')).toBeInTheDocument()
   })
 
@@ -435,7 +435,7 @@ describe('agent templates inspector — delete', () => {
 
   it('withholds delete when a reference REFETCH fails, leaving stale data behind', async () => {
     // The sharp case: a failed refetch keeps the last good data, so the mutation
-    // settles and `crewsData` stays defined — an undefined-check alone would
+    // settles and `rosterData` stays defined — an undefined-check alone would
     // keep comparing against a roster the server may no longer agree with.
     const qc = new QueryClient({ defaultOptions: { queries: { retry: false } } })
     qc.setQueryData(['junction-agents'], { agents: [], default_agent: '' })

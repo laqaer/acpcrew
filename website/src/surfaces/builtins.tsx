@@ -157,7 +157,7 @@ registerBuiltinSurface({
 
 // ── Bottom ─────────────────────────────────────────────────────────────────
 // Agents + Capabilities merged into one bottom-pinned "Agent Capabilities"
-// destination. The /capabilities secondary panel hosts Crews (bindings),
+// destination. The /capabilities secondary panel hosts Agents (bindings),
 // Agent Templates, Connections, Skills, Hooks, and Prompts;
 // /agents redirects there (see App.tsx routes).
 //

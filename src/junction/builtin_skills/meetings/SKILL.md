@@ -7,7 +7,7 @@ triggers: meeting, meeting notes, action items, meeting tasks, transcript, stand
 # Meetings app
 
 The Meetings app transcribes a live meeting and fans each line out to a small
-crew of background agents. Each agent owns exactly ONE output file and rewrites
+team of background agents. Each agent owns exactly ONE output file and rewrites
 it in full after every batch.
 
 ## Where the data lives

@@ -42,7 +42,7 @@ const mocks = vi.hoisted(() => ({
     importSpriteFile: vi.fn<() => Promise<unknown>>(),
     galleryGetPackDetail: vi.fn<(packId: string) => Promise<unknown>>(),
     galleryReadPackFile: vi.fn<(packId: string, file: string) => Promise<string | null>>(),
-    getCrewCompanionConfig: vi.fn<() => Promise<unknown>>(),
+    getDeskCompanionConfig: vi.fn<() => Promise<unknown>>(),
   },
 }))
 
@@ -241,7 +241,7 @@ beforeEach(() => {
   api.galleryGetPackDetail.mockResolvedValue(null)
   api.galleryReadPackFile.mockResolvedValue(null)
   api.importSpriteFile.mockResolvedValue(null)
-  api.getCrewCompanionConfig.mockResolvedValue({ language: 'en' })
+  api.getDeskCompanionConfig.mockResolvedValue({ language: 'en' })
 
   vi.stubGlobal('Image', FakeImage)
   realGetContext = canvasProto.getContext

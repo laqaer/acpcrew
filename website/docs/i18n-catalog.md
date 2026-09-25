@@ -200,7 +200,7 @@ allowlist you can forget to extend:
 - every key whose **name** matches `/confirm/i` and whose English value
   interpolates a placeholder must be on `QUOTED_OPERAND_CONFIRM_KEYS`, **or**
 - listed in `CONFIRM_OPERAND_KEY_EXEMPTIONS` with a reason (today: the #4657
-  kind-word forms, where "template" / "crew" already sit next to the name), **or**
+  kind-word forms, where "template" / "agent" already sit next to the name), **or**
 - interpolate **only** placeholder names in `EXEMPT_CONFIRM_PLACEHOLDER_NAMES`
   (numerals, closed-set schedule fragments, version ids, and system error
   text — they cannot parse as prose). The set lives next to the pin; do not

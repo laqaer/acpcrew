@@ -682,8 +682,8 @@ describe('Alt+Shift+X previous model', () => {
 
 /**
  * Ctrl+G — agent monitor. The kiro-cli backend prints "Press ctrl+g to monitor
- * progress." into its crew-pipeline tool result, so the dashboard binds Ctrl+G
- * to honor that hint on every non-TUI surface.
+ * progress." into the tool result of a native subagent run, so the dashboard
+ * binds Ctrl+G to honor that hint on every non-TUI surface.
  */
 describe('isAgentMonitorChord', () => {
   const chord = (o: Partial<Record<'code' | 'metaKey' | 'ctrlKey' | 'altKey' | 'shiftKey', unknown>> = {}) =>
@@ -777,9 +777,9 @@ describe('Ctrl+G opens the agent monitor', () => {
     expect(!document.dispatchEvent(event)).toBe(true)
   })
 
-  /* Fires inside the composer on purpose: the hint is read while a crew runs and
-     focus is normally in the textarea, so bailing on input targets would make the
-     chord dead exactly when it is needed. */
+  /* Fires inside the composer on purpose: the hint is read while a native
+     subagent runs and focus is normally in the textarea, so bailing on input
+     targets would make the chord dead exactly when it is needed. */
   it('still fires when a textarea has focus', () => {
     const store = setup()
     const ta = document.createElement('textarea')

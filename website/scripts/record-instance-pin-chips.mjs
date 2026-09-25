@@ -1,5 +1,5 @@
 /**
- * Screen recording of the PINNED CREW CHIPS flow, for review evidence.
+ * Screen recording of the PINNED INSTANCE CHIPS flow, for review evidence.
  *
  * A still frame cannot show that pinning is reversible, that the highlight
  * follows the active pane, or that an overflowing row drops chips WHOLE rather
@@ -17,12 +17,12 @@ import { join } from 'node:path'
 import { serveDist } from './lib/serve-dist.mjs'
 import { logPageProblems, stubDashboardApi, json } from './lib/stub-dashboard-api.mjs'
 
-const OUT = process.argv[2] || '../temp-screenshots/crew-pin-chips'
+const OUT = process.argv[2] || '../temp-screenshots/instance-pin-chips'
 const VIEWPORT = { width: 1280, height: 760 }
 const TRIGGER = '[aria-label^="Switch instance"]'
-const CHIP_ROW = '[data-testid="crew-chip-row"]'
+const CHIP_ROW = '[data-testid="instance-chip-row"]'
 
-const crew = (id, name, sshHost, port) => ({
+const instance = (id, name, sshHost, port) => ({
   id,
   name,
   ssh_host: sshHost,
@@ -39,11 +39,11 @@ const crew = (id, name, sshHost, port) => ({
   status: { instance_id: id, state: 'connected', local_port: port, remote_port: 7777 },
 })
 
-const CREWS = [
-  crew('devdesk', 'devdesk', 'dev-dsk-alias', 7801),
-  crew('sandbox', 'sandbox', 'sandbox-alias', 7802),
-  crew('prod', 'prod-us-east-1', 'prod-use1-alias', 7803),
-  crew('staging', 'staging-eu-west-1', 'stg-euw1-alias', 7804),
+const INSTANCES = [
+  instance('devdesk', 'devdesk', 'dev-dsk-alias', 7801),
+  instance('sandbox', 'sandbox', 'sandbox-alias', 7802),
+  instance('prod', 'prod-us-east-1', 'prod-use1-alias', 7803),
+  instance('staging', 'staging-eu-west-1', 'stg-euw1-alias', 7804),
 ]
 
 const SSO = { state: 'ok', seconds_remaining: 72000, expires_at: null, reason: 'valid' }
@@ -51,8 +51,8 @@ const SSO = { state: 'ok', seconds_remaining: 72000, expires_at: null, reason: '
 /** See capture-instance-pin-chips.mjs — without a slot the command palette's recents
  *  provider maps a keyless placeholder and takes the shell down. */
 const SLOTS = [{
-  key: 'crew-pin-shot',
-  title: 'Switching between crews',
+  key: 'instance-pin-shot',
+  title: 'Switching between instances',
   running: false,
   last_message: 'Pinned devdesk to the header.',
   messages: 2,
@@ -88,9 +88,9 @@ async function press(page, selector, timeout = 15000) {
 const chipCount = page =>
   page.evaluate(sel => document.querySelector(sel)?.children.length ?? 0, CHIP_ROW)
 
-/** Press the chip whose label contains `label`. Chips are ordered by the crew
+/** Press the chip whose label contains `label`. Chips are ordered by the instance
  *  list, not by pin order, so addressing them positionally goes stale as soon as
- *  the active crew changes and its chip leaves the row. */
+ *  the active instance changes and its chip leaves the row. */
 async function pressChip(page, label) {
   await page.waitForFunction(([rowSel, want]) => {
     const row = document.querySelector(rowSel)
@@ -123,13 +123,13 @@ async function main() {
     slots: SLOTS,
     extra: async (path, route) => {
       if (path === '/api/instances') {
-        await json(route, { active: true, instances: CREWS, warm_set_cap: 5, sso: SSO })
+        await json(route, { active: true, instances: INSTANCES, warm_set_cap: 5, sso: SSO })
         return true
       }
       const tunnel = /^\/api\/instances\/([^/]+)\/(connect|refresh-token)$/.exec(path)
       if (tunnel) {
         const id = decodeURIComponent(tunnel[1])
-        const found = CREWS.find(c => c.id === id)
+        const found = INSTANCES.find(c => c.id === id)
         await json(route, {
           ...(found ? found.status : { instance_id: id, state: 'connected' }),
           token: 'stub-token',
@@ -154,18 +154,18 @@ async function main() {
 
   // 1. Open the dropdown — the default state, everything one click away.
   await press(page, TRIGGER)
-  await page.waitForSelector('[data-testid="crew-pin-devdesk"]', { timeout: 10000 })
+  await page.waitForSelector('[data-testid="instance-pin-devdesk"]', { timeout: 10000 })
   await page.waitForTimeout(900)
 
-  // 2. Pin Local plus two short-named crews. The menu stays open between them,
+  // 2. Pin Local plus two short-named instances. The menu stays open between them,
   //    so three pins are three clicks with no reopening. Local is pinned too:
   //    without a chip of its own there is no one-click way BACK from a remote
   //    pane, which is the whole point of the feature.
-  await press(page, '[data-testid="crew-pin-__local__"]')
+  await press(page, '[data-testid="instance-pin-__local__"]')
   await page.waitForTimeout(700)
-  await press(page, '[data-testid="crew-pin-devdesk"]')
+  await press(page, '[data-testid="instance-pin-devdesk"]')
   await page.waitForTimeout(700)
-  await press(page, '[data-testid="crew-pin-sandbox"]')
+  await press(page, '[data-testid="instance-pin-sandbox"]')
   await page.waitForTimeout(800)
   steps.push(['pinned three, active Local', await chipCount(page)])
 
@@ -190,11 +190,11 @@ async function main() {
   //    budget, so the row drops the ones past it WHOLE rather than clipping one
   //    mid-word — and the centered search keeps its full width throughout.
   await press(page, TRIGGER)
-  await page.waitForSelector('[data-testid="crew-pin-prod"]', { timeout: 10000 })
+  await page.waitForSelector('[data-testid="instance-pin-prod"]', { timeout: 10000 })
   await page.waitForTimeout(700)
-  await press(page, '[data-testid="crew-pin-prod"]')
+  await press(page, '[data-testid="instance-pin-prod"]')
   await page.waitForTimeout(700)
-  await press(page, '[data-testid="crew-pin-staging"]')
+  await press(page, '[data-testid="instance-pin-staging"]')
   await page.waitForTimeout(900)
   await page.keyboard.press('Escape')
   await page.waitForTimeout(1700)
@@ -236,7 +236,7 @@ async function main() {
   // Playwright names the file by an internal id; give it a stable name.
   const webm = readdirSync(OUT).filter(f => f.endsWith('.webm')).sort().pop()
   if (!webm) throw new Error('playwright produced no video')
-  const finalWebm = join(OUT, 'crew-pin-flow.webm')
+  const finalWebm = join(OUT, 'instance-pin-flow.webm')
   renameSync(join(OUT, webm), finalWebm)
 
   for (const s of steps) console.log('STEP', JSON.stringify(s))

@@ -1,4 +1,4 @@
-// Pure fold: turn a folded work item (api.ts's `CrewFabricItem`) into the
+// Pure fold: turn a folded work item (api.ts's `StewardFabricItem`) into the
 // primitives the pipeline view draws — the reached columns, the head, the phase
 // class (edit/wait/reply/exit/done), the return traces, the reopen count, and
 // the per-phase dwell. No React, no DOM, no timers — every function here takes
@@ -20,15 +20,15 @@
 //      current phase, because re-entering a phase restarts its clock.
 
 import type {
-  CrewFabricItem, CrewFabricTimelineEntry, RepoRef, ConnectedRepo,
+  StewardFabricItem, StewardFabricTimelineEntry, RepoRef, ConnectedRepo,
 } from '../api'
-import { CREW_PHASES, type CrewPhase } from '../api'
+import { STEWARD_PHASES, type StewardPhase } from '../api'
 
 /** The phases that get a COLUMN, in lifecycle order — the on-spine subset of the
  * enum. `resolved` is the only terminal here; every off-spine phase is an exit
- * (see `EXIT_PHASES`). Derived from `CREW_PHASES` by removing the off-spine ones,
+ * (see `EXIT_PHASES`). Derived from `STEWARD_PHASES` by removing the off-spine ones,
  * so it cannot drift from the shared enum. */
-export const SPINE_PHASES: readonly CrewPhase[] = [
+export const SPINE_PHASES: readonly StewardPhase[] = [
   'selected',
   'claimed',
   'investigating',
@@ -51,7 +51,7 @@ export const EXIT_PHASES: Readonly<Record<string, true>> = {
   'awaiting-reply': true,
 }
 
-/** The editing phases — the L1 "a crew is actively editing a worktree" class.
+/** The editing phases — the L1 "a steward is actively editing a worktree" class.
  * Mirrors `steward_store.EDITING_PHASES`. */
 const EDITING_PHASES: Readonly<Record<string, true>> = {
   'implementing': true,
@@ -61,19 +61,19 @@ const EDITING_PHASES: Readonly<Record<string, true>> = {
 /** Column index of an on-spine phase, or -1 for an off-spine one. The single
  * place the drawing turns a phase into an x-position. */
 export function spineIndex(phase: string): number {
-  return SPINE_PHASES.indexOf(phase as CrewPhase)
+  return SPINE_PHASES.indexOf(phase as StewardPhase)
 }
 
 /** True when `phase` is a real member of the shared phase enum. Guards a payload
  * that carries a phase string this client does not know (forward-compat): an
  * unknown phase is ignored in the fold rather than crashing it. */
 export function isKnownPhase(phase: string): boolean {
-  return (CREW_PHASES as readonly string[]).includes(phase)
+  return (STEWARD_PHASES as readonly string[]).includes(phase)
 }
 
 /** The L1 phase class — what COLOUR/word the live segment and head carry.
  *
- *   edit  — a crew is editing (implementing / addressing-review)
+ *   edit  — a steward is editing (implementing / addressing-review)
  *   reply — waiting on a human (awaiting-reply exit)
  *   exit  — the claim was released (skipped / yielded / handed-back / preempted)
  *   done  — terminal on the spine (resolved)
@@ -111,14 +111,14 @@ export interface FabricLoop {
  * lay out a lane, with no further phase reasoning on the render side. */
 export interface FabricLane {
   number: number
-  crewId: string
+  stewardId: string
   title: string
-  /** The crew's resumable INTENT for this item — what it is about to do next, not
+  /** The steward's resumable INTENT for this item — what it is about to do next, not
    * a title. Shown in the hover card; never used as the lane's title. */
   next: string
   prNumber: number | null
   /** Live phase, verbatim from the payload — authoritative. */
-  phase: CrewPhase
+  phase: StewardPhase
   /** The L1 class of the live phase. */
   cls: PhaseClass
   /** Column index of the live phase, or -1 when the item is off-spine (an exit).
@@ -142,7 +142,7 @@ export interface FabricLane {
   reopens: number
   /** The exit stub, when the live phase is off-spine — its label token and the
    * column it left FROM. Null for an on-spine lane. */
-  exit: { phase: CrewPhase; token: string; atColumn: number; atMs: number | null } | null
+  exit: { phase: StewardPhase; token: string; atColumn: number; atMs: number | null } | null
   /** Epoch-ms of the MOST RECENT entry into the current phase, for an open dwell.
    * Null when unknown (no timestamped current entry) or when the lane is terminal
    * / exited (a closed lane has no running clock). */
@@ -230,7 +230,7 @@ export function exitToken(phase: string): string {
  * is left of its furthest column, and keying the head off the walk would put the
  * item in a phase it already left (PLAN.md decision 3).
  */
-export function foldItem(item: CrewFabricItem): FabricLane {
+export function foldItem(item: StewardFabricItem): FabricLane {
   const enteredAt = new Map<number, number | null>()
   const reachSet: number[] = []
   const loops: FabricLoop[] = []
@@ -239,7 +239,7 @@ export function foldItem(item: CrewFabricItem): FabricLane {
   // The column of the last DISTINCT on-spine phase seen, for the round-trip arc
   // and for prevIdx.
   let lastSpineCol = -1
-  const timeline: CrewFabricTimelineEntry[] = Array.isArray(item.timeline) ? item.timeline : []
+  const timeline: StewardFabricTimelineEntry[] = Array.isArray(item.timeline) ? item.timeline : []
 
   for (const entry of timeline) {
     const ph = entry.phase
@@ -313,7 +313,7 @@ export function foldItem(item: CrewFabricItem): FabricLane {
 
   return {
     number: item.number,
-    crewId: item.crew_id,
+    stewardId: item.steward_id,
     title: item.title ?? '',
     next: item.next ?? '',
     prNumber: item.pr_number ?? null,
@@ -412,19 +412,19 @@ export function openDwellSeconds(lane: FabricLane, nowMs: number): number | null
  * pure counts live here so they stay unit-tested. */
 export interface QueueSummary {
   /** Live lanes per phase (excludes done/exited), for the "piling up where" read. */
-  perPhase: Map<CrewPhase, number>
+  perPhase: Map<StewardPhase, number>
   /** Total live (non-terminal, non-exited on-spine) lanes. */
   live: number
   /** How many live lanes are currently editing (occupy an editing slot). */
   editing: number
-  /** The MOST editing lanes any single crew holds at once.
+  /** The MOST editing lanes any single steward holds at once.
    *
-   * The store's cap is per crew (`_editing_item` is scoped to `crew_id`, and its
-   * refusal reads "crew X is already editing #Y"), so N crews editing one item each
+   * The store's cap is per steward (`_editing_item` is scoped to `steward_id`, and its
+   * refusal reads "steward X is already editing #Y"), so N stewards editing one item each
    * is legal and routine. Comparing the TOTAL against a cap of 1 therefore reports a
-   * violation whenever a second crew starts work -- and reports it in fault red, for
+   * violation whenever a second steward starts work -- and reports it in fault red, for
    * something that is not a fault. This is the number the invariant actually bounds. */
-  editingMaxPerCrew: number
+  editingMaxPerSteward: number
   /** Total reopens summed across all lanes — the escalation count. */
   reopens: number
   /** Lanes that ended OFF the spine (skipped / yielded / handed-back / preempted /
@@ -436,14 +436,14 @@ export interface QueueSummary {
   resolved: number
   /** The single longest open dwell in seconds, and the lane it belongs to, so the
    * summary can name what has waited longest. Null when nothing is running. */
-  longestWait: { number: number; phase: CrewPhase; seconds: number } | null
+  longestWait: { number: number; phase: StewardPhase; seconds: number } | null
 }
 
 export function queueSummary(lanes: FabricLane[], nowMs: number): QueueSummary {
-  const perPhase = new Map<CrewPhase, number>()
+  const perPhase = new Map<StewardPhase, number>()
   let live = 0
   let editing = 0
-  const editingByCrew = new Map<string, number>()
+  const editingBySteward = new Map<string, number>()
   let reopens = 0
   let exits = 0
   let resolved = 0
@@ -460,7 +460,7 @@ export function queueSummary(lanes: FabricLane[], nowMs: number): QueueSummary {
     live += 1
     if (lane.cls === 'edit') {
       editing += 1
-      editingByCrew.set(lane.crewId, (editingByCrew.get(lane.crewId) ?? 0) + 1)
+      editingBySteward.set(lane.stewardId, (editingBySteward.get(lane.stewardId) ?? 0) + 1)
     }
     perPhase.set(lane.phase, (perPhase.get(lane.phase) ?? 0) + 1)
     const wait = openDwellSeconds(lane, nowMs)
@@ -469,15 +469,15 @@ export function queueSummary(lanes: FabricLane[], nowMs: number): QueueSummary {
     }
   }
 
-  const editingMaxPerCrew = editingByCrew.size
-    ? Math.max(...editingByCrew.values())
+  const editingMaxPerSteward = editingBySteward.size
+    ? Math.max(...editingBySteward.values())
     : 0
-  return { perPhase, live, editing, editingMaxPerCrew, reopens, exits, resolved, longestWait }
+  return { perPhase, live, editing, editingMaxPerSteward, reopens, exits, resolved, longestWait }
 }
 
 /** The editing-slot invariant the store enforces (`steward_store.upsert_work_item`):
- * at most ONE work item may hold a crew's worktree at a time, so the editing
- * phases carry a structural cap of 1. The fabric payload has no per-crew
+ * at most ONE work item may hold a steward's worktree at a time, so the editing
+ * phases carry a structural cap of 1. The fabric payload has no per-steward
  * `max_open` field, so the dashboard reads in-flight editing against THIS
  * invariant rather than inventing a concurrency number. */
 export const EDITING_SLOT_CAP = 1
@@ -528,7 +528,7 @@ export function phaseHeader(phase: string): string {
  * highest live count (ties resolve to the earliest column), for a "piling up here"
  * highlight; false for every cell when the queue is empty. */
 export interface DashboardCell {
-  phase: CrewPhase
+  phase: StewardPhase
   /** Catalog KEY for the abbreviated header label (see `phaseHeader`). */
   header: string
   /** Catalog KEY for the short caption (see `phaseCaption`). */

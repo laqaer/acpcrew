@@ -1,8 +1,8 @@
-/* The crews create sheet must not pre-fill the Agent Template field.
+/* The agent create sheet must not pre-fill the Agent Template field.
  *
- * It used to open with `junction` already selected, so a crew created without
- * touching that field became an alias for the DEFAULT agent: dispatch flattens a
- * crew alias to its `kiro_agent` pointer, so the crew appeared in the chat
+ * It used to open with `junction` already selected, so an agent created without
+ * touching that field became an alias for the DEFAULT agent: dispatch flattens an
+ * agent alias to its `kiro_agent` pointer, so the agent appeared in the chat
  * picker and then the default answered — reported as "the picker falls back to
  * the default" (#1684). These tests pin that the field starts UNSELECTED and
  * that Create refuses until it is chosen, so the broken row cannot be minted.
@@ -37,12 +37,12 @@ vi.mock('../api/client', () => ({
 
 async function openCreateSheet() {
   renderWithProviders(<JunctionAgentsPage />)
-  const newCrew = await screen.findByTestId('new-crew')
-  fireEvent.click(newCrew)
-  return newCrew
+  const newAgent = await screen.findByTestId('new-agent')
+  fireEvent.click(newAgent)
+  return newAgent
 }
 
-describe('crews create sheet — Agent Template must be explicit', () => {
+describe('agent create sheet — Agent Template must be explicit', () => {
   beforeEach(() => {
     mockCreate.mockReset()
     mockCreate.mockResolvedValue({ ok: true })

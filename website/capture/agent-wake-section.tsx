@@ -1,15 +1,15 @@
 /**
- * Isolated capture entry for the crew editor's "what wakes this crew" section.
+ * Isolated capture entry for the agent editor's "what wakes this agent" section.
  *
- * WHY ISOLATED: the section lives inside the crew editor Dialog, which needs the
- * whole Crews roster, a live gateway and a selected crew to reach. The section
+ * WHY ISOLATED: the section lives inside the agent editor Dialog, which needs the
+ * whole agent roster, a live gateway and a selected agent to reach. The section
  * itself only depends on `GET /api/crons`, so stubbing that one response renders
  * the real component — real classes, real Tailwind output, real theme tokens —
  * without standing up a gateway.
  *
- * Three scenes cover the states a reviewer needs to see: a crew with clock
- * triggers, a crew with a paused one, and a crew with none (the empty state that
- * teaches a first-time user the crew only runs when they chat to it).
+ * Three scenes cover the states a reviewer needs to see: an agent with clock
+ * triggers, an agent with a paused one, and an agent with none (the empty state
+ * that teaches a first-time user the agent only runs when they chat to it).
  *
  * Theme via query string: ?theme=dark|light
  */
@@ -17,7 +17,7 @@ import { createRoot } from 'react-dom/client'
 import { MemoryRouter } from 'react-router-dom'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { initI18n } from '../src/i18n'
-import CrewWakeSection from '../src/components/AgentWakeSection'
+import AgentWakeSection from '../src/components/AgentWakeSection'
 import '../src/index.css'
 
 const params = new URLSearchParams(location.search)
@@ -65,11 +65,11 @@ window.fetch = ((input: RequestInfo | URL, init?: RequestInit) => {
   return realFetch(input as RequestInfo, init)
 }) as typeof window.fetch
 
-function Frame({ label, crew, isDefaultCrew }: { label: string; crew: string; isDefaultCrew: boolean }) {
+function Frame({ label, agent, isDefaultAgent }: { label: string; agent: string; isDefaultAgent: boolean }) {
   return (
     <div className="rounded-xl border border-border-strong bg-card p-4" style={{ width: 560 }}>
       <div className="mb-3 font-mono text-[11px] text-muted-strong">{label}</div>
-      <CrewWakeSection crew={crew} isDefaultCrew={isDefaultCrew} />
+      <AgentWakeSection agent={agent} isDefaultAgent={isDefaultAgent} />
     </div>
   )
 }
@@ -80,10 +80,10 @@ function Scenes() {
     <QueryClientProvider client={qc}>
       <MemoryRouter>
         <div className="flex flex-col items-start gap-5 bg-bg p-6 text-text">
-          <Frame label="junction-autofix — two clock triggers" crew="junction-autofix" isDefaultCrew={false} />
-          <Frame label="ops-triage — one paused" crew="ops-triage" isDefaultCrew={false} />
-          <Frame label="default — claims the agent-less cron" crew="default" isDefaultCrew />
-          <Frame label="junction-lite — nothing wakes it" crew="junction-lite" isDefaultCrew={false} />
+          <Frame label="junction-autofix — two clock triggers" agent="junction-autofix" isDefaultAgent={false} />
+          <Frame label="ops-triage — one paused" agent="ops-triage" isDefaultAgent={false} />
+          <Frame label="default — claims the agent-less cron" agent="default" isDefaultAgent />
+          <Frame label="junction-lite — nothing wakes it" agent="junction-lite" isDefaultAgent={false} />
         </div>
       </MemoryRouter>
     </QueryClientProvider>

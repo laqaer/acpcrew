@@ -12,7 +12,7 @@
 
 const { contextBridge, ipcRenderer } = require("electron");
 
-contextBridge.exposeInMainWorld("crewCompanion", {
+contextBridge.exposeInMainWorld("deskCompanion", {
   /**
    * Report the companion's and bubble's hitboxes for this window.
    *
@@ -26,7 +26,7 @@ contextBridge.exposeInMainWorld("crewCompanion", {
    * @param {{x:number,y:number,w:number,h:number}|null} bubble
    */
   updateHitbox(pet, bubble) {
-    ipcRenderer.send("crew-companion:update-hitbox", pet || null, bubble || null);
+    ipcRenderer.send("desk-companion:update-hitbox", pet || null, bubble || null);
   },
 
   /**
@@ -39,7 +39,7 @@ contextBridge.exposeInMainWorld("crewCompanion", {
    * @param {{x:number,y:number,w:number,h:number}|null} rect
    */
   setMenuHitbox(rect) {
-    ipcRenderer.send("crew-companion:menu-hitbox", rect || null);
+    ipcRenderer.send("desk-companion:menu-hitbox", rect || null);
   },
 
   /**
@@ -56,7 +56,7 @@ contextBridge.exposeInMainWorld("crewCompanion", {
    * @param {boolean} focusable true while the panel is open
    */
   setFocusable(focusable) {
-    ipcRenderer.send("crew-companion:focusable", Boolean(focusable));
+    ipcRenderer.send("desk-companion:focusable", Boolean(focusable));
   },
 
   /**
@@ -69,11 +69,11 @@ contextBridge.exposeInMainWorld("crewCompanion", {
    * @param {{x:number,y:number,width:number,height:number}} petRect
    */
   panelOpen(petRect) {
-    ipcRenderer.send("crew-companion:panel-open", petRect);
+    ipcRenderer.send("desk-companion:panel-open", petRect);
   },
 
   panelClose() {
-    ipcRenderer.send("crew-companion:panel-close");
+    ipcRenderer.send("desk-companion:panel-close");
   },
 
   /**
@@ -81,12 +81,12 @@ contextBridge.exposeInMainWorld("crewCompanion", {
    * close the panel and discard it.
    */
   panelBreathing(active) {
-    ipcRenderer.send("crew-companion:panel-breathing", Boolean(active));
+    ipcRenderer.send("desk-companion:panel-breathing", Boolean(active));
   },
 
   /** Report that a destination view is open, for the same reason. */
   panelHold(hold) {
-    ipcRenderer.send("crew-companion:panel-hold", Boolean(hold));
+    ipcRenderer.send("desk-companion:panel-hold", Boolean(hold));
   },
 
   /**
@@ -98,8 +98,8 @@ contextBridge.exposeInMainWorld("crewCompanion", {
    */
   onPanelClosed(cb) {
     const handler = () => cb();
-    ipcRenderer.on("crew-companion:panel-closed", handler);
-    return () => ipcRenderer.removeListener("crew-companion:panel-closed", handler);
+    ipcRenderer.on("desk-companion:panel-closed", handler);
+    return () => ipcRenderer.removeListener("desk-companion:panel-closed", handler);
   },
 
   /**
@@ -109,7 +109,7 @@ contextBridge.exposeInMainWorld("crewCompanion", {
    * window, which is not what "open petdex.dev" means.
    */
   openExternal(url) {
-    ipcRenderer.send("crew-companion:open-external", url);
+    ipcRenderer.send("desk-companion:open-external", url);
   },
 
   /**
@@ -120,23 +120,23 @@ contextBridge.exposeInMainWorld("crewCompanion", {
    * The main process is the only thing both windows share.
    */
   appearanceChanged() {
-    ipcRenderer.send("crew-companion:appearance-changed");
+    ipcRenderer.send("desk-companion:appearance-changed");
   },
 
   /** Fires when the active avatar changed, in any window. */
   onAppearanceChanged(cb) {
     const handler = () => cb();
-    ipcRenderer.on("crew-companion:appearance-changed", handler);
-    return () => ipcRenderer.removeListener("crew-companion:appearance-changed", handler);
+    ipcRenderer.on("desk-companion:appearance-changed", handler);
+    return () => ipcRenderer.removeListener("desk-companion:appearance-changed", handler);
   },
 
   /** Open the avatar gallery. */
   galleryOpen() {
-    ipcRenderer.send("crew-companion:gallery-open");
+    ipcRenderer.send("desk-companion:gallery-open");
   },
 
   galleryClose() {
-    ipcRenderer.send("crew-companion:gallery-close");
+    ipcRenderer.send("desk-companion:gallery-close");
   },
 
   /**
@@ -148,20 +148,20 @@ contextBridge.exposeInMainWorld("crewCompanion", {
    */
   onGalleryOpened(cb) {
     const handler = () => cb();
-    ipcRenderer.on("crew-companion:gallery-opened", handler);
-    return () => ipcRenderer.removeListener("crew-companion:gallery-opened", handler);
+    ipcRenderer.on("desk-companion:gallery-opened", handler);
+    return () => ipcRenderer.removeListener("desk-companion:gallery-opened", handler);
   },
 
   onGalleryClosed(cb) {
     const handler = () => cb();
-    ipcRenderer.on("crew-companion:gallery-closed", handler);
-    return () => ipcRenderer.removeListener("crew-companion:gallery-closed", handler);
+    ipcRenderer.on("desk-companion:gallery-closed", handler);
+    return () => ipcRenderer.removeListener("desk-companion:gallery-closed", handler);
   },
 
   /** Which side the panel opened on, so the card can aim its entry animation. */
   onPanelOpened(cb) {
     const handler = (_e, side) => cb(side);
-    ipcRenderer.on("crew-companion:panel-opened", handler);
-    return () => ipcRenderer.removeListener("crew-companion:panel-opened", handler);
+    ipcRenderer.on("desk-companion:panel-opened", handler);
+    return () => ipcRenderer.removeListener("desk-companion:panel-opened", handler);
   },
 });

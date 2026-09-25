@@ -1,4 +1,4 @@
-"""Crew Mode — engineered orchestrator pipeline for multi-topic chat.
+"""Multitask Mode — engineered orchestrator pipeline for multi-topic chat.
 
 Design of record: docs/request-for-change/rfc-orchestrator-chat-sessions.md
 (v5, post two adversarial council rounds). The user-selected agent runs only
@@ -50,9 +50,22 @@ logger = logging.getLogger(__name__)
 
 _DECISION_TIMEOUT = 45.0
 _TERMINAL_STATES = ("done", "failed", "steered", "stopped")
-# Crew posts that answer the user (as opposed to the templated ack): these
+#: The ws ``kind`` of a manager post that names no more specific kind.
+_POST_KIND = "multitask"
+# Multitask posts that answer the user (as opposed to the templated ack): these
 # must never be folded away as intermediate reasoning.
-_ANSWER_KINDS = ("crew_result", "crew_meta", "crew_ask")
+_ANSWER_KINDS = ("multitask_result", "multitask_meta", "multitask_ask")
+#: The transcript marker an answer post carries, as a ``cls`` class and as a
+#: ``meta`` flag (see ``_post`` for why it needs both). The dashboard reads both
+#: spellings to keep an answer out of the "Worked through N steps" collapse.
+_REPLY_CLASS = "multitask-reply"
+_REPLY_META_KEY = "multitask_reply"
+#: The directory under the data home that holds one store per multitask slot.
+_STORE_ROOT_NAME = "multitask"
+#: Earlier Junction builds wrote the stores under ``<data home>/crew``; it is
+#: read (moved to :data:`_STORE_ROOT_NAME` once, when the manager starts) so an
+#: existing data home keeps its queued requests, topics and undelivered forwards.
+LEGACY_STORE_ROOT_NAME = "crew"
 _QUEUE_TERMINAL_CAP = 200
 # topics.json is read inline when a slot's store is first touched, so it must not
 # grow without limit. Idle topics past this many are dropped oldest-first; a
@@ -112,7 +125,7 @@ def _now() -> float:
     return time.time()
 
 
-#: The charset a crew store directory name is folded to. Kept identical to the
+#: The charset a multitask store directory name is folded to. Kept identical to the
 #: history layer's fold so a slot key and its store share one spelling.
 _STORE_NAME_UNSAFE = re.compile(r"[^A-Za-z0-9_.-]")
 
@@ -152,8 +165,48 @@ def _store_name(slot_key: str) -> str:
     return f"{readable}-{digest}"
 
 
+def _store_root() -> Path:
+    """The directory holding every multitask store, one subdirectory per slot."""
+    return data_home() / _STORE_ROOT_NAME
+
+
+def migrate_legacy_store_root() -> bool:
+    """Move the store root an earlier build wrote to its current name, once.
+
+    Runs before anything reads or writes a store, so the stores the manager
+    resumes are the ones the previous build left. Idempotent: with no legacy root
+    there is nothing to do, and the move happens only while the current root is
+    absent. When both exist the legacy root is left untouched and logged rather
+    than merged, because two stores for one slot cannot be combined safely
+    without knowing which queue is authoritative.
+
+    Returns whether a move happened. Best-effort: a failed move is logged and the
+    manager starts on the current root, which is the same state a fresh install
+    is in.
+    """
+    legacy = data_home() / LEGACY_STORE_ROOT_NAME
+    if not legacy.is_dir():
+        return False
+    current = _store_root()
+    if current.exists():
+        logger.warning(
+            "multitask: both %s and %s exist; the stores in %s are not resumed",
+            legacy,
+            current,
+            legacy,
+        )
+        return False
+    try:
+        legacy.rename(current)
+    except OSError:
+        logger.warning("multitask: could not move %s to %s", legacy, current, exc_info=True)
+        return False
+    logger.info("multitask: moved the store root %s to %s", legacy, current)
+    return True
+
+
 #: Win32 refuses these basenames on every device, with or without an extension.
-#: A crew store directory named for one cannot be created at all.
+#: A multitask store directory named for one cannot be created at all.
 _WIN_RESERVED = frozenset(
     ["CON", "PRN", "AUX", "NUL"]
     + [f"COM{i}" for i in range(1, 10)]
@@ -161,34 +214,35 @@ _WIN_RESERVED = frozenset(
 )
 
 
-def is_crew_capable_slot_key(slot_key: str) -> bool:
-    """Can *slot_key* host a crew store at all?
+def is_multitask_capable_slot_key(slot_key: str) -> bool:
+    """Can *slot_key* host a multitask store at all?
 
     Three ways a folded name fails to be a usable directory:
 
-    * Nothing but dots — see :class:`CrewStore` for why such a name escapes its
-      own directory.
-    * A TRAILING dot — Win32 strips it from a path segment, so ``crew/foo.`` and
-      ``crew/foo`` are ONE directory there. Two distinct slots would then share a
-      queue and each would route the other's requests. The dots-only rule (round
-      18) does not cover this: ``foo.`` has a real name in front of the dot. A
+    * Nothing but dots — see :class:`MultitaskStore` for why such a name escapes
+      its own directory.
+    * A TRAILING dot — Win32 strips it from a path segment, so ``multitask/foo.``
+      and ``multitask/foo`` are ONE directory there. Two distinct slots would then
+      share a queue and each would route the other's requests. The dots-only rule
+      does not cover this: ``foo.`` has a real name in front of the dot. A
       trailing SPACE is the same Win32 rule but needs no check here — the charset
       fold above already maps a space to ``_``.
     * A Win32 reserved DEVICE basename (``CON``, ``NUL``, ``COM1`` …), which
       cannot be created at all, so every message on that tab is a 500.
 
-    ``CrewStore`` refuses these too, and that refusal is the LAST line — reached
-    only on a crew message, i.e. after the tab exists and the user has typed. The
-    entry points (creating a crew slot, switching a slot INTO crew mode) call this
-    first so the answer is a clean refusal at the boundary.
+    ``MultitaskStore`` refuses these too, and that refusal is the LAST line —
+    reached only on a multitask message, i.e. after the tab exists and the user
+    has typed. The entry points (creating a multitask slot, switching a slot INTO
+    multitask mode) call this first so the answer is a clean refusal at the
+    boundary.
 
     Note these are checked against the READABLE part of the store name, not the
     finished directory name: the digest suffix :func:`_store_name` appends would
-    otherwise make every one of them look safe (``crew/..-1a2b3c4d`` traverses
-    nothing, ``crew/CON-1a2b3c4d`` is not a device). The suffix does defuse all
-    three hazards on its own; the guard stays because refusing a name at the
-    entry point is a clearer answer than silently storing a session under a name
-    that reads nothing like the one the caller asked for.
+    otherwise make every one of them look safe (``multitask/..-1a2b3c4d``
+    traverses nothing, ``multitask/CON-1a2b3c4d`` is not a device). The suffix
+    does defuse all three hazards on its own; the guard stays because refusing a
+    name at the entry point is a clearer answer than silently storing a session
+    under a name that reads nothing like the one the caller asked for.
     """
     safe = _STORE_NAME_UNSAFE.sub("_", slot_key)
     if not safe.strip("."):
@@ -198,27 +252,27 @@ def is_crew_capable_slot_key(slot_key: str) -> bool:
     return safe.split(".", 1)[0].upper() not in _WIN_RESERVED
 
 
-class CrewStore:
+class MultitaskStore:
     """Durable per-slot queue + topic store (atomic JSON, restart-safe)."""
 
     def __init__(self, slot_key: str) -> None:
         safe = _store_name(slot_key)
         # The character class above keeps ``.`` and ``-``, so it leaves names
-        # that are PATH SYNTAX rather than directory names intact: ``crew /
+        # that are PATH SYNTAX rather than directory names intact: ``root /
         # ".."`` resolves to the data home itself and this store's three files
-        # land beside every other product file, and ``crew / "."`` (or ``""``)
-        # writes them into the shared ``crew/`` root where the next slot's
+        # land beside every other product file, and ``root / "."`` (or ``""``)
+        # writes them into the shared ``multitask/`` root where the next slot's
         # store collides with them. The test for the rule is "nothing but
         # dots", not the two POSIX components, because Win32 STRIPS trailing
-        # dots from a path segment: ``crew / "..."`` is a legal directory name
-        # on POSIX but normalizes to ``crew`` itself on Windows, which is the
+        # dots from a path segment: ``root / "..."`` is a legal directory name
+        # on POSIX but normalizes to the root itself on Windows, which is the
         # collision case one platform over. The history layer folds the same
         # charset but prefixes ``dashboard_``, which is why it never escapes
         # and this does. Reject rather than remap: a caller reaching here with
         # such a key crafted it — slot keys are minted internally.
-        if not is_crew_capable_slot_key(slot_key):
-            raise ValueError(f"unsafe crew slot key: {slot_key!r}")
-        self.dir = data_home() / "crew" / safe
+        if not is_multitask_capable_slot_key(slot_key):
+            raise ValueError(f"unsafe multitask slot key: {slot_key!r}")
+        self.dir = _store_root() / safe
         fresh = not self.dir.exists()
         self.dir.mkdir(parents=True, exist_ok=True)
         # The directory name is a FOLD plus a digest, so it is not the slot key
@@ -235,7 +289,7 @@ class CrewStore:
             try:
                 (self.dir / "slot_key").write_text(slot_key, encoding="utf-8")
             except OSError:
-                logger.warning("crew: could not record slot key in %s", self.dir)
+                logger.warning("multitask: could not record slot key in %s", self.dir)
         self.queue: list[dict[str, Any]] = self._load("queue.json")
         self.topics: list[dict[str, Any]] = self._load("topics.json")
         self.forwards: list[dict[str, Any]] = self._load("forwards.json")
@@ -277,7 +331,7 @@ class CrewStore:
         except FileNotFoundError:
             return []
         except (json.JSONDecodeError, OSError) as exc:
-            raise RuntimeError(f"crew store: {path} is unreadable ({exc})") from exc
+            raise RuntimeError(f"multitask store: {path} is unreadable ({exc})") from exc
         if not isinstance(data, list):
             # Valid JSON of the WRONG SHAPE is the same defect one branch over:
             # returning [] here made the emptiness authoritative, and the next
@@ -285,7 +339,7 @@ class CrewStore:
             # to an object is damage from outside exactly as a torn one is, so it
             # gets the same answer — refuse, and leave the bytes to salvage.
             raise RuntimeError(
-                f"crew store: {path} is not a JSON list (got {type(data).__name__})"
+                f"multitask store: {path} is not a JSON list (got {type(data).__name__})"
             )
         return data
 
@@ -535,7 +589,7 @@ class CrewStore:
         return t
 
 
-def _inflight_dispatch_ids(st: "CrewStore") -> list[str]:
+def _inflight_dispatch_ids(st: "MultitaskStore") -> list[str]:
     """Dispatch ids in *st*'s queue that are not settled.
 
     `_owned` only learns a run id once its dispatch RETURNS, so these are the
@@ -554,20 +608,20 @@ def _purge_probe(slot_key: str) -> tuple[list[str], Path]:
     Runs in a thread — a cold store is a mkdir plus three JSON parses, and doing
     that on the event loop froze chats and heartbeats for as long as the
     filesystem took to answer. A key with no store on disk is NOT built: purging a
-    slot that never ran crew work must not create a directory just to delete it.
+    slot that never ran multitask work must not create a directory just to delete it.
     """
-    target = data_home() / "crew" / _store_name(slot_key)
+    target = _store_root() / _store_name(slot_key)
     try:
         if not target.is_dir():
             return [], target
-        return _inflight_dispatch_ids(CrewStore(slot_key)), target
+        return _inflight_dispatch_ids(MultitaskStore(slot_key)), target
     except Exception:
-        logger.warning("crew: could not read store for purge of %s", slot_key, exc_info=True)
+        logger.warning("multitask: could not read store for purge of %s", slot_key, exc_info=True)
         return [], target
 
 
-class CrewOrchestrator:
-    """The control plane for crew-mode slots (one instance, all slots)."""
+class MultitaskManager:
+    """The control plane for multitask-mode slots (one instance, all slots)."""
 
     def __init__(self, state: Any, sessions: Any, subagents: Any, cfg: Any = None) -> None:
         self._state = state
@@ -576,7 +630,7 @@ class CrewOrchestrator:
         self._cfg = cfg
         self._decide_attempts: dict[str, int] = {}
         self._last_transcript_write: Any = None
-        self._stores: dict[str, CrewStore] = {}
+        self._stores: dict[str, MultitaskStore] = {}
         self._locks: dict[str, asyncio.Lock] = {}
         self._drain_locks: dict[str, asyncio.Lock] = {}
         # Serializes ingress per slot: appending a request, making it durable and
@@ -588,13 +642,14 @@ class CrewOrchestrator:
         # Slots whose session was PERMANENTLY deleted. A cancel cannot reach work
         # that has not been dispatched yet, so an in-flight decision pass has to
         # refuse on its own; this is what it checks. Bounded by the number of
-        # permanently deleted crew sessions in one gateway lifetime, and each
+        # permanently deleted multitask sessions in one gateway lifetime, and each
         # entry is one short key.
         self._purged: set[str] = set()
         self._ack_i = 0
-        self._decision_model = getattr(
-            getattr(cfg, "dashboard", None), "crew_decision_model", None
-        ) or None
+        # Before any store is built or resumed: a store built first would create
+        # the current root and leave the previous build's stores behind it. One
+        # stat and at most one directory rename, whatever the number of stores.
+        migrate_legacy_store_root()
 
     # ---- wiring ----
 
@@ -602,14 +657,14 @@ class CrewOrchestrator:
         return run_id in self._owned
 
     async def purge_slot(self, slot_key: str) -> None:
-        """Forget everything Crew holds for *slot_key* — for a PERMANENT delete.
+        """Forget everything the manager holds for *slot_key* — for a PERMANENT delete.
 
-        Crew persists independently of the transcript: the durable queue holds the
-        user's own request texts, topics hold result digests, and dispatched
-        subagents keep running whether or not a tab is open. That independence is
-        the point (a request must survive a crash), but it means deleting a
-        conversation removed the transcript and left Crew's copy — and any run
-        still in flight — behind. The user was told the conversation was gone
+        A multitask store persists independently of the transcript: the durable
+        queue holds the user's own request texts, topics hold result digests, and
+        dispatched subagents keep running whether or not a tab is open. That
+        independence is the point (a request must survive a crash), but it means
+        removing only the transcript would leave the store's copy — and any run
+        still in flight — behind. The user would be told the conversation was gone
         while their words stayed on disk and work kept executing against them.
 
         So a delete has to reach in here. Cancels every run this slot owns first
@@ -634,7 +689,7 @@ class CrewOrchestrator:
             # and the queue grows with the session, so doing it here froze chats
             # and heartbeats for as long as the filesystem took. The probe also
             # skips a store that was never created, so purging a slot that never
-            # ran crew work does not create a directory just to delete it.
+            # ran multitask work does not create a directory just to delete it.
             loop = asyncio.get_running_loop()
             inflight, target = await loop.run_in_executor(None, _purge_probe, slot_key)
         owned.extend(d for d in inflight if d not in owned)
@@ -647,7 +702,7 @@ class CrewOrchestrator:
                 if self._subagents is not None:
                     await self._subagents.cancel(rid)
             except Exception:
-                logger.warning("crew: could not cancel %s during purge", rid, exc_info=True)
+                logger.warning("multitask: could not cancel %s during purge", rid, exc_info=True)
             self._owned.pop(rid, None)
         self._stores.pop(slot_key, None)
         for book in (self._locks, self._drain_locks, self._ingest_locks,
@@ -658,14 +713,16 @@ class CrewOrchestrator:
                 None, lambda: shutil.rmtree(target, ignore_errors=True)
             )
         except Exception:
-            logger.warning("crew: could not remove store %s", target, exc_info=True)
+            logger.warning("multitask: could not remove store %s", target, exc_info=True)
         if owned or st is not None:
-            logger.info("crew: purged store for %s (%d run(s) cancelled)", slot_key, len(owned))
+            logger.info(
+                "multitask: purged store for %s (%d run(s) cancelled)", slot_key, len(owned)
+            )
 
     async def has_live_work(self, slot_key: str) -> bool:
-        """Is any crew work still in flight for this slot?
+        """Is any multitask work still in flight for this slot?
 
-        `slot.running` cannot answer this: crew work executes in SUBAGENTS, so
+        `slot.running` cannot answer this: multitask work executes in SUBAGENTS, so
         the slot itself is idle the whole time. A caller that means "is this
         session busy" (the mode switch, for one) has to ask here as well, or two
         execution models end up interleaved in one session.
@@ -675,7 +732,7 @@ class CrewOrchestrator:
             return True
         # A persisted forward is undelivered WORK, not a finished record. When a
         # subagent completes with the tab closed the result is written here instead
-        # of posted, and the ONLY thing that flushes it is a later crew ingest. So a
+        # of posted, and the ONLY thing that flushes it is a later multitask ingest. So a
         # slot that resumed and switched modes before sending again left the answer
         # on disk with no reader: regular chat has no forward-draining step, and the
         # user never learns the request finished.
@@ -708,7 +765,7 @@ class CrewOrchestrator:
         try:
             asyncio.get_running_loop().create_task(self._resume_all())
         except RuntimeError:
-            logger.warning("crew: no running loop; persisted slots not resumed")
+            logger.warning("multitask: no running loop; persisted slots not resumed")
 
     @staticmethod
     def _list_store_dirs() -> list[str]:
@@ -720,7 +777,7 @@ class CrewOrchestrator:
         rather than resumed under a guessed name — resuming the wrong key would
         route one session's queue into another's.
         """
-        root = data_home() / "crew"
+        root = _store_root()
         if not root.is_dir():
             return []
         keys: list[str] = []
@@ -730,7 +787,7 @@ class CrewOrchestrator:
             try:
                 key = (d / "slot_key").read_text(encoding="utf-8")
             except OSError:
-                logger.warning("crew: store %s has no recorded slot key; skipping", d.name)
+                logger.warning("multitask: store %s has no recorded slot key; skipping", d.name)
                 continue
             if key:
                 keys.append(key)
@@ -741,7 +798,7 @@ class CrewOrchestrator:
         try:
             names = await loop.run_in_executor(None, self._list_store_dirs)
         except Exception:
-            logger.warning("crew: could not enumerate crew stores", exc_info=True)
+            logger.warning("multitask: could not enumerate the stores", exc_info=True)
             return 0
         resumed = 0
         for slot_key in names:
@@ -749,7 +806,7 @@ class CrewOrchestrator:
             try:
                 st = await self._store_async(slot_key)          # reconciles on first touch
             except Exception:
-                logger.warning("crew: could not load store for %s", slot_key, exc_info=True)
+                logger.warning("multitask: could not load store for %s", slot_key, exc_info=True)
                 continue
             slot = self._state.get_slot(slot_key) if self._state else None
             if slot is None:
@@ -760,7 +817,7 @@ class CrewOrchestrator:
             resumed += 1
             await self._resume_slot(slot)
         if resumed:
-            logger.info("crew: resumed %d slot(s) with unfinished work", resumed)
+            logger.info("multitask: resumed %d slot(s) with unfinished work", resumed)
         return resumed
 
     async def _resume_slot(self, slot: Any) -> None:
@@ -770,7 +827,7 @@ class CrewOrchestrator:
         if any(e.get("state") in ("pending", "ask") for e in st.queue):
             await self._decide(slot)
 
-    async def _store_async(self, slot_key: str) -> CrewStore:
+    async def _store_async(self, slot_key: str) -> MultitaskStore:
         """`_store` for callers running on the event loop.
 
         Building a store means a mkdir plus three JSON parses, and the queue
@@ -782,7 +839,7 @@ class CrewOrchestrator:
         if cached is not None:
             return cached
         loop = asyncio.get_running_loop()
-        built = await loop.run_in_executor(None, CrewStore, slot_key)  # noqa: E501
+        built = await loop.run_in_executor(None, MultitaskStore, slot_key)  # noqa: E501
         # Two concurrent first messages both miss the cache above and both build
         # a store; publishing with `self._stores[k] = built` would let the loser
         # keep writing through its own object to the SAME files, so one queue
@@ -801,7 +858,7 @@ class CrewOrchestrator:
         return st
 
     @staticmethod
-    def _rids_needing_evidence(st: CrewStore) -> list[str]:
+    def _rids_needing_evidence(st: MultitaskStore) -> list[str]:
         rids = [
             str(e.get("run_id") or e.get("dispatch_id") or "")
             for e in st.queue if e.get("state") in ("claimed", "accepted")
@@ -826,10 +883,10 @@ class CrewOrchestrator:
                 out[rid] = True
         return out
 
-    def _store(self, slot_key: str) -> CrewStore:
+    def _store(self, slot_key: str) -> MultitaskStore:
         st = self._stores.get(slot_key)
         if st is None:
-            st = CrewStore(slot_key)
+            st = MultitaskStore(slot_key)
             self._stores[slot_key] = st
             self._reconcile(slot_key, st)
         return st
@@ -872,10 +929,10 @@ class CrewOrchestrator:
             # absent directory is evidence of a dispatch that never took effect.
             return _agent_dir(rid).exists()
         except Exception:
-            logger.warning("crew: durable run lookup failed for %s", rid, exc_info=True)
+            logger.warning("multitask: durable run lookup failed for %s", rid, exc_info=True)
             return True      # fail closed: never re-execute on an unknown answer
 
-    def _reconcile(self, slot_key: str, st: CrewStore,
+    def _reconcile(self, slot_key: str, st: MultitaskStore,
                    evidence: dict[str, bool] | None = None) -> None:
         """Restart reconciliation: re-own live runs; re-open interrupted
         dispatches (claimed/accepted whose run is unknown -> pending)."""
@@ -986,12 +1043,12 @@ class CrewOrchestrator:
     def _slot_cwd(slot: Any) -> str:
         """The project directory this slot's work belongs in.
 
-        The field is ``project`` — there is no ``cwd`` on a chat slot, so the
-        earlier ``getattr(slot, "cwd", "")`` read a name that never exists and
-        silently answered "". Every crew subagent then launched in the POOL
-        project regardless of what the user had selected, and a relative edit
-        landed in the wrong tree. Threaded to both the warm and ``spawn(cwd=)``
-        from this one accessor so the two cannot disagree again.
+        The field is ``project`` — there is no ``cwd`` on a chat slot, so reading
+        ``getattr(slot, "cwd", "")`` would silently answer "" and every topic
+        subagent would launch in the POOL project regardless of what the user had
+        selected, landing a relative edit in the wrong tree. Threaded to both the
+        warm and ``spawn(cwd=)`` from this one accessor so the two cannot
+        disagree.
         """
         return str(getattr(slot, "project", "") or "")
 
@@ -1004,9 +1061,9 @@ class CrewOrchestrator:
         that endpoint pairs it with a warm step, and the pairing is load-bearing:
         without it, ``_validate_agent`` reads an empty cache and REFUSES a slot
         whose agent is a project agent, until some unrelated session happens to
-        warm it. Crew dispatch had the synchronous call without the warm, so a
-        project-agent crew slot got "Couldn't start that one" for a name that
-        exists.
+        warm it. Topic dispatch makes the same synchronous call, so without the
+        warm a multitask slot bound to a project agent gets "Couldn't start that
+        one" for a name that exists.
 
         Reuses the spawn endpoint's helper rather than re-deriving the
         cwd/allowlist rules — a second copy of that logic would drift, and it is
@@ -1020,36 +1077,37 @@ class CrewOrchestrator:
                 self._state, self._slot_cwd(slot)
             )
         except Exception:
-            logger.debug("crew: agent-cache warm failed", exc_info=True)
+            logger.debug("multitask: agent-cache warm failed", exc_info=True)
 
     async def _dispatch_agent(self, slot: Any) -> str:
-        """The kiro-cli agent TEMPLATE this slot's crew dispatches as.
+        """The kiro-cli agent TEMPLATE this slot's topics dispatch as.
 
-        ``slot.agent`` holds a CREW name — a key of the config's ``agents``
-        mapping — while ``spawn()`` validates its ``agent=`` against the kiro-cli
-        TEMPLATE names ``list_agents()`` reports. The two coincide for every crew
-        whose ``kiro_agent`` repeats its own name, which is all of them except
-        the default crew: ``default`` binds the template ``junction``. Passing the
-        crew name straight through therefore worked by coincidence everywhere
-        except the crew every session starts on, where ``_validate_agent`` refused
-        the dispatch and the user saw "Couldn't start that one".
+        ``slot.agent`` holds a Junction AGENT name — a key of the config's
+        ``agents`` mapping — while ``spawn()`` validates its ``agent=`` against
+        the kiro-cli TEMPLATE names ``list_agents()`` reports. The two coincide
+        for every agent whose ``kiro_agent`` repeats its own name, which is all of
+        them except the default agent: ``default`` binds the template
+        ``junction``. Passing the agent name straight through would therefore
+        work by coincidence everywhere except on the agent every session starts
+        on, where ``_validate_agent`` refuses the dispatch and the user sees
+        "Couldn't start that one".
 
         Resolution is deliberately per dispatch rather than cached on the slot: a
-        config edit must take effect on the next message, and the crew name stays
+        config edit must take effect on the next message, and the agent name stays
         the durable identity.
 
-        The warm is kept and runs first — the resolved template may itself be a
-        project agent, which ``_validate_agent`` only ever sees through the warmed
-        cache. Falls back to the crew name on any resolution failure, so a broken
-        config degrades to the previous behaviour instead of losing the dispatch.
+        The warm runs first — the resolved template may itself be a project
+        agent, which ``_validate_agent`` only ever sees through the warmed cache.
+        Falls back to the agent name on any resolution failure, so a broken config
+        degrades to dispatching the name as given instead of losing the dispatch.
 
-        An UNKNOWN crew name (``requested_resolved`` False) also returns the raw
-        crew name rather than the default binding the resolver fell back to:
+        An UNKNOWN agent name (``requested_resolved`` False) also returns the raw
+        agent name rather than the default binding the resolver fell back to:
         dispatching that binding would silently run the default agent under a
-        stale name, whereas the crew name is refused by ``_validate_agent`` —
+        stale name, whereas the raw name is refused by ``_validate_agent`` —
         the unknown-name path stays fail-closed.
 
-        An EMPTY crew also resolves (as ``None``, i.e. the default binding)
+        An EMPTY agent also resolves (as ``None``, i.e. the default binding)
         rather than passing ``""`` through: ``spawn()``'s governance agent-scope
         check (``capabilities.spawn.scopes.agents``) only vets a NAMED agent, so
         ``agent=""`` would run the default agent without the administrator's
@@ -1057,34 +1115,36 @@ class CrewOrchestrator:
         dispatch will run, keeping it inside the governance check.
         """
         await self._warm_agent_cache(slot)
-        crew = str(getattr(slot, "agent", "") or "")
+        agent = str(getattr(slot, "agent", "") or "")
 
         def _resolve() -> str:
             cfg = JunctionConfig.load()
-            bindings = resolve_agent_bindings(cfg, crew or None, self._slot_cwd(slot) or None)
-            if crew and not getattr(bindings, "requested_resolved", True):
-                # The crew name matched neither an alias nor a materialized
+            bindings = resolve_agent_bindings(cfg, agent or None, self._slot_cwd(slot) or None)
+            if agent and not getattr(bindings, "requested_resolved", True):
+                # The agent name matched neither an alias nor a materialized
                 # agent, so the resolver fell back to the DEFAULT binding.
                 # Dispatching that binding would silently run the default
-                # agent under an unknown/stale crew name — return the raw
-                # crew name instead so _validate_agent refuses it, keeping
-                # the unknown-name path fail-closed.
+                # agent under an unknown/stale name — return the raw agent
+                # name instead so _validate_agent refuses it, keeping the
+                # unknown-name path fail-closed.
                 logger.warning(
-                    "crew: crew %r is unknown; refusing default-agent fallback",
-                    crew,
+                    "multitask: agent %r is unknown; refusing default-agent fallback",
+                    agent,
                 )
-                return crew
-            return str(bindings.kiro_agent or crew)
+                return agent
+            return str(bindings.kiro_agent or agent)
 
         try:
             # JunctionConfig.load() reads and parses from disk; this runs on the
             # event loop, so it goes to a worker thread.
             return await asyncio.to_thread(_resolve)
         except Exception:
-            logger.warning("crew: could not resolve crew %r to a template", crew, exc_info=True)
-            return crew
+            logger.warning(
+                "multitask: could not resolve agent %r to a template", agent, exc_info=True
+            )
+            return agent
 
-    async def _post_durable(self, slot: Any, content: str, kind: str = "crew") -> bool:
+    async def _post_durable(self, slot: Any, content: str, kind: str = _POST_KIND) -> bool:
         """`_post`, then wait for the durable transcript row to actually land.
 
         `_post` schedules that append off-loop, so its True means "delivered and
@@ -1113,17 +1173,17 @@ class CrewOrchestrator:
             except Exception:
                 # A mirror copy, not the proof: the slot save below is what
                 # decides durability, so a lock timeout here is not fatal.
-                logger.warning("crew: durable transcript append failed", exc_info=True)
+                logger.warning("multitask: durable transcript append failed", exc_info=True)
         try:
             await save_slot_off_loop(
                 self._state, slot, force=True, best_effort=False
             )
         except Exception:
-            logger.warning("crew: durable slot save failed", exc_info=True)
+            logger.warning("multitask: durable slot save failed", exc_info=True)
             return False
         return True
 
-    def _post(self, slot: Any, content: str, kind: str = "crew") -> bool:
+    def _post(self, slot: Any, content: str, kind: str = _POST_KIND) -> bool:
         """Deliver one message. Returns whether it actually reached the user —
         callers that hold the only durable copy MUST NOT drop it on False."""
         # Never trust LLM output: every _post payload is LLM-authored on some
@@ -1134,27 +1194,27 @@ class CrewOrchestrator:
             content, _ = redact_exfiltration_urls(content)
             content, _ = redact_credentials(content)
         except Exception:
-            logger.warning("crew: redaction failed; refusing to post raw", exc_info=True)
+            logger.warning("multitask: redaction failed; refusing to post raw", exc_info=True)
             return False
         try:
             # broadcast=False: the explicit chat_message frame below is the
             # single broadcast (append's implicit _on_message would duplicate
             # it — GPT review finding on 120fd95e; persistence is unaffected).
             # The answer kinds carry a marker class so the transcript can keep
-            # them out of the "Worked through N steps" collapse: in crew mode
-            # EVERY forward is a final answer for a different topic, so the
+            # them out of the "Worked through N steps" collapse: in multitask
+            # mode EVERY forward is a final answer for a different topic, so the
             # "last assistant message is the conclusion" model would hide real
             # answers. It goes in cls (persisted) rather than the ws-only
             # `kind`, so the distinction survives a reload.
             is_answer = kind in _ANSWER_KINDS
-            cls = "msg msg-a crew-reply" if is_answer else "msg msg-a"
+            cls = f"msg msg-a {_REPLY_CLASS}" if is_answer else "msg msg-a"
             # The marker lives in META, not just the class: the periodic slot
             # flush (chat_persistence._build_message_entry) keeps `cls` only for
             # role == "system" and drops it for assistant, while it keeps `meta`
             # for every role. A class-only marker was therefore erased by the
             # main persistence path — which is why patching one channel at a time
             # (ws frame, ConversationLog) kept leaving another.
-            meta = {"crew_reply": True} if is_answer else None
+            meta = {_REPLY_META_KEY: True} if is_answer else None
             # The durable copy below must carry the window copy's minted
             # ``meta.mid`` (read off the append's return via ``row_mid``): one
             # logical message, one identity, so a bounded slot-detail read
@@ -1170,7 +1230,7 @@ class CrewOrchestrator:
                  "cls": cls, "meta": meta, "kind": kind},
             )
         except Exception:
-            logger.warning("crew: transcript post failed for %s", slot.key, exc_info=True)
+            logger.warning("multitask: transcript post failed for %s", slot.key, exc_info=True)
             return False
         try:
             self._last_transcript_write = append_if_absent_off_loop(
@@ -1184,7 +1244,7 @@ class CrewOrchestrator:
                 mid=window_mid,
             )
         except Exception:
-            logger.debug("crew: conversation_log append failed", exc_info=True)
+            logger.debug("multitask: conversation_log append failed", exc_info=True)
         # The user HAS seen it by now: the transcript append and broadcast above
         # both succeeded. The conversation_log is a secondary copy, so failing to
         # mirror it there is not a delivery failure and must not make the caller
@@ -1195,7 +1255,7 @@ class CrewOrchestrator:
 
     async def ingest(self, slot: Any, message: str, *,
                      user_meta: dict[str, Any] | None = None) -> str | None:
-        """Called from api_chat for crew slots. Enqueue DURABLY, then show the
+        """Called from api_chat for multitask slots. Enqueue DURABLY, then show the
         user's message, ack, and schedule the decision pass.
 
         Returns ``None`` when the message was accepted, or a short refusal CODE
@@ -1210,26 +1270,26 @@ class CrewOrchestrator:
         exit in that window left the user looking at their own message with no
         queue entry behind it, a request that could never be resumed.
         """
-        # App-governance boundary: Crew orchestration dispatches work through
-        # spawn / continue_conversation, and continue_conversation carries no
-        # ``app`` — so an app-owned slot entering Crew would run its subagents
+        # App-governance boundary: the manager dispatches work through spawn /
+        # continue_conversation, and continue_conversation carries no ``app`` —
+        # so an app-owned slot entering multitask mode would run its subagents
         # (and their host-permitted tools) OUTSIDE the app's profile. Until the
-        # whole dispatch path preserves ``slot._app``, refuse Crew for app-owned
-        # slots rather than silently drop the app identity (GPT finding on
-        # 84dfff5b). Dashboard-created Crew slots have no _app and are unaffected.
+        # whole dispatch path preserves ``slot._app``, multitask mode is refused
+        # for app-owned slots rather than silently dropping the app identity.
+        # Dashboard-created multitask slots have no _app and are unaffected.
         # isinstance guard (not truthiness): test doubles are MagicMock, whose
         # auto-created ._app attribute is truthy — only a real, non-empty str
-        # marks an app-owned slot (mirrors the CrewOrchestrator isinstance
+        # marks an app-owned slot (mirrors the MultitaskManager isinstance
         # check in gateway._subagent_done).
         _slot_app = getattr(slot, "_app", "")
         if isinstance(_slot_app, str) and _slot_app:
             self._post(
                 slot,
-                "Crew mode isn't available in an app-owned session — start a "
+                "Multitask mode isn't available in an app-owned session — start a "
                 "regular chat for multi-topic orchestration.",
-                kind="crew_ask",
+                kind="multitask_ask",
             )
-            return "crew_app_session_unsupported"
+            return "multitask_app_session_unsupported"
         # Acquired BEFORE any await in this method, deliberately. `asyncio.Lock` is
         # FIFO among its waiters, so taking it first makes the order requests reach
         # it the order they arrived; taking it later means the awaits in between
@@ -1282,7 +1342,7 @@ class CrewOrchestrator:
         # writes only the file this append touched, so a raise here means
         # nothing reached disk and the memory-only rollback is complete.
         try:
-            await CrewStore.wait_for(writes)
+            await MultitaskStore.wait_for(writes)
         except Exception:
             st.discard_msg(_entry, writes)
             raise
@@ -1309,9 +1369,9 @@ class CrewOrchestrator:
         # accepted: `_post` broadcasts the echo and the ack BEFORE this await
         # (see the paragraph above), so by this point the promise is on screen.
         # Keep the entry and dispatch it; the failure is logged, loudly.
-        if not await self._post_durable(slot, ack, kind="crew_ack"):
+        if not await self._post_durable(slot, ack, kind="multitask_ack"):
             logger.warning(
-                "crew: ack transcript not durable for %s; the request is queued "
+                "multitask: ack transcript not durable for %s; the request is queued "
                 "and will still run (its transcript row may be missing after a "
                 "restart)", slot.key,
             )
@@ -1353,7 +1413,9 @@ class CrewOrchestrator:
                 try:
                     await self._decide_once(slot)
                 except Exception:
-                    logger.warning("crew: decision pass failed for %s", slot.key, exc_info=True)
+                    logger.warning(
+                        "multitask: decision pass failed for %s", slot.key, exc_info=True
+                    )
                 if self._rerun.get(slot.key):
                     continue
                 # A pass can return valid JSON that settles NOTHING (empty
@@ -1377,7 +1439,7 @@ class CrewOrchestrator:
         tries = self._decide_attempts.get(slot.key, 0) + 1
         self._decide_attempts[slot.key] = tries
         if tries < _DECIDE_MAX_ATTEMPTS:
-            logger.info("crew: %d entr(ies) unsettled for %s, retry %d/%d",
+            logger.info("multitask: %d entr(ies) unsettled for %s, retry %d/%d",
                         len(stuck), slot.key, tries, _DECIDE_MAX_ATTEMPTS)
             return True
         for e in stuck:
@@ -1388,17 +1450,17 @@ class CrewOrchestrator:
         # while the entries are still `pending` on disk, and the next start
         # routes and executes them. Same durable-before-visible contract the
         # dispatch paths follow, in the opposite direction.
-        await CrewStore.wait_for(st.save_queue())
+        await MultitaskStore.wait_for(st.save_queue())
         self._post(
             slot,
             "I could not work out how to route "
             + ("this request" if len(stuck) == 1 else f"{len(stuck)} of your requests")
             + " after several attempts, so nothing was started. Please rephrase and send again.",
-            kind="crew_meta",
+            kind="multitask_meta",
         )
         return False
 
-    def _snapshot(self, st: CrewStore) -> str:
+    def _snapshot(self, st: MultitaskStore) -> str:
         return json.dumps(
             {
                 "queue": [
@@ -1425,8 +1487,8 @@ class CrewOrchestrator:
         for attempt in (1, 2):
             try:
                 raw = await run_bg_oneliner(
-                    self._sessions, prompt, model=self._decision_model,
-                    sel_source="crew_decision", timeout=_DECISION_TIMEOUT,
+                    self._sessions, prompt,
+                    sel_source="multitask_decision", timeout=_DECISION_TIMEOUT,
                 )
                 data = _extract_json_of_type(raw, dict, prefer=_decision_shaped)
                 if not isinstance(data, dict):
@@ -1440,7 +1502,7 @@ class CrewOrchestrator:
                 break
             except Exception:
                 if attempt == 2:
-                    logger.warning("crew: unparseable decision, deferring: %r",
+                    logger.warning("multitask: unparseable decision, deferring: %r",
                                    self._safe_for_log(raw[:200]))
                     return
         for a in actions:
@@ -1449,13 +1511,13 @@ class CrewOrchestrator:
             except Exception:
                 # `a` is LLM-authored too — its field values are model output,
                 # so it gets the same treatment as the raw decision above.
-                logger.warning("crew: action failed: %s",
+                logger.warning("multitask: action failed: %s",
                                self._safe_for_log(repr(a)), exc_info=True)
         st.save()
 
     # ---- executor (validates every action; LLM only picks legal moves) ----
 
-    async def _apply(self, slot: Any, st: CrewStore, a: dict[str, Any]) -> None:
+    async def _apply(self, slot: Any, st: MultitaskStore, a: dict[str, Any]) -> None:
         if slot.key in self._purged:
             return  # the session was permanently deleted mid-pass
         do = a.get("do")
@@ -1487,18 +1549,19 @@ class CrewOrchestrator:
             # moment `spawn()` returns: after that a rollback would re-execute
             # work that is already running, which is strictly worse than a stall.
             try:
-                await CrewStore.wait_for(st.save_queue())
-                # A temporary session blocks memory-context injection, and crew
+                await MultitaskStore.wait_for(st.save_queue())
+                # A temporary session blocks memory-context injection, and topic
                 # dispatch is not an exception to that boundary — chat_runner passes
-                # the same flag on the main path. Without it, a temporary crew slot
-                # leaked stored memory and lessons into every subagent it spawned.
+                # the same flag on the main path. Without it, a temporary multitask
+                # slot would leak stored memory and lessons into every subagent it
+                # spawns.
                 no_reads = bool(getattr(slot, "blocks_reads", False))
                 dispatch_agent = await self._dispatch_agent(slot)
             except Exception:
                 e["state"] = prior_state or "pending"
                 e.pop("dispatch_id", None)
                 logger.warning(
-                    "crew: dispatch aborted before spawning; reopened %s",
+                    "multitask: dispatch aborted before spawning; reopened %s",
                     e.get("msg_id"), exc_info=True,
                 )
                 raise
@@ -1514,8 +1577,8 @@ class CrewOrchestrator:
                 # mode-switch busy check (`chat_folders`) reads pending work by
                 # this same key and must stay in step with it.
                 parent_session_key=effective_session_key(slot),
-                # The project the user selected, not the pool default: a crew
-                # subagent edits files, and without this it edited ANOTHER
+                # The project the user selected, not the pool default: a topic
+                # subagent edits files, and without this it would edit ANOTHER
                 # project's tree. Same value the warm above validated.
                 cwd=self._slot_cwd(slot),
                 agent=dispatch_agent,
@@ -1529,7 +1592,7 @@ class CrewOrchestrator:
                 self._post(
                     slot,
                     "Couldn't start that one — say the word and I'll retry.",
-                    kind="crew_ask",
+                    kind="multitask_ask",
                 )
                 return
             # The title comes from the decision agent, so it is model output on
@@ -1586,12 +1649,12 @@ class CrewOrchestrator:
             # `steering` for a steer that never happened — and `steering` is
             # excluded from future decisions, so the request would sit forever.
             try:
-                await CrewStore.wait_for(st.save_queue())
+                await MultitaskStore.wait_for(st.save_queue())
             except Exception:
                 e["state"] = prior_state or "pending"
                 e.pop("run_id", None)
                 logger.warning(
-                    "crew: steer aborted before injection; reopened %s",
+                    "multitask: steer aborted before injection; reopened %s",
                     e.get("msg_id"), exc_info=True,
                 )
                 raise
@@ -1609,12 +1672,12 @@ class CrewOrchestrator:
                 await self._dispatch_continue(slot, st, t, e)
         elif do == "ask":
             e["state"] = "ask"
-            self._post(slot, str(a.get("question") or "Quick check — is that about an existing topic, or something new?"), kind="crew_ask")
+            self._post(slot, str(a.get("question") or "Quick check — is that about an existing topic, or something new?"), kind="multitask_ask")
         elif do == "meta":
             e["state"] = "done"
-            self._post(slot, self._render_topics(st), kind="crew_meta")
+            self._post(slot, self._render_topics(st), kind="multitask_meta")
 
-    async def _dispatch_continue(self, slot: Any, st: CrewStore, t: dict[str, Any], e: dict[str, Any]) -> None:
+    async def _dispatch_continue(self, slot: Any, st: MultitaskStore, t: dict[str, Any], e: dict[str, Any]) -> None:
         if slot.key in self._purged:
             return
         dispatch_id = uuid.uuid4().hex[:8]
@@ -1630,12 +1693,12 @@ class CrewOrchestrator:
         # if the barrier itself fails, since the caller's trailing full save would
         # otherwise persist a continuation that never happened.
         try:
-            await CrewStore.wait_for(st.save_queue())
+            await MultitaskStore.wait_for(st.save_queue())
         except Exception:
             e["state"] = prior_state or "pending"
             e.pop("dispatch_id", None)
             logger.warning(
-                "crew: continuation aborted before dispatch; reopened %s",
+                "multitask: continuation aborted before dispatch; reopened %s",
                 e.get("msg_id"), exc_info=True,
             )
             raise
@@ -1685,12 +1748,12 @@ class CrewOrchestrator:
                 # rolled back on failure, or the caller's trailing full save
                 # persists a respawn that never happened.
                 try:
-                    await CrewStore.wait_for(st.save_queue())
+                    await MultitaskStore.wait_for(st.save_queue())
                 except Exception:
                     e["state"] = respawn_prior or "pending"
                     e.pop("dispatch_id", None)
                     logger.warning(
-                        "crew: respawn aborted before spawning; reopened %s",
+                        "multitask: respawn aborted before spawning; reopened %s",
                         e.get("msg_id"), exc_info=True,
                     )
                     raise
@@ -1721,7 +1784,7 @@ class CrewOrchestrator:
                     self._post(
                         slot,
                         "Couldn't pick that one back up — say the word and I'll retry.",
-                        kind="crew_ask",
+                        kind="multitask_ask",
                     )
             return
         t["active_run_id"] = info.id
@@ -1731,7 +1794,7 @@ class CrewOrchestrator:
         e["state"] = "accepted"
         e["run_id"] = info.id
 
-    def _render_topics(self, st: CrewStore) -> str:
+    def _render_topics(self, st: MultitaskStore) -> str:
         live = [t for t in st.topics if t.get("status") != "released"]
         if not live:
             return "Nothing in flight right now — everything's wrapped up."
@@ -1769,7 +1832,7 @@ class CrewOrchestrator:
                 None, lambda: Path(path).read_text(encoding="utf-8", errors="replace")
             )
         except Exception:
-            logger.warning("crew: could not read full result at %s", path, exc_info=True)
+            logger.warning("multitask: could not read full result at %s", path, exc_info=True)
             return raw
         return full or raw
 
@@ -1783,7 +1846,7 @@ class CrewOrchestrator:
         st = await self._store_async(slot_key)
         t = st.topic_by_run(info.id)
         if t is None:
-            logger.info("crew: stale completion %s (no topic) — ignored", info.id)
+            logger.info("multitask: stale completion %s (no topic) — ignored", info.id)
             return
         # Extract the contracted summary; fall back to truncated result.
         raw = await self._full_result(info)
@@ -1846,13 +1909,13 @@ class CrewOrchestrator:
             await st.wait_writes()
             try:
                 self._state.notify(
-                    "crew",
-                    f"Crew result: {t.get('title') or 'topic'}",
+                    "multitask",
+                    f"Multitask result: {t.get('title') or 'topic'}",
                     summary[:500],
                 )
             except Exception:
-                logger.debug("crew: closed-slot notification failed", exc_info=True)
-            logger.info("crew: completion %s settled for closed slot %s (forward persisted)", info.id, slot_key)
+                logger.debug("multitask: closed-slot notification failed", exc_info=True)
+            logger.info("multitask: completion %s settled for closed slot %s (forward persisted)", info.id, slot_key)
             return
         try:
             await self._queue_forward(slot, body)
@@ -1900,7 +1963,7 @@ class CrewOrchestrator:
             # Clear ONLY on a delivery that happened. `_post` has handled failure
             # paths (redaction refusal, transcript error); dropping the persisted
             # copy on those turned a failed delivery into a permanently lost result.
-            if await self._post_durable(slot, body, kind="crew_result"):
+            if await self._post_durable(slot, body, kind="multitask_result"):
                 st.remove_forwards({fid})
 
     async def _drain_forwards(self, slot: Any) -> None:
@@ -1924,5 +1987,5 @@ class CrewOrchestrator:
         async with lock:
             st = self._store(slot.key)
             for f in list(st.forwards):
-                if await self._post_durable(slot, str(f.get("body", "")), kind="crew_result"):
+                if await self._post_durable(slot, str(f.get("body", "")), kind="multitask_result"):
                     st.remove_forwards({str(f.get("fid", ""))})

@@ -70,6 +70,13 @@ from junction.platform_compat import chmod_safe
 
 logger = logging.getLogger(__name__)
 
+#: The store's file, inside the app's data directory.
+REMINDERS_FILENAME = "reminders.json"
+#: Earlier Junction builds wrote the store under this name. ``install_migration``
+#: renames it to :data:`REMINDERS_FILENAME` before the app registers, so an existing
+#: data home keeps its reminders, break settings and stats.
+LEGACY_REMINDERS_FILENAME = "crew-companion-reminders.json"
+
 #: Refuse an absurdly large store rather than trying to parse it.
 MAX_BYTES = 2_000_000
 
@@ -189,7 +196,7 @@ class CompanionStore:
         now: Callable[[], datetime] = lambda: datetime.now().astimezone(),
         on_fire: Callable[[], None] | None = None,
     ) -> None:
-        self._path = data_dir / "crew-companion-reminders.json"
+        self._path = data_dir / REMINDERS_FILENAME
         self._rand = rand
         self._now = now
         # Called right after a fire is queued, so the overlay can be told instead of
@@ -228,11 +235,11 @@ class CompanionStore:
         try:
             if self._path.is_file():
                 if self._path.stat().st_size > MAX_BYTES:
-                    logger.warning("crew-companion: store too large, ignoring")
+                    logger.warning("desk-companion: store too large, ignoring")
                 else:
                     raw = json.loads(self._path.read_text("utf-8"))
         except (OSError, ValueError) as exc:
-            logger.warning("crew-companion: unreadable store (%s), starting empty", exc)
+            logger.warning("desk-companion: unreadable store (%s), starting empty", exc)
 
         with self._lock:
             self._state = _State(
@@ -337,7 +344,7 @@ class CompanionStore:
             chmod_safe(tmp, 0o600)
             os.replace(tmp, self._path)
         except OSError as exc:
-            logger.warning("crew-companion: store write failed: %s", exc)
+            logger.warning("desk-companion: store write failed: %s", exc)
             try:
                 tmp.unlink(missing_ok=True)   # no half-written temps left behind
             except OSError:
@@ -646,7 +653,7 @@ class CompanionStore:
             try:
                 self._on_fire()
             except Exception:  # noqa: BLE001 — a push failure must not stop the tick
-                logger.debug("crew-companion: fire broadcast failed", exc_info=True)
+                logger.debug("desk-companion: fire broadcast failed", exc_info=True)
 
     def tick(self) -> None:
         """One pass. Safe to call directly from tests with an injected clock."""
@@ -759,7 +766,7 @@ class CompanionStore:
             return
         self._stop.clear()
         self._thread = threading.Thread(
-            target=self._run, name="crew-companion-tick", daemon=True
+            target=self._run, name="desk-companion-tick", daemon=True
         )
         self._thread.start()
 
@@ -779,7 +786,7 @@ class CompanionStore:
             except Exception:  # noqa: BLE001
                 # A throwing tick must never kill the loop, or reminders stop
                 # silently — which is the one failure a reminder app cannot have.
-                logger.exception("crew-companion: tick failed")
+                logger.exception("desk-companion: tick failed")
 
 
 def _is_yesterday(previous: str, today: str) -> bool:

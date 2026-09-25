@@ -1,6 +1,6 @@
 """The read half of the Windows sharing-violation window (issue #4331).
 
-``CrewStore._load`` read with a bare ``read_text`` and mapped every ``OSError``
+``MultitaskStore._load`` read with a bare ``read_text`` and mapped every ``OSError``
 to a fatal ``RuntimeError``. On Windows a read raises ``PermissionError``
 (``WinError 32``) while another handle holds the file open for write, and the
 store's own builder admits two concurrent first messages for one slot both
@@ -92,7 +92,7 @@ class TestReadBytesWithRetry:
             aw.read_bytes_with_retry(tmp_path / "absent.json")
 
 
-class TestCrewStoreLoadSurvivesAContendedRead:
+class TestMultitaskStoreLoadSurvivesAContendedRead:
     def test_load_reads_through_the_retrying_helper(self, tmp_path, _windows, monkeypatch) -> None:
         """The product path from #4331: a concurrent first message for the same
         slot is replacing ``queue.json`` while this build reads it.
@@ -107,7 +107,7 @@ class TestCrewStoreLoadSurvivesAContendedRead:
         because it puts the store on a path the existing simulator can fault.
         """
         from junction import multitask_chat
-        from junction.multitask_chat import CrewStore
+        from junction.multitask_chat import MultitaskStore
 
         seen: list[str] = []
         real = multitask_chat.read_bytes_with_retry
@@ -118,7 +118,7 @@ class TestCrewStoreLoadSurvivesAContendedRead:
 
         monkeypatch.setattr(multitask_chat, "read_bytes_with_retry", _spy)
 
-        store = CrewStore.__new__(CrewStore)
+        store = MultitaskStore.__new__(MultitaskStore)
         store.dir = tmp_path
         _seed(tmp_path)
 
@@ -130,9 +130,9 @@ class TestCrewStoreLoadSurvivesAContendedRead:
     def test_a_damaged_file_is_still_fatal(self, tmp_path, _windows) -> None:
         """The retry must not soften the guard that exists so a broken file is
         never read as an empty queue and saved back over the real one."""
-        from junction.multitask_chat import CrewStore
+        from junction.multitask_chat import MultitaskStore
 
-        store = CrewStore.__new__(CrewStore)
+        store = MultitaskStore.__new__(MultitaskStore)
         store.dir = tmp_path
         (tmp_path / "queue.json").write_text("{not json", encoding="utf-8")
 
@@ -140,9 +140,9 @@ class TestCrewStoreLoadSurvivesAContendedRead:
             store._load("queue.json")
 
     def test_a_missing_file_is_still_an_empty_queue(self, tmp_path, _windows) -> None:
-        from junction.multitask_chat import CrewStore
+        from junction.multitask_chat import MultitaskStore
 
-        store = CrewStore.__new__(CrewStore)
+        store = MultitaskStore.__new__(MultitaskStore)
         store.dir = tmp_path
 
         assert store._load("queue.json") == []

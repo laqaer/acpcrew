@@ -3,8 +3,8 @@ import Clickable from '../../../components/Clickable'
 import { fmtNumber } from '../../../i18n/format'
 import { useIssueRadar } from '../context'
 import type { RepoRef } from '../api'
-import { APP_VERSION, CREW_SORT_FIELDS, DEFAULT_RAIL_WIDTH } from '../lib/format'
-import { CREW_FILTERS, type CrewFilter } from '../lib/types'
+import { APP_VERSION, DEFAULT_RAIL_WIDTH, STEWARD_SORT_FIELDS } from '../lib/format'
+import { STEWARD_FILTERS, type StewardFilter } from '../lib/types'
 import AccordionSection from './Accordion'
 import { IconButton } from '../../../components/ui'
 import DashboardsSection from './DashboardsSection'
@@ -45,7 +45,7 @@ export default function LeftRail({
 }) {
   const {
     expanded, dashboardTab, active, repos, openDashboard, openIssues, openPulls, openSettings,
-    openCrews,
+    openStewards,
   } = useIssueRadar()
   // Provider vocabulary: GitLab calls these merge requests, and calling them
   // pull requests in a GitLab workspace is simply wrong copy.
@@ -107,15 +107,15 @@ export default function LeftRail({
       </AccordionSection>
 
       <AccordionSection
-        title={i18nT('apps.issueRadar.views.crews.rail_section')}
+        title={i18nT('apps.issueRadar.views.stewards.rail_section')}
         icon={Users}
-        expanded={expanded === 'crews'}
-        // Return to the crews page you were last on — `crewView` is persisted, so
+        expanded={expanded === 'stewards'}
+        // Return to the stewards page you were last on — `stewardView` is persisted, so
         // resetting it here would discard the one thing the section remembers.
         // Same contract as Dashboards above.
-        onToggle={() => { openCrews(); onNavigate?.() }}
+        onToggle={() => { openStewards(); onNavigate?.() }}
       >
-        <CrewsSection onNavigate={onNavigate} />
+        <StewardsSection onNavigate={onNavigate} />
       </AccordionSection>
 
       <AccordionSection
@@ -158,18 +158,18 @@ export default function LeftRail({
   )
 }
 
-/** Body of the "Crews" accordion section: Sort and Filters over the roster — the
- * crew analogue of FiltersSection / PrFiltersSection, and the reason those
+/** Body of the "Stewards" accordion section: Sort and Filters over the roster — the
+ * steward analogue of FiltersSection / PrFiltersSection, and the reason those
  * controls are NOT in column 2: the rail holds how you narrow a list, the list
  * column holds the list.
  *
- * The roster itself is deliberately absent here. Column 2 is where a crew's state
+ * The roster itself is deliberately absent here. Column 2 is where a steward's state
  * is read, and the rail is the surface that has to stay legible at 220px — a
  * second copy of one list, without the state, is the worse of the two. */
-function CrewsSection({ onNavigate }: { onNavigate?: () => void }) {
+function StewardsSection({ onNavigate }: { onNavigate?: () => void }) {
   const {
-    openCrews, crewCounts,
-    crewFilter, setCrewFilter, crewSortKey, crewSortDir, cycleCrewSort,
+    openStewards, stewardCounts,
+    stewardFilter, setStewardFilter, stewardSortKey, stewardSortDir, cycleStewardSort,
   } = useIssueRadar()
 
   const rowClass = (isActive: boolean) =>
@@ -179,45 +179,45 @@ function CrewsSection({ onNavigate }: { onNavigate?: () => void }) {
 
 
   /** Filter labels and tallies keyed by filter, so the rows are driven by
-   * `CREW_FILTERS` itself — a filter added to the list without a label or a count
+   * `STEWARD_FILTERS` itself — a filter added to the list without a label or a count
    * fails to compile here.
    *
-   * The counts are the SERVER's, summed from each crew's open work items: data the
+   * The counts are the SERVER's, summed from each steward's open work items: data the
    * roster payload does not carry, so they cannot be derived client-side. They are
    * independent predicates, not a partition, and are allowed to sum past the roster
-   * size — a paused crew holding in-flight work is counted in both `working` and
+   * size — a paused steward holding in-flight work is counted in both `working` and
    * `paused`. */
-  const FILTER_LABEL: Record<CrewFilter, string> = {
-    all: i18nT('apps.issueRadar.views.crews.filter_all'),
-    working: i18nT('apps.issueRadar.views.crews.filter_working'),
-    paused: i18nT('apps.issueRadar.views.crews.filter_paused'),
+  const FILTER_LABEL: Record<StewardFilter, string> = {
+    all: i18nT('apps.issueRadar.views.stewards.filter_all'),
+    working: i18nT('apps.issueRadar.views.stewards.filter_working'),
+    paused: i18nT('apps.issueRadar.views.stewards.filter_paused'),
   }
-  const FILTER_COUNT: Record<CrewFilter, number> = {
-    all: crewCounts.on_duty,
-    working: crewCounts.working,
-    paused: crewCounts.paused,
+  const FILTER_COUNT: Record<StewardFilter, number> = {
+    all: stewardCounts.on_duty,
+    working: stewardCounts.working,
+    paused: stewardCounts.paused,
   }
 
   return (
     <div className="px-3 pt-1">
       {/* Sort and filters only — no destinations. This surface's destinations
-          already live in column 2, where each crew is its own card. Repeating them
+          already live in column 2, where each steward is its own card. Repeating them
           here is a second copy of one list, and the copy without the state. The
           issues and PR sections set the shape: the rail narrows a list, the list
           column holds it. */}
       <div className="pt-1">
         <div className="flex items-center gap-1.5 mb-1.5 text-[12px] font-semibold text-muted uppercase tracking-[.05em]">
-          <ArrowUpDown size={12} /> {i18nT('apps.issueRadar.views.crews.rail_sort')}
+          <ArrowUpDown size={12} /> {i18nT('apps.issueRadar.views.stewards.rail_sort')}
         </div>
         <div className="flex flex-col gap-0.5">
-          {CREW_SORT_FIELDS.map((f) => {
-            const isActive = f.key === crewSortKey
-            const DirIcon = crewSortDir === 'asc' ? ArrowUp : ArrowDown
+          {STEWARD_SORT_FIELDS.map((f) => {
+            const isActive = f.key === stewardSortKey
+            const DirIcon = stewardSortDir === 'asc' ? ArrowUp : ArrowDown
             return (
               <Clickable
                 key={f.key}
-                onClick={() => cycleCrewSort(f.key)}
-                data-testid={`crew-sort-${f.key}`}
+                onClick={() => cycleStewardSort(f.key)}
+                data-testid={`steward-sort-${f.key}`}
                 aria-pressed={isActive}
                 className={rowClass(isActive)}
               >
@@ -232,19 +232,19 @@ function CrewsSection({ onNavigate }: { onNavigate?: () => void }) {
 
       <div className="pt-5">
         <div className="flex items-center gap-1.5 mb-1.5 text-[12px] font-semibold text-muted uppercase tracking-[.05em]">
-          <ListFilter size={12} /> {i18nT('apps.issueRadar.views.crews.rail_filters')}
+          <ListFilter size={12} /> {i18nT('apps.issueRadar.views.stewards.rail_filters')}
         </div>
         <div className="flex flex-col gap-0.5">
           {/* Mutually exclusive, like the PR lifecycle rows: picking one replaces
               the last. Each carries the server's tally on the right, which is why
               these are not plain FilterRows. */}
-          {CREW_FILTERS.map((key) => {
-            const isActive = crewFilter === key
+          {STEWARD_FILTERS.map((key) => {
+            const isActive = stewardFilter === key
             return (
               <Clickable
                 key={key}
-                onClick={() => { setCrewFilter(key); openCrews(); onNavigate?.() }}
-                data-testid={`crew-filter-${key}`}
+                onClick={() => { setStewardFilter(key); openStewards(); onNavigate?.() }}
+                data-testid={`steward-filter-${key}`}
                 aria-pressed={isActive}
                 className={rowClass(isActive)}
               >

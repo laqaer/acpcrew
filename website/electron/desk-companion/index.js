@@ -1,7 +1,7 @@
 /**
  * index.js — the companion's window lifecycle, driven by the app's enabled state.
  *
- * `main.js` calls `initCrewCompanion` once at startup and `shutdownCrewCompanion` on
+ * `main.js` calls `initDeskCompanion` once at startup and `shutdownDeskCompanion` on
  * quit. Everything else is a reconcile tick: ask the gateway whether the app is on,
  * and make the windows match. That is why clicking Enable in the dashboard is
  * sufficient — nothing launches anything, so nothing can fail and be rolled back.
@@ -44,7 +44,7 @@ const {
   stopHitboxPoll,
 } = require("./petOverlay");
 
-const APP_NAME = "crew-companion";
+const APP_NAME = "desk-companion";
 
 /** Reconcile cadence. Fast enough that Enable feels immediate, cheap on loopback. */
 const TICK_MS = 5_000
@@ -116,13 +116,13 @@ async function reconcileOnce() {
         closePanelWindow();
         closeGalleryWindow();
         closePetWindow();
-        log("crew-companion: disabled — overlays closed");
+        log("desk-companion: disabled — overlays closed");
       }
       return;
     }
     if (petWindowCount() === 0) {
       openPetWindow();
-      log("crew-companion: enabled — overlays opened");
+      log("desk-companion: enabled — overlays opened");
     }
   } finally {
     reconciling = false;
@@ -134,7 +134,7 @@ async function reconcileOnce() {
  *
  * @param {{backendUrl: string, fetchLocalToken: () => Promise<string>, glog: (m: string) => void}} deps
  */
-function initCrewCompanion(deps) {
+function initDeskCompanion(deps) {
   backendUrl = (deps && deps.backendUrl) || "";
   fetchLocalToken = deps && deps.fetchLocalToken;
   log = (deps && deps.glog) || (() => {});
@@ -145,14 +145,14 @@ function initCrewCompanion(deps) {
   registerGalleryIpc();
   // Switching avatars in the gallery window must reach the overlays, which are
   // separate windows and share nothing but the main process.
-  setAppearanceChangedHandler(() => broadcastToPets("crew-companion:appearance-changed"));
+  setAppearanceChangedHandler(() => broadcastToPets("desk-companion:appearance-changed"));
   // Tell every companion overlay when the panel goes, so its click target and its
   // focusable flag both return to the closed state.
-  setPanelClosedHandler(() => broadcastToPets("crew-companion:panel-closed"));
+  setPanelClosedHandler(() => broadcastToPets("desk-companion:panel-closed"));
   // And when the avatar gallery opens / closes, so the companion holds still while
   // the user browses it and resumes wandering afterwards.
-  setGalleryOpenedHandler(() => broadcastToPets("crew-companion:gallery-opened"));
-  setGalleryClosedHandler(() => broadcastToPets("crew-companion:gallery-closed"));
+  setGalleryOpenedHandler(() => broadcastToPets("desk-companion:gallery-opened"));
+  setGalleryClosedHandler(() => broadcastToPets("desk-companion:gallery-closed"));
 
   // The renderer reports the companion's, bubble's and menu's hitboxes; the main
   // process polls the cursor and toggles each overlay's click-through itself. This
@@ -169,7 +169,7 @@ function initCrewCompanion(deps) {
    * what keeps both properties: type into the panel, and never have the desktop
    * steal focus the rest of the time.
    */
-  ipcMain.on("crew-companion:focusable", (event, focusable) => {
+  ipcMain.on("desk-companion:focusable", (event, focusable) => {
     const win = event.sender && require("electron").BrowserWindow.fromWebContents(event.sender);
     if (!win || win.isDestroyed()) return;
     win.setFocusable(Boolean(focusable));
@@ -189,7 +189,7 @@ function initCrewCompanion(deps) {
   void reconcileOnce();
 }
 
-function shutdownCrewCompanion() {
+function shutdownDeskCompanion() {
   closePanelWindow();
   closeGalleryWindow();
   if (timer) {
@@ -201,8 +201,8 @@ function shutdownCrewCompanion() {
 }
 
 module.exports = {
-  initCrewCompanion,
-  shutdownCrewCompanion,
+  initDeskCompanion,
+  shutdownDeskCompanion,
   // Exported for tests: they drive the tick directly rather than waiting 5s.
   reconcileOnce,
   probeEnabled,

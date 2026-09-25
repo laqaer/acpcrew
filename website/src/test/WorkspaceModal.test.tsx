@@ -96,11 +96,11 @@ beforeEach(() => {
   mockApi.agentResolvedModel.mockResolvedValue({ model: '', pinned: false, kiro_agent: 'junction' })
 })
 
-/** Open the crew editor panel. The workspace picker lives inside it now, so
+/** Open the agent editor panel. The workspace picker lives inside it now, so
  *  every workspace-modal path goes through here first. */
-async function openCrewSheet(): Promise<HTMLElement> {
-  fireEvent.click(screen.getByTestId('new-crew'))
-  return await screen.findByRole('dialog', { name: 'Create a new crew' })
+async function openAgentSheet(): Promise<HTMLElement> {
+  fireEvent.click(screen.getByTestId('new-agent'))
+  return await screen.findByRole('dialog', { name: 'Create a new agent' })
 }
 
 /** Open the workspace select inside the editor panel and click the
@@ -108,7 +108,7 @@ async function openCrewSheet(): Promise<HTMLElement> {
  *  its accessible name — SimpleSelect forwards aria-label onto the combobox —
  *  rather than by DOM structure, so restyling the panel cannot break this. */
 async function openModalViaWorkspaceDropdown() {
-  const sheet = await openCrewSheet()
+  const sheet = await openAgentSheet()
   fireEvent.click(within(sheet).getByRole('combobox', { name: 'Workspace' }))
   fireEvent.click(await screen.findByText('+ New workspace…'))
 }
@@ -118,7 +118,7 @@ describe('WorkspaceModal — StyledSelect trigger and modal lifecycle', () => {
     renderPage()
     await waitFor(() => expect(mockApi.junctionAgents).toHaveBeenCalled())
     await waitFor(() => expect(mockApi.workspaces).toHaveBeenCalled())
-    const sheet = await openCrewSheet()
+    const sheet = await openAgentSheet()
     fireEvent.click(within(sheet).getByRole('combobox', { name: 'Workspace' }))
     expect(await screen.findByText('+ New workspace…')).toBeInTheDocument()
   })

@@ -56,7 +56,7 @@ SSH, no reboot — taking every conversation and every learned memory with it.
 
 Session transfer needs both hosts up simultaneously — the one condition a host loss
 breaks — and carries no memory or config (`instances.md` §14). No code path in the
-repository writes crew state to a remote store.
+repository writes Junction's state to a remote store.
 
 ## Three problems
 
@@ -152,7 +152,7 @@ completely or does not claim to have backed it up. Its tree walk goes through th
 existing `_data_filter`:49 (traversal, symlink and hardlink rejection, `0o600`
 pinning) rather than reimplementing those properties.
 
-**D4 — session fidelity is a tier.** Default `sessions` = crew transcripts +
+**D4 — session fidelity is a tier.** Default `sessions` = Junction transcripts +
 uploads + artifacts, which buys readable history. Opt-in (O2) adds
 `<kiro home>/sessions/cli/<sid>.*` for *reachable* sids only — the per-sid
 reasoning `session_storage.cotenant_sids` already applies, explicitly not the whole

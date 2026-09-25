@@ -1,21 +1,21 @@
 // Auto Triage Pipeline — a small, SELF-CONTAINED typed client for the one seam
-// this app reads: Issue Radar's crew-fabric endpoint. The data half of the
+// this app reads: Issue Radar's steward-fabric endpoint. The data half of the
 // feature (recording `phase` on the ledger line, `fold_fabric`, the route) lives
 // in the `issue_radar` builtin and is repo-agnostic; this app is its first
 // tenant, so it reads THROUGH that seam rather than owning a backend of its own.
 //
-//   GET /api/apps/issue-radar/crew/fabric?owner=&repo=[&provider=&host=]
+//   GET /api/apps/issue-radar/steward/fabric?owner=&repo=[&provider=&host=]
 //
 // The base path is issue-radar's, matching every builtin's `/api/apps/<name>`
 // convention. Nothing here imports from `../issue-radar/*`: the types below are
 // this app's own copy, so the two apps can evolve their frontends independently
 // (wave 2 builds the faithful drawing and the queue dashboard on top of these).
 //
-// FORWARD-TOLERANT, like the seam it reads. `crewFabric()` never throws on a repo
+// FORWARD-TOLERANT, like the seam it reads. `stewardFabric()` never throws on a repo
 // with no fabric: a 404 (issue-radar disabled / route absent), 500, 403 (repo not
 // connected), a non-JSON body, or a payload from a newer schema all collapse to
 // the same normalized empty result, and the view renders its designed empty
-// state. The EMPTY case is the COMMON one — most installs never ran a crew.
+// state. The EMPTY case is the COMMON one — most installs never ran a steward.
 
 /** The issue-radar API base — the seam owner. */
 const ISSUE_RADAR_API = '/api/apps/issue-radar'
@@ -36,9 +36,9 @@ export interface RepoRef {
 }
 
 /** Every phase a work item can be in, in lifecycle order — mirrors
- * `steward_store.PHASES` and issue-radar's `CREW_PHASES`. The pure fold derives the
+ * `steward_store.PHASES` and issue-radar's `STEWARD_PHASES`. The pure fold derives the
  * on-spine subset from this, so it cannot drift from the enum. */
-export const CREW_PHASES = [
+export const STEWARD_PHASES = [
   'selected',
   'claimed',
   'investigating',
@@ -54,10 +54,10 @@ export const CREW_PHASES = [
   'preempted',
 ] as const
 
-export type CrewPhase = typeof CREW_PHASES[number]
+export type StewardPhase = typeof STEWARD_PHASES[number]
 
 /** The CI rollup the fold flattens onto a work item, for a lane's badge/tooltip.
- * Open-ended: the store merges whatever the crew recorded. `state` is the coarse
+ * Open-ended: the store merges whatever the steward recorded. `state` is the coarse
  * verdict a view colours by. */
 /** One point on a work item's timeline: it ENTERED `phase` at `at` (ISO-8601).
  * In TIME order and MAY repeat a phase — a review round-trip
@@ -65,51 +65,51 @@ export type CrewPhase = typeof CREW_PHASES[number]
  * last re-entering `awaiting-ci`. `at` may be absent on a legacy line written
  * before the store recorded the phase; that degrades the dwell math (no
  * duration) rather than breaking the fold. */
-export interface CrewFabricTimelineEntry {
-  phase: CrewPhase
+export interface StewardFabricTimelineEntry {
+  phase: StewardPhase
   at?: string | null
 }
 
 /** Where a lane LEFT the spine, set only when the live `phase` is off-spine
  * (`skipped` / `yielded` / `handed-back` / `preempted` / `awaiting-reply`).
  * Drawn as a stub OFF the lane, never a column. */
-export interface CrewFabricExit {
-  phase: CrewPhase
+export interface StewardFabricExit {
+  phase: StewardPhase
   at?: string | null
 }
 
 /** One folded work item = one lane. `phase` is the item's LIVE phase and is
  * AUTHORITATIVE: a view must render the head at `phase`, never at `timeline`'s
  * max index — a round-trip ends left of where it has been. */
-export interface CrewFabricItem {
+export interface StewardFabricItem {
   number: number
-  crew_id: string
+  steward_id: string
   /** The issue/PR's REAL title, seeded server-side from the issues/pulls list
    * caches Issue Radar already keeps (zero extra API cost). Empty string when the
    * number was never cached / aged out — the lane then shows its id alone. This is
-   * NEVER the crew's `next` intent; that lives under `next`. */
+   * NEVER the steward's `next` intent; that lives under `next`. */
   title: string
-  /** The crew's resumable INTENT for this item ("add the Windows branch to
+  /** The steward's resumable INTENT for this item ("add the Windows branch to
    * _safe_chmod") — what it is about to do next, NOT a title. Empty string when
-   * the crew recorded none. Kept distinct from `title` so a view can show either
+   * the steward recorded none. Kept distinct from `title` so a view can show either
    * without one masquerading as the other. */
   next: string
   /** Null when the item has no PR (a plain rect rather than a chamfered chip). */
   pr_number: number | null
-  phase: CrewPhase
-  timeline: CrewFabricTimelineEntry[]
-  /** Set only when `phase` is off-spine (see `CrewFabricExit`). */
-  exit?: CrewFabricExit | null
+  phase: StewardPhase
+  timeline: StewardFabricTimelineEntry[]
+  /** Set only when `phase` is off-spine (see `StewardFabricExit`). */
+  exit?: StewardFabricExit | null
   /** How many times the item re-entered the spine after an exit. 0/absent when
    * it never did. */
   reopens?: number
 }
 
-/** `GET /crew/fabric` response. `phases` is the phase enum IN ORDER, served by
+/** `GET /steward/fabric` response. `phases` is the phase enum IN ORDER, served by
  * the fold so a drawing's columns cannot disagree with the ledger. A non-GitHub
- * provider, or a repo with no crews, answers `items: []` at HTTP 200 — and this
+ * provider, or a repo with no stewards, answers `items: []` at HTTP 200 — and this
  * client SYNTHESIZES the same shape for a 404/500/parse failure. */
-export interface CrewFabricResponse {
+export interface StewardFabricResponse {
   schema: number
   owner: string
   repo: string
@@ -118,13 +118,14 @@ export interface CrewFabricResponse {
   /** ISO-8601 when the fold ran, so a view can time an open dwell against it
    * rather than the browser clock. Absent in the synthesized-empty case. */
   generated_at?: string | null
-  phases: CrewPhase[]
-  items: CrewFabricItem[]
+  phases: StewardPhase[]
+  items: StewardFabricItem[]
 }
 
 /** The fabric schema version this client was written against — mirrors
- * `steward_store.FABRIC_SCHEMA` and issue-radar's `CREW_FABRIC_SCHEMA`. */
-export const CREW_FABRIC_SCHEMA = 1
+ * `steward_store.FABRIC_SCHEMA`, the only other owner of the number (Issue
+ * Radar's frontend does not read the fabric). */
+export const STEWARD_FABRIC_SCHEMA = 1
 
 /** A repository connected in Issue Radar's config — one row of the switcher this
  * app now resolves its repo against. This is the backend source of truth: the
@@ -219,26 +220,26 @@ function repoQuery(ref: RepoRef): Record<string, string> {
 
 export const autoTriagePipelineApi = {
   /**
-   * Fetch the folded crew fabric for a repo. Never throws on "no data yet": a
+   * Fetch the folded steward fabric for a repo. Never throws on "no data yet": a
    * transport failure, any non-2xx, a non-JSON body, or a payload missing the
    * fields the view reads all normalize to an empty result the view draws its
    * designed empty state for.
    */
-  crewFabric: async (ref: RepoRef): Promise<CrewFabricResponse> => {
-    const empty = (): CrewFabricResponse => ({
-      schema: CREW_FABRIC_SCHEMA,
+  stewardFabric: async (ref: RepoRef): Promise<StewardFabricResponse> => {
+    const empty = (): StewardFabricResponse => ({
+      schema: STEWARD_FABRIC_SCHEMA,
       owner: ref.owner,
       repo: ref.repo,
       provider: ref.provider,
       host: ref.host ?? null,
       generated_at: null,
-      phases: [...CREW_PHASES],
+      phases: [...STEWARD_PHASES],
       items: [],
     })
     let r: Response
     try {
       const q = new URLSearchParams(repoQuery(ref))
-      r = await fetch(`${ISSUE_RADAR_API}/crew/fabric?${q.toString()}`, {
+      r = await fetch(`${ISSUE_RADAR_API}/steward/fabric?${q.toString()}`, {
         credentials: 'same-origin',
       })
     } catch {
@@ -254,16 +255,16 @@ export const autoTriagePipelineApi = {
       return empty()
     }
     if (!body || typeof body !== 'object') return empty()
-    const b = body as Partial<CrewFabricResponse>
+    const b = body as Partial<StewardFabricResponse>
     if (!Array.isArray(b.items)) return empty()
     return {
-      schema: typeof b.schema === 'number' ? b.schema : CREW_FABRIC_SCHEMA,
+      schema: typeof b.schema === 'number' ? b.schema : STEWARD_FABRIC_SCHEMA,
       owner: b.owner ?? ref.owner,
       repo: b.repo ?? ref.repo,
       provider: b.provider ?? ref.provider,
       host: b.host ?? ref.host ?? null,
       generated_at: b.generated_at ?? null,
-      phases: Array.isArray(b.phases) && b.phases.length > 0 ? b.phases : [...CREW_PHASES],
+      phases: Array.isArray(b.phases) && b.phases.length > 0 ? b.phases : [...STEWARD_PHASES],
       items: b.items,
     }
   },
@@ -273,7 +274,7 @@ export const autoTriagePipelineApi = {
    * this app resolves its repo against (see `lib/fabric.ts` `selectRepo`). Reuses
    * Issue Radar's own `GET /repos`; no new endpoint is invented.
    *
-   * FORWARD-TOLERANT like `crewFabric`: a transport failure, any non-2xx (route
+   * FORWARD-TOLERANT like `stewardFabric`: a transport failure, any non-2xx (route
    * absent / Issue Radar disabled), a non-JSON body, or a payload without a
    * `repos` array all collapse to `[]` — i.e. "no repo connected", which is the
    * genuine empty state the view renders.
@@ -318,7 +319,7 @@ export const autoTriagePipelineApi = {
 // by `pipeline_fold.py`), not Issue Radar's seam above. The `to_dict()` payloads
 // in that module ARE the contract mirrored here.
 //
-// Same forward-tolerant law as `crewFabric`: the folds read a LIVE, append-only
+// Same forward-tolerant law as `stewardFabric`: the folds read a LIVE, append-only
 // log another process is writing, so EVERY field can be absent, null, or the
 // wrong type on a partial payload. The types below describe the well-formed
 // shape; the clients COERCE every field defensively and never throw — a

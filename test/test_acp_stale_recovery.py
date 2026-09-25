@@ -567,7 +567,7 @@ def _cfg_with_agent_overrides(monkeypatch, agents: dict) -> None:
 
 
 def test_per_agent_override_narrows_watchdog_snapshot(monkeypatch):
-    """A crew declaring watchdog_tool_stall_* overrides gets them in the
+    """An agent declaring watchdog_tool_stall_* overrides gets them in the
     WatchdogSettings snapshot; the untouched windows keep global values."""
     from junction.acp.session_handle import _load_watchdog_settings
     from junction.config.loader import JunctionAgentConfig
@@ -604,10 +604,10 @@ def test_per_agent_override_zero_inherits_global(monkeypatch):
 
 
 def test_kiro_binding_name_is_not_resolved(monkeypatch):
-    """Resolution is a direct lookup on the CANONICAL crew name only. A bound
+    """Resolution is a direct lookup on the CANONICAL agent name only. A bound
     kiro agent name is a different namespace: it inherits the globals rather
-    than being reverse-matched to the crew that binds it — the surface that
-    owns the identity passes the crew name (see the chat_runner call sites),
+    than being reverse-matched to the agent that binds it — the surface that
+    owns the identity passes the agent name (see the chat_runner call sites),
     so no cross-namespace guessing happens here."""
     from junction.acp.session_handle import _load_watchdog_settings
     from junction.config.loader import JunctionAgentConfig
@@ -623,9 +623,9 @@ def test_kiro_binding_name_is_not_resolved(monkeypatch):
 
 
 def test_shared_binding_cannot_collide_canonical_names(monkeypatch):
-    """Two crews binding the same kiro agent were a collision under the old
-    cross-namespace match; canonical resolution keys each crew's overrides to
-    its own name, so both apply independently."""
+    """Two Junction agents binding the same kiro template were a collision under
+    the old cross-namespace match; canonical resolution keys each agent's
+    overrides to its own name, so both apply independently."""
     from junction.acp.session_handle import _load_watchdog_settings
     from junction.config.loader import JunctionAgentConfig
 
@@ -638,8 +638,8 @@ def test_shared_binding_cannot_collide_canonical_names(monkeypatch):
     assert _load_watchdog_settings("b").tool_stall_suspect_secs == 120.0
 
 
-def test_handle_snapshots_crew_agent_overrides(monkeypatch):
-    """The handle keys its construction-time watchdog snapshot on crew_agent
+def test_handle_snapshots_canonical_agent_overrides(monkeypatch):
+    """The handle keys its construction-time watchdog snapshot on canonical_agent
     (the canonical identity); a construction without it snapshots the
     globals."""
     from junction.config.loader import JunctionAgentConfig
@@ -653,7 +653,7 @@ def test_handle_snapshots_crew_agent_overrides(monkeypatch):
 
     rt = MagicMock()
     rt.pid = None
-    handle = AcpSessionHandle("s1", asyncio.Queue(), rt, crew_agent="pr-reviewer")
+    handle = AcpSessionHandle("s1", asyncio.Queue(), rt, canonical_agent="pr-reviewer")
     assert handle._watchdog.tool_stall_suspect_secs == 450.0
     assert handle._watchdog.agent_override is True
     bare = AcpSessionHandle("s2", asyncio.Queue(), rt)
@@ -662,9 +662,9 @@ def test_handle_snapshots_crew_agent_overrides(monkeypatch):
 
 
 def test_rebind_watchdog_follows_warm_pool_rekey(monkeypatch):
-    """rebind_watchdog() re-snapshots for the claiming crew (identity travels
+    """rebind_watchdog() re-snapshots for the claiming agent (identity travels
     with the session, not the pool key), and an empty rebind drops a previous
-    crew's windows back to the globals."""
+    agent's windows back to the globals."""
     from junction.config.loader import JunctionAgentConfig
 
     _cfg_with_agent_overrides(monkeypatch, {
@@ -675,11 +675,11 @@ def test_rebind_watchdog_follows_warm_pool_rekey(monkeypatch):
 
     rt = MagicMock()
     rt.pid = None
-    handle = AcpSessionHandle("s1", asyncio.Queue(), rt)  # pool spawn: no crew
+    handle = AcpSessionHandle("s1", asyncio.Queue(), rt)  # pool spawn: no agent
     assert handle._watchdog.tool_stall_suspect_secs == 3600.0
 
     handle.rebind_watchdog("claimer")
-    assert handle._crew_agent == "claimer"
+    assert handle._canonical_agent == "claimer"
     assert handle._watchdog.tool_stall_suspect_secs == 300.0
     assert handle._watchdog.agent_override is True
 

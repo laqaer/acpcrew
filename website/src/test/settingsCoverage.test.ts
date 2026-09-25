@@ -66,7 +66,7 @@ const UNMAPPED_PANELS: Record<string, string> = {
   'TelegramPanel.tsx': 'thin BotChannelSpec wrapper; BotChannelPanel fans its entries out to channel=telegram',
   'WeComPanel.tsx': 'thin BotChannelSpec wrapper; BotChannelPanel fans its entries out to channel=wecom',
   'ImportPanel.tsx': 'single action button launching the import wizard; no persistent settings',
-  'InstanceFormFields.tsx': 'per-instance CRUD form fields (add/edit crew), not global settings',
+  'InstanceFormFields.tsx': 'per-instance CRUD form fields (add/edit instance), not global settings',
   'McpManagement.tsx': 'mounted only on the standalone Developer page — a settings deep link would be dead',
   'MobileLoginCard.tsx': 'mint-a-sign-in-link action card; the link it returns is a one-time credential, not a persistent setting',
   'PostureDisclosure.tsx': "read-only disclosure rows for SecurityPanel's posture section (manual entry security.live-security-posture)",

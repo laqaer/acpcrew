@@ -1,8 +1,8 @@
 /**
- * Test: the crew switcher is reachable at phone widths.
+ * Test: the instance switcher is reachable at phone widths.
  *
  * The switcher used to be gated out below 768px entirely, which left a phone
- * with no route to another crew at all (the command palette could still switch,
+ * with no route to another instance at all (the command palette could still switch,
  * but nothing said so). It renders at every width now; what keeps it fitting is
  * the identity group's collapse ladder in index.css, asserted by
  * topbarMenuButtonNarrow.test.ts. This test pins the part CSS cannot: that the
@@ -30,10 +30,10 @@ vi.mock('../providers/context', () => ({ useProvider: () => ({ id: 'acp' }) }))
 vi.mock('../components/MarkdownRenderer', () => ({ default: ({ content }: { content: string }) => <span>{content}</span>, Lightbox: () => null }))
 
 // One remembered remote instance: the switcher renders only when at least one exists
-// (visibleInstanceTabs), so a single-crew user's header is unchanged. Built inside
+// (visibleInstanceTabs), so a local-only user's header is unchanged. Built inside
 // vi.hoisted because the mock factory below is hoisted above module scope.
-const { crew } = vi.hoisted(() => ({
-  crew: {
+const { instance } = vi.hoisted(() => ({
+  instance: {
     id: 'devbox',
     name: 'devbox',
     ssh_host: 'devbox.example',
@@ -63,7 +63,7 @@ vi.mock('../api/client', () => ({
     chatSlotReasoningEffort: vi.fn().mockResolvedValue({}),
     chatSlotModel: vi.fn().mockResolvedValue({}),
     chatMode: vi.fn().mockResolvedValue({}),
-    listInstances: vi.fn().mockResolvedValue({ active: true, instances: [crew], warm_set_cap: 5 }),
+    listInstances: vi.fn().mockResolvedValue({ active: true, instances: [instance], warm_set_cap: 5 }),
   },
   isAuthBannerShown: vi.fn(() => false),
   ApiError: class ApiError extends Error {
@@ -85,7 +85,7 @@ Object.defineProperty(window, 'matchMedia', {
 })
 globalThis.ResizeObserver = class { observe() {} unobserve() {} disconnect() {} } as unknown as typeof ResizeObserver
 
-describe('crew switcher at phone widths', () => {
+describe('instance switcher at phone widths', () => {
   const state = {
     dashboard: { connected: true, status: { platform: 'linux' }, slots: [], approvalMode: 'normal' } as unknown as RootState['dashboard'],
   }
@@ -93,7 +93,7 @@ describe('crew switcher at phone widths', () => {
   it('mounts the inline switcher and its dropdown trigger on mobile', async () => {
     renderWithProviders(<App />, { route: '/chat', preloadedState: state })
     // The trailing dropdown is the affordance that must survive: it lists every
-    // crew, including the one on screen, so it alone is a complete switcher.
+    // instance, including the one on screen, so it alone is a complete switcher.
     expect(await screen.findByLabelText('Switch instance')).toBeTruthy()
     // The nav button shares the group and must not be crowded out of the DOM.
     expect(screen.getByLabelText('Open menu')).toBeTruthy()

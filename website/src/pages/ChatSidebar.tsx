@@ -3304,11 +3304,11 @@ function ChatSidebar({
     onSuccess: focusComposer,
   })
 
-  // Crew Mode: multi-topic chat — the agent runs only in sub-sessions
+  // Multitask Mode: multi-topic chat — the agent runs only in sub-sessions
   // (topics); the session itself is an engineered routing pipeline.
-  const createCrewMutation = useMutation({
+  const createMultitaskMutation = useMutation({
     mutationFn: () => {
-      return dispatch(createSlot({ agent: defaultAgent || undefined, mode: 'crew' })).unwrap()
+      return dispatch(createSlot({ agent: defaultAgent || undefined, mode: 'multitask' })).unwrap()
     },
     onSuccess: focusComposer,
   })
@@ -3985,12 +3985,12 @@ function ChatSidebar({
                     {s.memory_mode === 'temporary' && <span className="text-aim" title={i18nT('pages.chatSidebar.temporary_no_memory_reads_or_writes')}><VenetianMask size={10} /></span>}
                   </>}
               {s.mode === 'orchestrator' && <span className="px-1 py-0 rounded bg-accent/15 text-accent font-medium" title={i18nT('pages.chatSidebar.autopilot_mode')}>{i18nT('pages.chatSidebar.autopilot')}</span>}
-              {/* The row badge stays just "Crew": this line already carries several
+              {/* The row badge stays just "Multitask": this line already carries several
                *  chips, and by the time a session exists the mode is no longer a
                *  decision, so a second visible tag costs more room than it earns.
                *  The experimental status leads the tooltip here, and is carried
                *  visibly on the create menu, which is where the choice is made. */}
-              {s.mode === 'crew' && <Badge variant="warn" className="px-1 py-0 rounded font-sans" title={`${i18nT('pages.chatSidebar.experimental')} · ${i18nT('pages.chatSidebar.crew_mode')}`}>{i18nT('pages.chatSidebar.crew')}</Badge>}
+              {s.mode === 'multitask' && <Badge variant="warn" className="px-1 py-0 rounded font-sans" title={`${i18nT('pages.chatSidebar.experimental')} · ${i18nT('pages.chatSidebar.multitask_mode')}`}>{i18nT('pages.chatSidebar.multitask')}</Badge>}
               {/* Trailing meta grouped under ONE ml-auto: two sibling auto
                *  margins would split the free space and strand the timestamp
                *  mid-row.
@@ -4605,7 +4605,7 @@ function ChatSidebar({
                     <span className="whitespace-normal text-[11px] leading-snug text-muted">{i18nT('pages.chatSidebar.autopilot_desc')}</span>
                   </span>
                 </DropdownMenuItem>
-                <DropdownMenuItem className="items-start" data-testid="new-crew-chat" onClick={() => { createCrewMutation.mutate() }}>
+                <DropdownMenuItem className="items-start" data-testid="new-multitask-chat" onClick={() => { createMultitaskMutation.mutate() }}>
                   <Users size={14} className="text-muted mt-[3px] shrink-0" />
                   <span className="flex min-w-0 flex-col gap-px">
                     {/* The tag rides the TITLE row, not the gloss below it: this menu
@@ -4615,10 +4615,10 @@ function ChatSidebar({
                      *  tag onto its own line instead of widening the row past the
                      *  menu's max-w-[264px] and clipping whichever renders last. */}
                     <span className="flex flex-wrap items-center gap-x-1.5">
-                      <span>{i18nT('pages.chatSidebar.new_crew_chat')}</span>
-                      <Badge variant="warn" className="px-1 py-0 text-[10px] rounded font-sans" data-testid="crew-experimental-tag">{i18nT('pages.chatSidebar.experimental')}</Badge>
+                      <span>{i18nT('pages.chatSidebar.new_multitask_chat')}</span>
+                      <Badge variant="warn" className="px-1 py-0 text-[10px] rounded font-sans" data-testid="multitask-experimental-tag">{i18nT('pages.chatSidebar.experimental')}</Badge>
                     </span>
-                    <span className="whitespace-normal text-[11px] leading-snug text-muted">{i18nT('pages.chatSidebar.crew_desc')}</span>
+                    <span className="whitespace-normal text-[11px] leading-snug text-muted">{i18nT('pages.chatSidebar.multitask_desc')}</span>
                   </span>
                 </DropdownMenuItem>
                 <DropdownMenuSeparator />

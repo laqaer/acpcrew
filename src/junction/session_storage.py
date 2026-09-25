@@ -97,9 +97,15 @@ TRASH_SESSIONS_LEAF = "sessions"
 
 # Staged files keep their origin store in the path. Two halves can share a
 # filename, and a flat batch directory would let one silently overwrite the other
-# — turning a reversible move into data loss.
+# — turning a reversible move into data loss. Each leaf names the store its files
+# came from: kiro-cli's replay logs, or Junction's own transcripts.
 STAGE_CLI_LEAF = "cli"
-STAGE_CREW_LEAF = "crew"
+STAGE_JUNCTION_LEAF = "junction"
+
+# Earlier Junction builds staged Junction's own transcripts under a "crew" leaf.
+# Restore derives the origin from the leaf, so it is still read: a batch staged
+# before the leaf was named "junction" stays restorable instead of purge-only.
+LEGACY_STAGE_LEAVES: tuple[str, ...] = ("crew",)
 
 MANIFEST_NAME = "manifest.jsonl"
 MANIFEST_SCHEMA = 1
@@ -273,13 +279,13 @@ def trash_root() -> Path:
     return data_home() / TRASH_DIR_NAME / TRASH_SESSIONS_LEAF
 
 
-def _crew_sessions_dir() -> Path:
+def _junction_sessions_dir() -> Path:
     """Junction's own transcript directory."""
     return data_home() / SESSIONS_DIR_NAME
 
 
-def _crew_archive_dir() -> Path:
-    return _crew_sessions_dir() / ARCHIVE_DIR_NAME
+def _junction_archive_dir() -> Path:
+    return _junction_sessions_dir() / ARCHIVE_DIR_NAME
 
 
 def _validate_unit_id(uid: str) -> str:
@@ -297,7 +303,7 @@ def _archive_index() -> dict[str, list[tuple[Path, int, float]]]:
     """
     index: dict[str, list[tuple[Path, int, float]]] = {}
     try:
-        with os.scandir(_crew_archive_dir()) as it:
+        with os.scandir(_junction_archive_dir()) as it:
             for entry in it:
                 if not entry.name.endswith(_TRANSCRIPT_SUFFIX):
                     continue
@@ -361,7 +367,7 @@ def _scan_key(sid_for_stem: Mapping[str, str]) -> tuple[object, ...]:
     """
     return (
         str(kiro_sessions_dir()),
-        str(_crew_sessions_dir()),
+        str(_junction_sessions_dir()),
         tuple(sorted(sid_for_stem.items())),
     )
 
@@ -507,7 +513,7 @@ def _scan_raw_uncached(sid_for_stem: Mapping[str, str]) -> list[_RawUnit]:
 
     # Transcript half, plus any rotated segments.
     try:
-        with os.scandir(_crew_sessions_dir()) as it:
+        with os.scandir(_junction_sessions_dir()) as it:
             for entry in it:
                 if not entry.name.endswith(_TRANSCRIPT_SUFFIX):
                     continue
@@ -597,14 +603,14 @@ def _unit_paths(
         for path in owned:
             found.append((path, f"{STAGE_CLI_LEAF}/{path.name}"))
     for stem in stems:
-        transcript = _crew_sessions_dir() / f"{stem}{_TRANSCRIPT_SUFFIX}"
+        transcript = _junction_sessions_dir() / f"{stem}{_TRANSCRIPT_SUFFIX}"
         if transcript.is_file():
-            found.append((transcript, f"{STAGE_CREW_LEAF}/{transcript.name}"))
+            found.append((transcript, f"{STAGE_JUNCTION_LEAF}/{transcript.name}"))
         segments = (
             archives.get(stem, []) if archives is not None else _archive_index().get(stem, [])
         )
         for path, _size, _mtime in segments:
-            found.append((path, f"{STAGE_CREW_LEAF}/{ARCHIVE_DIR_NAME}/{path.name}"))
+            found.append((path, f"{STAGE_JUNCTION_LEAF}/{ARCHIVE_DIR_NAME}/{path.name}"))
     return found
 
 
@@ -1144,11 +1150,11 @@ def _canonical_origin(rel: str) -> Path | None:
         return None
     if parts[0] == STAGE_CLI_LEAF and len(parts) == 2:
         return kiro_sessions_dir() / name
-    if parts[0] == STAGE_CREW_LEAF:
+    if parts[0] == STAGE_JUNCTION_LEAF or parts[0] in LEGACY_STAGE_LEAVES:
         if len(parts) == 2:
-            return _crew_sessions_dir() / name
+            return _junction_sessions_dir() / name
         if len(parts) == 3 and parts[1] == ARCHIVE_DIR_NAME:
-            return _crew_archive_dir() / name
+            return _junction_archive_dir() / name
     return None
 
 
@@ -1169,8 +1175,8 @@ def _origin_path(origin: str) -> Path | None:
         resolved = candidate.resolve()
         allowed = [
             kiro_sessions_dir().resolve(),
-            _crew_sessions_dir().resolve(),
-            _crew_archive_dir().resolve(),
+            _junction_sessions_dir().resolve(),
+            _junction_archive_dir().resolve(),
         ]
     except OSError:
         return None

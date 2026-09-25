@@ -1,7 +1,8 @@
-"""Per-crew-member space: ``$JUNCTION_HOME/members/<slug>/``.
+"""Per-agent member space: ``$JUNCTION_HOME/members/<slug>/``.
 
-A crew member is the same agent running with different context, so its space
-holds what belongs to that member alone rather than to the user as a whole. The
+A member is one roster agent (a ``config.agents`` entry): the same underlying
+agent running with different context, so its space holds what belongs to that
+member alone rather than to the user as a whole. The
 first occupant is ``activity.jsonl`` — pointers to the sessions the member took
 part in, which is the signal trigger generation reads.
 
@@ -30,11 +31,21 @@ from junction.config.paths import data_home
 
 logger = logging.getLogger(__name__)
 
-#: Directory under the data home holding one subdirectory per crew member.
+#: Directory under the data home holding one subdirectory per roster agent.
 MEMBERS_DIR_NAME = "members"
 
 #: Append-only pointer log inside a member's directory.
 ACTIVITY_FILE_NAME = "activity.jsonl"
+
+#: ``via`` value for a routing decision: the orchestrator's ``select_agent`` tool
+#: judged the member fits the task.
+VIA_SELECT_AGENT = "select_agent"
+
+#: Earlier Junction builds recorded routing decisions under this ``via`` value,
+#: and existing ``activity.jsonl`` logs still carry it. It is read as the same
+#: decision source as :data:`VIA_SELECT_AGENT`, so a decision logged before the
+#: tool took its current name is still filed and counted as a decision.
+LEGACY_VIA_SELECT_AGENT = "select_crew"
 
 # Same shape the artifact store enforces for its slugs: lowercase letters,
 # digits and hyphens, 1-80 chars, no leading or trailing hyphen. Kept here as a
@@ -136,16 +147,18 @@ def record_activity(
     not the conversation: a dead provider cold-starts the same conversation with
     ``is_new=True`` again, which would append the same pointer twice and inflate
     the counts this log exists to feed. Routing decisions are NOT deduped — each
-    ``select_crew`` bind is a distinct event even for one session.
+    ``select_agent`` bind is a distinct event even for one session.
 
     ``via`` records HOW the member was chosen, because the two call sites mean
     different things and a mixed log cannot be read apart afterwards:
 
     * ``"chat"`` — the human picked this member for the session.
-    * ``"select_crew"`` — the orchestrator judged this member fits the task.
+    * ``"select_agent"`` (:data:`VIA_SELECT_AGENT`) — the orchestrator judged
+      this member fits the task. :data:`LEGACY_VIA_SELECT_AGENT` is accepted as
+      the same value and written in the current spelling.
 
-    A ``select_crew`` entry records the routing *decision*, not an execution:
-    binding a crew does not oblige the model to delegate to it. That is the
+    A ``select_agent`` entry records the routing *decision*, not an execution:
+    binding an agent does not oblige the model to delegate to it. That is the
     useful signal for trigger generation (what the router believes belongs to
     whom), but it means these counts are intent, not runs.
 
@@ -172,7 +185,8 @@ def record_activity(
         "ts": datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ"),
         "member": member,
     }
-    if via == "select_crew":
+    via = canonical_via(via)
+    if via == VIA_SELECT_AGENT:
         entry["decided_in"] = session_key
     else:
         entry["session"] = session_key
@@ -213,12 +227,23 @@ def record_activity(
         return False
 
 
+def canonical_via(via: str) -> str:
+    """Return *via* in its current spelling.
+
+    Maps :data:`LEGACY_VIA_SELECT_AGENT` onto :data:`VIA_SELECT_AGENT`, so a
+    routing decision reads as one source whichever build recorded it; every
+    other value passes through unchanged.
+    """
+    return VIA_SELECT_AGENT if via == LEGACY_VIA_SELECT_AGENT else via
+
+
 def read_activity(slug: str, limit: int = 0) -> list[dict]:
     """Return a member's activity entries, oldest first.
 
     Malformed lines are skipped rather than raising: the log is append-only from
     multiple processes, and one torn line must not make the whole history
-    unreadable. ``limit`` > 0 returns only the most recent N.
+    unreadable. ``limit`` > 0 returns only the most recent N. A recorded ``via``
+    comes back in its current spelling (see :func:`canonical_via`).
     """
     try:
         path = member_dir(slug) / ACTIVITY_FILE_NAME
@@ -238,6 +263,8 @@ def read_activity(slug: str, limit: int = 0) -> list[dict]:
                 except (ValueError, TypeError):
                     continue
                 if isinstance(row, dict):
+                    if isinstance(row.get("via"), str):
+                        row["via"] = canonical_via(row["via"])
                     out.append(row)
     except OSError:
         logger.debug("member activity log read failed for %r", slug, exc_info=True)

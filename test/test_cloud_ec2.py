@@ -239,7 +239,7 @@ class TestTemplate:
 
     def test_bootstrap_verifies_dashboard_built_before_success(self):
         # install.sh treats a frontend build failure as non-fatal (legacy
-        # fallback), so a cloud crew could reach CREATE_COMPLETE serving the
+        # fallback), so a cloud instance could reach CREATE_COMPLETE serving the
         # "not built" stub (HTTP 200, passes the health probe) with a pane that
         # never loads. The template must verify the built SPA exists and `fail`
         # the WaitCondition otherwise, so a failed build rolls the stack back.
@@ -247,13 +247,13 @@ class TestTemplate:
         assert "src/junction/static/dist/index.html" in text
         assert 'fail "dashboard frontend build missing' in text
         # The failure reason must fold the real build error from the setup log, so it
-        # is diagnosable even when the crew ran a cloned install.sh that did not itself
+        # is diagnosable even when the instance ran a cloned install.sh that did not itself
         # hard-fail (the default clone-of-main path).
         assert 'grep -aiE' in text and '"$LOG"' in text
         assert "Build errors:" in text
 
     def test_bootstrap_requires_the_frontend_build(self):
-        # A cloud crew is useless without its dashboard, so the bootstrap must force
+        # A cloud instance is useless without its dashboard, so the bootstrap must force
         # install.sh's frontend build to be fatal (it is a non-fatal warning by
         # default, for local CLI users) — which is what lets the install retry
         # actually re-run a transient first-boot build failure.

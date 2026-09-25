@@ -300,7 +300,7 @@ export function watchSessions(opts: SessionWatchOptions): () => void {
         // back to the 2s poll and look merely a little slow. Mochi's panelBridge
         // carries the same note for the same reason.
         const inner = data as { event?: unknown; app?: unknown }
-        if (inner.app === 'crew-companion' && inner.event === 'crew-companion:fire') {
+        if (inner.app === 'desk-companion' && inner.event === 'desk-companion:fire') {
           opts.onFireQueued?.()
         }
         break

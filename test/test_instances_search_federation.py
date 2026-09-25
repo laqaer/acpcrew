@@ -99,14 +99,14 @@ class _Mgr:
 
 def _state(local_rows, mgr):
     # The aggregator snapshots names via reg.list() off the loop; expose the
-    # ids the stub manager reports, each named crew-<id>.
+    # ids the stub manager reports, each named inst-<id>.
     ids = list(getattr(mgr, "_replies", {})) if mgr is not None else []
     return SimpleNamespace(
         conversation_log=_Log(local_rows),
         instances_manager=mgr,
         instances_registry=SimpleNamespace(
-            get=lambda iid: SimpleNamespace(id=iid, name=f"crew-{iid}"),
-            list=lambda: [SimpleNamespace(id=iid, name=f"crew-{iid}") for iid in ids],
+            get=lambda iid: SimpleNamespace(id=iid, name=f"inst-{iid}"),
+            list=lambda: [SimpleNamespace(id=iid, name=f"inst-{iid}") for iid in ids],
         ),
     )
 
@@ -132,7 +132,7 @@ class TestSearchAllEndpoint:
         data = await _json_of(resp)
         keys = [(r["key"], r.get("instance_id")) for r in data["sessions"]]
         assert keys == [("l1", None), ("ra1", "a"), ("l2", None), ("ra2", "a")]
-        assert data["sessions"][1]["instance_name"] == "crew-a"
+        assert data["sessions"][1]["instance_name"] == "inst-a"
         assert data["unreachable"] == []
         assert mgr.calls and mgr.calls[0][0] == "a"
 
@@ -153,7 +153,7 @@ class TestSearchAllEndpoint:
         data = await _json_of(resp)
         assert [r["key"] for r in data["sessions"]] == ["l1", "r1"]
         assert data["unreachable"] == [
-            {"id": "down", "name": "crew-down", "code": "search_unreachable"}
+            {"id": "down", "name": "inst-down", "code": "search_unreachable"}
         ]
 
     @pytest.mark.asyncio

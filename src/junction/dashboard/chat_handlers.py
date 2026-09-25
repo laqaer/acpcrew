@@ -38,7 +38,11 @@ from junction.dashboard.chat_delivery import (
     queue_for_next_turn,
     steer_into_running_turn,
 )
-from junction.dashboard.chat_folders import _unhide_folder
+from junction.dashboard.chat_folders import (
+    SLOT_MODE_MULTITASK,
+    _unhide_folder,
+    normalize_slot_mode,
+)
 from junction.dashboard.chat_orchestrator import _stage_loop
 from junction.dashboard.chat_persistence import (
     _FLUSH_SNAPSHOT_RETRIES,
@@ -226,14 +230,15 @@ async def api_chat(request: web.Request) -> web.StreamResponse:
     requested_mode = body.get("mode")
     if not isinstance(requested_mode, str) or requested_mode not in _CREATABLE_MODES:
         requested_mode = ""
-    if requested_mode == "crew" and slot_name:
+    if requested_mode == SLOT_MODE_MULTITASK and slot_name:
         # Same boundary as api_chat_slot_create: a caller-supplied name whose
-        # normalized key cannot host a crew store must not become a crew slot
-        # (its first crew message would 500). Dropped rather than refused —
-        # auto-create is a convenience path, not the crew entry point.
-        from junction.multitask_chat import is_crew_capable_slot_key
+        # normalized key cannot host a multitask store must not become a
+        # multitask slot (its first message would 500). Dropped rather than
+        # refused — auto-create is a convenience path, not the multitask entry
+        # point.
+        from junction.multitask_chat import is_multitask_capable_slot_key
 
-        if not is_crew_capable_slot_key(_normalize_slot_key(slot_name)):
+        if not is_multitask_capable_slot_key(_normalize_slot_key(slot_name)):
             requested_mode = ""
 
     try:
@@ -326,7 +331,7 @@ async def api_chat(request: web.Request) -> web.StreamResponse:
         # message text. Such a send may still carry attachments in `meta`:
         # nothing downstream queues or broadcasts it, so any success receipt
         # would report work that was silently dropped. Refusing here keeps
-        # every branch below (steer/queue, crew, subagent-hold, new turn)
+        # every branch below (steer/queue, multitask, subagent-hold, new turn)
         # unable to bypass the check — the guard used to sit below the busy
         # branch, which is exactly how the false `queued: true` receipt
         # happened. `message_required` is the backend-owned code already used
@@ -375,36 +380,38 @@ async def api_chat(request: web.Request) -> web.StreamResponse:
         )
         return web.json_response({"ok": True, "queued": True})
 
-    # ── Crew Mode dispatch (RFC orchestrator-chat-sessions) ─────────
-    # MUST precede the hold-users gate below: crew topics ARE background
+    # ── Multitask Mode dispatch (RFC orchestrator-chat-sessions) ────
+    # MUST precede the hold-users gate below: multitask topics ARE background
     # sub-agents, so the hold would swallow every message the moment one
-    # topic runs — killing the mode's whole point (parallel ingress). Crew
-    # messages are durable queue entries, not turns; the CrewOrchestrator
-    # acks instantly and routes them to topic sub-sessions.
-    if getattr(slot, "mode", "") == "crew":
-        _crew = getattr(state, "crew", None)
-        if _crew is None:
+    # topic runs — killing the mode's whole point (parallel ingress).
+    # Multitask messages are durable queue entries, not turns; the
+    # MultitaskManager acks instantly and routes them to topic sub-sessions.
+    if getattr(slot, "mode", "") == SLOT_MODE_MULTITASK:
+        _multitask = getattr(state, "multitask", None)
+        if _multitask is None:
             return web.json_response(
-                {"error": "crew mode unavailable", "code": "crew_unavailable"}, status=503
+                {"error": "multitask mode unavailable", "code": "multitask_unavailable"},
+                status=503,
             )
         # Do NOT append the user message here. `ingest` shows it only after the
         # queue entry is durable: a visible message with no queue entry (process
         # exit during a cold-store build) is a request that can never resume.
-        _refusal = await _crew.ingest(
+        _refusal = await _multitask.ingest(
             slot,
             message,
             user_meta=_redact_meta(user_meta) if user_meta else None,
         )
         if _refusal:
-            # Crew declined this ingress (app-owned session). Answering 200 told
-            # a programmatic caller its message was accepted for work that will
-            # never run — the transcript note it posts is not visible to an API
-            # caller, so the refusal has to reach the status line too.
+            # The manager declined this ingress (app-owned session). Answering
+            # 200 would tell a programmatic caller its message was accepted for
+            # work that will never run — the transcript note it posts is not
+            # visible to an API caller, so the refusal has to reach the status
+            # line too.
             return web.json_response(
-                {"error": "crew mode is not available for this session", "code": _refusal},
+                {"error": "multitask mode is not available for this session", "code": _refusal},
                 status=409,
             )
-        return web.json_response({"ok": True, "slot": slot.key, "crew": True})
+        return web.json_response({"ok": True, "slot": slot.key, "multitask": True})
 
     # Queue a message typed while background sub-agents are still running for
     # this slot. The slot.running queue path above covers the mid-turn case;
@@ -1759,11 +1766,11 @@ async def api_chat_slot_detail(request: web.Request) -> web.Response:
 # allowlist (chat_folders._VALID_MODES) and the fork override allowlist
 # (chat_fork): "design-critique" is an app-worker mode assigned at birth by the
 # Design Critique app's openSlot() — the custom mode keeps its throwaway dc-*
-# slots off the chat sidebar, which renders only "", "orchestrator" and "crew"
-# (ChatPage.tsx filteredSlots). Switching an existing session INTO an app-worker
+# slots off the chat sidebar, which renders only "", "orchestrator" and
+# "multitask" (ChatPage.tsx filteredSlots). Switching an existing session INTO an app-worker
 # mode, or forking one with it as an override, is not a real flow, so those two
 # allowlists deliberately stay narrower — do not "sync" them to this one.
-_CREATABLE_MODES = ("", "orchestrator", "crew", "design-critique")
+_CREATABLE_MODES = ("", "orchestrator", SLOT_MODE_MULTITASK, "design-critique")
 
 
 async def api_chat_slot_create(request: web.Request) -> web.Response:
@@ -1839,26 +1846,27 @@ async def api_chat_slot_create(request: web.Request) -> web.Response:
                     {"error": "invalid mode", "code": "invalid_mode"}, status=400
                 )
             # Same boundary as the mode-switch endpoint: a slot whose name folds
-            # to nothing but dots has no crew store, so accepting `mode="crew"`
-            # here would hand back a tab that 500s on its first message. Only a
+            # to nothing but dots has no multitask store, so accepting
+            # `mode="multitask"` here would hand back a tab that 500s on its first
+            # message. Only a
             # CALLER-SUPPLIED name can be that: an omitted name is generated by
             # `get_or_create_slot` and is always storable. Checked on the
             # NORMALIZED form, which is the key the store is built from — the raw
-            # body name is not what `CrewStore` ever sees.
-            if _mode == "crew" and name:
+            # body name is not what `MultitaskStore` ever sees.
+            if _mode == SLOT_MODE_MULTITASK and name:
                 # Deferred: this module is imported when the dashboard package is,
-                # which the gateway does on its boot path, and crew is a
-                # dashboard-only subsystem. Only a crew request pays for it.
-                from junction.multitask_chat import is_crew_capable_slot_key
+                # which the gateway does on its boot path, and Multitask Mode is a
+                # dashboard-only subsystem. Only a multitask request pays for it.
+                from junction.multitask_chat import is_multitask_capable_slot_key
             if (
-                _mode == "crew"
+                _mode == SLOT_MODE_MULTITASK
                 and name
-                and not is_crew_capable_slot_key(_normalize_slot_key(str(name)))
+                and not is_multitask_capable_slot_key(_normalize_slot_key(str(name)))
             ):
                 return web.json_response(
                     {
-                        "error": "this session name cannot run crew mode",
-                        "code": "crew_unsupported_slot",
+                        "error": "this session name cannot run multitask mode",
+                        "code": "multitask_unsupported_slot",
                     },
                     status=400,
                 )
@@ -3424,14 +3432,15 @@ async def api_chat_slot_delete(request: web.Request) -> web.Response:
     # below cannot be undone. A nudge that fires BEFORE the retire begins still
     # runs a turn, but that is the ordinary race with the ✕ click itself and it
     # resurrects nothing.
-    # Tell the app BEFORE anything durable happens. For a crew this hook is the
-    # write that pauses the worker, so it has to succeed for the dismissal to
-    # mean anything — and it must be undoable if it does not. Sequenced here, a
-    # failure costs nothing: the slot is still in `_slots`, history still says
-    # open, and the only thing to put back is the loop. Sequenced after the
-    # persist (where it used to live) there was nothing to abort INTO — the close
-    # was already committed, so a lost pause left a live auto-approved crew whose
-    # watchdog relaunched the tab, with only a log line to say so.
+    # Tell the app BEFORE anything durable happens. For an Issue Radar steward
+    # this hook is the write that pauses the worker, so it has to succeed for the
+    # dismissal to mean anything — and it must be undoable if it does not.
+    # Sequenced here, a failure costs nothing: the slot is still in `_slots`,
+    # history still says open, and the only thing to put back is the loop.
+    # Sequenced after the persist there would be nothing to abort INTO — the
+    # close would already be committed, so a lost pause would leave a live
+    # auto-approved steward whose watchdog relaunches the tab, with only a log
+    # line to say so.
     #
     # Stopping the worker first is also the right order on its own terms: quiet
     # the thing, then dismantle its surface. The reverse opens exactly the window
@@ -3518,8 +3527,8 @@ async def api_chat_slot_delete(request: web.Request) -> web.Response:
         # a restored session with no clock is an abandoned unattended worker.
         await _restore_slot_nudge_loop(retired_loop, lambda: state.get_slot(name) is slot)
         # ...and the app's record of the dismissal has to come back too. The
-        # notification above already SUCCEEDED, which for a crew means the worker is
-        # durably paused; without this the failed close would still have stopped it,
+        # notification above already SUCCEEDED, which for a steward means the worker
+        # is durably paused; without this the failed close would still have stopped it,
         # so the user gets an error AND a silently disabled worker. Unwound in
         # reverse order of commitment, which is the only arrangement that leaves no
         # pair of the three stores disagreeing.
@@ -5351,7 +5360,7 @@ async def api_chat_slot_resume(request: web.Request) -> web.Response:
     if meta.get("project"):
         slot.project = meta["project"]
     if meta.get("mode"):
-        slot.mode = meta["mode"]
+        slot.mode = normalize_slot_mode(meta["mode"])
     if meta.get("channel_folder_filed"):
         # Resuming from History must carry the filing marker forward, or the
         # next save of this slot drops it and the conversation is re-filed.

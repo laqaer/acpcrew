@@ -168,7 +168,7 @@ export const PetAvatar: React.FC<PetAvatarProps> = ({
     let alive = true
 
     ;(async () => {
-      const cfg = await api?.getCrewCompanionConfig?.().catch(() => null)
+      const cfg = await api?.getDeskCompanionConfig?.().catch(() => null)
       const packId: string = cfg?.activeAppearance || BUILTIN_PACK
 
       // The built-in cat with the user's colour map, if any. Also what a pack id

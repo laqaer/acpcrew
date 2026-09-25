@@ -20,9 +20,9 @@ import type { DepEdge, DepsResponse, Issue, PullRequest } from '../api'
 /** The derived state of a node in the fabric, in the mockup's vocabulary:
  *  - `hold`   — blocked: at least one blocker is still open/unmerged.
  *  - `ready`  — unblocked and open: every blocker is closed/merged (the "go" hue).
- *  - `running`— an open item a crew is actively working (reserved; the graph
- *               only knows crew ownership if a caller supplies it, so today this
- *               is produced only when `crew` is set on the node).
+ *  - `running`— an open item a steward is actively working (reserved: the deps
+ *               payload carries no steward ownership, so the graph never
+ *               derives this state on its own).
  *  - `done`   — the item itself is closed/merged (an etched "MERGED" ghost).
  *  - `open`   — an open PR that is neither a blocker-satisfied target nor blocked
  *               (a plain open source with no unmet constraint above it). */

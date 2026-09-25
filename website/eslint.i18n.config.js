@@ -345,7 +345,7 @@ export default [
               String.raw`^[?&][a-z_]+=[a-z0-9]+$`,
 
               // A catalog KEY assembled at runtime, e.g.
-              // `apps.crewCompanion.state.${slot}`. Translating a key would break the
+              // `apps.deskCompanion.state.${slot}`. Translating a key would break the
               // lookup it performs — the value it resolves to is what gets translated.
               String.raw`^apps\.[A-Za-z]+\.[A-Za-z]+\.$`,
 

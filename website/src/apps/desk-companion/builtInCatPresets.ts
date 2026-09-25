@@ -1,5 +1,5 @@
 /**
- * CrewCompanion - Built-in Cat Color Presets
+ * Companion - Built-in Cat Color Presets
  *
  * 10 real-world cat breed color presets based on the built-in cat's SVG colors.
  */
@@ -11,7 +11,7 @@ import type { ColorMap } from './colorCustomizer'
  * Extracted from src/assets/pets/mochi_idle.svg.
  * Each entry maps a hex color to its body part for prompt descriptions.
  */
-export const DEFAULT_CREW_COMPANION_COLORS = [
+export const DEFAULT_DESK_COMPANION_COLORS = [
   '#F9A85F', // body main
   '#F18D50', // darker orange (ears, shadow)
   '#EB8849', // orange accent (chin, legs)
@@ -26,7 +26,7 @@ export const DEFAULT_CREW_COMPANION_COLORS = [
 
 
 
-type SourceKey = typeof DEFAULT_CREW_COMPANION_COLORS[number]
+type SourceKey = typeof DEFAULT_DESK_COMPANION_COLORS[number]
 type PresetMap = Record<SourceKey, string>
 
 function preset(

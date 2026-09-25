@@ -6,7 +6,7 @@ import {
 } from '../apps/desk-companion/dashboardTheme'
 
 /**
- * Pins the fix for the crew-companion overlay adopting the dashboard theme:
+ * Pins the fix for the desk-companion overlay adopting the dashboard theme:
  *  - the RIGHT stylesheet(s) are discovered (root cause of the fallback #2a2a2a menu),
  *  - `data-theme` is copied so variables resolve to the user's theme, not :root light,
  *  - window transparency survives adopting the dashboard's body-painting stylesheet.

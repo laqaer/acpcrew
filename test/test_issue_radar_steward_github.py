@@ -1,16 +1,16 @@
-"""Tests for the GitHub calls the Issue Radar CREW claim protocol needs.
+"""Tests for the GitHub calls the Issue Radar STEWARD claim protocol needs.
 
-A crew's claim on an issue is a COMMENT, not a label and not a local record, and
+A steward's claim on an issue is a COMMENT, not a label and not a local record, and
 everything here exists to make that comment usable as a ledger:
 
-  * ``update_issue_comment`` — the crew rewrites ONE comment as work progresses
+  * ``update_issue_comment`` — the steward rewrites ONE comment as work progresses
     (an edit sends no GitHub notification, so a 20-minute heartbeat is not spam);
   * ``create_pull_request`` — REST rather than ``gh pr create``, so a
     model-authored title/body never lands on an argv;
   * ``_normalize_timeline_event`` — must carry a comment's ``id`` (address it to
     PATCH it) and ``updated_at`` (``created_at`` on an EDITED comment is still the
     original post time, so a live claim would read days stale);
-  * ``find_crew_claim`` — reads the machine marker back out, with the ordering the
+  * ``find_steward_claim`` — reads the machine marker back out, with the ordering the
     collision rule depends on.
 
 Every test patches the ``gh`` layer, so no subprocess is spawned (and the
@@ -23,7 +23,7 @@ from unittest import mock
 from junction.apps.builtins.issue_radar.backend import github_client as gh
 
 MARKER = (
-    "<!-- junction-crew id=c_7f3a phase=implementing pr=2271 "
+    "<!-- junction-steward id=c_7f3a phase=implementing pr=2271 "
     "updated=2026-08-08T20:44:12Z -->"
 )
 
@@ -108,7 +108,7 @@ class CreatePullRequestTest(unittest.TestCase):
         with mock.patch.object(
             gh, "_gh_run", return_value=_proc(json.dumps(self.RESPONSE))
         ) as run:
-            out = gh.create_pull_request("o", "r", "crew/andromeda/issue-5", "main", title, body)
+            out = gh.create_pull_request("o", "r", "steward/andromeda/issue-5", "main", title, body)
 
         argv = run.call_args[0][0]
         self.assertEqual(argv[:4], ["gh", "api", "--method", "POST"])
@@ -118,7 +118,7 @@ class CreatePullRequestTest(unittest.TestCase):
         self.assertFalse(any(title in str(a) for a in argv))
         self.assertFalse(any(body in str(a) for a in argv))
         self.assertEqual(json.loads(run.call_args.kwargs["input_text"]), {
-            "title": title, "head": "crew/andromeda/issue-5", "base": "main",
+            "title": title, "head": "steward/andromeda/issue-5", "base": "main",
             "body": body, "draft": False,
         })
         self.assertEqual(out["number"], 2271)
@@ -140,9 +140,9 @@ class CreatePullRequestTest(unittest.TestCase):
         with mock.patch.object(
             gh, "_gh_run", return_value=_proc(json.dumps(self.RESPONSE))
         ) as run:
-            gh.create_pull_request("o", "r", "forker:crew/andromeda-5", "main", "t", "b")
+            gh.create_pull_request("o", "r", "forker:steward/andromeda-5", "main", "t", "b")
         self.assertEqual(json.loads(run.call_args.kwargs["input_text"])["head"],
-                         "forker:crew/andromeda-5")
+                         "forker:steward/andromeda-5")
 
     def test_an_empty_title_or_ref_is_refused_before_any_call(self):
         with mock.patch.object(gh, "_gh_run") as run:
@@ -177,7 +177,7 @@ class TimelineCommentFieldsTest(unittest.TestCase):
     def test_a_comment_carries_its_id_and_edit_time(self):
         row = gh._normalize_timeline_event(self.RAW)
         self.assertEqual(row["kind"], "comment")
-        # Without id, a crew cannot PATCH its own claim comment.
+        # Without id, a steward cannot PATCH its own claim comment.
         self.assertEqual(row["id"], 9001)
         # created_at on an EDITED comment is still the ORIGINAL post time, so only
         # updated_at can show a claim is alive.
@@ -212,13 +212,13 @@ class TimelineCommentFieldsTest(unittest.TestCase):
         self.assertNotIn("updated_at", row)
 
 
-class FindCrewClaimTest(unittest.TestCase):
+class FindStewardClaimTest(unittest.TestCase):
     """The marker parser + the ordering the collision rule depends on."""
 
     def test_parses_every_field_of_a_well_formed_marker(self):
         rows = [_comment_row(9001, f"👻 **Andromeda** is on this\n\n{MARKER}")]
-        self.assertEqual(gh.find_crew_claim(rows), [{
-            "comment_id": 9001, "crew_id": "c_7f3a", "phase": "implementing",
+        self.assertEqual(gh.find_steward_claim(rows), [{
+            "comment_id": 9001, "steward_id": "c_7f3a", "phase": "implementing",
             "pr": 2271, "updated": "2026-08-08T20:44:12Z",
             "actor": "junction-bot", "created_at": "2026-08-08T18:02:00Z",
         }])
@@ -228,49 +228,49 @@ class FindCrewClaimTest(unittest.TestCase):
             _comment_row(1, "any thoughts on this?"),
             _comment_row(2, "I hit this too"),
         ]
-        self.assertEqual(gh.find_crew_claim(rows), [])
+        self.assertEqual(gh.find_steward_claim(rows), [])
 
     def test_the_brief_sentinel_is_not_a_claim(self):
-        # `junction-crew-brief` shares the marker's prefix; matching it would make
+        # `junction-steward-brief` shares the marker's prefix; matching it would make
         # every session that echoes the brief look like a claim.
-        rows = [_comment_row(1, "<!-- junction-crew-brief v1 -->")]
-        self.assertEqual(gh.find_crew_claim(rows), [])
+        rows = [_comment_row(1, "<!-- junction-steward-brief v1 -->")]
+        self.assertEqual(gh.find_steward_claim(rows), [])
 
     def test_unknown_keys_are_ignored(self):
         marker = (
-            "<!-- junction-crew id=c_7f3a phase=claimed pr=7 "
+            "<!-- junction-steward id=c_7f3a phase=claimed pr=7 "
             "updated=2026-08-08T20:44:12Z lease=99 nextField=whatever -->"
         )
-        claim = gh.find_crew_claim([_comment_row(5, marker)])[0]
-        self.assertEqual(claim["crew_id"], "c_7f3a")
+        claim = gh.find_steward_claim([_comment_row(5, marker)])[0]
+        self.assertEqual(claim["steward_id"], "c_7f3a")
         self.assertEqual(claim["phase"], "claimed")
         self.assertNotIn("lease", claim)
         self.assertNotIn("nextField", claim)
 
     def test_absent_optional_fields_read_as_empty_not_missing(self):
-        claim = gh.find_crew_claim([_comment_row(5, "<!-- junction-crew id=c_1 -->")])[0]
-        self.assertEqual(claim["crew_id"], "c_1")
+        claim = gh.find_steward_claim([_comment_row(5, "<!-- junction-steward id=c_1 -->")])[0]
+        self.assertEqual(claim["steward_id"], "c_1")
         self.assertEqual(claim["phase"], "")
         self.assertIsNone(claim["pr"])
         self.assertIsNone(claim["updated"])
 
     def test_a_marker_with_no_id_is_still_reported_as_a_claim(self):
-        # It names nobody, so it can never MATCH a crew id — but dropping it is how
-        # two crews end up on one issue.
-        claim = gh.find_crew_claim([_comment_row(5, "<!-- junction-crew phase=claimed -->")])[0]
-        self.assertEqual(claim["crew_id"], "")
-        self.assertEqual(gh.find_crew_claim([_comment_row(5, "<!-- junction-crew phase=x -->")],
-                                            crew_id="c_7f3a"), [])
+        # It names nobody, so it can never MATCH a steward id — but dropping it is how
+        # two stewards end up on one issue.
+        nameless = _comment_row(5, "<!-- junction-steward phase=claimed -->")
+        claim = gh.find_steward_claim([nameless])[0]
+        self.assertEqual(claim["steward_id"], "")
+        self.assertEqual(gh.find_steward_claim([nameless], steward_id="c_7f3a"), [])
 
     def test_a_non_numeric_pr_is_none_not_a_crash(self):
-        marker = "<!-- junction-crew id=c_1 pr=none updated=2026-08-08T20:44:12Z -->"
-        self.assertIsNone(gh.find_crew_claim([_comment_row(5, marker)])[0]["pr"])
+        marker = "<!-- junction-steward id=c_1 pr=none updated=2026-08-08T20:44:12Z -->"
+        self.assertIsNone(gh.find_steward_claim([_comment_row(5, marker)])[0]["pr"])
 
     # ── the timestamp rule: only ISO-8601 with a trailing Z parses ────────────
 
     def test_a_valid_stamp_with_fractional_seconds_is_accepted(self):
-        marker = "<!-- junction-crew id=c_1 updated=2026-08-08T20:44:12.501Z -->"
-        self.assertEqual(gh.find_crew_claim([_comment_row(5, marker)])[0]["updated"],
+        marker = "<!-- junction-steward id=c_1 updated=2026-08-08T20:44:12.501Z -->"
+        self.assertEqual(gh.find_steward_claim([_comment_row(5, marker)])[0]["updated"],
                          "2026-08-08T20:44:12.501Z")
 
     def test_a_malformed_stamp_reads_as_unparseable_not_fresh(self):
@@ -286,66 +286,73 @@ class FindCrewClaimTest(unittest.TestCase):
             "yesterday",
             "1786000000",                  # epoch seconds
         ):
-            marker = f"<!-- junction-crew id=c_1 updated={bad} -->"
-            claim = gh.find_crew_claim([_comment_row(5, marker)])[0]
+            marker = f"<!-- junction-steward id=c_1 updated={bad} -->"
+            claim = gh.find_steward_claim([_comment_row(5, marker)])[0]
             self.assertIsNone(claim["updated"], bad)
             # The claim itself still stands — only its freshness is unknown.
-            self.assertEqual(claim["crew_id"], "c_1")
+            self.assertEqual(claim["steward_id"], "c_1")
 
     # ── ordering: the collision rule is "smallest comment id wins" ────────────
 
     def test_claims_are_ordered_by_comment_id_ascending(self):
         rows = [
-            _comment_row(9003, "<!-- junction-crew id=c_c -->", created="2026-08-08T20:00:00Z"),
-            _comment_row(9001, "<!-- junction-crew id=c_a -->", created="2026-08-08T18:00:00Z"),
-            _comment_row(9002, "<!-- junction-crew id=c_b -->", created="2026-08-08T19:00:00Z"),
+            _comment_row(9003, "<!-- junction-steward id=c_c -->", created="2026-08-08T20:00:00Z"),
+            _comment_row(9001, "<!-- junction-steward id=c_a -->", created="2026-08-08T18:00:00Z"),
+            _comment_row(9002, "<!-- junction-steward id=c_b -->", created="2026-08-08T19:00:00Z"),
         ]
         # The winner of a collision is [0], so the order IS the protocol.
-        self.assertEqual([c["comment_id"] for c in gh.find_crew_claim(rows)],
+        self.assertEqual([c["comment_id"] for c in gh.find_steward_claim(rows)],
                          [9001, 9002, 9003])
-        self.assertEqual(gh.find_crew_claim(rows)[0]["crew_id"], "c_a")
+        self.assertEqual(gh.find_steward_claim(rows)[0]["steward_id"], "c_a")
 
     def test_an_unknown_comment_id_sorts_last_so_it_cannot_win_a_collision(self):
         rows = [
-            _comment_row(None, "<!-- junction-crew id=c_ghost -->"),
-            _comment_row(9002, "<!-- junction-crew id=c_b -->"),
-            _comment_row(9001, "<!-- junction-crew id=c_a -->"),
+            _comment_row(None, "<!-- junction-steward id=c_ghost -->"),
+            _comment_row(9002, "<!-- junction-steward id=c_b -->"),
+            _comment_row(9001, "<!-- junction-steward id=c_a -->"),
         ]
-        self.assertEqual([c["comment_id"] for c in gh.find_crew_claim(rows)],
+        self.assertEqual([c["comment_id"] for c in gh.find_steward_claim(rows)],
                          [9001, 9002, None])
 
     def test_a_non_int_comment_id_is_normalized_to_none(self):
         for raw in ("9001", True, 9001.0, {"id": 9001}):
-            claim = gh.find_crew_claim([_comment_row(raw, "<!-- junction-crew id=c_1 -->")])[0]
+            row = _comment_row(raw, "<!-- junction-steward id=c_1 -->")
+            claim = gh.find_steward_claim([row])[0]
             self.assertIsNone(claim["comment_id"], raw)
 
-    # ── the crew_id filter ───────────────────────────────────────────────────
+    # ── the steward_id filter ─────────────────────────────────────────────────
 
-    def test_crew_id_filters_to_one_crews_own_claims(self):
+    def test_steward_id_filters_to_one_stewards_own_claims(self):
         rows = [
-            _comment_row(9001, "<!-- junction-crew id=c_other phase=claimed -->"),
+            _comment_row(9001, "<!-- junction-steward id=c_other phase=claimed -->"),
             _comment_row(9002, f"progress\n{MARKER}"),
         ]
-        self.assertEqual(gh.find_crew_claim(rows, crew_id="c_7f3a"),
-                         [c for c in gh.find_crew_claim(rows) if c["crew_id"] == "c_7f3a"])
         self.assertEqual(
-            [c["comment_id"] for c in gh.find_crew_claim(rows, crew_id="c_7f3a")], [9002]
+            gh.find_steward_claim(rows, steward_id="c_7f3a"),
+            [c for c in gh.find_steward_claim(rows) if c["steward_id"] == "c_7f3a"],
+        )
+        self.assertEqual(
+            [c["comment_id"] for c in gh.find_steward_claim(rows, steward_id="c_7f3a")], [9002]
         )
 
-    def test_a_crew_with_no_claim_gets_an_empty_list_not_none(self):
+    def test_a_steward_with_no_claim_gets_an_empty_list_not_none(self):
         # A uniform return type is why the filter does not collapse to a single
         # entry: no caller has to branch on the shape.
-        self.assertEqual(gh.find_crew_claim([_comment_row(1, MARKER)], crew_id="c_nope"), [])
+        self.assertEqual(
+            gh.find_steward_claim([_comment_row(1, MARKER)], steward_id="c_nope"), []
+        )
 
     def test_a_duplicated_claim_is_visible_and_ordered(self):
         # A retried post is a real state; collapsing it would hide the duplicate the
-        # crew must clean up, and [0] is still the one that wins.
+        # steward must clean up, and [0] is still the one that wins.
         rows = [
             _comment_row(9002, f"retry\n{MARKER}"),
             _comment_row(9001, f"first\n{MARKER}"),
         ]
-        self.assertEqual([c["comment_id"] for c in gh.find_crew_claim(rows, crew_id="c_7f3a")],
-                         [9001, 9002])
+        self.assertEqual(
+            [c["comment_id"] for c in gh.find_steward_claim(rows, steward_id="c_7f3a")],
+            [9001, 9002],
+        )
 
     # ── input tolerance ──────────────────────────────────────────────────────
 
@@ -356,27 +363,78 @@ class FindCrewClaimTest(unittest.TestCase):
             {"kind": "review_comment", "actor": "a", "created_at": "2026-08-08T18:00:00Z",
              "body": MARKER, "path": "x.py", "line": 3},
             {"kind": "labeled", "actor": "a", "created_at": "2026-08-08T18:00:00Z",
-             "label": {"name": "crew: in progress"}},
+             "label": {"name": "steward: in progress"}},
         ]
-        self.assertEqual(gh.find_crew_claim(rows), [])
+        self.assertEqual(gh.find_steward_claim(rows), [])
 
     def test_empty_and_malformed_input_is_tolerated(self):
-        self.assertEqual(gh.find_crew_claim([]), [])
-        self.assertEqual(gh.find_crew_claim(None), [])  # type: ignore[arg-type]
-        self.assertEqual(gh.find_crew_claim(["nope", None, 7, {}]), [])  # type: ignore[list-item]
-        self.assertEqual(gh.find_crew_claim([_comment_row(1, None)]), [])  # type: ignore[arg-type]
+        self.assertEqual(gh.find_steward_claim([]), [])
+        self.assertEqual(gh.find_steward_claim(None), [])  # type: ignore[arg-type]
+        self.assertEqual(
+            gh.find_steward_claim(["nope", None, 7, {}]), []  # type: ignore[list-item]
+        )
+        self.assertEqual(
+            gh.find_steward_claim([_comment_row(1, None)]), []  # type: ignore[arg-type]
+        )
 
     def test_a_marker_is_found_wherever_it_sits_in_the_body(self):
         for body in (MARKER, f"{MARKER}\nprose after", f"prose before\n\n{MARKER}",
                      f"<details>\n- 18:02 claimed\n</details>\n{MARKER}\n"):
-            self.assertEqual(gh.find_crew_claim([_comment_row(1, body)])[0]["crew_id"],
+            self.assertEqual(gh.find_steward_claim([_comment_row(1, body)])[0]["steward_id"],
                              "c_7f3a", body)
 
     def test_the_first_marker_wins_when_a_body_carries_two(self):
-        body = f"{MARKER}\nquoted example:\n<!-- junction-crew id=c_zzz phase=resolved -->"
-        claim = gh.find_crew_claim([_comment_row(1, body)])[0]
-        self.assertEqual(claim["crew_id"], "c_7f3a")
+        body = f"{MARKER}\nquoted example:\n<!-- junction-steward id=c_zzz phase=resolved -->"
+        claim = gh.find_steward_claim([_comment_row(1, body)])[0]
+        self.assertEqual(claim["steward_id"], "c_7f3a")
         self.assertEqual(claim["phase"], "implementing")
+
+
+class LegacyClaimMarkerTest(unittest.TestCase):
+    """Claims an earlier build wrote stay claims.
+
+    The forge is shared: a marker another install wrote under the legacy name sits on
+    the issue next to this install's, and not every install upgrades at once. A claim
+    the parser could not see reads as an unclaimed issue, and two stewards work it.
+    """
+
+    def test_the_legacy_marker_name_is_the_one_earlier_builds_wrote(self):
+        # Pinned rather than derived: every claim already on a forge carries exactly
+        # this name, so any other value makes all of them invisible at once.
+        self.assertEqual(gh.LEGACY_STEWARD_CLAIM_MARKER_NAMES, ("junction-crew",))
+        self.assertEqual(gh.STEWARD_CLAIM_MARKER_NAME, "junction-steward")
+
+    def test_a_legacy_marker_parses_exactly_like_a_current_one(self):
+        for name in gh.LEGACY_STEWARD_CLAIM_MARKER_NAMES:
+            legacy = MARKER.replace(gh.STEWARD_CLAIM_MARKER_NAME, name, 1)
+            self.assertNotEqual(legacy, MARKER)
+            self.assertEqual(
+                gh.find_steward_claim([_comment_row(9001, legacy)]),
+                gh.find_steward_claim([_comment_row(9001, MARKER)]),
+                name,
+            )
+
+    def test_a_legacy_claim_and_a_current_one_collide_by_the_same_rule(self):
+        # Smallest comment id wins whatever the spelling, so a steward that upgraded
+        # cannot out-rank a claim made before it did.
+        for name in gh.LEGACY_STEWARD_CLAIM_MARKER_NAMES:
+            rows = [
+                _comment_row(9002, f"<!-- {gh.STEWARD_CLAIM_MARKER_NAME} id=c_b -->"),
+                _comment_row(9001, f"<!-- {name} id=c_a phase=claimed -->"),
+            ]
+            self.assertEqual([c["steward_id"] for c in gh.find_steward_claim(rows)], ["c_a", "c_b"])
+            # And a steward finds its OWN legacy-spelled comment, which is the one it
+            # rewrites under the current name the next time it touches the claim.
+            self.assertEqual(
+                [c["comment_id"] for c in gh.find_steward_claim(rows, steward_id="c_a")], [9001]
+            )
+
+    def test_the_legacy_brief_sentinel_is_not_a_claim(self):
+        # A transcript an earlier build posted can quote its brief sentinel, which
+        # shares the legacy marker's prefix exactly as the current one does.
+        for name in gh.LEGACY_STEWARD_CLAIM_MARKER_NAMES:
+            rows = [_comment_row(1, f"<!-- {name}-brief v1 -->")]
+            self.assertEqual(gh.find_steward_claim(rows), [], name)
 
 
 if __name__ == "__main__":  # pragma: no cover

@@ -5,8 +5,8 @@ import { activeLocale, fmtRelative, toDate } from '../../../i18n/format'
 import { DEFAULT_LANGUAGE, SUPPORTED_LANGUAGES, type LanguageEntry } from '../../../i18n/languages'
 import { i18nT } from '../../../i18n/t'
 import { loadColumnCollapsed, loadColumnWidth } from '../../../lib/columnWidth'
-import { DASHBOARD_TABS, SORT_KEYS } from './types'
-import type { ActiveRepo, CrewSortKey, DashboardTab, MainView, PrSortKey, PrStateFilter, SettingsTarget, SortDir, SortKey, StateFilter } from './types'
+import { DASHBOARD_TABS, MAIN_VIEWS, SORT_KEYS } from './types'
+import type { ActiveRepo, DashboardTab, MainView, PrSortKey, PrStateFilter, SettingsTarget, SortDir, SortKey, StateFilter, StewardSortKey } from './types'
 
 export const ACTIVE_KEY = 'jn:issue-radar:active-repo'
 export const LIST_WIDTH_KEY = 'jn:issue-radar:list-width'
@@ -389,16 +389,16 @@ export const PR_SORT_FIELDS: { key: PrSortKey; label: string; icon: LucideIcon }
   { key: 'updated', get label() { return i18nT('apps.issueRadar.lib.format.last_update') }, icon: Clock },
 ]
 
-/** Sort options for the crew roster, in the order the rail lists them.
+/** Sort options for the steward roster, in the order the rail lists them.
  *
  * `status` leads because it is the only one that answers "what needs me": its
- * ascending direction is the urgency order the backend already ranks by (a crew
+ * ascending direction is the urgency order the backend already ranks by (a steward
  * waiting on a human above one that is merely working). Labels are getters for the
  * same reason the two lists above use them — a locale switch must re-read them. */
-export const CREW_SORT_FIELDS: { key: CrewSortKey; label: string; icon: LucideIcon }[] = [
-  { key: 'status', get label() { return i18nT('apps.issueRadar.lib.format.crew_sort_status') }, icon: AlertCircle },
-  { key: 'name', get label() { return i18nT('apps.issueRadar.lib.format.crew_sort_name') }, icon: ArrowDownAZ },
-  { key: 'created', get label() { return i18nT('apps.issueRadar.lib.format.crew_sort_created') }, icon: Clock },
+export const STEWARD_SORT_FIELDS: { key: StewardSortKey; label: string; icon: LucideIcon }[] = [
+  { key: 'status', get label() { return i18nT('apps.issueRadar.lib.format.steward_sort_status') }, icon: AlertCircle },
+  { key: 'name', get label() { return i18nT('apps.issueRadar.lib.format.steward_sort_name') }, icon: ArrowDownAZ },
+  { key: 'created', get label() { return i18nT('apps.issueRadar.lib.format.steward_sort_created') }, icon: Clock },
 ]
 
 // ── Persisted UI state ────────────────────────────────────────────────────
@@ -473,6 +473,14 @@ export function coerceSortKey(value: unknown): SortKey {
  * back to Overview instead of rendering an empty main area. */
 export function coerceDashboardTab(value: unknown): DashboardTab {
   return (DASHBOARD_TABS as readonly string[]).includes(value as string) ? (value as DashboardTab) : 'overview'
+}
+
+/** Same idea for the main view: a view that no longer exists (or a hand-edited
+ * value) has no left-rail section and no main-area renderer, so restoring it
+ * would render a blank pane with nothing highlighted. It falls back to the
+ * dashboard, which is also what a first visit opens on. */
+export function coerceMainView(value: unknown): MainView {
+  return (MAIN_VIEWS as readonly string[]).includes(value as string) ? (value as MainView) : 'dashboard'
 }
 
 export function saveUiState(state: PersistedUiState) {

@@ -10,7 +10,7 @@
  * The label is asserted verbatim on purpose. This control writes
  * `config.agent.default_agent`, which is the fallback kiro-cli agent for CLI
  * chat, chat-channel threads and warm-pool sessions — NOT what a dashboard
- * session uses (that comes from its crew). A label reading "new sessions use"
+ * session uses (that comes from the roster agent it runs as). A label reading "new sessions use"
  * would describe a different setting than the one being written.
  */
 import { render, screen, waitFor, fireEvent } from '@testing-library/react'

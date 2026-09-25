@@ -7,7 +7,7 @@
  * WHY A SWITCH OF LITERAL CALLS, and not the tidier lookup table you would reach for
  * first — both tidier shapes are wrong for this codebase:
  *
- *   * `` i18nT(`apps.crewCompanion.${key}`) `` assembles the key at runtime, so it
+ *   * `` i18nT(`apps.deskCompanion.${key}`) `` assembles the key at runtime, so it
  *     appears nowhere in the source: extraction and dead-key tooling cannot see it,
  *     and a missing entry shows the user the raw string instead of failing in CI.
  *   * A `const KEYS = { … } as const` map of key strings puts those strings in value
@@ -34,29 +34,29 @@ import { i18nT } from '../../i18n/t'
  */
 export function nudgeTextFor(backendKey: string): string | null {
   switch (backendKey) {
-    case 'break.water.1': return i18nT('apps.crewCompanion.break.water.1')
-    case 'break.water.2': return i18nT('apps.crewCompanion.break.water.2')
-    case 'break.water.3': return i18nT('apps.crewCompanion.break.water.3')
-    case 'break.water.4': return i18nT('apps.crewCompanion.break.water.4')
-    case 'break.water.5': return i18nT('apps.crewCompanion.break.water.5')
+    case 'break.water.1': return i18nT('apps.deskCompanion.break.water.1')
+    case 'break.water.2': return i18nT('apps.deskCompanion.break.water.2')
+    case 'break.water.3': return i18nT('apps.deskCompanion.break.water.3')
+    case 'break.water.4': return i18nT('apps.deskCompanion.break.water.4')
+    case 'break.water.5': return i18nT('apps.deskCompanion.break.water.5')
 
-    case 'break.stretch.1': return i18nT('apps.crewCompanion.break.stretch.1')
-    case 'break.stretch.2': return i18nT('apps.crewCompanion.break.stretch.2')
-    case 'break.stretch.3': return i18nT('apps.crewCompanion.break.stretch.3')
-    case 'break.stretch.4': return i18nT('apps.crewCompanion.break.stretch.4')
-    case 'break.stretch.5': return i18nT('apps.crewCompanion.break.stretch.5')
+    case 'break.stretch.1': return i18nT('apps.deskCompanion.break.stretch.1')
+    case 'break.stretch.2': return i18nT('apps.deskCompanion.break.stretch.2')
+    case 'break.stretch.3': return i18nT('apps.deskCompanion.break.stretch.3')
+    case 'break.stretch.4': return i18nT('apps.deskCompanion.break.stretch.4')
+    case 'break.stretch.5': return i18nT('apps.deskCompanion.break.stretch.5')
 
-    case 'break.distance.1': return i18nT('apps.crewCompanion.break.distance.1')
-    case 'break.distance.2': return i18nT('apps.crewCompanion.break.distance.2')
-    case 'break.distance.3': return i18nT('apps.crewCompanion.break.distance.3')
-    case 'break.distance.4': return i18nT('apps.crewCompanion.break.distance.4')
-    case 'break.distance.5': return i18nT('apps.crewCompanion.break.distance.5')
+    case 'break.distance.1': return i18nT('apps.deskCompanion.break.distance.1')
+    case 'break.distance.2': return i18nT('apps.deskCompanion.break.distance.2')
+    case 'break.distance.3': return i18nT('apps.deskCompanion.break.distance.3')
+    case 'break.distance.4': return i18nT('apps.deskCompanion.break.distance.4')
+    case 'break.distance.5': return i18nT('apps.deskCompanion.break.distance.5')
 
-    case 'break.breathe.1': return i18nT('apps.crewCompanion.break.breathe.1')
-    case 'break.breathe.2': return i18nT('apps.crewCompanion.break.breathe.2')
-    case 'break.breathe.3': return i18nT('apps.crewCompanion.break.breathe.3')
-    case 'break.breathe.4': return i18nT('apps.crewCompanion.break.breathe.4')
-    case 'break.breathe.5': return i18nT('apps.crewCompanion.break.breathe.5')
+    case 'break.breathe.1': return i18nT('apps.deskCompanion.break.breathe.1')
+    case 'break.breathe.2': return i18nT('apps.deskCompanion.break.breathe.2')
+    case 'break.breathe.3': return i18nT('apps.deskCompanion.break.breathe.3')
+    case 'break.breathe.4': return i18nT('apps.deskCompanion.break.breathe.4')
+    case 'break.breathe.5': return i18nT('apps.deskCompanion.break.breathe.5')
 
     default: return null
   }

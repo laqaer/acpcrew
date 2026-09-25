@@ -62,8 +62,8 @@ function parseHostModel(data: unknown): HostModel | null {
     // Element-wise validation, not a blind cast: this crosses a postMessage
     // boundary, so a malformed or hostile payload must degrade to "nothing
     // pinned" rather than putting non-strings into the pin set.
-    pinnedCrews: Array.isArray(d.pinnedCrews)
-      ? d.pinnedCrews.filter((id): id is string => typeof id === 'string')
+    pinnedInstances: Array.isArray(d.pinnedInstances)
+      ? d.pinnedInstances.filter((id): id is string => typeof id === 'string')
       : [],
     // Tri-state, mirroring `focusMode` above: a non-boolean (typically absent)
     // means the host predates this relay, so it has no `mc-set-stable-order`

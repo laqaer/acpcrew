@@ -15,11 +15,11 @@ export default function MemoriesSection({ mem, offline, stale }: {
 
   return (
     <Card
-      title={i18nT('apps.crewCompanion.memories.title')}
+      title={i18nT('apps.deskCompanion.memories.title')}
       icon={BookOpen}
       right={mem
         ? <span className="cc-muted">{stale
-            ? i18nT('apps.crewCompanion.memories.from_last_session')
+            ? i18nT('apps.deskCompanion.memories.from_last_session')
             /*
              * `count` (not `days`) — i18next picks the singular/plural form from a
              * variable named `count`. The mainline version used a single key and read
@@ -27,17 +27,17 @@ export default function MemoriesSection({ mem, offline, stale }: {
              * per-language plural forms, so this stayed fixed rather than reverting
              * with the rest of the file.
              */
-            : i18nT('apps.crewCompanion.memories.days_together', {
+            : i18nT('apps.deskCompanion.memories.days_together', {
                 count: calcCompanionDays(mem.stats.firstLaunch),
               })}</span>
         : undefined}
     >
       {offline ? (
-        <div className="cc-muted">{i18nT('apps.crewCompanion.memories.offline')}</div>
+        <div className="cc-muted">{i18nT('apps.deskCompanion.memories.offline')}</div>
       ) : mem === null ? (
-        <div className="cc-muted">{i18nT('apps.crewCompanion.memories.loading')}</div>
+        <div className="cc-muted">{i18nT('apps.deskCompanion.memories.loading')}</div>
       ) : rows.length === 0 ? (
-        <div className="cc-muted">{i18nT('apps.crewCompanion.memories.empty')}</div>
+        <div className="cc-muted">{i18nT('apps.deskCompanion.memories.empty')}</div>
       ) : (
         <div>
           {rows.map((r, i) => (

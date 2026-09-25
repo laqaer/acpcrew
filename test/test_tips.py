@@ -2083,3 +2083,46 @@ class TestRelinkedStateMigration:
         st = self._load(tmp_path, {"tips": [bad]})
         assert st.tips[0]["doc"] == ""
         assert st.tips[0]["doc_link"] == ""
+
+
+class TestRenamedCuratedIdMigration:
+    """A curated tip whose id changed keeps the user's per-id state: loading
+    folds a dismissal, show count, snooze, shown_docs entry and held-over
+    offered copy recorded under the earlier id onto the current one."""
+
+    def _load(self, tmp_path: Path, data: dict) -> TipsState:  # type: ignore[type-arg]
+        with patch.dict(os.environ, {"JUNCTION_HOME": str(tmp_path)}):
+            (tmp_path / "tips_state.json").write_text(json.dumps(data))
+            return _load_state()
+
+    def test_legacy_remote_instances_id_folds_onto_current_id(self, tmp_path: Path) -> None:
+        from junction.tips import LEGACY_CURATED_TIP_IDS, _load_curated_tips
+
+        [(old, new)] = LEGACY_CURATED_TIP_IDS.items()
+        assert new in {t["id"] for t in _load_curated_tips()}
+        offered = {"id": old, "feature": "F", "title": "T", "body": "B",
+                   "why": "", "doc": "", "cta_prompt": ""}
+        st = self._load(tmp_path, {
+            "dismissed": [old, "other-tip"],
+            "shown": {old: 2, new: 1},
+            "snoozed": {old: 5000.0, new: 4000.0},
+            "shown_docs": {old: "instances.md"},
+            "offered": offered,
+        })
+        assert st.dismissed == [new, "other-tip"]
+        assert st.shown == {new: 3}
+        assert st.snoozed == {new: 5000.0}
+        assert st.shown_docs == {new: "instances.md"}
+        assert st.offered is not None and st.offered["id"] == new
+        assert not _is_eligible({"id": new, "doc": ""}, st, time.time(), snooze_hours=48)
+
+    def test_folding_is_idempotent(self, tmp_path: Path) -> None:
+        from junction.tips import LEGACY_CURATED_TIP_IDS
+
+        [(old, new)] = LEGACY_CURATED_TIP_IDS.items()
+        with patch.dict(os.environ, {"JUNCTION_HOME": str(tmp_path)}):
+            (tmp_path / "tips_state.json").write_text(json.dumps({"dismissed": [old, new]}))
+            st = _load_state()
+            assert st.dismissed == [new]
+            _save_state(st)
+            assert _load_state().dismissed == [new]

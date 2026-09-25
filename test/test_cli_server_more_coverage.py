@@ -488,7 +488,7 @@ class TestLogsCmdOtherSources:
         because the real ones are consulted otherwise and a CI runner has
         neither.
         """
-        plist = tmp_path / "crew.plist"
+        plist = tmp_path / "junction.plist"
         plist.write_text("<plist/>\n", encoding="utf-8", newline="\n")
         stdout_log = tmp_path / "launchd-gateway.log"
         stdout_log.write_text("x\n", encoding="utf-8", newline="\n")

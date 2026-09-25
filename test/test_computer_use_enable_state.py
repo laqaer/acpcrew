@@ -45,7 +45,7 @@ def state_dir(tmp_path, monkeypatch):
     attribute rather than a direct import, so this single patch redirects it — and a
     test that patched only ``config_dir`` would still work.
     """
-    directory = tmp_path / "crew"
+    directory = tmp_path / "data-home"
     directory.mkdir()
     monkeypatch.setattr(
         config_loader, "computer_use_state_path", lambda: directory / STATE_FILE_NAME

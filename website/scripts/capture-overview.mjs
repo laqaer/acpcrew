@@ -36,8 +36,9 @@ const status = {
 
 const fixedApi = makeFixedApi(PROJECT)
 fixedApi.set('/api/status', status)
-// TWO WORDS, matching the backend default: the nav brand row accents the last
-// word only, so a single-word name renders the mark without its "CREW" half.
+// The backend's own default name. The nav brand row sets a single-word name as
+// the plain wordmark and moves the last word of a two-word name onto the accent,
+// so any other fixture name would photograph a brand row the product never shows.
 fixedApi.set('/api/dashboard/branding', { bot_name: 'Junction', avatar: '/logo.png' })
 
 const browser = await chromium.launch()

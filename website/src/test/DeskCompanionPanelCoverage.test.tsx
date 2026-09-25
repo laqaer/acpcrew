@@ -189,7 +189,7 @@ function installBridge() {
       return () => {}
     }),
   }
-  ;(window as unknown as { crewCompanion?: typeof preload }).crewCompanion = preload
+  ;(window as unknown as { deskCompanion?: typeof preload }).deskCompanion = preload
   return preload
 }
 let openedCbs: Array<(side: 'left' | 'right') => void> = []
@@ -286,7 +286,7 @@ beforeEach(() => {
 afterEach(() => {
   for (const root of roots.splice(0)) root.unmount()
   document.querySelectorAll('#root').forEach((n) => n.remove())
-  delete (window as unknown as { crewCompanion?: unknown }).crewCompanion
+  delete (window as unknown as { deskCompanion?: unknown }).deskCompanion
   vi.clearAllTimers()
   vi.useRealTimers()
   vi.unstubAllGlobals()
@@ -506,7 +506,7 @@ describe('closing the panel', () => {
   })
 
   it('runs without a preload bridge at all rather than throwing', async () => {
-    delete (window as unknown as { crewCompanion?: unknown }).crewCompanion
+    delete (window as unknown as { deskCompanion?: unknown }).deskCompanion
     await mountPanel()
     fireEvent.keyDown(window, { key: 'Escape' })
     fireEvent.click(control('close'))

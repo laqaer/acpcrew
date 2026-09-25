@@ -73,7 +73,7 @@ afterEach(() => {
   vi.useRealTimers()
 })
 
-describe('crew-companion SpriteRenderer wakeup pacing', () => {
+describe('desk-companion SpriteRenderer wakeup pacing', () => {
   it('wakes at the sprite fps, not once per display frame', () => {
     render(
       <SpriteRenderer src="strip.png" frameWidth={64} frameHeight={64} fps={8} totalFrames={4} />,

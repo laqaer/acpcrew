@@ -155,7 +155,7 @@ async function main() {
     }
     if (path === '/api/agents') {
       return json(route, {
-        agents: [{ name: 'default', kiro_agent: 'junction', description: 'Default crew agent' }],
+        agents: [{ name: 'default', kiro_agent: 'junction', description: 'Default agent' }],
         default_agent: 'default',
       })
     }

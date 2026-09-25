@@ -1,5 +1,5 @@
 /**
- * Screenshot harness for the crew editor's rail + overview diagram.
+ * Screenshot harness for the agent editor's rail + overview diagram.
  *
  * Runs the REAL built SPA (website/dist) behind the shared in-process static
  * server and answers every /api/** call from fixtures via Playwright route
@@ -8,7 +8,7 @@
  * One shot per pane, because the change IS the navigation: a single still of the
  * overview would not show that the rail routes anywhere. The fixture deliberately
  * gives `oncall` two active schedules, one paused, and a workspace shared with
- * another crew, so the rail's count, its status dot and the diagram's `shared`
+ * another agent, so the rail's count, its status dot and the diagram's `shared`
  * tag all have something true to render.
  *
  * Usage: node scripts/capture-agent-editor-rail.mjs [outDir] [prefix]
@@ -19,14 +19,14 @@ import { chromium } from 'playwright'
 import { mkdirSync } from 'node:fs'
 import { serveDist } from './lib/serve-dist.mjs'
 import { logPageProblems, stubDashboardApi } from './lib/stub-dashboard-api.mjs'
-import { crewsApi } from './lib/agents-fixtures.mjs'
+import { agentsApi } from './lib/agents-fixtures.mjs'
 
-const OUT = process.argv[2] || '../.github/screenshots/crew-editor-rail'
+const OUT = process.argv[2] || '../.github/screenshots/agent-editor-rail'
 const PREFIX = process.argv[3] || 'after'
 
 mkdirSync(OUT, { recursive: true })
 
-const CREWS = [
+const AGENTS = [
   { name: 'junction', kiro_agent: 'junction', workspace: 'default', memory_store: 'default' },
   { name: 'oncall', kiro_agent: 'junction', workspace: 'oncall', memory_store: 'oncall-mem' },
   // Shares `oncall`'s workspace, which is what lights the rail dot and the tag.
@@ -48,7 +48,7 @@ const JOBS = [
   },
 ]
 
-/** Endpoints `crewsApi` does not cover but the editor reads. */
+/** Endpoints `agentsApi` does not cover but the editor reads. */
 const editorApi = async (path, route) => {
   if (path === '/api/crons') {
     await route.fulfill({ contentType: 'application/json', body: JSON.stringify({ jobs: JOBS }) })
@@ -57,7 +57,7 @@ const editorApi = async (path, route) => {
   if (path === '/api/webhooks') {
     // Two tokens bound to `oncall` (the rail count and the solid diagram node),
     // one bound elsewhere (must NOT be listed), and one unbound (drives the
-    // pane's any-crew disclosure line).
+    // pane's any-agent disclosure line).
     await route.fulfill({
       contentType: 'application/json',
       body: JSON.stringify({
@@ -105,17 +105,17 @@ async function main() {
       await stubDashboardApi(page, {
         theme,
         extra: async (path, route) => (await editorApi(path, route))
-          || (await crewsApi({ crews: CREWS, defaultAgent: 'junction' })(path, route)),
+          || (await agentsApi({ agents: AGENTS, defaultAgent: 'junction' })(path, route)),
       })
 
       await page.goto(base + '/capabilities', { waitUntil: 'domcontentloaded' })
       const main$ = page.locator('#main-content')
-      await main$.locator('[data-testid="crew-card"]').first()
+      await main$.locator('[data-testid="agent-card"]').first()
         .waitFor({ state: 'visible', timeout: 15000 })
 
-      // `oncall`, not the first card: the default crew has no removal pane and no
+      // `oncall`, not the first card: the default agent has no removal pane and no
       // schedules, so it would evidence the emptiest possible rail.
-      await main$.locator('[data-testid="crew-card"]', { hasText: 'oncall' }).first().click()
+      await main$.locator('[data-testid="agent-card"]', { hasText: 'oncall' }).first().click()
       const sheet = page.getByRole('dialog')
       await sheet.waitFor({ state: 'visible', timeout: 15000 })
       await page.waitForTimeout(500) // the dialog animates in, then the rail counts land
@@ -127,7 +127,7 @@ async function main() {
 
       // Guarded so a `before` run against main, which has no rail, still finishes
       // after the one shot it can take.
-      const rail = sheet.locator('[data-testid="crew-rail-overview"]')
+      const rail = sheet.locator('[data-testid="agent-rail-overview"]')
       if (!(await rail.count())) {
         await save('editor-stacked')
         await context.close()
@@ -136,7 +136,7 @@ async function main() {
 
       await save('pane-overview')
       for (const key of ['template', 'model', 'place', 'schedules', 'webhook', 'routing', 'danger']) {
-        await sheet.locator(`[data-testid="crew-rail-${key}"]`).click()
+        await sheet.locator(`[data-testid="agent-rail-${key}"]`).click()
         await page.waitForTimeout(250)
         await save(`pane-${key}`)
       }
@@ -144,7 +144,7 @@ async function main() {
       // The narrow layout: the diagram stacks and drops its connectors, and the
       // rail has to survive a phone width rather than clip.
       await page.setViewportSize({ width: 420, height: 900 })
-      await sheet.locator('[data-testid="crew-rail-overview"]').click()
+      await sheet.locator('[data-testid="agent-rail-overview"]').click()
       await page.waitForTimeout(350)
       await save('pane-overview-narrow')
 

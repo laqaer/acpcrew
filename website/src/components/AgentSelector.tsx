@@ -17,7 +17,7 @@ export interface JunctionAgent {
    *  the global fallback). Optional: older payloads predate the field. */
   model?: string
   description: string
-  /** Free-text routing intent read by the orchestrator's select_crew. Optional:
+  /** Free-text routing intent read by the orchestrator's select_agent. Optional:
    *  older payloads predate the field, and it falls back to `description`. */
   triggers?: string
   source: string

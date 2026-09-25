@@ -7,7 +7,7 @@ import {
 import { REFRESH_DEFAULTS, UI_STATE_KEY } from '../apps/issue-radar/lib/format'
 
 // Behaviour pins for the Issue Radar data layer (`context.tsx`) that the
-// surface-level component tests never reach: the persisted-crew-UI coercions,
+// surface-level component tests never reach: the persisted-steward-UI coercions,
 // the filter/sort/selection reducers for BOTH lists, the two refresh mutations,
 // the bulk-tick rules, the cross-reference stack, and the repo-switch reset.
 //
@@ -26,7 +26,7 @@ const api = {
   pulls: vi.fn(),
   pullsFirstPage: vi.fn(),
   searchPulls: vi.fn(),
-  crews: vi.fn(),
+  stewards: vi.fn(),
 }
 
 vi.mock('../apps/issue-radar/api', async (importOriginal) => ({
@@ -41,7 +41,7 @@ vi.mock('../apps/issue-radar/api', async (importOriginal) => ({
     pulls: (...a: unknown[]) => api.pulls(...a),
     pullsFirstPage: (...a: unknown[]) => api.pullsFirstPage(...a),
     searchPulls: (...a: unknown[]) => api.searchPulls(...a),
-    crews: (...a: unknown[]) => api.crews(...a),
+    stewards: (...a: unknown[]) => api.stewards(...a),
   },
 }))
 
@@ -54,7 +54,7 @@ const REPOS = [
 ]
 /** repoScopeKey(ACTIVE) — provider:host:owner/repo. */
 const SCOPE = 'github:github.com:kirodotdev/Kiro'
-const CREW_UI_KEY = 'jn:issue-radar:crew-ui'
+const STEWARD_UI_KEY = 'jn:issue-radar:steward-ui'
 
 // #1 authored + assigned to me. #2 authored by a roster member, also assigned to
 // me. #3 authored by a stranger who carries a member author_association, which is
@@ -107,9 +107,9 @@ const CLOSED_PULLS = [
     head: 'b', base: 'main', updated_at: '2026-07-08T00:00:00Z',
   },
 ]
-const CREWS = [
-  { id: 'c1', name: 'Alpha crew', created_at: '2026-07-01T00:00:00Z' },
-  { id: 'c2', name: 'Beta crew', created_at: '2026-07-02T00:00:00Z' },
+const STEWARDS = [
+  { id: 'c1', name: 'Alpha steward', created_at: '2026-07-01T00:00:00Z' },
+  { id: 'c2', name: 'Beta steward', created_at: '2026-07-02T00:00:00Z' },
 ]
 
 let ctx = null as unknown as IssueRadarContextValue
@@ -171,9 +171,9 @@ beforeEach(() => {
     Promise.resolve({ pulls: opts.state === 'closed' ? CLOSED_PULLS : PULLS, bulk_max: 5 }))
   api.pullsFirstPage.mockResolvedValue({ pulls: [], partial: false })
   api.searchPulls.mockResolvedValue({ pulls: [PULLS[0]], truncated: true, limit: 100, bulk_max: 7 })
-  api.crews.mockResolvedValue({
-    crews: CREWS, counts: { on_duty: 2, working: 1, paused: 0 },
-    settings: { schema: 1, claim_ttl_hours: 4, needs_human_label: 'needs-human', commit_trailer: 'Crew' },
+  api.stewards.mockResolvedValue({
+    stewards: STEWARDS, counts: { on_duty: 2, working: 1, paused: 0 },
+    settings: { schema: 1, claim_ttl_hours: 4, needs_human_label: 'needs-human', commit_trailer: 'Steward' },
   })
 })
 
@@ -189,123 +189,148 @@ describe('useIssueRadar guard', () => {
   })
 })
 
-describe('persisted crew UI', () => {
+describe('persisted steward UI', () => {
   // The roster effect re-points a stale selection one fetch later, so the
   // coercion is only observable while the roster is still in flight.
   function renderWithPendingRoster(stored: string) {
-    localStorage.setItem(CREW_UI_KEY, stored)
-    api.crews.mockImplementation(() => new Promise(() => {}))
+    localStorage.setItem(STEWARD_UI_KEY, stored)
+    api.stewards.mockImplementation(() => new Promise(() => {}))
     return renderProvider()
   }
 
-  it('restores a valid crew selection, filter, sort field and direction', async () => {
+  it('restores a valid steward selection, filter, sort field and direction', async () => {
     renderWithPendingRoster(JSON.stringify({
-      crewView: { kind: 'crew', id: 'c2' }, crewFilter: 'paused',
-      crewSortKey: 'name', crewSortDir: 'desc',
+      stewardView: { kind: 'steward', id: 'c2' }, stewardFilter: 'paused',
+      stewardSortKey: 'name', stewardSortDir: 'desc',
     }))
-    await waitFor(() => expect(ctx.crewView).toEqual({ kind: 'crew', id: 'c2' }))
-    expect(ctx.crewFilter).toBe('paused')
-    expect(ctx.crewSortKey).toBe('name')
-    expect(ctx.crewSortDir).toBe('desc')
+    await waitFor(() => expect(ctx.stewardView).toEqual({ kind: 'steward', id: 'c2' }))
+    expect(ctx.stewardFilter).toBe('paused')
+    expect(ctx.stewardSortKey).toBe('name')
+    expect(ctx.stewardSortDir).toBe('desc')
   })
 
-  it('drops a crew selection with an unknown kind, and one with no id', async () => {
-    renderWithPendingRoster(JSON.stringify({ crewView: { kind: 'squad', id: 'c2' } }))
-    await waitFor(() => expect(ctx.crewView).toEqual({ kind: 'none' }))
-    localStorage.setItem(CREW_UI_KEY, JSON.stringify({ crewView: { kind: 'crew', id: '' } }))
+  it('drops a steward selection with an unknown kind, and one with no id', async () => {
+    renderWithPendingRoster(JSON.stringify({ stewardView: { kind: 'squad', id: 'c2' } }))
+    await waitFor(() => expect(ctx.stewardView).toEqual({ kind: 'none' }))
+    localStorage.setItem(STEWARD_UI_KEY, JSON.stringify({ stewardView: { kind: 'steward', id: '' } }))
     renderProvider()
-    await waitFor(() => expect(ctx.crewView).toEqual({ kind: 'none' }))
+    await waitFor(() => expect(ctx.stewardView).toEqual({ kind: 'none' }))
   })
 
   it('keeps the unselected state for kind:none, and falls back on every bad field', async () => {
     renderWithPendingRoster(JSON.stringify({
-      crewView: { kind: 'none' }, crewFilter: 'nope',
-      crewSortKey: 'retired', crewSortDir: 'sideways',
+      stewardView: { kind: 'none' }, stewardFilter: 'nope',
+      stewardSortKey: 'retired', stewardSortDir: 'sideways',
     }))
-    await waitFor(() => expect(ctx.crewFilter).toBe('all'))
-    expect(ctx.crewView).toEqual({ kind: 'none' })
-    expect(ctx.crewSortKey).toBe('status')
-    expect(ctx.crewSortDir).toBe('asc')
+    await waitFor(() => expect(ctx.stewardFilter).toBe('all'))
+    expect(ctx.stewardView).toEqual({ kind: 'none' })
+    expect(ctx.stewardSortKey).toBe('status')
+    expect(ctx.stewardSortDir).toBe('asc')
   })
 
   it('falls back to defaults when the stored blob is not JSON', async () => {
     renderWithPendingRoster('{not json')
-    await waitFor(() => expect(ctx.crewFilter).toBe('all'))
-    expect(ctx.crewView).toEqual({ kind: 'none' })
-    expect(ctx.crewSortKey).toBe('status')
+    await waitFor(() => expect(ctx.stewardFilter).toBe('all'))
+    expect(ctx.stewardView).toEqual({ kind: 'none' })
+    expect(ctx.stewardSortKey).toBe('status')
   })
 
-  it('writes the crews UI back to its own key on change', async () => {
+  it('writes the stewards UI back to its own key on change', async () => {
     renderProvider()
-    await waitFor(() => expect(ctx.crews).toHaveLength(2))
-    await drive(() => ctx.setCrewFilter('working'))
+    await waitFor(() => expect(ctx.stewards).toHaveLength(2))
+    await drive(() => ctx.setStewardFilter('working'))
     await waitFor(() => {
-      expect(JSON.parse(localStorage.getItem(CREW_UI_KEY) ?? '{}')).toEqual({
-        crewView: { kind: 'crew', id: 'c1' },
-        crewFilter: 'working',
-        crewSortKey: 'status',
-        crewSortDir: 'asc',
+      expect(JSON.parse(localStorage.getItem(STEWARD_UI_KEY) ?? '{}')).toEqual({
+        stewardView: { kind: 'steward', id: 'c1' },
+        stewardFilter: 'working',
+        stewardSortKey: 'status',
+        stewardSortDir: 'asc',
       })
     })
   })
 })
 
-describe('crew roster', () => {
-  it('opens the first crew when nothing valid is selected', async () => {
-    localStorage.setItem(CREW_UI_KEY, JSON.stringify({ crewView: { kind: 'crew', id: 'retired' } }))
+describe('persisted main view', () => {
+  it('reopens on the stewards page when that is where the user left', async () => {
+    persistUi({ mainView: 'stewards' })
     renderProvider()
-    await waitFor(() => expect(ctx.crewView).toEqual({ kind: 'crew', id: 'c1' }))
-    expect(ctx.crewCounts).toEqual({ on_duty: 2, working: 1, paused: 0 })
-    expect(ctx.crewSettings?.claim_ttl_hours).toBe(4)
-    expect(ctx.crewsLoading).toBe(false)
-    expect(ctx.crewsError).toBeNull()
+    await waitFor(() => expect(ctx.expanded).toBe('stewards'))
+    expect(ctx.mainView).toBe('stewards')
+  })
+
+  // A restored view with no left-rail section and no main-area renderer would
+  // leave a blank pane with nothing highlighted, so the restore validates the
+  // value rather than trusting the blob. `'crews'` is the view name earlier
+  // Junction builds persisted for the stewards page; it is not migrated, and it
+  // lands on the dashboard like any other view the app no longer offers.
+  it.each([
+    ['a view name earlier builds persisted', 'crews'],
+    ['a hand-edited value', 'nonsense'],
+    ['a non-string', 7],
+  ])('falls back to the dashboard for %s', async (_label, stored) => {
+    persistUi({ mainView: stored })
+    renderProvider()
+    await waitFor(() => expect(ctx.expanded).toBe('dashboards'))
+    expect(ctx.mainView).toBe('dashboard')
+  })
+})
+
+describe('steward roster', () => {
+  it('opens the first steward when nothing valid is selected', async () => {
+    localStorage.setItem(STEWARD_UI_KEY, JSON.stringify({ stewardView: { kind: 'steward', id: 'retired' } }))
+    renderProvider()
+    await waitFor(() => expect(ctx.stewardView).toEqual({ kind: 'steward', id: 'c1' }))
+    expect(ctx.stewardCounts).toEqual({ on_duty: 2, working: 1, paused: 0 })
+    expect(ctx.stewardSettings?.claim_ttl_hours).toBe(4)
+    expect(ctx.stewardsLoading).toBe(false)
+    expect(ctx.stewardsError).toBeNull()
   })
 
   it('keeps a selection the roster still contains', async () => {
-    localStorage.setItem(CREW_UI_KEY, JSON.stringify({ crewView: { kind: 'crew', id: 'c2' } }))
+    localStorage.setItem(STEWARD_UI_KEY, JSON.stringify({ stewardView: { kind: 'steward', id: 'c2' } }))
     renderProvider()
-    await waitFor(() => expect(ctx.crews).toHaveLength(2))
-    expect(ctx.crewView).toEqual({ kind: 'crew', id: 'c2' })
+    await waitFor(() => expect(ctx.stewards).toHaveLength(2))
+    expect(ctx.stewardView).toEqual({ kind: 'steward', id: 'c2' })
   })
 
-  it('leaves nothing selected on a repo with no crews', async () => {
-    api.crews.mockResolvedValue({ crews: [], counts: { on_duty: 0, working: 0, paused: 0 } })
+  it('leaves nothing selected on a repo with no stewards', async () => {
+    api.stewards.mockResolvedValue({ stewards: [], counts: { on_duty: 0, working: 0, paused: 0 } })
     renderProvider()
-    await waitFor(() => expect(ctx.crewsLoading).toBe(false))
-    expect(ctx.crewView).toEqual({ kind: 'none' })
-    expect(ctx.crewSettings).toBeNull()
+    await waitFor(() => expect(ctx.stewardsLoading).toBe(false))
+    expect(ctx.stewardView).toEqual({ kind: 'none' })
+    expect(ctx.stewardSettings).toBeNull()
   })
 
   it('reports a roster failure and falls back to defaults', async () => {
-    api.crews.mockRejectedValue(new Error('store unreadable'))
+    api.stewards.mockRejectedValue(new Error('store unreadable'))
     renderProvider()
-    await waitFor(() => expect(ctx.crewsError?.message).toBe('store unreadable'))
-    expect(ctx.crews).toEqual([])
-    expect(ctx.crewCounts).toEqual({ on_duty: 0, working: 0, paused: 0 })
+    await waitFor(() => expect(ctx.stewardsError?.message).toBe('store unreadable'))
+    expect(ctx.stewards).toEqual([])
+    expect(ctx.stewardCounts).toEqual({ on_duty: 0, working: 0, paused: 0 })
   })
 
-  it('navigates to the crews surface, optionally jumping to a page', async () => {
+  it('navigates to the stewards surface, optionally jumping to a page', async () => {
     renderProvider()
-    await waitFor(() => expect(ctx.crews).toHaveLength(2))
-    await drive(() => ctx.openCrews())
-    expect(ctx.mainView).toBe('crews')
-    expect(ctx.expanded).toBe('crews')
-    expect(ctx.crewView).toEqual({ kind: 'crew', id: 'c1' })
-    await drive(() => ctx.openCrews({ kind: 'crew', id: 'c2' }))
-    expect(ctx.crewView).toEqual({ kind: 'crew', id: 'c2' })
+    await waitFor(() => expect(ctx.stewards).toHaveLength(2))
+    await drive(() => ctx.openStewards())
+    expect(ctx.mainView).toBe('stewards')
+    expect(ctx.expanded).toBe('stewards')
+    expect(ctx.stewardView).toEqual({ kind: 'steward', id: 'c1' })
+    await drive(() => ctx.openStewards({ kind: 'steward', id: 'c2' }))
+    expect(ctx.stewardView).toEqual({ kind: 'steward', id: 'c2' })
   })
 
   it('flips the direction on the active roster sort field and switches on another', async () => {
     renderProvider()
-    await waitFor(() => expect(ctx.crews).toHaveLength(2))
-    await drive(() => ctx.cycleCrewSort('status'))
-    expect(ctx.mainView).toBe('crews')
-    expect(ctx.crewSortKey).toBe('status')
-    expect(ctx.crewSortDir).toBe('desc')
-    await drive(() => ctx.cycleCrewSort('name'))
-    expect(ctx.crewSortKey).toBe('name')
+    await waitFor(() => expect(ctx.stewards).toHaveLength(2))
+    await drive(() => ctx.cycleStewardSort('status'))
+    expect(ctx.mainView).toBe('stewards')
+    expect(ctx.stewardSortKey).toBe('status')
+    expect(ctx.stewardSortDir).toBe('desc')
+    await drive(() => ctx.cycleStewardSort('name'))
+    expect(ctx.stewardSortKey).toBe('name')
     // Switching fields keeps the stated reading order rather than resetting it.
-    expect(ctx.crewSortDir).toBe('desc')
+    expect(ctx.stewardSortDir).toBe('desc')
   })
 })
 
@@ -684,12 +709,12 @@ describe('cross-reference sheet', () => {
 })
 
 describe('repo switch', () => {
-  it('resets the search, filters, selections and crew page, then hands off', async () => {
+  it('resets the search, filters, selections and steward page, then hands off', async () => {
     persistUi({ mainView: 'pulls' })
     renderProvider()
     await readyPulls()
     await readyIssues()
-    await waitFor(() => expect(ctx.crewView).toEqual({ kind: 'crew', id: 'c1' }))
+    await waitFor(() => expect(ctx.stewardView).toEqual({ kind: 'steward', id: 'c1' }))
 
     await drive(() => ctx.setQuery('alpha'))
     await drive(() => ctx.toggleLabel('bug'))
@@ -706,7 +731,7 @@ describe('repo switch', () => {
     expect(ctx.prQuery).toBe('')
     expect(ctx.anyPrFilterActive).toBe(false)
     expect(ctx.selectedPull).toBeNull()
-    // A crew id names a crew in ONE repo's store, so the page cannot carry over.
-    expect(ctx.crewView).toEqual({ kind: 'none' })
+    // A steward id names a steward in ONE repo's store, so the page cannot carry over.
+    expect(ctx.stewardView).toEqual({ kind: 'none' })
   })
 })

@@ -1,10 +1,9 @@
 /**
  * Companion — Junction builtin dashboard page.
  *
- * The companion lives on the desktop as a separate macOS app running its own HTTP
- * server on 127.0.0.1:7778. A browser page can't read that server directly, so every
- * request goes through the gateway reverse proxy at `/apps/crew-companion/api/<path>`
- * (same-origin, no CORS). This page is where you configure the things the companion
+ * The companion's backend runs in-process inside the gateway, so every request is
+ * an ordinary same-origin call under `/api/apps/desk-companion/` (see
+ * `constants.ts`). This page is where you configure the things the companion
  * can't easily surface from the desktop: how it nudges you (Settings), what it will
  * remind you about (Reminders), and its record of your time together (Memories).
  *
@@ -27,7 +26,7 @@ import MemoriesSection from './MemoriesSection'
 import type { ReminderConfigPatch, RemindersPayload, StatsPayload } from './types'
 
 
-export default function CrewCompanionPage() {
+export default function DeskCompanionPage() {
   const [rem, setRem] = useState<RemindersPayload | null>(null)
   /** 'offline' sentinel — the desktop app could not be reached. */
   const [remError, setRemError] = useState<string | null>(null)
@@ -86,7 +85,7 @@ export default function CrewCompanionPage() {
     // Optimistic: the poll is up to POLL_MS away and the switch should move now.
     setRem((r) => (r ? { ...r, ...patch } : r))
     apiPost(`${writeBase()}/config`, patch).then(clearNotice).catch((e: unknown) => {
-      setNotice(i18nT('apps.crewCompanion.reminders.couldnt_save', { error: errText(e) }))
+      setNotice(i18nT('apps.deskCompanion.reminders.couldnt_save', { error: errText(e) }))
       void loadReminders()
     })
   }, [loadReminders, clearNotice])
@@ -104,7 +103,7 @@ export default function CrewCompanionPage() {
       await loadReminders()
       return true
     } catch (e: unknown) {
-      setNotice(i18nT('apps.crewCompanion.reminders.couldnt_add', { error: errText(e) }))
+      setNotice(i18nT('apps.deskCompanion.reminders.couldnt_add', { error: errText(e) }))
       return false
     }
   }, [loadReminders, clearNotice])
@@ -112,14 +111,14 @@ export default function CrewCompanionPage() {
   const skipReminder = useCallback((id: string) => {
     apiPost(`${writeBase()}/skip`, { id })
       .then(() => { clearNotice(); return loadReminders() })
-      .catch((e: unknown) => setNotice(i18nT('apps.crewCompanion.reminders.couldnt_skip', { error: errText(e) })))
+      .catch((e: unknown) => setNotice(i18nT('apps.deskCompanion.reminders.couldnt_skip', { error: errText(e) })))
   }, [loadReminders, clearNotice])
 
   const removeReminder = useCallback((id: string) => {
     // Optimistic removal — the row should go now, not on the next poll.
     setRem((r) => (r ? { ...r, reminders: r.reminders.filter((x) => x.id !== id) } : r))
     apiPost(`${writeBase()}/remove`, { id }).then(clearNotice).catch((e: unknown) => {
-      setNotice(i18nT('apps.crewCompanion.reminders.couldnt_remove', { error: errText(e) }))
+      setNotice(i18nT('apps.deskCompanion.reminders.couldnt_remove', { error: errText(e) }))
       void loadReminders()
     })
   }, [loadReminders, clearNotice])
@@ -161,7 +160,7 @@ export default function CrewCompanionPage() {
           .then(open)               // the request that was asked for in the first place
           .then(onOpened)
           .catch((e: unknown) => {
-            setNotice(i18nT('apps.crewCompanion.offline.couldnt_open', { error: errText(e) }))
+            setNotice(i18nT('apps.deskCompanion.offline.couldnt_open', { error: errText(e) }))
           }),
       )
   }, [clearNotice, loadReminders, loadMemories])
@@ -185,7 +184,7 @@ export default function CrewCompanionPage() {
         setMemOffline(true)
       })
       .catch((e: unknown) => {
-        setNotice(i18nT('apps.crewCompanion.offline.couldnt_turn_off', { error: errText(e) }))
+        setNotice(i18nT('apps.deskCompanion.offline.couldnt_turn_off', { error: errText(e) }))
       })
       .finally(() => setTurningOff(false))
   }, [])
@@ -220,7 +219,7 @@ export default function CrewCompanionPage() {
         <div className="cc-head-top" style={{ justifyContent: 'space-between' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 10, minWidth: 0 }}>
             <PawPrint className="lucide-inline cc-head-mark" aria-hidden />
-            <h1 className="cc-h1">{i18nT('apps.crewCompanion.header.title')}</h1>
+            <h1 className="cc-h1">{i18nT('apps.deskCompanion.header.title')}</h1>
           </div>
           {!offline ? (
             <button
@@ -231,11 +230,11 @@ export default function CrewCompanionPage() {
               disabled={turningOff}
             >
               <PowerOff className="lucide-inline" aria-hidden />
-              {i18nT('apps.crewCompanion.menu.quit')}
+              {i18nT('apps.deskCompanion.menu.quit')}
             </button>
           ) : null}
         </div>
-        <p className="cc-sub">{i18nT('apps.crewCompanion.header.subtitle')}</p>
+        <p className="cc-sub">{i18nT('apps.deskCompanion.header.subtitle')}</p>
         {/* Mochi-parity honesty (MochiPage.tsx does the same): in a browser there
           * is no desktop overlay to click, so the desktop tip's "click the
           * companion on your desktop" instruction is unfollowable and reads as
@@ -243,10 +242,10 @@ export default function CrewCompanionPage() {
           * lives. The Electron tip no longer tells the user to quit from the
           * right-click menu: that control is the header button above. */}
         {!offline && isElectron ? (
-          <p className="cc-quit-tip">{i18nT('apps.crewCompanion.header.desktop_tip')}</p>
+          <p className="cc-quit-tip">{i18nT('apps.deskCompanion.header.desktop_tip')}</p>
         ) : null}
         {!offline && !isElectron ? (
-          <p role="note" className="cc-quit-tip">{i18nT('apps.crewCompanion.header.browser_note')}</p>
+          <p role="note" className="cc-quit-tip">{i18nT('apps.deskCompanion.header.browser_note')}</p>
         ) : null}
       </div>
 
@@ -254,10 +253,10 @@ export default function CrewCompanionPage() {
         <>
           <section className="cc-offline">
             <PawPrint className="lucide-inline cc-offline-mark" aria-hidden />
-            <div className="cc-offline-title">{i18nT('apps.crewCompanion.offline.title')}</div>
-            <div className="cc-offline-body">{i18nT('apps.crewCompanion.offline.body')}</div>
+            <div className="cc-offline-title">{i18nT('apps.deskCompanion.offline.title')}</div>
+            <div className="cc-offline-body">{i18nT('apps.deskCompanion.offline.body')}</div>
             <button type="button" className="cc-cta" onClick={openPet}>
-              <ExternalLink size={15} aria-hidden /> {i18nT('apps.crewCompanion.offline.open')}
+              <ExternalLink size={15} aria-hidden /> {i18nT('apps.deskCompanion.offline.open')}
             </button>
           </section>
 

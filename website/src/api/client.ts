@@ -2041,10 +2041,11 @@ export const api = {
   cloudLaunchSignin: (id: string) =>
     post('/api/cloud/launch/' + encodeURIComponent(id) + '/signin').then(j) as Promise<{ signin: CloudLaunchSignin }>,
   // The gateway resolves the stack from the tag but needs the launch's AWS
-  // coordinates: a crew created under a non-default profile/region is invisible
-  // to the default ones, so omitting them makes stop/start/destroy fail. destroy
-  // also needs instance_id to drop the local Instances registration, otherwise
-  // the crew keeps appearing in the list after its box is gone.
+  // coordinates: a remote Junction created under a non-default profile/region
+  // is invisible to the default ones, so omitting them makes stop/start/destroy
+  // fail. destroy also needs instance_id to drop the local Instances
+  // registration, otherwise the remote Junction keeps appearing in the list
+  // after its box is gone.
   cloudStop: (tag: string, coords?: CloudCoords) =>
     post('/api/cloud/' + encodeURIComponent(tag) + '/stop' + cloudQuery(coords)).then(j) as Promise<{ ok?: boolean }>,
   cloudStart: (tag: string, coords?: CloudCoords) =>

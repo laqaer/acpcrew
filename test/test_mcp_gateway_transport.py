@@ -112,12 +112,12 @@ def test_windows_address_folds_case_and_separators(
     monkeypatch.setattr(pc, "IS_WINDOWS", True)
     monkeypatch.setattr(transport.os.path, "normcase", ntpath.normcase)
 
-    upper = transport.resolve_address(r"C:\Users\Foo\.kiro\crew\gateway.sock")
-    lower = transport.resolve_address(r"c:\users\foo\.kiro\crew\gateway.sock")
+    upper = transport.resolve_address(r"C:\Users\Foo\.junction\gateway.sock")
+    lower = transport.resolve_address(r"c:\users\foo\.junction\gateway.sock")
     assert upper == lower, "case-different spellings of one path gave two pipe names"
 
     # Distinct installations must still not collide.
-    other = transport.resolve_address(r"C:\Users\Bar\.kiro\crew\gateway.sock")
+    other = transport.resolve_address(r"C:\Users\Bar\.junction\gateway.sock")
     assert upper != other
 
 
@@ -125,8 +125,8 @@ def test_windows_address_folds_case_and_separators(
 def test_windows_address_folds_case_natively() -> None:
     """The same property without substituting normcase -- on Windows the real
     ``os.path.normcase`` does the folding."""
-    upper = transport.resolve_address(r"C:\Users\Foo\.kiro\crew\gateway.sock")
-    lower = transport.resolve_address(r"c:\users\foo\.kiro\crew\gateway.sock")
+    upper = transport.resolve_address(r"C:\Users\Foo\.junction\gateway.sock")
+    lower = transport.resolve_address(r"c:\users\foo\.junction\gateway.sock")
     slashes = transport.resolve_address("C:/Users/Foo/.junction/gateway.sock")
     assert upper == lower == slashes
 

@@ -108,11 +108,11 @@ export function useDigitModifierHeld(): boolean {
  * non-English locale and silently render an empty shortcuts modal. The heading text
  * lives in `SHORTCUT_GROUP_LABEL_KEY` and resolves per render.
  */
-export type ShortcutGroup = 'chat-navigation' | 'panel-navigation' | 'actions' | 'remote-crews'
+export type ShortcutGroup = 'chat-navigation' | 'panel-navigation' | 'actions' | 'remote-instances'
 
 /** Shortcut groups in display order — the canonical id set and ordering. */
 export const SHORTCUT_GROUPS: readonly ShortcutGroup[] = [
-  'chat-navigation', 'panel-navigation', 'actions', 'remote-crews',
+  'chat-navigation', 'panel-navigation', 'actions', 'remote-instances',
 ]
 
 export interface ShortcutDef {
@@ -198,12 +198,12 @@ export const DEFAULT_SHORTCUTS: ShortcutDef[] = [
   // 1st..5th remote instance, matching the InstanceTabBar left-to-right order.
   // Handled by useInstanceShortcuts (not the Alt-based handler below); listed
   // here so they appear in the shortcuts modal + Settings → Shortcuts.
-  { id: 'instance-1', key: '1', meta: true, group: 'remote-crews' },
-  { id: 'instance-2', key: '2', meta: true, n: 1, group: 'remote-crews' },
-  { id: 'instance-3', key: '3', meta: true, n: 2, group: 'remote-crews' },
-  { id: 'instance-4', key: '4', meta: true, n: 3, group: 'remote-crews' },
-  { id: 'instance-5', key: '5', meta: true, n: 4, group: 'remote-crews' },
-  { id: 'instance-6', key: '6', meta: true, n: 5, group: 'remote-crews' },
+  { id: 'instance-1', key: '1', meta: true, group: 'remote-instances' },
+  { id: 'instance-2', key: '2', meta: true, n: 1, group: 'remote-instances' },
+  { id: 'instance-3', key: '3', meta: true, n: 2, group: 'remote-instances' },
+  { id: 'instance-4', key: '4', meta: true, n: 3, group: 'remote-instances' },
+  { id: 'instance-5', key: '5', meta: true, n: 4, group: 'remote-instances' },
+  { id: 'instance-6', key: '6', meta: true, n: 5, group: 'remote-instances' },
 ]
 
 /**
@@ -224,7 +224,7 @@ export const DEFAULT_SHORTCUTS: ShortcutDef[] = [
  *
  * The nine chat-jump ids share ONE key and pass `n`: nine catalog entries differing
  * only by a digit is nine strings for a translator to keep consistent, ten times
- * over. Same for the five remote-crew slots. `instance-1` is the Local tab, which is
+ * over. Same for the five remote-instance slots. `instance-1` is the Local tab, which is
  * named rather than numbered, so it keeps its own key.
  */
 export const SHORTCUT_LABEL_KEY: Record<string, string> = {
@@ -269,11 +269,11 @@ export const SHORTCUT_LABEL_KEY: Record<string, string> = {
   'agent-monitor': 'hooks.useKeyboardShortcuts.open_agent_monitor',
   'stop-speaking': 'hooks.useKeyboardShortcuts.stop_speaking',
   'instance-1': 'hooks.useKeyboardShortcuts.switch_to_local',
-  'instance-2': 'hooks.useKeyboardShortcuts.switch_to_remote_crew',
-  'instance-3': 'hooks.useKeyboardShortcuts.switch_to_remote_crew',
-  'instance-4': 'hooks.useKeyboardShortcuts.switch_to_remote_crew',
-  'instance-5': 'hooks.useKeyboardShortcuts.switch_to_remote_crew',
-  'instance-6': 'hooks.useKeyboardShortcuts.switch_to_remote_crew',
+  'instance-2': 'hooks.useKeyboardShortcuts.switch_to_remote_instance',
+  'instance-3': 'hooks.useKeyboardShortcuts.switch_to_remote_instance',
+  'instance-4': 'hooks.useKeyboardShortcuts.switch_to_remote_instance',
+  'instance-5': 'hooks.useKeyboardShortcuts.switch_to_remote_instance',
+  'instance-6': 'hooks.useKeyboardShortcuts.switch_to_remote_instance',
 }
 
 /** Catalog KEY for each group's displayed heading. Never the discriminant — see `ShortcutGroup`. */
@@ -281,7 +281,7 @@ export const SHORTCUT_GROUP_LABEL_KEY: Record<ShortcutGroup, string> = {
   'chat-navigation': 'hooks.useKeyboardShortcuts.group_chat_navigation',
   'panel-navigation': 'hooks.useKeyboardShortcuts.group_panel_navigation',
   'actions': 'hooks.useKeyboardShortcuts.group_actions',
-  'remote-crews': 'hooks.useKeyboardShortcuts.group_remote_crews',
+  'remote-instances': 'hooks.useKeyboardShortcuts.group_remote_instances',
 }
 
 /**
@@ -324,7 +324,7 @@ export function shortcutGroupLabel(group: string): string {
  * is localised, so filtering on it would yield an empty list — and a silently
  * unbound ⌘1..⌘6 — in every language but English.
  */
-export const INSTANCE_SHORTCUTS = DEFAULT_SHORTCUTS.filter(s => s.group === 'remote-crews')
+export const INSTANCE_SHORTCUTS = DEFAULT_SHORTCUTS.filter(s => s.group === 'remote-instances')
 
 /**
  * The core Alt+<key> panel-navigation chords. Single source of truth for both
@@ -511,7 +511,7 @@ const SESSION_STEP_BY_CODE: Record<string, number> = { BracketLeft: -1, BracketR
  * The step this event asks for (-1 back, +1 forward), or 0 when it is not the
  * session-cycle chord. Exactly ONE primary modifier and no Alt/Shift, so it
  * cannot fire from ⌘⌥[ misses and cannot shadow Alt+arrow chat-nav, the Mac
- * Ctrl+digit chat-jumps, or ⌘/Ctrl+digit remote-crew switching.
+ * Ctrl+digit chat-jumps, or ⌘/Ctrl+digit remote-instance switching.
  *
  * `mac` is injectable for the same reason as isSettingsChord: IS_MAC is fixed
  * at module load, so both platform behaviours would otherwise be untestable.
@@ -530,7 +530,7 @@ export function sessionCycleStep(
  *
  * Deliberately NOT the usual ⌘-on-Mac substitution the other primary-modifier
  * chords use. The kiro-cli backend prints "Press ctrl+g to monitor progress."
- * into its crew-pipeline tool result, and that string lives inside the backend
+ * into its subagent-pipeline tool result, and that string lives inside the backend
  * binary — we cannot re-word it per OS. So the chord the user is TOLD to press
  * has to be the chord that actually fires, on every platform. On macOS
  * find-next is ⌘G, leaving ⌃G free.
@@ -751,12 +751,13 @@ export function useKeyboardShortcuts({ onToggleShortcutsModal, onNewChat, onCycl
 
     // Ctrl+G: open the agent monitor — the Subagents activity tab ("Live agent
     // activity & transcripts"). This is the chord the kiro-cli backend advertises
-    // in its crew-pipeline tool result ("Press ctrl+g to monitor progress").
+    // in its subagent-pipeline tool result ("Press ctrl+g to monitor progress").
     // Handled BEFORE the Alt gate because the chord carries no Alt.
     //
-    // Deliberately fires INSIDE text fields: the hint is read while a crew runs
-    // and focus is normally in the composer, so an isInput bail-out would make it
-    // dead exactly when it is needed. Ctrl+G has no text-editing meaning there.
+    // Deliberately fires INSIDE text fields: the hint is read while native
+    // subagents run and focus is normally in the composer, so an isInput
+    // bail-out would make it dead exactly when it is needed. Ctrl+G has no
+    // text-editing meaning there.
     // Skipped for terminal targets, where Ctrl+G is BEL and belongs to the PTY.
     //
     // Routes to /chat as well as opening the tab, because the activity panel is

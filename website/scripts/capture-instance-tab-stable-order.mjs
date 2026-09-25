@@ -1,11 +1,11 @@
 /**
- * Screenshot harness + behaviour check for the crew switcher's STABLE-ORDER
- * preference (`mc-crew-switcher-stable-order`).
+ * Screenshot harness + behaviour check for the instance switcher's STABLE-ORDER
+ * preference (`mc-instance-switcher-stable-order`).
  *
- * The switcher's default is to pull the crew ON SCREEN to a leading slot
- * (`tb-crew-active-chip`) and render the other pinned crews after it, so the row
- * reshuffles on every switch. A frequent switcher can opt into stable order: the
- * pinned crews then hold their configured order and the active one is only
+ * The switcher's default is to pull the instance ON SCREEN to a leading slot
+ * (`tb-instance-active-chip`) and render the other pinned instances after it, so
+ * the row reshuffles on every switch. A frequent switcher can opt into stable order: the
+ * pinned instances then hold their configured order and the active one is only
  * highlighted in place. This harness photographs both, plus the dropdown toggle
  * that flips the preference.
  *
@@ -21,12 +21,12 @@ import { mkdirSync } from 'node:fs'
 import { serveDist } from './lib/serve-dist.mjs'
 import { logPageProblems, stubDashboardApi, json } from './lib/stub-dashboard-api.mjs'
 
-const OUT = process.argv[2] || '../temp-screenshots/crew-tab-stable-order'
+const OUT = process.argv[2] || '../temp-screenshots/instance-tab-stable-order'
 
 const VIEWPORT = { width: 1280, height: 760 }
 const HEADER_CLIP = { x: 0, y: 0, width: VIEWPORT.width, height: 54 }
 
-const crew = (id, name, sshHost, port) => ({
+const instance = (id, name, sshHost, port) => ({
   id,
   name,
   ssh_host: sshHost,
@@ -43,21 +43,21 @@ const crew = (id, name, sshHost, port) => ({
   status: { instance_id: id, state: 'connected', local_port: port, remote_port: 7777 },
 })
 
-// Short names so all four chips (Local + three crews) fit at 1280px without
+// Short names so all four chips (Local + three instances) fit at 1280px without
 // clipping — clipping is `capture-instance-pin-chips`'s subject, not this one's.
-const CREWS = [
-  crew('devdesk', 'devdesk', 'dev-dsk-alias', 7801),
-  crew('prod', 'prod', 'prod-alias', 7802),
-  crew('staging', 'staging', 'stg-alias', 7803),
+const INSTANCES = [
+  instance('devdesk', 'devdesk', 'dev-dsk-alias', 7801),
+  instance('prod', 'prod', 'prod-alias', 7802),
+  instance('staging', 'staging', 'stg-alias', 7803),
 ]
 
 const SSO = { state: 'ok', seconds_remaining: 72000, expires_at: null, reason: 'valid' }
 
 const SLOTS = [{
   key: 'stable-order-shot',
-  title: 'Switching between crews',
+  title: 'Switching between instances',
   running: false,
-  last_message: 'Pinned every crew to the header.',
+  last_message: 'Pinned every instance to the header.',
   messages: 2,
   agent: 'junction',
   memory_mode: 'persistent',
@@ -68,14 +68,14 @@ const SLOTS = [{
 }]
 
 const TRIGGER = '[aria-label^="Switch instance"]'
-const CHIP_ROW = '[data-testid="crew-chip-row"]'
-const ACTIVE_LEAD = '.tb-crew-active-chip'
-const STABLE_TOGGLE = '[data-testid="crew-stable-order-toggle"]'
-const PINNED_KEY = 'mc-crew-switcher-pinned'
-const STABLE_KEY = 'mc-crew-switcher-stable-order'
+const CHIP_ROW = '[data-testid="instance-chip-row"]'
+const ACTIVE_LEAD = '.tb-instance-active-chip'
+const STABLE_TOGGLE = '[data-testid="instance-stable-order-toggle"]'
+const PINNED_KEY = 'mc-instance-switcher-pinned'
+const STABLE_KEY = 'mc-instance-switcher-stable-order'
 
-// Local + all three crews pinned, so the row is fully populated and the active
-// crew (prod, the middle one) has a real slot to hold under stable order.
+// Local + all three instances pinned, so the row is fully populated and the active
+// instance (prod, the middle one) has a real slot to hold under stable order.
 const PINS = ['__local__', 'devdesk', 'prod', 'staging']
 const ACTIVE = 'prod'
 
@@ -88,13 +88,13 @@ async function main() {
 
   const extra = async (path, route) => {
     if (path === '/api/instances') {
-      await json(route, { active: true, instances: CREWS, warm_set_cap: 5, sso: SSO })
+      await json(route, { active: true, instances: INSTANCES, warm_set_cap: 5, sso: SSO })
       return true
     }
     const tunnel = /^\/api\/instances\/([^/]+)\/(connect|refresh-token)$/.exec(path)
     if (tunnel) {
       const id = decodeURIComponent(tunnel[1])
-      const found = CREWS.find(c => c.id === id)
+      const found = INSTANCES.find(c => c.id === id)
       await json(route, {
         ...(found ? found.status : { instance_id: id, state: 'connected' }),
         token: 'stub-token',
@@ -117,7 +117,7 @@ async function main() {
     const context = await browser.newContext({ viewport: VIEWPORT, deviceScaleFactor: 2 })
     const page = await context.newPage()
     logPageProblems(page)
-    // A `connected` crew makes InstancesViewport mount a warm-pane iframe at its
+    // A `connected` instance makes InstancesViewport mount a warm-pane iframe at its
     // forwarded port; nothing serves those here, so answer them a blank doc.
     await page.route(/127\.0\.0\.1:78\d\d/, route =>
       route.fulfill({ contentType: 'text/html', body: '<!doctype html><title>pane</title>' }),
@@ -141,8 +141,8 @@ async function main() {
     // hidden one and time out.
     const trigger = page.locator(`${TRIGGER}:visible`).first()
 
-    // Activate the middle crew by DRIVING the menu — the realistic path that also
-    // proves selection works, rather than seeding activeId.
+    // Activate the middle instance by DRIVING the menu — the realistic path that
+    // also proves selection works, rather than seeding activeId.
     await trigger.click()
     await page.waitForSelector('[role="menuitemradio"]', { timeout: 10000 })
     await page.click(`[role="menuitemradio"]:has-text("${ACTIVE}")`)
@@ -199,11 +199,11 @@ async function main() {
     await context.close()
   }
 
-  // 1. Default (stable OFF): the active crew is pulled out to LEAD, and the row
+  // 1. Default (stable OFF): the active instance is pulled out to LEAD, and the row
   //    behind it reshuffles as you switch.
   await scenario('01-default-active-leads', { stable: false })
-  // 2. Stable ON: the active crew holds its configured slot in the row and is only
-  //    highlighted — the row never moves under a frequent switcher.
+  // 2. Stable ON: the active instance holds its configured slot in the row and is
+  //    only highlighted — the row never moves under a frequent switcher.
   await scenario('02-stable-order-in-place', { stable: true })
   // 3/4. The dropdown toggle that flips the preference, unchecked then checked.
   await scenario('03-menu-toggle-off', { stable: false, openMenu: true })
@@ -216,18 +216,18 @@ async function main() {
 
   const byName = Object.fromEntries(results.map(r => [r.name, r]))
 
-  // Default: the active crew leads and is NOT duplicated inside the row.
+  // Default: the active instance leads and is NOT duplicated inside the row.
   const def = byName['01-default-active-leads']
   if (!def.hasLead || !def.leadText.includes(ACTIVE)) {
-    console.error(`FAIL: default scenario should lead with the active crew (${ACTIVE}); got lead=${def.leadText}`)
+    console.error(`FAIL: default scenario should lead with the active instance (${ACTIVE}); got lead=${def.leadText}`)
     process.exit(1)
   }
   if (def.chipTexts.filter(t => t.includes(ACTIVE)).length !== 0) {
-    console.error('FAIL: default scenario duplicated the active crew into the pinned row')
+    console.error('FAIL: default scenario duplicated the active instance into the pinned row')
     process.exit(1)
   }
 
-  // Stable: NO leading chip, the active crew sits in the row highlighted, and the
+  // Stable: NO leading chip, the active instance sits in the row highlighted, and the
   // configured order is preserved.
   const st = byName['02-stable-order-in-place']
   if (st.hasLead) {
@@ -235,12 +235,12 @@ async function main() {
     process.exit(1)
   }
   if (!st.activeInRow) {
-    console.error('FAIL: stable-order scenario did not highlight the active crew inside the row')
+    console.error('FAIL: stable-order scenario did not highlight the active instance inside the row')
     process.exit(1)
   }
   const stableActiveOrder = st.chipTexts.some(t => t.includes(ACTIVE))
   if (!stableActiveOrder || st.chipTexts.length < PINS.length) {
-    console.error(`FAIL: stable-order row is missing pinned crews; got ${JSON.stringify(st.chipTexts)}`)
+    console.error(`FAIL: stable-order row is missing pinned instances; got ${JSON.stringify(st.chipTexts)}`)
     process.exit(1)
   }
 

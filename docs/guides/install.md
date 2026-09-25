@@ -601,7 +601,7 @@ sudo systemctl restart junction
 `/etc/junction/junction.env` is read by the unit via `EnvironmentFile=`, so its
 values override the install-time snapshot and survive a reinstall. Use this to
 move the service off the default `5476` when that port is already taken (for
-example by a local crew you also run on this host — there is one
+example by a second Junction you also run on this host — there is one
 `junction.service` unit, so re-running `service install` updates it in place
 rather than creating a second service).
 

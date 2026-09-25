@@ -152,7 +152,7 @@ class FakeSpineDriver:
 
 @pytest.fixture(autouse=True)
 def _isolated_paths(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> Path:
-    """Redirect the app's data root, the crew home, and the clone scratch into ``tmp_path``.
+    """Redirect the app's data root, the data home, and the clone scratch into ``tmp_path``.
 
     ``store.data_dir`` is the seam every other path helper derives from, so patching it
     covers ``config_path``, ``ledger_path``, ``results_dir`` and the per-repo subtree.

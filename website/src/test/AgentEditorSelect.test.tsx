@@ -1,5 +1,5 @@
 /**
- * Crew editor interactions that go THROUGH a binding select.
+ * Agent editor interactions that go THROUGH a binding select.
  *
  * Split out of AgentRoster.test.tsx because of one hard harness limit: the editor
  * is a Radix Dialog and the binding pickers are Radix Selects, and Radix commits
@@ -9,7 +9,7 @@
  * working." on a flushSync nested inside one. It is not a product defect — the
  * same two interactions are driven for real, in a real browser, by
  * `scripts/verify-agents-dialog-select.mjs`, which asserts the value commits, the
- * warning names the colliding crew, Escape closes only the nested layer, and the
+ * warning names the colliding agent, Escape closes only the nested layer, and the
  * console stays clean.
  *
  * So SimpleSelect is stubbed HERE (and only here) with a plain listbox that
@@ -128,7 +128,7 @@ vi.mock('../components/SimpleSelect', () => ({
 
 
 import JunctionAgentsPage from '../pages/JunctionAgentsPage'
-import CrewAvatar from '../components/AgentAvatar'
+import AgentAvatar from '../components/AgentAvatar'
 
 function createTestStore() {
   return configureStore({
@@ -150,16 +150,16 @@ function renderPage() {
   )
 }
 
-/* The default crew deliberately does NOT point at a workspace or memory store
+/* The default agent deliberately does NOT point at a workspace or memory store
    called "default": otherwise the literal "default" appears three times inside
    its own card and the `default` badge could not be asserted by text. */
-const DEFAULT_CREW = {
+const DEFAULT_AGENT = {
   name: 'junction',
   kiro_agent: 'junction',
   workspace: 'core-ws',
   memory_store: 'core-mem',
 }
-const OTHER_CREW = {
+const OTHER_AGENT = {
   name: 'oncall',
   kiro_agent: 'oncall-agent',
   workspace: 'oncall',
@@ -167,7 +167,7 @@ const OTHER_CREW = {
   model: 'claude-opus-5',
 }
 
-const AGENTS_RESPONSE = { agents: [DEFAULT_CREW, OTHER_CREW], default_agent: 'junction' }
+const AGENTS_RESPONSE = { agents: [DEFAULT_AGENT, OTHER_AGENT], default_agent: 'junction' }
 const WORKSPACES_RESPONSE = {
   workspaces: [{ name: 'default' }, { name: 'core-ws' }, { name: 'oncall' }],
 }
@@ -194,7 +194,7 @@ beforeEach(() => {
 /** Wait until the roster has rendered real data rather than the empty state. */
 async function renderRoster(expectCards = 2) {
   const rendered = renderPage()
-  await waitFor(() => expect(screen.getAllByTestId('crew-card')).toHaveLength(expectCards))
+  await waitFor(() => expect(screen.getAllByTestId('agent-card')).toHaveLength(expectCards))
   await waitFor(() => expect(mockApi.workspaces).toHaveBeenCalled())
   await waitFor(() => expect(mockApi.junctionConfig).toHaveBeenCalled())
   return rendered
@@ -212,31 +212,31 @@ function pressEscape() {
 }
 
 /** A roster card, addressed by the accessible name the card exposes. */
-function crewCard(name: string) {
-  return screen.getByRole('button', { name: `Edit crew ${name}` })
+function agentCard(name: string) {
+  return screen.getByRole('button', { name: `Edit agent ${name}` })
 }
 
 /** Open the editor dialog on `name` and return the dialog element. */
 async function openEditor(name: string): Promise<HTMLElement> {
-  fireEvent.click(crewCard(name))
-  return await screen.findByRole('dialog', { name: `Edit crew ${name}` })
+  fireEvent.click(agentCard(name))
+  return await screen.findByRole('dialog', { name: `Edit agent ${name}` })
 }
 
 /** Open the editor dialog in create mode and return the dialog element. */
 async function openCreate(): Promise<HTMLElement> {
-  fireEvent.click(screen.getByTestId('new-crew'))
-  return await screen.findByRole('dialog', { name: 'Create a new crew' })
+  fireEvent.click(screen.getByTestId('new-agent'))
+  return await screen.findByRole('dialog', { name: 'Create a new agent' })
 }
 
-describe('crew editor — collision warning', () => {
-  it('warns as soon as the picker points at a store another crew uses', async () => {
+describe('agent editor — collision warning', () => {
+  it('warns as soon as the picker points at a store another agent uses', async () => {
     // Reading the PERSISTED binding here meant the warning only appeared after
     // a save and a reopen — by which point the collision it exists to prevent
     // has already happened.
     await renderRoster()
     const sheet = await openEditor('oncall')
     // Both the picker and the warning live on the workspace/memory pane.
-    fireEvent.click(within(sheet).getByTestId('crew-rail-place'))
+    fireEvent.click(within(sheet).getByTestId('agent-rail-place'))
 
     // oncall starts on its own store, so nothing collides yet.
     expect(within(sheet).queryByText(/Also used by/)).not.toBeInTheDocument()
@@ -261,17 +261,17 @@ describe('crew editor — collision warning', () => {
 
     // The overview must agree with that warning about WHICH resource collides.
     // Reading a persisted per-agent count here instead of the in-flight value
-    // reports the collision the crew used to have, so the same screen showed a
+    // reports the collision the agent used to have, so the same screen showed a
     // sharing count with no pill on the node that caused it.
-    fireEvent.click(within(sheet).getByTestId('crew-rail-overview'))
+    fireEvent.click(within(sheet).getByTestId('agent-rail-overview'))
     await waitFor(() =>
-      expect(within(sheet).getByTestId('crew-wire-memory')).toHaveTextContent('Shared'),
+      expect(within(sheet).getByTestId('agent-wire-memory')).toHaveTextContent('Shared'),
     )
-    expect(within(sheet).getByTestId('crew-wire-workspace')).not.toHaveTextContent('Shared')
+    expect(within(sheet).getByTestId('agent-wire-workspace')).not.toHaveTextContent('Shared')
   })
 })
 
-describe('crew editor — keyboard (via a binding select)', () => {
+describe('agent editor — keyboard (via a binding select)', () => {
   it('gives the nested workspace dialog sole ownership of Escape', async () => {
     await renderRoster()
     const sheet = await openCreate()
@@ -292,7 +292,7 @@ describe('crew editor — keyboard (via a binding select)', () => {
     // the right thing, and it is why this is asserted through the DOM rather than
     // by role: the editor must still be MOUNTED (the form is not destroyed) even
     // though it is hidden from AT.
-    const editorEl = document.querySelector('[aria-label="Create a new crew"]')
+    const editorEl = document.querySelector('[aria-label="Create a new agent"]')
     expect(editorEl).toBeTruthy()
     expect(editorEl!.closest('[aria-hidden="true"]')).toBeTruthy()
 
@@ -305,25 +305,25 @@ describe('crew editor — keyboard (via a binding select)', () => {
       expect(screen.queryByRole('dialog', { name: 'Create Workspace' })).not.toBeInTheDocument(),
     )
     // ...and with the nested layer gone the editor is exposed to AT again.
-    expect(screen.getByRole('dialog', { name: 'Create a new crew' })).toBeInTheDocument()
+    expect(screen.getByRole('dialog', { name: 'Create a new agent' })).toBeInTheDocument()
 
     // Once the nested dialog is gone the editor owns Escape again.
     pressEscape()
     await waitFor(() =>
-      expect(screen.queryByRole('dialog', { name: 'Create a new crew' })).not.toBeInTheDocument(),
+      expect(screen.queryByRole('dialog', { name: 'Create a new agent' })).not.toBeInTheDocument(),
     )
   })
 })
 
-describe('crew editor — overview diagram nodes navigate to their pane', () => {
+describe('agent editor — overview diagram nodes navigate to their pane', () => {
   it('clicking the workspace node lands on the workspace/memory pane, focus following', async () => {
     // The clicked node unmounts with the overview pane, which would drop
     // keyboard focus to the body — the arriving tabpanel must catch it.
     await renderRoster()
     const sheet = await openEditor('oncall')
-    fireEvent.click(within(sheet).getByTestId('crew-wire-workspace'))
+    fireEvent.click(within(sheet).getByTestId('agent-wire-workspace'))
 
-    expect(within(sheet).getByTestId('crew-rail-place')).toHaveAttribute('aria-selected', 'true')
+    expect(within(sheet).getByTestId('agent-rail-place')).toHaveAttribute('aria-selected', 'true')
     expect(within(sheet).getByRole('combobox', { name: 'Workspace' })).toBeInTheDocument()
     // Focus is handed to the panel, and the panel must arrive NAMED — an
     // unnamed tabpanel is announced as nothing but "tab panel".
@@ -335,7 +335,7 @@ describe('crew editor — overview diagram nodes navigate to their pane', () => 
     // The ghost reports a missing binding; its pane is where the binding is made.
     await renderRoster()
     const sheet = await openEditor('oncall')
-    fireEvent.click(within(sheet).getByTestId('crew-wire-webhook'))
-    expect(within(sheet).getByTestId('crew-rail-webhook')).toHaveAttribute('aria-selected', 'true')
+    fireEvent.click(within(sheet).getByTestId('agent-wire-webhook'))
+    expect(within(sheet).getByTestId('agent-rail-webhook')).toHaveAttribute('aria-selected', 'true')
   })
 })

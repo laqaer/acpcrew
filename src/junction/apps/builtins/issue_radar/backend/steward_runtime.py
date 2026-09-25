@@ -1,15 +1,17 @@
-"""Crew runtime — the session a crew lives in, the brief it carries, the nudge that
-drives every turn, and the zero-LLM change detector that wakes it.
+"""Steward runtime — the session a steward lives in, the brief it carries, the nudge
+that drives every turn, and the zero-LLM change detector that wakes it.
 
 Four things live here and nothing else:
 
-1. **Session launch/attach** (:func:`ensure_crew_session`, :func:`launch_crew`).
-   A crew is an app-owned dashboard slot keyed ``crew-<id>``, which is the only
-   worker shape without a wall-clock ceiling shorter than one issue's lifecycle.
+1. **Session launch/attach** (:func:`ensure_steward_session`, :func:`launch_steward`).
+   A steward is an app-owned dashboard slot keyed ``steward-<id>`` (a steward an
+   earlier build created keeps the key it was minted with; see
+   ``steward_store.LEGACY_STEWARD_SLOT_PREFIXES``), which is the only worker shape
+   without a wall-clock ceiling shorter than one issue's lifecycle.
    ``auto_research``'s campaign worker is the working precedent for the session
    shape, including the parts that look redundant: the explicit title with
    ``_titled = True`` (the loop's messages never trigger the auto-titler), and
-   re-deriving the crew's auto-approve grant from the watchdog every cycle because
+   re-deriving the steward's auto-approve grant from the watchdog every cycle because
    the grant is in-memory only and a gateway restart drops it. The grant itself
    follows the TASK RUNNER instead: a scoped, expiring, SEL-audited
    ``SafetyOverride`` grant (:func:`autoapprove_scope`), never the unbounded
@@ -20,19 +22,20 @@ Four things live here and nothing else:
    post-compaction, gateway restart and any truncation mechanism nobody has
    written yet.
 
-3. **Nudge composition** (:func:`compose_nudge`). A volatile snapshot the crew
+3. **Nudge composition** (:func:`compose_nudge`). A volatile snapshot the steward
    must not guess at, plus the brief's ``Never`` list compressed to ~80 words.
 
 4. **The sweep** (:func:`sweep_repo`), driven from ``watch.py``'s poll loop — the
    only always-on loop in this app. Zero LLM, zero credits: it compares the six
-   unblock signals against a stored fingerprint and wakes the owning crew when one
+   unblock signals against a stored fingerprint and wakes the owning steward when one
    moves.
 
 Nothing here writes to the forge, and nothing here writes a work item: a change
 detector that touched ``last_progress_at`` would renew the very claim TTL the
-protocol measures from it. Its own state lives in ``crew-signals.json``, beside
-the crews dir rather than inside it — ``steward_store.list_crews`` globs ``*.json``
-there, so a state file dropped in that directory would read back as a phantom crew.
+protocol measures from it. Its own state lives in ``steward-signals.json``, beside
+the stewards dir rather than inside it — ``steward_store.list_stewards`` globs
+``*.json`` there, so a state file dropped in that directory would read back as a
+phantom steward.
 """
 
 from __future__ import annotations
@@ -40,6 +43,7 @@ from __future__ import annotations
 import asyncio
 import json
 import logging
+import textwrap
 import time
 from collections.abc import Mapping, Sequence
 from functools import partial
@@ -72,21 +76,41 @@ logger = logging.getLogger("junction.app.issue-radar")
 
 APP_NAME = "issue-radar"
 
-#: Every crew's slot key starts with this. It is what identifies a crew session in
-#: the gateway's slot registry when no crew RECORD is available to ask — which is
-#: the case in :func:`revoke_crew_grants`, whose job includes catching a session
-#: whose record is already gone.
-_CREW_SLOT_PREFIX = "crew-"
+#: Every steward's slot key starts with one of these. They are what identifies a
+#: steward session in the gateway's slot registry when no steward RECORD is available
+#: to ask — which is the case in :func:`revoke_steward_grants`, whose job includes
+#: catching a session whose record is already gone. The store mints the key and owns
+#: both spellings; the legacy one stays in the set because every walk here is a
+#: security control, and a session a walk cannot recognise keeps its grant and its
+#: loop.
+_STEWARD_SLOT_PREFIX = steward_store.STEWARD_SLOT_PREFIX
+LEGACY_STEWARD_SLOT_PREFIXES = steward_store.LEGACY_STEWARD_SLOT_PREFIXES
+_STEWARD_SLOT_PREFIXES: tuple[str, ...] = (_STEWARD_SLOT_PREFIX, *LEGACY_STEWARD_SLOT_PREFIXES)
 
 
-def _is_crew_slot_key(key: str) -> bool:
-    """Whether *key* names a CREW session, by id shape and not by prefix alone.
+def _slot_key_of(steward: dict[str, Any]) -> str:
+    """The slot key this steward's session runs under: the one its record stores.
+
+    The record is the authority because a steward created by an earlier build keeps
+    the key it was minted with, legacy prefix and all; the id-derived form is only
+    the fallback for a record that somehow lacks one.
+    """
+    return str(steward.get("slot_key") or steward_store.steward_slot_key(str(steward.get("id"))))
+
+
+def _has_steward_slot_prefix(key: str) -> bool:
+    """Whether *key* starts with any steward slot prefix, current or legacy."""
+    return str(key).startswith(_STEWARD_SLOT_PREFIXES)
+
+
+def _is_steward_slot_key(key: str) -> bool:
+    """Whether *key* names a STEWARD session, by id shape and not by prefix alone.
 
     The prefix on its own is a claim about a namespace this app does not own: a
-    person may name an ordinary chat tab ``crew-notes``, and the app has no right
+    person may name an ordinary chat tab ``steward-notes``, and the app has no right
     to touch that tab's auto-nudge loop just because the string starts the same
     way. Validating the SUFFIX against the store's own id grammar is the same rule
-    the record enumerator already follows (``is_crew_id(path.stem)`` rather than
+    the record enumerator already follows (``is_steward_id(path.stem)`` rather than
     excluding known sibling filenames), applied to the one identifier that arrives
     from the slot registry instead of from disk.
 
@@ -94,15 +118,21 @@ def _is_crew_slot_key(key: str) -> bool:
     is used in addition; a nudge LOOP carries no owning app, so this grammar is
     the only thing standing between "disable Issue Radar" and silently stopping an
     unrelated monitoring loop the user set up by hand.
+
+    Every prefix in ``_STEWARD_SLOT_PREFIXES`` counts, the legacy one included: a
+    steward created by an earlier build still runs under its original key, and a
+    check that missed it would leave that steward's loop armed after the app is off.
     """
-    if not str(key).startswith(_CREW_SLOT_PREFIX):
-        return False
-    return steward_store.is_crew_id(str(key)[len(_CREW_SLOT_PREFIX) :])
+    text = str(key)
+    for prefix in _STEWARD_SLOT_PREFIXES:
+        if text.startswith(prefix):
+            return steward_store.is_steward_id(text[len(prefix) :])
+    return False
 
 
-#: Crews get a turn on this idle gap when the sweep has nothing to report. The
+#: Stewards get a turn on this idle gap when the sweep has nothing to report. The
 #: watcher is the real scheduler (it fires on an actual signal); this is the
-#: fallback clock that lets an idle crew pick up NEW work, so it is deliberately
+#: fallback clock that lets an idle steward pick up NEW work, so it is deliberately
 #: slow. ``autonudge`` clamps it to [15s, 24h].
 DEFAULT_IDLE_SECS = 300
 
@@ -110,25 +140,67 @@ DEFAULT_IDLE_SECS = 300
 # ── the brief ───────────────────────────────────────────────────────────────
 
 #: First line of ``steward_brief.md``. The injection rule keys on this string.
-BRIEF_SENTINEL = "<!-- junction-crew-brief v1 -->"
+BRIEF_SENTINEL = "<!-- junction-steward-brief v1 -->"
 
 _BRIEF_PATH = Path(__file__).with_name("steward_brief.md")
 _brief_cache: str | None = None
 
+#: The column ``steward_brief.md`` is wrapped at.
+_BRIEF_WIDTH = 82
+
+#: The line in ``steward_brief.md`` that :func:`brief_text` replaces with
+#: :func:`legacy_claims_paragraph`. The brief holds a token rather than the old
+#: spellings so each of them is written down once, next to the code that owns it.
+LEGACY_CLAIMS_TOKEN = "{{legacy_claim_spellings}}"
+
+
+def legacy_claims_paragraph() -> str:
+    """The brief's paragraph telling a steward that old-spelling claims still count.
+
+    A steward reads claims off the forge itself — labels in the issue list, markers in
+    the timeline — so the only way to keep a claim an earlier build wrote visible is to
+    tell it what that claim looks like. Without this a steward reads such an issue as
+    untouched and claims it, which is the two-stewards-one-issue outcome the whole
+    protocol exists to prevent, and it happens on other people's installs too, since
+    the forge is shared and not everyone upgrades at once.
+    """
+    labels = " or ".join(f"`{prefix}`" for prefix in LEGACY_CLAIM_LABEL_PREFIXES)
+    markers = " or ".join(f"`{name}`" for name in github_client.LEGACY_STEWARD_CLAIM_MARKER_NAMES)
+    current = github_client.STEWARD_CLAIM_MARKER_NAME
+    # Wrapped to the brief's own line width so the rendered brief reads as one document.
+    return textwrap.fill(
+        "Claims written by earlier Junction builds are still claims. A label starting "
+        f"with {labels} means exactly what a `steward:` label means, and a claim marker "
+        f"named {markers} carries the same fields as a `{current}` one and is read "
+        "the same way. Skip an issue claimed that way while the claim is live; take "
+        "over a dead one by the rules below, removing its old label as you would a "
+        "`steward:` one; and when a claim of your own still carries the old spelling, "
+        "write the current label and marker the next time you touch it. Never write "
+        "the old spellings anywhere else.",
+        width=_BRIEF_WIDTH,
+        break_long_words=False,
+        break_on_hyphens=False,
+    )
+
 
 def brief_text() -> str:
-    """The brief, read once per process.
+    """The brief, read and rendered once per process.
 
-    A missing file is returned as an empty string rather than raising: a crew with
-    no brief is a bad crew, but a crash in the always-on poll loop is worse.
+    Rendering is one substitution: :data:`LEGACY_CLAIMS_TOKEN` becomes
+    :func:`legacy_claims_paragraph`. The result is what gets injected AND what
+    :func:`brief_is_present` measures, so the two always agree on its length.
+
+    A missing file is returned as an empty string rather than raising: a steward with
+    no brief is a bad steward, but a crash in the always-on poll loop is worse.
     """
     global _brief_cache
     if _brief_cache is None:
         try:
-            _brief_cache = _BRIEF_PATH.read_text(encoding="utf-8")
+            raw = _BRIEF_PATH.read_text(encoding="utf-8")
         except OSError:  # pragma: no cover - defensive
-            logger.warning("crew brief unreadable at %s", _BRIEF_PATH, exc_info=True)
-            _brief_cache = ""
+            logger.warning("steward brief unreadable at %s", _BRIEF_PATH, exc_info=True)
+            raw = ""
+        _brief_cache = raw.replace(LEGACY_CLAIMS_TOKEN, legacy_claims_paragraph())
     return _brief_cache
 
 
@@ -138,8 +210,8 @@ def brief_is_present(slot: Any) -> bool:
     TWO conditions, and the second one is the whole point: a message must contain
     the sentinel AND be at least as long as the brief itself. A compaction summary
     routinely quotes a marker it saw ("the session opened with
-    ``<!-- junction-crew-brief v1 -->`` and a work list…"), and a sentinel-only
-    check would read that as a hit and leave the crew running for the rest of the
+    ``<!-- junction-steward-brief v1 -->`` and a work list…"), and a sentinel-only
+    check would read that as a hit and leave the steward running for the rest of the
     day on a paraphrase of its own instructions. The carrying message is always
     brief + nudge, so it is strictly longer than the brief; nothing that merely
     mentions the sentinel can be.
@@ -151,8 +223,8 @@ def brief_is_present(slot: Any) -> bool:
     COST, measured on this install: context runs ~0.154 credits per 1k tokens on
     claude-opus-5 and the brief is ~4.2k tokens, i.e. ~0.6 credits to inject.
     Anything appended to ``slot.messages`` ACCUMULATES — it is re-sent as context
-    on every later turn — so re-sending the brief on all ~80 turns of a crew's day
-    costs ~2100 credits/day/crew (80 turns × the growing prefix), against a handful
+    on every later turn — so re-sending the brief on all ~80 turns of a steward's day
+    costs ~2100 credits/day/steward (80 turns × the growing prefix), against a handful
     of injections for the presence check. That is the entire reason this is a
     presence check and not "every turn" or "every N turns".
     """
@@ -170,21 +242,28 @@ def brief_is_present(slot: Any) -> bool:
 
 # ── the nudge ───────────────────────────────────────────────────────────────
 
-#: The claim label, identical in every install. It is what one crew reads to know
+#: The claim label, identical in every install. It is what one steward reads to know
 #: another is already working an issue, so it is deliberately NOT configurable: an
-#: install that renamed it would be invisible to every crew that did not, and both
+#: install that renamed it would be invisible to every steward that did not, and both
 #: would work the same issue.
-CLAIM_LABEL = "crew: in progress"
+CLAIM_LABEL = "steward: in progress"
+
+#: Earlier Junction builds wrote their claim and needs-human labels under this
+#: prefix, and those labels stay on issues after an upgrade — on this install's
+#: repositories and on those of every install that has not upgraded yet. They are
+#: read, never written: :func:`legacy_claims_paragraph` tells a steward that an issue
+#: carrying one is claimed, so a claim made under the old spelling stays visible.
+LEGACY_CLAIM_LABEL_PREFIXES: tuple[str, ...] = ("crew:",)
 
 
 def writable_labels(settings: dict[str, Any] | None = None) -> tuple[str, ...]:
-    """Every label a crew in this repository may write — resolved, not a constant.
+    """Every label a steward in this repository may write — resolved, not a constant.
 
     Two of them: the claim, and the one that says a human has to look at this. The
     second is the repo's ``needs_human_label`` setting, which is the whole reason
     this is a function. Both directions of getting it wrong are load-bearing, and a
-    module constant can express neither: a crew told it may NOT write the label the
-    settings name has no way to hand an issue to a human, and a crew told it MAY
+    module constant can express neither: a steward told it may NOT write the label the
+    settings name has no way to hand an issue to a human, and a steward told it MAY
     write a label the settings do not name puts a label of its own invention on a
     stranger's issue — the one prohibition in the nudge with a public blast radius.
 
@@ -220,24 +299,24 @@ def never_block(labels: Sequence[str] = (), terms: Mapping[str, str] | None = No
     window and the furthest from the turn's actual work. Prohibitions kept adjacent
     to the instruction are the version that holds.
 
-    The label clause names the resolved set rather than the ``crew:`` prefix,
+    The label clause names the resolved set rather than the ``steward:`` prefix,
     because a prefix rule cannot express this permission: ``needs_human_label`` is
     free text and need not carry the prefix at all, while any other
-    ``crew:``-prefixed label — one left behind on an issue, or one a differently
-    configured install writes — does carry it and is still not this crew's to write.
+    ``steward:``-prefixed label — one left behind on an issue, or one a differently
+    configured install writes — does carry it and is still not this steward's to write.
 
     The CI clause names NO PATH. It used to say ``.github/``, which is wrong on
     GitLab and names a directory that does not exist on an Azure DevOps repo — and
     a per-provider path would be no better, because the prohibition is not about a
     location: a GitHub repo can be gated by a CircleCI or Jenkins config outside
     ``.github/``, and an Azure pipeline definition can live anywhere under any
-    filename. The crew is reading the repository and can see where its gates run
+    filename. The steward is reading the repository and can see where its gates run
     from; what it needs told is that those files are off limits. That is also why
     the location is deliberately NOT a ``provider.terms`` key: terms is display
     vocabulary, and a path is neither display nor reliably per-provider.
 
     The merge verb takes the provider's own noun (``PR`` / ``MR``), because this is
-    the prohibition a crew is most likely to reason around, and one phrased in a
+    the prohibition a steward is most likely to reason around, and one phrased in a
     vocabulary its forge does not use reads as being about something else.
     """
     allowed = ", ".join(f"`{lab}`" for lab in (labels or writable_labels()))
@@ -248,7 +327,7 @@ def never_block(labels: Sequence[str] = (), terms: Mapping[str, str] | None = No
         "file those gates read. They judge you. "
         f"Never write any label other than {allowed}. "
         "Never push to main or whichever branch this repo defaults to, and never "
-        f"merge a {vocab['change_request_short']} yourself. Never edit another crew's "
+        f"merge a {vocab['change_request_short']} yourself. Never edit another steward's "
         "claim comment. Never hold uncommitted changes in two worktrees. Never end a "
         "turn without writing the ledger. Never put an absolute path, a host name or "
         "anything else about this machine into a progress line — progress lines go "
@@ -259,38 +338,38 @@ def never_block(labels: Sequence[str] = (), terms: Mapping[str, str] | None = No
 def build_snapshot(
     owner: str,
     repo: str,
-    crew: dict[str, Any],
+    steward: dict[str, Any],
     root: Path | None = None,
     key: provider.RepoKey | None = None,
 ) -> dict[str, Any]:
-    """The volatile facts a crew must never guess — read from the store, no API calls.
+    """The volatile facts a steward must never guess — read from the store, no API calls.
 
     ``key`` carries the repo's PROVIDER into the rendered prompt. It is optional and
     defaults to GitHub, which keeps every existing caller and the legacy layout
     exactly as they were; ``sweep_repo`` — the only production path that composes a
     prompt — always has a real key and passes it.
     """
-    crew_id = str(crew.get("id") or "")
-    items = steward_store.list_work_items(owner, repo, crew_id, root, open_only=True)
+    steward_id = str(steward.get("id") or "")
+    items = steward_store.list_work_items(owner, repo, steward_id, root, open_only=True)
     # The writable set belongs with everything else volatile rather than in a
     # constant: an operator can rename ``needs_human_label`` between two turns of
-    # the same session, and the nudge is the only place the crew is told which
+    # the same session, and the nudge is the only place the steward is told which
     # labels it may write.
     settings = steward_store.read_settings(owner, repo, root)
     return {
-        "name": crew.get("name") or crew_id,
-        "id": crew_id,
+        "name": steward.get("name") or steward_id,
+        "id": steward_id,
         "owner": owner,
         "repo": repo,
-        # Part of the crew's identity, exactly like owner/repo, and the one field
+        # Part of the steward's identity, exactly like owner/repo, and the one field
         # that decides what the rest of the prompt CALLS things. Carried as the
         # provider name rather than a pre-rendered vocabulary so the snapshot stays
         # a set of facts and ``compose_nudge`` stays the only renderer.
         "provider": (key or provider.RepoKey()).provider,
-        "labels": list(crew.get("labels") or []),
+        "labels": list(steward.get("labels") or []),
         "writable_labels": list(writable_labels(settings)),
-        "open_count": steward_store.open_slot_count(owner, repo, crew_id, root),
-        "max_open": int(crew.get("max_open") or 0),
+        "open_count": steward_store.open_slot_count(owner, repo, steward_id, root),
+        "max_open": int(steward.get("max_open") or 0),
         "items": [
             {
                 "number": it.get("number"),
@@ -307,7 +386,7 @@ def compose_nudge(snapshot: dict[str, Any]) -> str:
     """The per-turn message: a volatile snapshot (~120 words) then the Never block.
 
     Everything in the first part can change between two turns of the same session —
-    the crew may have been renamed, re-scoped, re-limited, or had an item picked up
+    the steward may have been renamed, re-scoped, re-limited, or had an item picked up
     by a human — which is why it is re-sent every turn instead of living in the
     brief. The brief says "your name, your repository, your label scope and your
     limits arrive in the nudge"; this is that promise.
@@ -315,17 +394,17 @@ def compose_nudge(snapshot: dict[str, Any]) -> str:
     Every noun and every sigil comes from ``provider.terms`` via the snapshot's
     ``provider`` field. The rendering an unwired version produced — ``(PR #12)`` on
     a GitLab project, "every open issue" on a board that only has work items — is
-    not cosmetic: a crew told to work "issues" on Azure DevOps will look for a
+    not cosmetic: a steward told to work "issues" on Azure DevOps will look for a
     primitive that does not exist, and ``#12`` addresses a DIFFERENT item than
-    ``!12`` on both GitLab and Azure, so a crew quoting the nudge back into a
+    ``!12`` on both GitLab and Azure, so a steward quoting the nudge back into a
     comment points at an unrelated item.
     """
     vocab = vocabulary(provider.RepoKey(provider=str(snapshot.get("provider") or "")))
     # An empty label list means EVERY open tracked item, not none. The editor
-    # defaults a new crew to no labels and does not require any, so the opposite
-    # reading — which this line used to give — told every default-configured crew to
+    # defaults a new steward to no labels and does not require any, so the opposite
+    # reading — which this line used to give — told every default-configured steward to
     # pick up nothing, and it would idle for its whole life without an error
-    # anywhere. No backend code filters on this list; it is advisory text the crew
+    # anywhere. No backend code filters on this list; it is advisory text the steward
     # self-applies from the brief, so the wording here IS the contract, and the
     # brief's filter step is conditioned to match.
     scope = ", ".join(snapshot.get("labels") or []) or (
@@ -339,7 +418,7 @@ def compose_nudge(snapshot: dict[str, Any]) -> str:
         # with a public blast radius unstated.
         allowed = list(writable_labels())
     lines = [
-        f"[crew turn] {snapshot.get('name')} · {snapshot.get('owner')}/"
+        f"[steward turn] {snapshot.get('name')} · {snapshot.get('owner')}/"
         f"{snapshot.get('repo')} · id {snapshot.get('id')}",
         f"Label scope: {scope}.",
         "Writable labels: " + ", ".join(f"`{lab}`" for lab in allowed) + " — no others, ever.",
@@ -347,7 +426,7 @@ def compose_nudge(snapshot: dict[str, Any]) -> str:
     ]
     items = snapshot.get("items") or []
     if items:
-        # "Work item" here is the LEDGER's own word for a crew's tracked slot (see
+        # "Work item" here is the LEDGER's own word for a steward's tracked slot (see
         # ``steward_store``), not Azure's noun for a board item, so this header stays
         # provider-independent. What varies is what each line POINTS AT.
         lines.append("Open work items:")
@@ -376,7 +455,7 @@ def compose_turn_prompt(
     slot: Any,
     owner: str,
     repo: str,
-    crew: dict[str, Any],
+    steward: dict[str, Any],
     root: Path | None = None,
     key: provider.RepoKey | None = None,
 ) -> str:
@@ -388,33 +467,33 @@ def compose_turn_prompt(
     message that carries the brief IS the nudge message, which is what makes the
     length guard in :func:`brief_is_present` sound.
 
-    BLOCKING — :func:`build_snapshot` globs the crew's item dir and parses every
+    BLOCKING — :func:`build_snapshot` globs the steward's item dir and parses every
     open item. Async callers use :func:`compose_turn_prompt_async`.
     """
-    return _assemble_turn_prompt(slot, build_snapshot(owner, repo, crew, root, key))
+    return _assemble_turn_prompt(slot, build_snapshot(owner, repo, steward, root, key))
 
 
 async def compose_turn_prompt_async(
     slot: Any,
     owner: str,
     repo: str,
-    crew: dict[str, Any],
+    steward: dict[str, Any],
     root: Path | None = None,
     key: provider.RepoKey | None = None,
 ) -> str:
     """:func:`compose_turn_prompt` with the store reads off the event loop.
 
     Every launch and every wake composes a prompt, and the work behind it grows
-    with the crew: one directory glob plus a JSON parse per open work item. A crew
+    with the steward: one directory glob plus a JSON parse per open work item. A steward
     that has been running for a while would stall the gateway — and with it the
     always-on poll loop this app lives in, the one thing that must never block,
-    since the sweep is what wakes a crew when CI turns red.
+    since the sweep is what wakes a steward when CI turns red.
 
     Only the snapshot moves. The presence check stays on the loop because it walks
     ``slot.messages``, which a running turn appends to; that is the same split
     ``rehydrate_slot_from_history_async`` documents for slot state.
     """
-    snapshot = await asyncio.to_thread(partial(build_snapshot, owner, repo, crew, root, key))
+    snapshot = await asyncio.to_thread(partial(build_snapshot, owner, repo, steward, root, key))
     return _assemble_turn_prompt(slot, snapshot)
 
 
@@ -429,23 +508,23 @@ def _assemble_turn_prompt(slot: Any, snapshot: dict[str, Any]) -> str:
 # ── session launch / attach ─────────────────────────────────────────────────
 
 
-def stop_sentinel_path(owner: str, repo: str, crew_id: str, root: Path | None = None) -> Path:
-    """Kill switch for the crew's loop. Lives in the crew's own item dir, which
+def stop_sentinel_path(owner: str, repo: str, steward_id: str, root: Path | None = None) -> Path:
+    """Kill switch for the steward's loop. Lives in the steward's own item dir, which
     ``list_work_items`` globs for ``*.json`` only — so this file is invisible to it."""
-    d = steward_store.crews_dir(owner, repo, root) / crew_id
+    d = steward_store.stewards_dir(owner, repo, root) / steward_id
     d.mkdir(parents=True, exist_ok=True)
     return d / "STOP"
 
 
-def _slot_title(owner: str, repo: str, crew: dict[str, Any], slot_key: str) -> str:
+def _slot_title(owner: str, repo: str, steward: dict[str, Any], slot_key: str) -> str:
     """A human title for the worker slot, redacted.
 
-    The crew name is FREE TEXT in the create dialog, and a title is persisted and
+    The steward name is FREE TEXT in the create dialog, and a title is persisted and
     broadcast, so it gets the same treatment as ``auto_research``'s campaign name:
     redact, and if the redactors are unavailable fail CLOSED to the slot key, which
     carries no user content.
     """
-    raw = f"{crew.get('name') or slot_key} · {owner}/{repo}"
+    raw = f"{steward.get('name') or slot_key} · {owner}/{repo}"
     if not _HAS_SECURITY:
         return slot_key
     raw, _ = redact_exfiltration_urls(raw)
@@ -455,40 +534,40 @@ def _slot_title(owner: str, repo: str, crew: dict[str, Any], slot_key: str) -> s
 
 # ── the auto-approve grant ──────────────────────────────────────────────────
 #
-# A crew runs with nobody watching, so its tool calls have to be approved by
+# A steward runs with nobody watching, so its tool calls have to be approved by
 # something other than a person. What that something must NOT be is
 # ``slot._trust``: that flag is the interactive "trust this session" grant, it
 # never expires, and nothing audits it as a grant because the human's click IS
 # the record. A backend stamping it produces an unbounded auto-approval with no
 # activation trail — which is why ``spec_builder`` was made to stop doing exactly
-# that. Crews take the TASK RUNNER's shape instead (scope
+# that. Stewards take the TASK RUNNER's shape instead (scope
 # ``taskrunner:{task_id}:autoapprove``): the record's ``unattended`` flag is only
 # the operator's intent, and the live decision is a ``SafetyOverride`` scoped
 # grant that is SEL-audited fail-closed before it exists, expires by itself, and
 # is re-checked on every single approval.
 
-# Recorded on every SEL entry for a crew grant, so an auditor can tell an
-# unattended crew's grant from a human's dashboard click.
-GRANT_SOURCE = "issue-radar-crew"
+# Recorded on every SEL entry for a steward grant, so an auditor can tell an
+# unattended steward's grant from a human's dashboard click.
+GRANT_SOURCE = "issue-radar-steward"
 
-# How long ONE crew grant lives. This is not the renewal interval — the watchdog
+# How long ONE steward grant lives. This is not the renewal interval — the watchdog
 # re-derives the grant every ``watch.POLL_INTERVAL_SEC`` (60s) — it is how long
 # the grant outlives a watchdog that has STOPPED, which is the hole a bare
 # in-memory flag left open: nothing clears a granted flag when the sweep dies but
 # the process keeps running. Fifteen cycles of slack, so a stalled or slow sweep
-# never strips trust from a crew mid-turn, while a dead watchdog stops the crew in
+# never strips trust from a steward mid-turn, while a dead watchdog stops the steward in
 # minutes instead of at ``SafetyOverride``'s 6h ad-hoc default or its 24h ceiling.
 TRUST_TTL_SECS = 900
 
 
-def autoapprove_scope(crew_id: str) -> str:
-    """``SafetyOverride`` scope key holding one crew's auto-approve grant.
+def autoapprove_scope(steward_id: str) -> str:
+    """``SafetyOverride`` scope key holding one steward's auto-approve grant.
 
     Deliberately shaped like ``taskrunner:{task_id}:autoapprove``. Enforcement is
-    ``safety_override().is_scope_active(scope)``; the crew record's ``unattended``
+    ``safety_override().is_scope_active(scope)``; the steward record's ``unattended``
     flag carries no authority of its own.
     """
-    return f"crew:{crew_id}:autoapprove"
+    return f"steward:{steward_id}:autoapprove"
 
 
 def _hold_grant(scope: str) -> bool:
@@ -496,15 +575,15 @@ def _hold_grant(scope: str) -> bool:
 
     RENEWAL IS A SLIDE, NOT A RE-ACTIVATION, and that choice is load-bearing twice
     over. Re-activating every 60s would write a critical SEL entry per cycle —
-    1,440 a day per crew, burying the one activation an auditor came to find — and
+    1,440 a day per steward, burying the one activation an auditor came to find — and
     it would reset ``activated_at``, so ``SafetyOverride``'s 24h ceiling could
     never be reached and "expiring" would be a word rather than a bound.
     ``renew_scoped`` is documented as not audited per call for the same reason: it
     extends an already-audited grant within its already-audited ceiling.
 
     When the ceiling IS reached the slide is refused, and rather than let the grant
-    lapse under a crew that is mid-turn, a NEW grant is minted — which goes through
-    ``activate_scoped`` and so is freshly audited. A crew running for a week
+    lapse under a steward that is mid-turn, a NEW grant is minted — which goes through
+    ``activate_scoped`` and so is freshly audited. A steward running for a week
     therefore leaves one activation record per day, not one for all time.
     """
     so = safety_override()
@@ -514,14 +593,14 @@ def _hold_grant(scope: str) -> bool:
     return bool(so.activate_scoped(scope, source=GRANT_SOURCE, ttl=TRUST_TTL_SECS).active)
 
 
-def sync_trust(slot: Any, crew: dict[str, Any]) -> bool:
-    """Hold the crew's auto-approve grant in step with its record. Returns trust.
+def sync_trust(slot: Any, steward: dict[str, Any]) -> bool:
+    """Hold the steward's auto-approve grant in step with its record. Returns trust.
 
     Called at launch AND from the watchdog every cycle, and it is an ASSIGNMENT,
-    not a one-way set: a crew whose ``unattended`` flag is turned off, or which
+    not a one-way set: a steward whose ``unattended`` flag is turned off, or which
     stops being live, loses the grant within one cycle. Liveness is re-checked here
     and not only by the caller, so this function cannot hand a grant to a paused
-    crew whatever path reaches it.
+    steward whatever path reaches it.
 
     ``slot._trust_scope`` carries the scope key onto the slot, because the consumer
     of the grant is the shared dashboard approval path — a grant nothing consults
@@ -534,50 +613,50 @@ def sync_trust(slot: Any, crew: dict[str, Any]) -> bool:
     the last watchdog cycle that touched it, it is re-checked on every approval
     rather than sampled once, and it cannot be extended past ``SafetyOverride``'s
     24h ceiling without a fresh audited activation. If the audit write fails there
-    is no grant at all and the crew falls back to the ordinary approval path.
+    is no grant at all and the steward falls back to the ordinary approval path.
     """
-    scope = autoapprove_scope(str(crew.get("id") or ""))
-    want = bool(crew.get("unattended")) and is_live(crew)
+    scope = autoapprove_scope(str(steward.get("id") or ""))
+    want = bool(steward.get("unattended")) and is_live(steward)
     had = bool(getattr(slot, "_trust_scope", ""))
     if not want:
         safety_override().deactivate_scope(scope)
         slot._trust_scope = ""
         if had:
-            logger.info("issue-radar crew %s: trust revoked", crew.get("id"))
+            logger.info("issue-radar steward %s: trust revoked", steward.get("id"))
         return False
     granted = _hold_grant(scope)
     slot._trust_scope = scope if granted else ""
     if not granted:
         # ``activate_scoped`` audits fail-closed, so the only way here is a SEL
         # write that failed. Fail closed too: no grant, and say so loudly, because
-        # the visible symptom is otherwise just a crew that mysteriously stalls on
+        # the visible symptom is otherwise just a steward that mysteriously stalls on
         # an approval prompt nobody is watching.
         logger.error(
-            "issue-radar crew %s: auto-approve grant REFUSED (its audit could not "
-            "be written); the crew will fall back to interactive approval",
-            crew.get("id"),
+            "issue-radar steward %s: auto-approve grant REFUSED (its audit could not "
+            "be written); the steward will fall back to interactive approval",
+            steward.get("id"),
         )
     elif not had:
-        logger.info("issue-radar crew %s: trust established", crew.get("id"))
+        logger.info("issue-radar steward %s: trust established", steward.get("id"))
     return granted
 
 
-async def revoke_crew_execution(state: Any, crew: dict[str, Any], reason: str = "") -> bool:
-    """Take away everything that could give this crew another turn. Idempotent.
+async def revoke_steward_execution(state: Any, steward: dict[str, Any], reason: str = "") -> bool:
+    """Take away everything that could give this steward another turn. Idempotent.
 
     The inverse of :func:`sync_trust` plus the loop, and it exists as ONE function
-    because stopping a crew means clearing two grants that the crew RECORD does not
+    because stopping a steward means clearing two grants that the steward RECORD does not
     express: the autonudge loop is a live timer owned by another service, and
     ``slot._trust_scope`` plus its ``SafetyOverride`` grant are in-memory. Writing
     ``enabled``/``paused_reason``/``retired_at`` changes neither of them.
 
     That gap is a real window, not a tidiness point. Until something revokes, an
     idle timer that fires runs one more turn — auto-approved and unattended — on a
-    crew a human just stopped. The watchdog notices, but it runs on the app's poll
+    steward a human just stopped. The watchdog notices, but it runs on the app's poll
     interval, so anything that only writes the record leaves that whole interval
     open. The pause and retire routes call this BEFORE they answer, which is what
     makes "stopped" true by the time the response lands; the watchdog's own call
-    stays as the backstop for a crew stopped by a direct record edit or by a
+    stays as the backstop for a steward stopped by a direct record edit or by a
     restart.
 
     Best-effort by design: the record is the durable truth and it is already
@@ -585,8 +664,8 @@ async def revoke_crew_execution(state: Any, crew: dict[str, Any], reason: str = 
     not turn a successful pause into a 500. Returns whether anything was actually
     revoked, which is what tests assert on.
     """
-    slot_key = str(crew.get("slot_key") or f"crew-{crew.get('id')}")
-    scope = autoapprove_scope(str(crew.get("id") or ""))
+    slot_key = _slot_key_of(steward)
+    scope = autoapprove_scope(str(steward.get("id") or ""))
     revoked = False
     slot = state.get_slot(slot_key) if hasattr(state, "get_slot") else None
     # ``scope_remaining_secs`` and not ``is_scope_active``: the latter EXPIRES a
@@ -600,9 +679,9 @@ async def revoke_crew_execution(state: Any, crew: dict[str, Any], reason: str = 
             slot._trust_scope = ""
             revoked = True
         # Also clear an interactive grant a human may have clicked onto this slot.
-        # "Stop this crew" has to mean stopped, and unlike :func:`sync_trust` — which
+        # "Stop this steward" has to mean stopped, and unlike :func:`sync_trust` — which
         # runs unprompted every cycle and so must leave a human's choice alone — this
-        # runs only because a human or the watchdog decided the crew must not run.
+        # runs only because a human or the watchdog decided the steward must not run.
         if getattr(slot, "_trust", False):
             slot._trust = False
             revoked = True
@@ -615,42 +694,42 @@ async def revoke_crew_execution(state: Any, crew: dict[str, Any], reason: str = 
                 revoked = True
         except Exception:  # pragma: no cover - cleanup must not raise
             logger.warning(
-                "issue-radar crew %s: could not deactivate its loop (%s)",
-                crew.get("id"),
+                "issue-radar steward %s: could not deactivate its loop (%s)",
+                steward.get("id"),
                 reason or "stopped",
                 exc_info=True,
             )
     if revoked:
         logger.info(
-            "issue-radar crew %s: execution revoked (%s)",
-            crew.get("id"),
+            "issue-radar steward %s: execution revoked (%s)",
+            steward.get("id"),
             reason or "stopped",
         )
     return revoked
 
 
-async def ensure_crew_session(state: Any, owner: str, repo: str, crew: dict[str, Any]) -> Any:
-    """Attach to (or create) the crew's app-owned slot and return it.
+async def ensure_steward_session(state: Any, owner: str, repo: str, steward: dict[str, Any]) -> Any:
+    """Attach to (or create) the steward's app-owned slot and return it.
 
-    Agent, workspace and model all come from the crew record. ``model`` OVERRIDES
+    Agent, workspace and model all come from the steward record. ``model`` OVERRIDES
     whatever the chosen agent pins, because ``get_or_create_slot`` takes it as an
-    explicit argument — that is the intended precedence: the crew's config is the
+    explicit argument — that is the intended precedence: the steward's config is the
     operator's last word.
     """
-    slot_key = str(crew.get("slot_key") or f"crew-{crew.get('id')}")
+    slot_key = _slot_key_of(steward)
     slot = state.get_or_create_slot(
         name=slot_key,
-        agent=str(crew.get("agent") or "junction"),
-        workspace=str(crew.get("workspace") or "default"),
-        model=str(crew.get("model") or ""),
+        agent=str(steward.get("agent") or "junction"),
+        workspace=str(steward.get("workspace") or "default"),
+        model=str(steward.get("model") or ""),
         app=APP_NAME,
     )
-    title = _slot_title(owner, repo, crew, slot_key)
+    title = _slot_title(owner, repo, steward, slot_key)
     if slot.title != title or not getattr(slot, "_titled", False):
         slot.title = title
         # Lock the title: the loop's messages arrive as nudge/user rows on an
         # app-owned slot nobody named, and an auto-titler that fired here would
-        # rename the crew's session after whatever the first turn happened to do.
+        # rename the steward's session after whatever the first turn happened to do.
         slot._titled = True
         log = getattr(state, "conversation_log", None)
         if log is not None:
@@ -658,44 +737,44 @@ async def ensure_crew_session(state: Any, owner: str, repo: str, crew: dict[str,
                 await asyncio.to_thread(log.set_title, slot_history_key(slot), title)
             except Exception:  # pragma: no cover - persistence is best-effort
                 logger.warning(
-                    "issue-radar: could not persist crew slot title for %s",
+                    "issue-radar: could not persist steward slot title for %s",
                     slot_key,
                     exc_info=True,
                 )
         _call_if_present(state, "push_slot_title", slot.key, title)
-    sync_trust(slot, crew)
+    sync_trust(slot, steward)
     _call_if_present(state, "push_slots_update")
     return slot
 
 
-async def launch_crew(
+async def launch_steward(
     state: Any,
     owner: str,
     repo: str,
-    crew: dict[str, Any],
+    steward: dict[str, Any],
     root: Path | None = None,
     key: provider.RepoKey | None = None,
 ) -> Any:
-    """Bring a crew online: ensure its session, then arm its nudge loop.
+    """Bring a steward online: ensure its session, then arm its nudge loop.
 
-    ``max_cycles=0`` — a crew is not a bounded errand. Its brakes are the record's
+    ``max_cycles=0`` — a steward is not a bounded errand. Its brakes are the record's
     ``enabled``/``retired_at`` flags, the STOP sentinel, and the app's own enabled
     gate, all of which the watchdog re-reads every cycle.
     """
-    slot = await ensure_crew_session(state, owner, repo, crew)
+    slot = await ensure_steward_session(state, owner, repo, steward)
     svc = _autonudge_instance() if _autonudge_instance is not None else None
     if svc is None:
         logger.warning(
-            "issue-radar crew %s: autonudge unavailable — session exists but no loop",
-            crew.get("id"),
+            "issue-radar steward %s: autonudge unavailable — session exists but no loop",
+            steward.get("id"),
         )
         return slot
     await svc.add(
         slot_key=slot.key,
-        message=await compose_turn_prompt_async(slot, owner, repo, crew, root, key),
+        message=await compose_turn_prompt_async(slot, owner, repo, steward, root, key),
         idle_secs=DEFAULT_IDLE_SECS,
         max_cycles=0,
-        stop_sentinel_path=str(stop_sentinel_path(owner, repo, str(crew.get("id")), root)),
+        stop_sentinel_path=str(stop_sentinel_path(owner, repo, str(steward.get("id")), root)),
         admission_check=lambda: state.get_slot(slot.key) is slot,
     )
     return slot
@@ -703,27 +782,27 @@ async def launch_crew(
 
 # ── turn dispatch ───────────────────────────────────────────────────────────
 
-#: What a crew's transcript says when its turn never got a permit. Rendered as an
-#: error row in the crew's own session, not only logged: a human who opens a crew
+#: What a steward's transcript says when its turn never got a permit. Rendered as an
+#: error row in the steward's own session, not only logged: a human who opens a steward
 #: that looks stalled must find the reason there, and the alternative is a silent
 #: gap where a turn should have been.
 NO_PERMIT_CARD = (
-    "This crew's turn never started: it waited for a free background-turn slot "
-    "and gave up. Nothing ran and nothing was rolled back. The crew gets another "
+    "This steward's turn never started: it waited for a free background-turn slot "
+    "and gave up. Nothing ran and nothing was rolled back. The steward gets another "
     "turn on its next signal or idle cycle; raise "
     "`dashboard.max_background_turns` if the fleet is queueing at the cap."
 )
 
 
 async def _capped_run_chat(state: Any, slot: Any, prompt: str) -> None:
-    """One crew turn, charged against the app-owned background-turn cap.
+    """One steward turn, charged against the app-owned background-turn cap.
 
     Handed to ``enqueue_or_run_prompt`` in place of ``_run_chat`` itself. That
     keeps the method's queue-vs-run decision intact — it checks ``running`` and
     mutates with no ``await`` in between, so two concurrent wakes cannot both start
     a turn — and wraps the cap around the turn it starts. Calling ``_run_chat``
     directly skipped ``run_background_turn`` entirely, which is the whole point of
-    the cap: crews are the only fleet in the product that arms N loops firing
+    the cap: stewards are the only fleet in the product that arms N loops firing
     independently, so simultaneous wakes could put more turns on the runtime than
     the cap allows while its counters reported the truth about a smaller number.
 
@@ -739,7 +818,7 @@ async def _capped_run_chat(state: Any, slot: Any, prompt: str) -> None:
         )
     except (asyncio.TimeoutError, TimeoutError):
         logger.warning(
-            "issue-radar: crew turn on %s never got a background-turn permit",
+            "issue-radar: steward turn on %s never got a background-turn permit",
             getattr(slot, "key", "?"),
         )
         try:
@@ -749,44 +828,44 @@ async def _capped_run_chat(state: Any, slot: Any, prompt: str) -> None:
         _call_if_present(state, "push_slots_update")
 
 
-def dispatch_crew_turn(state: Any, slot: Any, prompt: str) -> bool:
-    """Start — or queue — one crew turn. Returns True when a turn actually started.
+def dispatch_steward_turn(state: Any, slot: Any, prompt: str) -> bool:
+    """Start — or queue — one steward turn. Returns True when a turn actually started.
 
-    THE dispatch path for this app: every route by which a crew gets a turn comes
-    through here — the sweep's wake, and anything a request injects into a crew's
+    THE dispatch path for this app: every route by which a steward gets a turn comes
+    through here — the sweep's wake, and anything a request injects into a steward's
     session — so the cap covers all of them. A second copy of this call is how one
     of them ships uncapped again.
     """
     return bool(slot.enqueue_or_run_prompt(prompt, _capped_run_chat, state))
 
 
-async def wake_crew(
+async def wake_steward(
     state: Any,
     owner: str,
     repo: str,
-    crew: dict[str, Any],
+    steward: dict[str, Any],
     reason: str = "",
     root: Path | None = None,
     key: provider.RepoKey | None = None,
 ) -> bool:
-    """Give the crew a turn NOW because a signal moved. Returns whether a turn started.
+    """Give the steward a turn NOW because a signal moved. Returns whether a turn started.
 
     Two writes, both needed. The armed loop's message is refreshed so an idle-timer
     fire that lands later carries the CURRENT snapshot instead of the one composed
     at launch; and the prompt is dispatched immediately, because the whole point of
-    the sweep is that the crew does not wait out an idle gap after CI turns red.
-    ``enqueue_or_run_prompt`` queues instead of racing when the crew is mid-turn.
+    the sweep is that the steward does not wait out an idle gap after CI turns red.
+    ``enqueue_or_run_prompt`` queues instead of racing when the steward is mid-turn.
     """
-    slot = state.get_slot(str(crew.get("slot_key") or f"crew-{crew.get('id')}"))
+    slot = state.get_slot(_slot_key_of(steward))
     if slot is None:
-        slot = await _rehydrate(state, str(crew.get("slot_key") or ""))
+        slot = await _rehydrate(state, str(steward.get("slot_key") or ""))
     if slot is None:
         logger.info(
-            "issue-radar crew %s: no session to wake (%s)", crew.get("id"), reason or "signal"
+            "issue-radar steward %s: no session to wake (%s)", steward.get("id"), reason or "signal"
         )
         return False
-    sync_trust(slot, crew)
-    prompt = await compose_turn_prompt_async(slot, owner, repo, crew, root, key)
+    sync_trust(slot, steward)
+    prompt = await compose_turn_prompt_async(slot, owner, repo, steward, root, key)
     svc = _autonudge_instance() if _autonudge_instance is not None else None
     if svc is not None:
         loop = svc.get_by_slot(slot.key)
@@ -798,23 +877,23 @@ async def wake_crew(
     if getattr(slot, "running", False):
         # DROPPED, not queued — the same call autonudge's own fire path makes, and
         # for a stronger reason here: a queued prompt can carry the whole brief, so
-        # a crew that stayed busy across three sweeps would come back to three
+        # a steward that stayed busy across three sweeps would come back to three
         # stacked copies of its own instructions. Nothing is lost by dropping it.
         # The loop's message was just refreshed with the current snapshot, and the
-        # crew reconciles EVERY open item against the six signals at the top of each
+        # steward reconciles EVERY open item against the six signals at the top of each
         # turn anyway — the wake buys latency, it does not carry information.
         logger.info(
-            "issue-radar crew %s: mid-turn, wake dropped (%s)",
-            crew.get("id"),
+            "issue-radar steward %s: mid-turn, wake dropped (%s)",
+            steward.get("id"),
             reason or "signal",
         )
         return False
-    tagged = f"[crew wake: {reason}]\n{prompt}" if reason else prompt
-    started = dispatch_crew_turn(state, slot, tagged)
+    tagged = f"[steward wake: {reason}]\n{prompt}" if reason else prompt
+    started = dispatch_steward_turn(state, slot, tagged)
     _call_if_present(state, "push_slots_update")
     logger.info(
-        "issue-radar crew %s woken (%s): turn %s",
-        crew.get("id"),
+        "issue-radar steward %s woken (%s): turn %s",
+        steward.get("id"),
         reason or "signal",
         "started" if started else "queued",
     )
@@ -825,7 +904,7 @@ async def _rehydrate(state: Any, slot_key: str) -> Any:
     """Rebuild a slot the gateway no longer holds in memory (tab closed, restart).
 
     ``autonudge`` cannot do this for us: arming and firing both gate on the slot
-    being resident, so a crew whose slot left ``_slots`` is unreachable by nudge
+    being resident, so a steward whose slot left ``_slots`` is unreachable by nudge
     alone. Reads are hoisted off the event loop by the async form.
     """
     if not slot_key:
@@ -840,101 +919,105 @@ async def _rehydrate(state: Any, slot_key: str) -> Any:
 # ── the watchdog (one pass per poll cycle) ──────────────────────────────────
 
 
-def is_live(crew: dict[str, Any]) -> bool:
-    """Whether this crew should be worked at all.
+def is_live(steward: dict[str, Any]) -> bool:
+    """Whether this steward should be worked at all.
 
-    ``paused_reason`` counts as not-live even though the crew record is enabled: the
-    brief tells a paused crew to read the ledger and end the turn immediately, so
+    ``paused_reason`` counts as not-live even though the steward record is enabled: the
+    brief tells a paused steward to read the ledger and end the turn immediately, so
     waking one buys a turn whose only outcome is the cost of the turn.
     """
     return bool(
-        crew.get("enabled") and not crew.get("retired_at") and not crew.get("paused_reason")
+        steward.get("enabled")
+        and not steward.get("retired_at")
+        and not steward.get("paused_reason")
     )
 
 
-#: Why a crew is paused when the user closes its chat tab. Stored in
-#: ``paused_reason``, so the roster explains the stop instead of showing a crew
+#: Why a steward is paused when the user closes its chat tab. Stored in
+#: ``paused_reason``, so the roster explains the stop instead of showing a steward
 #: that is enabled and inexplicably idle.
 DISMISSED_PAUSE_REASON = "session closed"
 
 
 async def _on_slot_closed(slot_key: str, root: Path | None = None) -> None:
-    """The user dismissed a crew's chat tab: PAUSE that crew.
+    """The user dismissed a steward's chat tab: PAUSE that steward.
 
-    Pausing rather than silently un-arming, because a paused crew is a state the
+    Pausing rather than silently un-arming, because a paused steward is a state the
     product already has a first-class representation for — ``is_live`` is already
     False for it, the sweep's existing revocation branch already takes its trust
     away, the roster already shows ``paused_reason``, and the existing pause route
     already resumes it. An autonomous worker that stops has to SAY it stopped.
 
     Reached only from a deliberate ✕ (see ``apps.teardown.notify_slot_closed``),
-    never from idle archival — so this cannot mistake a crew that was merely quiet
+    never from idle archival — so this cannot mistake a steward that was merely quiet
     for one the user asked to stop.
     """
-    found = await asyncio.to_thread(_crew_for_slot_key, slot_key, root)
+    found = await asyncio.to_thread(_steward_for_slot_key, slot_key, root)
     if found is None:
         return
-    owner, repo, crew, scope = found
-    if crew.get("retired_at") or crew.get("paused_reason"):
+    owner, repo, steward, scope = found
+    if steward.get("retired_at") or steward.get("paused_reason"):
         # Already stopped, and for a reason someone else recorded. Overwriting it
         # would replace a specific explanation with a generic one.
         return
     await asyncio.to_thread(
-        steward_store.set_crew_paused,
+        steward_store.set_steward_paused,
         owner,
         repo,
-        str(crew.get("id") or ""),
+        str(steward.get("id") or ""),
         True,
         DISMISSED_PAUSE_REASON,
         scope,
     )
-    logger.info("issue-radar crew %s paused: its session was closed (%s)", crew.get("id"), slot_key)
+    logger.info(
+        "issue-radar steward %s paused: its session was closed (%s)", steward.get("id"), slot_key
+    )
 
 
 async def _on_slot_close_undone(slot_key: str, root: Path | None = None) -> None:
-    """The dismissal did not happen: RESUME the crew this hook paused.
+    """The dismissal did not happen: RESUME the steward this hook paused.
 
     Guarded on the reason string, which is the only evidence that THIS hook is what
-    stopped the crew. ``_on_slot_closed`` refuses to overwrite an existing
-    ``paused_reason``, so a crew paused for any other cause never got touched and
+    stopped the steward. ``_on_slot_closed`` refuses to overwrite an existing
+    ``paused_reason``, so a steward paused for any other cause never got touched and
     must not be resumed here — un-pausing that would turn a failed tab close into a
     worker restart nobody asked for, which is worse than the state being repaired.
     """
-    found = await asyncio.to_thread(_crew_for_slot_key, slot_key, root)
+    found = await asyncio.to_thread(_steward_for_slot_key, slot_key, root)
     if found is None:
         return
-    owner, repo, crew, scope = found
-    if crew.get("retired_at") or crew.get("paused_reason") != DISMISSED_PAUSE_REASON:
+    owner, repo, steward, scope = found
+    if steward.get("retired_at") or steward.get("paused_reason") != DISMISSED_PAUSE_REASON:
         return
     await asyncio.to_thread(
-        steward_store.set_crew_paused,
+        steward_store.set_steward_paused,
         owner,
         repo,
-        str(crew.get("id") or ""),
+        str(steward.get("id") or ""),
         False,
         "",
         scope,
     )
     logger.info(
-        "issue-radar crew %s resumed: the close that paused it failed (%s)",
-        crew.get("id"),
+        "issue-radar steward %s resumed: the close that paused it failed (%s)",
+        steward.get("id"),
         slot_key,
     )
 
 
-def _crew_for_slot_key(
+def _steward_for_slot_key(
     slot_key: str, root: Path | None = None
 ) -> tuple[str, str, dict[str, Any], Path | None] | None:
-    """Find ``(owner, repo, crew)`` for a slot key. Blocking — call in a thread.
+    """Find ``(owner, repo, steward)`` for a slot key. Blocking — call in a thread.
 
-    A slot key carries no repo, so this walks the connected repos. Retired crews are
-    included: the caller decides what to do about one, and reporting "no such crew"
-    for a crew that plainly exists reads as a bug.
+    A slot key carries no repo, so this walks the connected repos. Retired stewards are
+    included: the caller decides what to do about one, and reporting "no such steward"
+    for a steward that plainly exists reads as a bug.
 
     EVERY PROVIDER, not just one. The watchdog registers the close hook once per
     swept repo and passes that repo's PROVIDER root, and the registry holds one hook
-    per app — so the last sweep's provider won, and closing the tab of a crew on any
-    other provider found nothing: the crew stayed live and the next sweep re-armed
+    per app — so the last sweep's provider won, and closing the tab of a steward on any
+    other provider found nothing: the steward stayed live and the next sweep re-armed
     its auto-approved session. A slot key is global, so its lookup has to be too.
     The given root is still tried first (tests and explicit callers pass a data root
     directly); the provider sweep is a fallback, so it costs an extra pass only when
@@ -948,18 +1031,20 @@ def _crew_for_slot_key(
             repo = str(entry.get("repo") or "")
             if not owner or not repo:
                 continue
-            for crew in steward_store.list_crews(owner, repo, root=scope, include_retired=True):
-                if str(crew.get("slot_key") or "") == slot_key:
+            for steward in steward_store.list_stewards(
+                owner, repo, root=scope, include_retired=True
+            ):
+                if str(steward.get("slot_key") or "") == slot_key:
                     # The SCOPE comes back too: the pause has to be written where
-                    # the crew actually lives. Writing it under the hook's own root
+                    # the steward actually lives. Writing it under the hook's own root
                     # would file the pause in a different provider's store and leave
-                    # the real crew running.
-                    return owner, repo, crew, scope
+                    # the real steward running.
+                    return owner, repo, steward, scope
     return None
 
 
 def _lookup_scopes(root: Path | None) -> list[Path | None]:
-    """The data roots to search for a crew, in order: the given one, then every
+    """The data roots to search for a steward, in order: the given one, then every
     connected repo's own provider root.
 
     Derived per entry rather than assumed, because a mixed GitHub/GitLab install
@@ -1000,15 +1085,15 @@ def install_slot_close_hook(root: Path | None = None) -> None:
 
 
 async def on_app_disabled(state: Any, app_name: str = "") -> int:
-    """The operator switched Issue Radar off: STOP the crews now, in the request.
+    """The operator switched Issue Radar off: STOP the stewards now, in the request.
 
     THE FIRST LINE. Turning an app off is a human saying stop, and it has to mean
     stopped by the time the disable returns — not stopped within a poll interval.
-    The sweep in ``watch.py`` suspends crews too, but it wakes on
+    The sweep in ``watch.py`` suspends stewards too, but it wakes on
     ``POLL_INTERVAL_SEC``, so on its own it left up to a full minute in which an
     already-armed nudge could fire a whole auto-approved turn for an app the
     operator had just disabled. Same reasoning, and the same shape, as pause and
-    retire revoking inline before they answer (:func:`revoke_crew_execution`).
+    retire revoking inline before they answer (:func:`revoke_steward_execution`).
 
     Registered rather than called: core must be able to stop an app's work without
     importing the app, so this is handed to the hook registry in
@@ -1022,7 +1107,7 @@ async def on_app_disabled(state: Any, app_name: str = "") -> int:
     on. That is deliberate and it is why nothing here consults ``is_app_enabled`` —
     a hook that waited for the flag would reintroduce the gap it closes.
     """
-    return await suspend_crews(state)
+    return await suspend_stewards(state)
 
 
 def install_app_disable_hook(state: Any) -> bool:
@@ -1053,7 +1138,7 @@ async def watchdog_cycle(
     state: Any,
     owner: str,
     repo: str,
-    crews: list[dict[str, Any]],
+    stewards: list[dict[str, Any]],
     root: Path | None = None,
     key: provider.RepoKey | None = None,
 ) -> None:
@@ -1062,21 +1147,21 @@ async def watchdog_cycle(
     Three things, every cycle, for the same reason ``auto_research``'s watchdog does
     them: they are all in-memory state that a restart drops.
 
-    * **Trust.** A crew's auto-approve grant lives in memory and expires on its own
-      (:func:`sync_trust`), so an unattended crew silently loses it on restart, and
+    * **Trust.** A steward's auto-approve grant lives in memory and expires on its own
+      (:func:`sync_trust`), so an unattended steward silently loses it on restart, and
       on a watchdog that stopped — which is the point — and the next tool call parks
       it in an approval prompt nobody is watching. Trust needs a slot to hold the
-      scope key, so a crew whose slot the gateway no longer holds is rehydrated
+      scope key, so a steward whose slot the gateway no longer holds is rehydrated
       first — an armed loop fires against the slot key regardless, and it must land
       on a trusted session.
-    * **The loop.** A crew whose autonudge loop is missing or deactivated has no
+    * **The loop.** A steward whose autonudge loop is missing or deactivated has no
       clock at all; the sweep still wakes it on a signal, but it would never pick up
       new work again. Re-arming here makes "enabled" mean enabled.
-    * **Revocation.** A crew that was disabled, retired or paused while its slot was
+    * **Revocation.** A steward that was disabled, retired or paused while its slot was
       resident keeps its trust until something takes it away. The BACKSTOP, not the
       first line: pause and retire revoke inline before they answer, and this cycle
       catches what they cannot — a record edited directly, and a restart that
-      re-armed a loop for a crew that is no longer live.
+      re-armed a loop for a steward that is no longer live.
     * **Both hooks.** The dismissal hook and the app-disable hook are process
       memory, so a restart empties them. Re-registering here is what keeps a ✕ and
       an app disable from going quiet for the rest of a process's life.
@@ -1084,62 +1169,68 @@ async def watchdog_cycle(
     svc = _autonudge_instance() if _autonudge_instance is not None else None
     install_slot_close_hook(root)
     install_app_disable_hook(state)
-    for crew in crews:
-        slot_key = str(crew.get("slot_key") or f"crew-{crew.get('id')}")
+    for steward in stewards:
+        slot_key = _slot_key_of(steward)
         slot = state.get_slot(slot_key) if hasattr(state, "get_slot") else None
-        if not is_live(crew):
-            await revoke_crew_execution(state, crew, "not live")
+        if not is_live(steward):
+            await revoke_steward_execution(state, steward, "not live")
             continue
         if slot is None:
-            # A live crew with no resident slot: a restart, or a tab someone
+            # A live steward with no resident slot: a restart, or a tab someone
             # closed. Rehydrate HERE and not only in the ``loop is None`` branch
             # below, because a PERSISTED loop fires against the slot key whether
-            # or not the gateway still holds it — so without this the crew's first
+            # or not the gateway still holds it — so without this the steward's first
             # post-restart turn runs with its grant gone and an unattended
-            # crew parks on an approval nobody is there to answer. Rehydration
-            # first, so the crew keeps its own transcript (and its brief).
+            # steward parks on an approval nobody is there to answer. Rehydration
+            # first, so the steward keeps its own transcript (and its brief).
             slot = await _rehydrate(state, slot_key)
         if slot is not None:
-            sync_trust(slot, crew)
+            sync_trust(slot, steward)
         if svc is None:
             continue
         loop = svc.get_by_slot(slot_key)
         if loop is None:
-            # No loop for a live crew: either it has never been launched or a
+            # No loop for a live steward: either it has never been launched or a
             # restart lost it. Launching is idempotent on the slot key.
-            await launch_crew(state, owner, repo, crew, root, key)
+            await launch_steward(state, owner, repo, steward, root, key)
             continue
         if slot is None:
-            # Loop but still no slot — nothing on disk to rehydrate from (a crew
-            # armed and then never given a turn). ``ensure_crew_session`` creates
+            # Loop but still no slot — nothing on disk to rehydrate from (a steward
+            # armed and then never given a turn). ``ensure_steward_session`` creates
             # the session and establishes trust the same way launch does, without
             # re-arming a loop that already exists.
-            await ensure_crew_session(state, owner, repo, crew)
+            await ensure_steward_session(state, owner, repo, steward)
         if not loop.active:
             await svc.update(loop.id, active=True)
 
 
-def revoke_crew_grants(state: Any) -> int:
-    """Take every resident crew session's auto-approve grant away. Returns how many.
+def revoke_steward_grants(state: Any) -> int:
+    """Take every resident steward session's auto-approve grant away. Returns how many.
 
     SYNCHRONOUS ON PURPOSE, and that is the whole security property: it holds no
     ``await``, so once it is entered nothing else runs on the event loop until every
-    grant is gone. Its caller can therefore promise that a crew is untrusted by the
+    grant is gone. Its caller can therefore promise that a steward is untrusted by the
     time the caller's own first suspension point is reached — which is what lets
     :func:`on_app_disabled` close the disable window rather than narrow it.
 
     Works entirely from IN-MEMORY state — the resident slots — and reads nothing from
-    disk. It walks slots rather than records so it also catches a crew session whose
+    disk. It walks slots rather than records so it also catches a steward session whose
     record was deleted while the session was live, which a record-driven walk would
     miss. Idempotent.
+
+    Matches on ANY steward slot prefix, the legacy one included: a steward an earlier
+    build created still runs under its original key, and a walk that skipped it would
+    leave that session auto-approved after the app is off. The prefix alone is enough
+    here, unlike in :func:`_is_steward_slot_key`, because the slot's own ``_app`` is
+    checked too.
     """
     cleared = 0
     for key, slot in list((getattr(state, "_slots", None) or {}).items()):
-        if not str(key).startswith(_CREW_SLOT_PREFIX) or getattr(slot, "_app", "") != APP_NAME:
+        if not _has_steward_slot_prefix(key) or getattr(slot, "_app", "") != APP_NAME:
             continue
         touched = False
         # The scope key is read off the SLOT rather than rebuilt from the record:
-        # this walk exists precisely to catch a crew session whose record is gone.
+        # this walk exists precisely to catch a steward session whose record is gone.
         scope = str(getattr(slot, "_trust_scope", "") or "")
         if scope:
             safety_override().deactivate_scope(scope)
@@ -1151,15 +1242,15 @@ def revoke_crew_grants(state: Any) -> int:
         if touched:
             cleared += 1
     if cleared:
-        logger.info("issue-radar disabled — cleared trust on %d crew session(s)", cleared)
+        logger.info("issue-radar disabled — cleared trust on %d steward session(s)", cleared)
     return cleared
 
 
-async def suspend_crews(state: Any) -> int:
-    """Turning the app off must STOP the crews. Returns how many slots were cleared.
+async def suspend_stewards(state: Any) -> int:
+    """Turning the app off must STOP the stewards. Returns how many slots were cleared.
 
-    Two things keep a crew going once armed, and neither is expressed by any record
-    an app-enabled flag could speak for: the crew's auto-approve grant, keyed off
+    Two things keep a steward going once armed, and neither is expressed by any record
+    an app-enabled flag could speak for: the steward's auto-approve grant, keyed off
     its slot, and its autonudge loop, which fires regardless of any app's enabled
     flag. Without this, a disabled Issue Radar keeps running unattended,
     auto-approved turns.
@@ -1186,18 +1277,18 @@ async def suspend_crews(state: Any) -> int:
     """
     if state is None:
         return 0
-    cleared = revoke_crew_grants(state)
+    cleared = revoke_steward_grants(state)
     svc = _autonudge_instance() if _autonudge_instance is not None else None
     if svc is not None:
         for loop in svc.list_all():
-            if not _is_crew_slot_key(loop.slot_key):
+            if not _is_steward_slot_key(loop.slot_key):
                 continue
             if loop.active:
                 try:
                     await svc.update(loop.id, active=False)
                 except Exception:  # pragma: no cover - cleanup must not raise
                     logger.warning(
-                        "issue-radar: could not deactivate crew loop %s on disable", loop.id
+                        "issue-radar: could not deactivate steward loop %s on disable", loop.id
                     )
     return cleared
 
@@ -1254,7 +1345,7 @@ UNBLOCK_SIGNALS = (
 SIGNALS_SCHEMA = 1
 
 #: How often an item in each phase is re-read. The forge is the mover for some
-#: phases and the crew is the mover for others, and paying a CI-grade cadence for
+#: phases and the steward is the mover for others, and paying a CI-grade cadence for
 #: a phase waiting on a human is pure rate limit. ``selected`` is pre-claim and
 #: purely local — there is nothing public to watch yet.
 RECHECK_SEC = {
@@ -1274,9 +1365,20 @@ _DEFAULT_RECHECK_SEC = 300
 _REVIEW_PHASES = frozenset({"awaiting-ci", "addressing-review", "awaiting-merge"})
 
 
+#: The sweep's fingerprint file, in the repo data dir beside ``stewards/``.
+SIGNALS_FILENAME = "steward-signals.json"
+
+#: Earlier Junction builds kept the fingerprints under this name. :func:`signals_path`
+#: moves the file into place on first use, so an existing data home keeps its marks
+#: instead of re-seeding every item and waiting one extra cycle for its next wake.
+LEGACY_SIGNALS_FILENAME = "crew-signals.json"
+
+
 def signals_path(owner: str, repo: str, root: Path | None = None) -> Path:
-    """Where the fingerprints live — NOT inside ``crews/`` (see the module docstring)."""
-    return store.repo_data_dir(owner, repo, root) / "crew-signals.json"
+    """Where the fingerprints live — NOT inside ``stewards/`` (see the module docstring)."""
+    return steward_store.adopt_legacy_path(
+        store.repo_data_dir(owner, repo, root), LEGACY_SIGNALS_FILENAME, SIGNALS_FILENAME
+    )
 
 
 def read_signals(owner: str, repo: str, root: Path | None = None) -> dict[str, Any]:
@@ -1303,8 +1405,8 @@ def write_signals(owner: str, repo: str, items: dict[str, Any], root: Path | Non
     )
 
 
-def _item_key(crew_id: str, number: Any) -> str:
-    return f"{crew_id}:{number}"
+def _item_key(steward_id: str, number: Any) -> str:
+    return f"{steward_id}:{number}"
 
 
 def detect_unblocks(prev: dict[str, Any] | None, cur: dict[str, Any]) -> list[str]:
@@ -1312,7 +1414,7 @@ def detect_unblocks(prev: dict[str, Any] | None, cur: dict[str, Any]) -> list[st
 
     A FIRST observation reports nothing: it seeds the mark, the same discipline the
     new-issue watcher uses so connecting a repo does not announce its whole
-    backlog. Here the equivalent mistake would wake every crew on every item the
+    backlog. Here the equivalent mistake would wake every steward on every item the
     moment the gateway restarts.
     """
     if not prev:
@@ -1359,7 +1461,7 @@ def _is_conflicted(mergeable: Any, merge_state: Any) -> bool:
     GitHub answers ``mergeable: null`` / ``mergeable_state: "unknown"`` on a cold
     read and computes the merge commit in the background, so truthiness cannot be
     used here: ``not mergeable`` would report every cold read as a conflict and
-    wake the crew to resolve one that does not exist.
+    wake the steward to resolve one that does not exist.
     """
     if mergeable is False:
         return True
@@ -1561,32 +1663,34 @@ def _is_due(item: dict[str, Any], stored: dict[str, Any] | None, now: float) -> 
 
 
 async def sweep_repo(app: Any, key: provider.RepoKey, root: Path | None = None) -> dict[str, Any]:
-    """One zero-LLM pass over every crew's open work items in ``key``'s repo.
+    """One zero-LLM pass over every steward's open work items in ``key``'s repo.
 
-    Returns ``{crew_id: [signal, ...]}`` for the crews that were woken (the return
+    Returns ``{steward_id: [signal, ...]}`` for the stewards that were woken (the return
     value is what the tests assert on; the loop ignores it).
 
     Deliberately NOT gated on the per-repo ``notify_on_new_issue`` setting. That
     flag is a notification preference — whether the bell rings for a new issue —
-    and a crew that stopped reconciling its own PRs because the user muted
+    and a steward that stopped reconciling its own PRs because the user muted
     notifications would stall every open item with no trace. The app's enabled gate
-    is the switch that stops crews, and it stays in ``watch.py``.
+    is the switch that stops stewards, and it stays in ``watch.py``.
     """
     scope = (
         root
         if root is not None
         else store.provider_root(root=None, provider=key.provider, host=key.host)
     )
-    crews = await asyncio.to_thread(partial(steward_store.list_crews, key.owner, key.repo, scope))
-    if not crews:
+    stewards = await asyncio.to_thread(
+        partial(steward_store.list_stewards, key.owner, key.repo, scope)
+    )
+    if not stewards:
         return {}
     state = app.get("state") if hasattr(app, "get") else None
     if state is not None:
-        # Runs BEFORE the signal pass and over ALL crews, not just the ones with a
+        # Runs BEFORE the signal pass and over ALL stewards, not just the ones with a
         # due item: re-establishing trust and re-arming a lost loop is exactly what
-        # a crew with nothing due needs after a restart.
-        await watchdog_cycle(state, key.owner, key.repo, crews, scope, key)
-    live = [c for c in crews if is_live(c)]
+        # a steward with nothing due needs after a restart.
+        await watchdog_cycle(state, key.owner, key.repo, stewards, scope, key)
+    live = [c for c in stewards if is_live(c)]
     if not live:
         return {}
 
@@ -1600,25 +1704,25 @@ async def sweep_repo(app: Any, key: provider.RepoKey, root: Path | None = None) 
     # Pass 1 — which items are due, and which PRs need the batched enrichment.
     due: list[tuple[dict[str, Any], dict[str, Any]]] = []
     open_keys: set[str] = set()
-    for crew in live:
+    for steward in live:
         items = await asyncio.to_thread(
             partial(
                 steward_store.list_work_items,
                 key.owner,
                 key.repo,
-                str(crew.get("id")),
+                str(steward.get("id")),
                 scope,
                 open_only=True,
             )
         )
         for item in items:
-            ikey = _item_key(str(crew.get("id")), item.get("number"))
+            ikey = _item_key(str(steward.get("id")), item.get("number"))
             open_keys.add(ikey)
             entry = stored.get(ikey)
             if _is_due(item, entry if isinstance(entry, dict) else None, now):
-                due.append((crew, item))
+                due.append((steward, item))
 
-    # A mark for an item that is no longer open is dead weight — a crew that works
+    # A mark for an item that is no longer open is dead weight — a steward that works
     # for a month would otherwise carry every issue it ever finished in a file it
     # rewrites every minute. Dropping it also makes a REOPENED item re-seed, which
     # is right: its old fingerprint describes a different state of the world.
@@ -1637,7 +1741,7 @@ async def sweep_repo(app: Any, key: provider.RepoKey, root: Path | None = None) 
     # The dependency graph for the whole repo, read ONCE per sweep. Without a
     # refresh here the signal only works while someone keeps visiting /deps: a
     # headless gateway would fingerprint the same stale blocker states forever
-    # and a merged blocker would never wake its crew. So an absent or expired
+    # and a merged blocker would never wake its steward. So an absent or expired
     # cache is refreshed IN the sweep — one bounded batched fetch per repo per
     # cycle (the same batched GraphQL walk the route uses, ~1 call per 100 open
     # issues), gated on there being due items at all. A failed refresh keeps the
@@ -1645,13 +1749,13 @@ async def sweep_repo(app: Any, key: provider.RepoKey, root: Path | None = None) 
     # unlock — fail-closed, exactly like an unknown reading.
     deps = await asyncio.to_thread(partial(_read_or_refresh_deps, key, scope))
 
-    # Pass 2 — fingerprint each due item, compare, then wake each crew ONCE.
+    # Pass 2 — fingerprint each due item, compare, then wake each steward ONCE.
     woken: dict[str, Any] = {}
     reasons: dict[str, list[str]] = {}
-    crews_by_id = {str(c.get("id")): c for c in live}
-    for crew, item in due:
-        crew_id = str(crew.get("id"))
-        ikey = _item_key(crew_id, item.get("number"))
+    stewards_by_id = {str(c.get("id")): c for c in live}
+    for steward, item in due:
+        steward_id = str(steward.get("id"))
+        ikey = _item_key(steward_id, item.get("number"))
         entry = stored.get(ikey) if isinstance(stored.get(ikey), dict) else None
         prev = (entry or {}).get("fp") if isinstance((entry or {}).get("fp"), dict) else None
         try:
@@ -1660,7 +1764,7 @@ async def sweep_repo(app: Any, key: provider.RepoKey, root: Path | None = None) 
             # A per-item failure leaves its mark UNTOUCHED, so the change is still
             # pending next cycle rather than being silently consumed by the error.
             logger.warning(
-                "issue-radar crew sweep failed for %s#%s",
+                "issue-radar steward sweep failed for %s#%s",
                 key.owner,
                 item.get("number"),
                 exc_info=True,
@@ -1670,28 +1774,28 @@ async def sweep_repo(app: Any, key: provider.RepoKey, root: Path | None = None) 
         stored[ikey] = {"fp": fp, "checked_at": now}
         if not signals:
             continue
-        woken.setdefault(crew_id, []).extend(signals)
-        reasons.setdefault(crew_id, []).append(f"#{item.get('number')} {', '.join(signals)}")
+        woken.setdefault(steward_id, []).extend(signals)
+        reasons.setdefault(steward_id, []).append(f"#{item.get('number')} {', '.join(signals)}")
 
     await asyncio.to_thread(partial(write_signals, key.owner, key.repo, stored, scope))
 
-    # ONE wake per crew, carrying every reason. Two items signalling in the same
+    # ONE wake per steward, carrying every reason. Two items signalling in the same
     # sweep is one turn's worth of work, and the second call would be dropped as
-    # mid-turn anyway — so the crew would have been told about only the first.
+    # mid-turn anyway — so the steward would have been told about only the first.
     if state is not None:
-        for crew_id, why in reasons.items():
+        for steward_id, why in reasons.items():
             try:
-                await wake_crew(
+                await wake_steward(
                     state,
                     key.owner,
                     key.repo,
-                    crews_by_id[crew_id],
+                    stewards_by_id[steward_id],
                     "; ".join(why),
                     scope,
                     key,
                 )
             except Exception:  # pragma: no cover - defensive
-                logger.warning("issue-radar: waking crew %s failed", crew_id, exc_info=True)
+                logger.warning("issue-radar: waking steward %s failed", steward_id, exc_info=True)
     return woken
 
 
@@ -1712,7 +1816,7 @@ async def _enrich(key: provider.RepoKey, prs: list[int]) -> dict[int, dict[str, 
     except Exception:
         # Best-effort, like every other enrichment caller: an unknown rollup reads
         # as None, which `detect_unblocks` refuses to interpret as a CI change.
-        logger.debug("issue-radar: crew sweep enrichment failed", exc_info=True)
+        logger.debug("issue-radar: steward sweep enrichment failed", exc_info=True)
         return {}
     out: dict[int, dict[str, Any]] = {}
     for row in enriched or []:

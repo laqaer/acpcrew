@@ -23,7 +23,7 @@ from datetime import datetime, timedelta
 import pytest
 
 from junction.apps.builtins.desk_companion.reminders import parse_iso, to_iso
-from junction.apps.builtins.desk_companion.store import CompanionStore
+from junction.apps.builtins.desk_companion.store import REMINDERS_FILENAME, CompanionStore
 
 
 class Clock:
@@ -206,7 +206,7 @@ class TestNonFiniteStoredNumbersDoNotAbortStartup:
         OverflowError — which the restore's except clause did not catch, so a
         single corrupt row aborted the whole gateway startup. The row must be
         dropped and everything else load normally."""
-        path = tmp_path / "crew-companion-reminders.json"
+        path = tmp_path / REMINDERS_FILENAME
         path.write_text(
             json.dumps(
                 {

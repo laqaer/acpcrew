@@ -3001,7 +3001,7 @@ async def test_grant_holds_the_app_lifecycle_lock_across_validate_and_write(
 class TestDisablingAnAppStandsItsWorkersDownInTheRequest:
     """The off-switch must stop in-process workers NOW, not on their next poll.
 
-    An app whose workers hold something time-bounded — Issue Radar's crews hold an
+    An app whose workers hold something time-bounded — Issue Radar's stewards hold an
     auto-approval grant — can otherwise act once more in the gap between the
     operator's click and the app's next sweep. At a 60s poll that is a whole
     fully-approved turn taken after permission was withdrawn.

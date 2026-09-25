@@ -6,7 +6,7 @@ import SidePanelLayout from '../components/SidePanelLayout'
 import { SUBNAV_PARAM, SUBNAV_LEGACY_PARAMS, deleteSubSelection, toPathSegment, parsePathSegments } from '../components/subNavParams'
 import { useSettingHighlight } from '../hooks/useSettingHighlight'
 import { BrowserPanel } from './settings/BrowserPanel'
-import { RemoteCrewPanel } from './settings/RemoteInstancesPanel'
+import { RemoteInstancesPanel } from './settings/RemoteInstancesPanel'
 import { isEmbeddedPane } from '../lib/embedded'
 import { DisplayPanel } from './settings/DisplayPanel'
 import { ChatPanel } from './settings/ChatPanel'
@@ -225,7 +225,7 @@ export default function SettingsPage() {
         {tab === 'browser' && <BrowserPanel />}
         {tab === 'computer-use' && <ComputerUsePanel />}
         {tab === 'webhooks' && <WebhooksPanel />}
-        {tab === 'instances' && !embedded && <RemoteCrewPanel />}
+        {tab === 'instances' && !embedded && <RemoteInstancesPanel />}
         {tab === 'privacy' && <PrivacyPanel />}
         {tab === 'security' && <SecurityPanel basePath={SETTINGS_BASE_PATH} />}
         {tab === 'secrets' && <SecretsPanel />}

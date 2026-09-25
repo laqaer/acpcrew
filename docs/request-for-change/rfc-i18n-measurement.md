@@ -257,7 +257,7 @@ update notifications (`website/electron/main.js:2040-2042`) are hardcoded.
 - Glossary is **19 DNT terms, 3 of them dead** (`Node.js`, `TypeScript`, `npm`
   have zero source hits), inspecting ~4.6% of the corpus. It
   is a do-not-translate absence gate, not a TMS glossary: there is no source→target
-  mapping, so `workspace`/`session`/`crew`/`artifact`/`skill` have no consistency
+  mapping, so `workspace`/`session`/`agent`/`artifact`/`skill` have no consistency
   enforcement.
 - `bn` and `pt` style tests skip register entirely (তুমি/আপনি, você/tu/o senhor)
   while the structurally identical `hi` rule *is* tested.

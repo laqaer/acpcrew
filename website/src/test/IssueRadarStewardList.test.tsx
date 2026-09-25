@@ -1,32 +1,32 @@
 /**
- * CrewList — column 2 of the crews surface.
+ * StewardList — column 2 of the stewards surface.
  *
- * What is asserted, and what deliberately is not: the roster is queried by CREW
+ * What is asserted, and what deliberately is not: the roster is queried by STEWARD
  * NAME (data the test supplies) and by test id, never by rendered English. The
- * `apps.issueRadar.views.crews.*` catalog keys are populated in a separate change,
+ * `apps.issueRadar.views.stewards.*` catalog keys are populated in a separate change,
  * so an assertion on copy here would be an assertion about the state of the
  * translation files rather than about this component.
  */
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { render, screen } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
-import type { Crew } from '../apps/issue-radar/api'
+import type { Steward } from '../apps/issue-radar/api'
 
 const ctx = { value: {} as Record<string, unknown> }
 vi.mock('../apps/issue-radar/context', () => ({
   useIssueRadar: () => ctx.value,
 }))
 
-const CrewList = (await import('../apps/issue-radar/components/StewardList')).default
+const StewardList = (await import('../apps/issue-radar/components/StewardList')).default
 
-const setCrewView = vi.fn()
-const setCrewFilter = vi.fn()
+const setStewardView = vi.fn()
+const setStewardFilter = vi.fn()
 const onCreate = vi.fn()
 
-/** A crew record with only the fields this list reads; `status` is the field the
- * crews ROUTE adds on top of the store record (see `_crew_status` in
+/** A steward record with only the fields this list reads; `status` is the field the
+ * stewards ROUTE adds on top of the store record (see `_steward_status` in
  * `steward_routes.py`), which is why it is cast rather than declared. */
-const crew = (over: Partial<Crew> & { status?: string }): Crew => ({
+const steward = (over: Partial<Steward> & { status?: string }): Steward => ({
   schema: 1,
   id: 'c1',
   name: 'Andromeda',
@@ -47,132 +47,132 @@ const crew = (over: Partial<Crew> & { status?: string }): Crew => ({
   created_at: '2026-08-01T00:00:00Z',
   retired_at: null,
   ...over,
-} as Crew)
+} as Steward)
 
 const ROSTER = [
-  crew({ id: 'c1', name: 'Andromeda', status: 'working', labels: ['area: dashboard'] }),
-  crew({ id: 'c2', name: 'Whirlpool', status: 'idle' }),
-  crew({ id: 'c3', name: 'Triangulum', status: 'paused', enabled: false, paused_reason: 'Paused by you' }),
+  steward({ id: 'c1', name: 'Andromeda', status: 'working', labels: ['area: dashboard'] }),
+  steward({ id: 'c2', name: 'Whirlpool', status: 'idle' }),
+  steward({ id: 'c3', name: 'Triangulum', status: 'paused', enabled: false, paused_reason: 'Paused by you' }),
 ]
 
 beforeEach(() => {
   vi.clearAllMocks()
   ctx.value = {
-    crews: ROSTER,
-    crewsLoading: false,
-    crewsError: null,
-    crewView: { kind: 'crew', id: 'c1' },
-    setCrewView,
+    stewards: ROSTER,
+    stewardsLoading: false,
+    stewardsError: null,
+    stewardView: { kind: 'steward', id: 'c1' },
+    setStewardView,
     // Selecting a row also drills into the detail on a narrow viewport, so the
     // fake context has to carry the pane state the real one hosts.
     listDetail: { isMobile: false, showList: true, showDetail: true, openDetail: vi.fn(), closeDetail: vi.fn() },
-    crewFilter: 'all',
-    setCrewFilter,
+    stewardFilter: 'all',
+    setStewardFilter,
     // The sort controls live in the rail; this column only applies the result.
-    crewSortKey: 'status',
-    crewSortDir: 'asc',
+    stewardSortKey: 'status',
+    stewardSortDir: 'asc',
   }
 })
 
-describe('CrewList', () => {
-  it('marks the selected crew as current, not merely styled', () => {
+describe('StewardList', () => {
+  it('marks the selected steward as current, not merely styled', () => {
     // aria-current is what a screen reader announces; a background colour alone
     // leaves the selection invisible to one.
-    ctx.value = { ...ctx.value, crewView: { kind: 'crew', id: 'c2' } }
-    render(<CrewList onCreate={onCreate} />)
-    expect(screen.getByTestId('crew-row-c2').getAttribute('aria-current')).toBe('page')
-    expect(screen.getByTestId('crew-row-c1').getAttribute('aria-current')).toBeNull()
+    ctx.value = { ...ctx.value, stewardView: { kind: 'steward', id: 'c2' } }
+    render(<StewardList onCreate={onCreate} />)
+    expect(screen.getByTestId('steward-row-c2').getAttribute('aria-current')).toBe('page')
+    expect(screen.getByTestId('steward-row-c1').getAttribute('aria-current')).toBeNull()
   })
 
-  it('selecting a row addresses that crew by id', async () => {
-    render(<CrewList onCreate={onCreate} />)
+  it('selecting a row addresses that steward by id', async () => {
+    render(<StewardList onCreate={onCreate} />)
     await userEvent.click(screen.getByText('Whirlpool'))
-    expect(setCrewView).toHaveBeenCalledWith({ kind: 'crew', id: 'c2' })
+    expect(setStewardView).toHaveBeenCalledWith({ kind: 'steward', id: 'c2' })
   })
 
   it('offers the create control above the roster, and only reports the intent', async () => {
-    // This column owns the ONE way to hire a crew; the dialog itself lives in
+    // This column owns the ONE way to create a steward; the dialog itself lives in
     // Workspace, so the button must not try to open anything itself.
-    render(<CrewList onCreate={onCreate} />)
-    const create = screen.getByTestId('crew-create')
-    const first = screen.getByTestId('crew-row-c1')
-    // DOCUMENT_POSITION_FOLLOWING — the first crew comes after the control.
+    render(<StewardList onCreate={onCreate} />)
+    const create = screen.getByTestId('steward-create')
+    const first = screen.getByTestId('steward-row-c1')
+    // DOCUMENT_POSITION_FOLLOWING — the first steward comes after the control.
     expect(create.compareDocumentPosition(first) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
     await userEvent.click(create)
     expect(onCreate).toHaveBeenCalledTimes(1)
-    expect(setCrewView).not.toHaveBeenCalled()
+    expect(setStewardView).not.toHaveBeenCalled()
   })
 
   it('keeps the create control reachable under a filter that hides every row', () => {
     // Hiring is how an empty or fully-filtered roster is recovered from, so it
     // cannot be filtered away with the rows.
-    ctx.value = { ...ctx.value, crews: [ROSTER[0]], crewFilter: 'paused' }
-    const { unmount } = render(<CrewList onCreate={onCreate} />)
-    expect(screen.queryByTestId('crew-row-c1')).toBeNull()
-    expect(screen.getByTestId('crew-create')).toBeTruthy()
+    ctx.value = { ...ctx.value, stewards: [ROSTER[0]], stewardFilter: 'paused' }
+    const { unmount } = render(<StewardList onCreate={onCreate} />)
+    expect(screen.queryByTestId('steward-row-c1')).toBeNull()
+    expect(screen.getByTestId('steward-create')).toBeTruthy()
     unmount()
 
-    // And on a repo with no crews at all, where it is the only thing to do.
-    ctx.value = { ...ctx.value, crews: [], crewFilter: 'all' }
-    render(<CrewList onCreate={onCreate} />)
-    expect(screen.getByTestId('crew-create')).toBeTruthy()
+    // And on a repo with no stewards at all, where it is the only thing to do.
+    ctx.value = { ...ctx.value, stewards: [], stewardFilter: 'all' }
+    render(<StewardList onCreate={onCreate} />)
+    expect(screen.getByTestId('steward-create')).toBeTruthy()
   })
 
   it('orders the roster by the active sort and flips with its direction', () => {
     // The CONTROLS moved to the rail, but applying the order is still this
-    // column's job. Ascending `status` is the activity order — a crew with work in
+    // column's job. Ascending `status` is the activity order — a steward with work in
     // flight leads, and a paused one sinks.
-    ctx.value = { ...ctx.value, crewSortKey: 'status', crewSortDir: 'asc' }
-    const { unmount } = render(<CrewList onCreate={onCreate} />)
-    const idsOf = () => screen.getAllByTestId(/^crew-row-c/).map((n) => n.getAttribute('data-testid'))
+    ctx.value = { ...ctx.value, stewardSortKey: 'status', stewardSortDir: 'asc' }
+    const { unmount } = render(<StewardList onCreate={onCreate} />)
+    const idsOf = () => screen.getAllByTestId(/^steward-row-c/).map((n) => n.getAttribute('data-testid'))
     const asc = idsOf()
     unmount()
 
-    ctx.value = { ...ctx.value, crewSortDir: 'desc' }
-    render(<CrewList onCreate={onCreate} />)
+    ctx.value = { ...ctx.value, stewardSortDir: 'desc' }
+    render(<StewardList onCreate={onCreate} />)
     expect(idsOf()).toEqual([...asc].reverse())
   })
 
-  it('the Paused filter reads the crew record, so its rows match its count', () => {
+  it('the Paused filter reads the steward record, so its rows match its count', () => {
     // `paused` is derived from enabled/retired_at — the backend's own flag — rather
     // than from the single-valued `status`, which is what keeps the chip's tally and
     // the rows it shows in agreement.
-    ctx.value = { ...ctx.value, crewFilter: 'paused' }
-    render(<CrewList onCreate={onCreate} />)
-    expect(screen.getByTestId('crew-row-c3')).toBeTruthy()
-    expect(screen.queryByTestId('crew-row-c1')).toBeNull()
-    expect(screen.queryByTestId('crew-row-c2')).toBeNull()
+    ctx.value = { ...ctx.value, stewardFilter: 'paused' }
+    render(<StewardList onCreate={onCreate} />)
+    expect(screen.getByTestId('steward-row-c3')).toBeTruthy()
+    expect(screen.queryByTestId('steward-row-c1')).toBeNull()
+    expect(screen.queryByTestId('steward-row-c2')).toBeNull()
   })
 
-  it('a paused crew shows its reason rather than a generic label', () => {
-    render(<CrewList onCreate={onCreate} />)
+  it('a paused steward shows its reason rather than a generic label', () => {
+    render(<StewardList onCreate={onCreate} />)
     expect(screen.getByText('Paused by you')).toBeTruthy()
   })
 
   it('empties to the roster empty state, and to a filtered one when rows are hidden', () => {
-    const { unmount } = render(<CrewList onCreate={onCreate} />)
-    expect(screen.queryByTestId('crew-list-empty')).toBeNull()
+    const { unmount } = render(<StewardList onCreate={onCreate} />)
+    expect(screen.queryByTestId('steward-list-empty')).toBeNull()
     unmount()
 
-    // Nothing matches the filter, but the repo does have crews.
-    ctx.value = { ...ctx.value, crews: [ROSTER[0]], crewFilter: 'paused' }
-    const filtered = render(<CrewList onCreate={onCreate} />)
-    expect(screen.getByTestId('crew-list-empty')).toBeTruthy()
-    const filteredTitle = screen.getByTestId('crew-list-empty-title').textContent
+    // Nothing matches the filter, but the repo does have stewards.
+    ctx.value = { ...ctx.value, stewards: [ROSTER[0]], stewardFilter: 'paused' }
+    const filtered = render(<StewardList onCreate={onCreate} />)
+    expect(screen.getByTestId('steward-list-empty')).toBeTruthy()
+    const filteredTitle = screen.getByTestId('steward-list-empty-title').textContent
     filtered.unmount()
 
-    // No crews at all — a different message, since there is nothing to unfilter.
-    ctx.value = { ...ctx.value, crews: [], crewFilter: 'all' }
-    render(<CrewList onCreate={onCreate} />)
-    expect(screen.getByTestId('crew-list-empty-title').textContent).not.toBe(filteredTitle)
+    // No stewards at all — a different message, since there is nothing to unfilter.
+    ctx.value = { ...ctx.value, stewards: [], stewardFilter: 'all' }
+    render(<StewardList onCreate={onCreate} />)
+    expect(screen.getByTestId('steward-list-empty-title').textContent).not.toBe(filteredTitle)
   })
 
   it('surfaces a load failure instead of rendering an empty roster', () => {
-    ctx.value = { ...ctx.value, crews: [], crewsError: new Error('crew store unreadable') }
-    render(<CrewList onCreate={onCreate} />)
-    expect(screen.getByText('crew store unreadable')).toBeTruthy()
-    // An error is not an empty roster: offering the "you have no crews yet"
+    ctx.value = { ...ctx.value, stewards: [], stewardsError: new Error('steward store unreadable') }
+    render(<StewardList onCreate={onCreate} />)
+    expect(screen.getByText('steward store unreadable')).toBeTruthy()
+    // An error is not an empty roster: offering the "you have no stewards yet"
     // pitch here would invite creating one when the store simply could not be read.
-    expect(screen.queryByTestId('crew-list-empty')).toBeNull()
+    expect(screen.queryByTestId('steward-list-empty')).toBeNull()
   })
 })

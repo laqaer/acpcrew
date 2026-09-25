@@ -8,6 +8,7 @@ import logging
 from aiohttp import web
 
 from junction.config.loader import JunctionConfig
+from junction.dashboard.chat_folders import SLOT_MODE_MULTITASK
 from junction.dashboard.chat_persistence import save_slot_off_loop
 from junction.dashboard.chat_utils import (
     _sync_dashboard_slots,
@@ -114,8 +115,10 @@ async def api_chat_slot_fork(request: web.Request) -> web.Response:
     at_index = body.get("at_message_index")
     prompt = body.get("prompt")
     mode_override = body.get("mode")
-    if mode_override is not None and mode_override not in ("", "orchestrator", "crew"):
-        return web.json_response({"error": "mode must be '', 'orchestrator' or 'crew'"}, status=400)
+    if mode_override is not None and mode_override not in ("", "orchestrator", SLOT_MODE_MULTITASK):
+        return web.json_response(
+            {"error": f"mode must be '', 'orchestrator' or '{SLOT_MODE_MULTITASK}'"}, status=400
+        )
     direction = body.get("direction", _FORK_DIRECTION_HEAD)
     if direction not in _FORK_DIRECTIONS:
         return web.json_response(

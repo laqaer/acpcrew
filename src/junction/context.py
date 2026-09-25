@@ -1172,18 +1172,46 @@ def _critical_rules_for(session_key: str | None, runtime_source: str | None) -> 
 # a cold JSON scan there would be a per-turn cost; memoize by agent name. Staleness
 # within a process is acceptable — the same trade the un-cached ``_load_agent_prompt``
 # read already makes (an agent's spec is not edited mid-process in practice).
-_INCLUDE_CREW_CONTEXT_CACHE: dict[str, bool] = {}
+_INCLUDE_JUNCTION_CONTEXT_CACHE: dict[str, bool] = {}
+
+#: Agent-spec key a custom agent sets to ``false`` to opt out of the
+#: dashboard-contract context.
+INCLUDE_JUNCTION_CONTEXT_KEY = "includeJunctionContext"
+
+#: Earlier Junction builds documented the opt-out under this key, and agent specs
+#: in kiro-cli's shared ``~/.kiro/agents/`` (user- and app-authored) still carry
+#: it. It is read so an agent that opted out stays opted out: ignoring it would
+#: fail permissive, re-injecting ``_CRITICAL_RULES`` into an agent that declared
+#: it does not want them. :data:`INCLUDE_JUNCTION_CONTEXT_KEY` wins when a spec
+#: sets both.
+LEGACY_INCLUDE_CONTEXT_KEY = "includeCrewContext"
 
 
-def _read_include_crew_context(agent: str) -> bool:
-    """Read ``includeCrewContext`` from *agent*'s materialized JSON. True on any miss.
+def _include_context_flag(spec: dict) -> bool:
+    """The opt-out flag a matched agent spec declares; ``True`` when it declares none.
+
+    Only an explicit boolean counts. :data:`INCLUDE_JUNCTION_CONTEXT_KEY` is
+    consulted first and :data:`LEGACY_INCLUDE_CONTEXT_KEY` second, so the current
+    key wins when both are set, and a non-boolean current key does not mask an
+    explicit legacy ``false``.
+    """
+    for key in (INCLUDE_JUNCTION_CONTEXT_KEY, LEGACY_INCLUDE_CONTEXT_KEY):
+        val = spec.get(key)
+        if isinstance(val, bool):
+            return val
+    return True
+
+
+def _read_include_junction_context(agent: str) -> bool:
+    """Read ``includeJunctionContext`` from *agent*'s materialized JSON. True on any miss.
 
     Reuses ``_load_agent_prompt``'s sensitive-path-gated scan: skip ``._`` macOS
     sidecars, ``resolve(strict=True)``, refuse a sensitive resolved target, tolerate
     ``ValueError``/``OSError``, and match on the declared ``name`` (or the filename
     stem). Returns ``True`` unless the matched spec carries an explicit boolean
-    ``false`` — an absent flag, a non-boolean value, a missing/unreadable spec, or a
-    directory error all default to injecting, reproducing the pre-opt-out behavior.
+    ``false`` (see :func:`_include_context_flag`, which also honours
+    :data:`LEGACY_INCLUDE_CONTEXT_KEY`) — an absent flag, a non-boolean value, a
+    missing/unreadable spec, or a directory error all default to injecting.
     """
     try:
         candidates = kiro_agents_dir().glob("*.json")
@@ -1207,35 +1235,33 @@ def _read_include_crew_context(agent: str) -> bool:
             if not isinstance(data, dict):
                 continue
             if data.get("name") == agent or f.stem == agent:
-                val = data.get("includeCrewContext", True)
-                # Honor only an explicit boolean; anything else defaults to inject.
-                return val if isinstance(val, bool) else True
+                return _include_context_flag(data)
         except (OSError, ValueError):
             continue
     return True
 
 
-def _agent_includes_crew_context(agent: str | None) -> bool:
-    """Whether to inject the Crew's dashboard-contract context for *agent*.
+def _agent_includes_junction_context(agent: str | None) -> bool:
+    """Whether to inject Junction's dashboard-contract context for *agent*.
 
     Opt-out, defaulting to inject. The built-in ``junction`` agent and an empty
     agent always return ``True`` (never a custom agent, so nothing to opt out of).
     A CUSTOM agent injects unless its materialized JSON explicitly sets
-    ``includeCrewContext: false`` — so a plain custom agent with no flag still gets
-    the critical rules, exactly as it did before the opt-out existed. Memoized by
-    agent name to keep the per-turn ``build_message`` read off the JSON scan path.
+    ``includeJunctionContext: false`` — so a plain custom agent with no flag still
+    gets the critical rules. Memoized by agent name to keep the per-turn
+    ``build_message`` read off the JSON scan path.
     """
     if not agent or agent == "junction":
         return True
-    cached = _INCLUDE_CREW_CONTEXT_CACHE.get(agent)
+    cached = _INCLUDE_JUNCTION_CONTEXT_CACHE.get(agent)
     if cached is None:
-        cached = _read_include_crew_context(agent)
-        _INCLUDE_CREW_CONTEXT_CACHE[agent] = cached
+        cached = _read_include_junction_context(agent)
+        _INCLUDE_JUNCTION_CONTEXT_CACHE[agent] = cached
     return cached
 
 
-def invalidate_include_crew_context_cache() -> None:
-    """Drop the memoized ``includeCrewContext`` reads.
+def invalidate_include_junction_context_cache() -> None:
+    """Drop the memoized ``includeJunctionContext`` reads.
 
     Called when the materialized-agent snapshot is rescanned
     (``refresh_materialized_agents``): an app install/upgrade rewrites an agent's
@@ -1245,7 +1271,7 @@ def invalidate_include_crew_context_cache() -> None:
     exact restart-heals failure class this fix exists to remove. Clearing forces
     the next ``build_session_context`` / ``build_message`` to re-read the flag.
     """
-    _INCLUDE_CREW_CONTEXT_CACHE.clear()
+    _INCLUDE_JUNCTION_CONTEXT_CACHE.clear()
 
 
 # Regex patterns for noise compression in assistant messages
@@ -2095,7 +2121,7 @@ class ContextBuilder:
         skipped — the agent loads its own prompt via kiro-cli. The dashboard
         critical-rules contract is injected by DEFAULT for every agent, but a
         custom agent can opt out of it (and the dashboard tool nudges) by setting
-        ``includeCrewContext: false`` in its materialized JSON. Memory, lessons,
+        ``includeJunctionContext: false`` in its materialized JSON. Memory, lessons,
         and hooks are injected for all agents.
         """
         is_custom = agent and agent != "junction"
@@ -2160,12 +2186,12 @@ class ContextBuilder:
         # conflicts with that contract and — on a safety-tuned model — reads as
         # an attempt to override the agent's identity, which the model then
         # refuses as prompt injection. The opt-out is per-agent via
-        # ``includeCrewContext: false``; DEFAULT is to inject (a plain custom
+        # ``includeJunctionContext: false``; DEFAULT is to inject (a plain custom
         # agent with no flag still gets the rules, same as the built-in). The
         # tags still RENDER for any agent that emits them (the dashboard parses
         # them regardless); this only stops the host from MANDATING them where an
         # agent has declared it does not want them.
-        if _agent_includes_crew_context(agent):
+        if _agent_includes_junction_context(agent):
             parts.append(_critical_rules_for(session_key, runtime_source))
 
         # Current date/time — inject for ALL agents so the LLM knows "today".
@@ -3096,7 +3122,7 @@ class ContextBuilder:
                 # attributable_user_chars() already states for the sibling
                 # @prompt replacement (credit 0). Claiming the whole replacement,
                 # as a rewriting hook legitimately does, would report generated
-                # instructions as the user's own words and underreport Crew-added
+                # instructions as the user's own words and underreport Junction-added
                 # context in the per-turn breakdown.
                 _u0, _u1 = _quick_at, _quick_at
             elif hook_result.action == HOOK_MODIFY:
@@ -3132,13 +3158,13 @@ class ContextBuilder:
             # MCP Tool Search. Gated on having a dashboard tab open, because
             # both tools need a card surface to render into — which a
             # channel-born session has whenever its tab is open. Also gated on
-            # the agent's opt-out: a custom agent that set includeCrewContext=false
-            # wants none of the Crew's dashboard-tool nudges (it drives its own
+            # the agent's opt-out: a custom agent that set includeJunctionContext=false
+            # wants none of Junction's dashboard-tool nudges (it drives its own
             # UI through its MCP tools), so honor that here too, not just for
             # _CRITICAL_RULES.
             # ask_question is a MID-turn blocking decision; [OPTIONS:] remains
             # the cheaper END-turn choice mechanism on every interactive surface.
-            if has_dashboard_surface(session_key or "") and _agent_includes_crew_context(agent):
+            if has_dashboard_surface(session_key or "") and _agent_includes_junction_context(agent):
                 parts.append(
                     "\n\n(If you need the user's answer to a blocking question BEFORE "
                     "you can continue the current turn, use the ask_question tool — it "

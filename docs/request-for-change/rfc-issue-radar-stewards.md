@@ -1,5 +1,5 @@
 ---
-title: Issue Radar Crews — autonomous issue workers with a public claim ledger
+title: Issue Radar Stewards — autonomous issue workers with a public claim ledger
 status: draft
 revision: v1
 author: junction agent session, directed by diwm
@@ -12,24 +12,24 @@ tracking-issues: []
 supersedes: []
 superseded-by: []
 ---
-# RFC: Issue Radar Crews — autonomous issue workers with a public claim ledger
+# RFC: Issue Radar Stewards — autonomous issue workers with a public claim ledger
 
 Status: draft. Nothing in this document exists on main. Every code reference below
 was read at `5adec8c58` and re-verified unchanged at `f2aa4c8bb`, the commit
 implementation starts from.
 
-**Disambiguation.** "Crews" already names two other things in this repository: the
-agent-template roster at `/capabilities` → Crews (`website/src/pages/JunctionAgentsPage.tsx`),
-and "Crew Mode" in `rfc-orchestrator-chat-sessions.md`. This RFC's crews are
-neither. A crew here is a long-lived worker session that works one repository's
-open issues. The name is kept because it is the one the feature will be called;
-its i18n keys live under `apps.issueRadar.views.crews.*` so nothing collides.
+**Disambiguation.** A steward is a long-lived worker session that works one
+repository's open issues. It is not an entry in the agent roster at `/capabilities` →
+Agents (`website/src/pages/JunctionAgentsPage.tsx`), although every steward runs as
+one of those agents, and it is not Multitask Mode from
+`rfc-orchestrator-chat-sessions.md`, which fans one chat out into parallel topic
+sessions. Its i18n keys live under `apps.issueRadar.views.stewards.*`.
 
 ---
 
 ## 1. Summary
 
-A **crew** is a named, avatared worker that continuously watches one repository's
+A **steward** is a named, avatared worker that continuously watches one repository's
 open issues. It picks up work inside a label scope, investigates, replies to
 requesters, implements fixes, opens pull requests, drives them to green, resolves
 merge conflicts, and waits for merge. When the next step is a judgement that is
@@ -38,12 +38,12 @@ thinks somebody has to make, in a comment on the issue, labels the issue with a
 configurable label, records the pass, releases its claim and moves to the next
 issue.
 
-A crew is implemented as a dashboard chat session plus a scheduler. Coordination
-between crews — including crews belonging to other people — runs through a single
-public comment on each issue, edited in place, plus a `crew:` label as a cheap
+A steward is implemented as a dashboard chat session plus a scheduler. Coordination
+between stewards — including stewards belonging to other people — runs through a single
+public comment on each issue, edited in place, plus a `steward:` label as a cheap
 index.
 
-Two surfaces are added to the Issue Radar app — a **per-crew page** and a
+Two surfaces are added to the Issue Radar app — a **per-steward page** and a
 **create/edit dialog** — plus a protocol card on the app's existing Settings page.
 They mount as a fourth `MainView`, so the app's existing three-column shell
 carries them unchanged. There is deliberately no human inbox: nothing queues for a
@@ -51,7 +51,7 @@ human, so there would be nothing for one to show.
 
 Two companion documents carry the detail this one deliberately does not repeat:
 
-- `src/junction/apps/builtins/issue_radar/backend/steward_brief.md` — the crew's
+- `src/junction/apps/builtins/issue_radar/backend/steward_brief.md` — the steward's
   behavioural contract, delivered to the model verbatim.
 - `src/junction/apps/builtins/issue_radar/backend/steward_ledger_spec.md` — record
   schemas, the phase enum, the event log, and the two MCP tools.
@@ -75,23 +75,23 @@ Junction issues found:
 Two consequences shape the whole design. First, **deduplication is the highest-value
 step**, not implementation — so it is a mandatory part of investigation, performed
 before any claim is made. Second, **"skipped — duplicate of #2240, already fixed on
-main" is a successful turn**, and the UI must present it that way, or a crew told to
+main" is a successful turn**, and the UI must present it that way, or a steward told to
 keep working will manufacture work.
 
 Throughput is measured in hours per issue, not minutes. A full implement-to-merged
 cycle in this repository routinely takes 4–8 CI rounds across several hours. The
-per-crew page therefore shows *phase and next step*, not a velocity number.
+per-steward page therefore shows *phase and next step*, not a velocity number.
 
-## 3. What a crew is at runtime
+## 3. What a steward is at runtime
 
 | Element | Mechanism |
 |---|---|
-| Identity | a crew record under `repos/<owner>/<repo>/crews/<id>.json` |
-| Execution | one dashboard `_ChatSlot`, key `crew-<id>` |
+| Identity | a steward record under `repos/<owner>/<repo>/stewards/<id>.json` |
+| Execution | one dashboard `_ChatSlot`, key `steward-<id>` |
 | Behaviour | `steward_brief.md`, injected into the conversation (§9) |
 | Memory across turns | the ledger, not the transcript (§10) |
 | Clock | the Issue Radar watcher (§4) |
-| Backstop clock | AutoNudge, only when the watcher has nothing and the crew stalled |
+| Backstop clock | AutoNudge, only when the watcher has nothing and the steward stalled |
 | Authorisation | per-slot trust, re-established every cycle |
 | Workspace | one git worktree per issue |
 
@@ -100,40 +100,40 @@ The closest existing precedent is `auto_research`
 dashboard slot, an autonudge loop, per-slot trust, a STOP sentinel, and a TTL
 watchdog. That launch sequence is the one to copy.
 
-A crew is scoped to **one repository**. Issue Radar is repo-first — you select a
-repo, then create crews inside it — so there is no repo field on the crew.
-Crew names are unique per repository.
+A steward is scoped to **one repository**. Issue Radar is repo-first — you select a
+repo, then create stewards inside it — so there is no repo field on the steward.
+Steward names are unique per repository.
 
 ## 4. Scheduling: the watcher is the clock
 
-A crew should always have something to do. While one issue waits on CI, it should
+A steward should always have something to do. While one issue waits on CI, it should
 advance another. That is a scheduling property, not an agent property, and it is
 worth stating plainly what cannot be done:
 
 **A turn cannot be made not to end.** The turn ends when the model stops emitting
 tool calls, and `agent.chat_turn_timeout_secs` caps it at 7200s (default and
 maximum; config range 300–7200, `config/loader.py:2666`, clamped against the ACP
-prompt timeout at `acp/client.py:676`). A crew working three issues across six
+prompt timeout at `acp/client.py:676`). A steward working three issues across six
 hours is therefore many turns, and something must start each one.
 
-That something is the **Issue Radar watcher**, extended into the crew scheduler.
+That something is the **Issue Radar watcher**, extended into the steward scheduler.
 It is the only always-on loop in the app: `watch.py:_watch_loop` runs on
 `app.on_startup` at `POLL_INTERVAL_SEC = 60`. Everything else in the app —
 including the probe-coalescing and staleness machinery in `routes.py`
 (`_PROBE_COALESCE_SEC`, `LIST_POLL_MAX_STALENESS_SEC`) — is driven by HTTP
 requests from the frontend, so **with no tab open, none of it runs and none of its
-caches are fresh**. A crew cannot trust them.
+caches are fresh**. A steward cannot trust them.
 
-The watcher gains a zero-LLM sweep over every crew's open work items, comparing
-the six unblock signals (§6). When a signal changes, it wakes the owning crew.
+The watcher gains a zero-LLM sweep over every steward's open work items, comparing
+the six unblock signals (§6). When a signal changes, it wakes the owning steward.
 Two gates must be treated differently from today's behaviour:
 
-- `is_app_enabled(APP_NAME)` is kept — app disabled means crews stop.
+- `is_app_enabled(APP_NAME)` is kept — app disabled means stewards stop.
 - the per-repo `notify_on_new_issue` gate is **not** inherited. That is a
   notification preference, not a fetch switch.
 
 AutoNudge remains armed as the backstop for the case the watcher cannot see: the
-crew simply stopped. Its state is persisted (`~/.junction/autonudge.json`), it
+steward simply stopped. Its state is persisted (`~/.junction/autonudge.json`), it
 re-arms its timers on gateway start (`autonudge.py:456`), and its fire path
 rehydrates a non-resident slot before giving up (`gateway.py:3202`).
 
@@ -149,7 +149,7 @@ Every turn, in this order:
 3. **Advance** the single most advanceable item, in priority order: an item that
    was being edited → a merge conflict → CI turned red → new review comments →
    approved/mergeable → the requester replied → CI turned green.
-4. **Pick up new work** only if nothing above is advanceable and the crew is under
+4. **Pick up new work** only if nothing above is advanceable and the steward is under
    its open-item limit.
 5. **Write the ledger.** Always, including turns where nothing moved. Also at any
    checkpoint inside a turn that precedes something long.
@@ -162,7 +162,7 @@ gateway restart.
 
 | Signal | Source |
 |---|---|
-| requester replied | issue timeline, comments after the crew's own |
+| requester replied | issue timeline, comments after the steward's own |
 | CI state changed | PR check-runs + commit statuses |
 | approved / changes requested | PR reviews |
 | merge conflict appeared | PR `mergeable` / `mergeable_state` |
@@ -175,16 +175,16 @@ All six, or an item stalls silently.
 
 The tool is for a maintainer working their own repository, so a public comment is
 an acceptable coordination substrate. It is also the only one available: every
-GitHub write goes out as the operator's own `gh` identity — there is no per-crew
-GitHub identity, no PAT, no App (`github_client.py:1-14`) — so crews cannot be
+GitHub write goes out as the operator's own `gh` identity — there is no per-steward
+GitHub identity, no PAT, no App (`github_client.py:1-14`) — so stewards cannot be
 told apart by author, and attribution must live in the comment body.
 
 **Claim on commit, not on look.** Investigation leaves no trace and is free;
-a claim is a public comment. A crew reads, deduplicates and decides first, and only
+a claim is a public comment. A steward reads, deduplicates and decides first, and only
 then claims. This is what keeps the 37.5% duplicate rate from producing a comment
 on every duplicate.
 
-**One comment per crew per issue, edited in place.** Never a second comment.
+**One comment per steward per issue, edited in place.** Never a second comment.
 GitHub does not notify subscribers on an edit, so progress edits are silent where
 new comments would not be. Edit only on real progress.
 
@@ -200,47 +200,57 @@ implementing · PR #2271 · CI round 3 · updated 20:44 UTC
 
 </details>
 
-<!-- junction-crew v=1 id=c_7f3a phase=implementing pr=2271 updated=2026-08-08T20:44:12Z -->
+<!-- junction-steward v=1 id=c_7f3a phase=implementing pr=2271 updated=2026-08-08T20:44:12Z -->
 ```
 
 Two visible lines, history folded. The HTML comment is the machine payload, and
-`id` is the crew id rather than the name — a crew may be renamed and must still
+`id` is the steward id rather than the name — a steward may be renamed and must still
 recognise its own claim.
 
 **The format carries a version, because it is a public wire format.** Everything the
 marker expresses — the phase vocabulary, which phases age toward the TTL, the
-comment-id tie-break, the three `crew:` label names — is parsed by crews belonging to
+comment-id tie-break, the three `steward:` label names — is parsed by stewards belonging to
 *other people*, running a build of this app the local operator neither controls nor
 can upgrade. Without `v` that is a one-way door: no later change can be made
 compatibly and there is no channel through which to warn anyone. So `v=1` ships from
 the first release, and the rule for meeting an unknown one is **treat the claim as
 valid and live** — skip the issue, do not claim it, do not touch the comment, and
 never take it over. The two errors are not symmetric: reading an unknown marker as
-"not a claim" puts two crews on one issue, which no later step can undo, while
+"not a claim" puts two stewards on one issue, which no later step can undo, while
 reading it as a claim costs one candidate out of an unbounded backlog. That is the
 same asymmetry the label index already rests on. Within a version, keys may be added
 and unknown keys MUST be ignored; anything that changes an existing key's meaning,
 the phase vocabulary, the TTL basis, the tie-break or the label names needs a new
 `v`. Full rule in `steward_ledger_spec.md`.
 
-**The timestamp is written by the crew, in the body.** Not read from GitHub's
-`updated_at`, because that field moves on *any* edit — including a human fixing a
-typo in the crew's comment, which would silently renew a dead claim.
+**Claims under earlier spellings still count.** Earlier Junction builds wrote the
+claim marker and the claim labels under different names, held in
+`LEGACY_STEWARD_CLAIM_MARKER_NAMES` (`github_client.py`) and
+`LEGACY_CLAIM_LABEL_PREFIXES` (`steward_runtime.py`). They are read, never written:
+`find_steward_claim` parses a marker under the old name as a claim, and the brief tells
+a steward that an issue carrying an old-prefix label is claimed. Those claims stay on
+issues after an upgrade, on this install's repositories and on those of every install
+that has not upgraded yet, and a claim a steward could not see would put two stewards
+on one issue.
 
-**Tie-break.** Two crews in the same label scope can both finish investigating and
-claim within seconds. After posting, a crew re-reads the comments; if another
-crew's marker carries a lower comment id, it yields — editing its own comment to
+**The timestamp is written by the steward, in the body.** Not read from GitHub's
+`updated_at`, because that field moves on *any* edit — including a human fixing a
+typo in the steward's comment, which would silently renew a dead claim.
+
+**Tie-break.** Two stewards in the same label scope can both finish investigating and
+claim within seconds. After posting, a steward re-reads the comments; if another
+steward's marker carries a lower comment id, it yields — editing its own comment to
 say so rather than deleting it, because the yield is useful history — and picks
 again. Markers in a terminal phase (`resolved`, `skipped`, `yielded`, `handed-back`,
 `preempted`) are excluded from the ranking: a claim comment is edited rather than
 deleted, so a finished one is normally *older* than the live claim that replaced it
 and a caller taking the oldest marker unfiltered would pick the dead one every time.
 
-**TTL is phase-aware.** A claim ages only in the phases where the crew is supposed
+**TTL is phase-aware.** A claim ages only in the phases where the steward is supposed
 to be acting: `claimed`, `investigating`, `implementing`. `awaiting-ci`,
 `addressing-review` and `awaiting-merge` are exempt —
 an open PR is stronger evidence of a live claim than any
-heartbeat, and a crew waiting three days for a review makes no progress to record.
+heartbeat, and a steward waiting three days for a review makes no progress to record.
 Default TTL 48 hours. The exemption is conditional on the artifact that justifies
 it: a waiting-phase marker naming no PR, or naming one closed without the issue
 being resolved, has nothing standing in for a heartbeat and ages as though it were
@@ -256,60 +266,60 @@ read at all. The asymmetry that makes divergence safe:
 - label absent → still read the comments before claiming. A lost label cannot
   cause duplicate work.
 
-Three labels, created on first use via `create_label`: `crew: in progress`,
-`crew: needs decision`, `crew: awaiting reply`. No completion label — the issue is
+Three labels, created on first use via `create_label`: `steward: in progress`,
+`steward: needs decision`, `steward: awaiting reply`. No completion label — the issue is
 closed by the PR's `Fixes #N` and the PR link is already in the timeline.
 
-**Crews do not apply taxonomy labels.** `.github/workflows/issue-triage.yml`
+**Stewards do not apply taxonomy labels.** `.github/workflows/issue-triage.yml`
 labels every issue on `issues: opened`, from an allowlist-by-construction, and it
-only ever adds. So the crew's writable label set is exactly the `crew: ` prefix —
+only ever adds. So the steward's writable label set is exactly the `steward: ` prefix —
 which is also the entire label allowlist the backend has to enforce.
 
-**Release on a human-needed judgement.** A crew never holds an issue waiting for a
+**Release on a human-needed judgement.** A steward never holds an issue waiting for a
 person. The moment it concludes the next step is a decision or an investigation
 that is not its own, it comments with what it found and what decision is needed,
 applies the repo's configurable needs-human label, records the pass in the shared
 skip index with scope `needs-decision` or `needs-investigation`, removes its
-`crew:` label and edits its claim comment to a terminal phase. There is no window
+`steward:` label and edits its claim comment to a terminal phase. There is no window
 to expire, because nothing is held. The comment is the deliverable: a private
 block has become a public question, which is worth more to the human than a queue
 entry and costs the fleet nothing.
 
-**Dead-crew takeover closes the protocol's worst failure mode.** Hand-back is a
-live crew releasing its own claim, and it is the only release path a crew can be
-asked to perform. A crew that simply *dies* mid-claim performs none: its label and
-its comment persist, every other crew skips the issue on the label alone, and the
+**Dead-steward takeover closes the protocol's worst failure mode.** Hand-back is a
+live steward releasing its own claim, and it is the only release path a steward can be
+asked to perform. A steward that simply *dies* mid-claim performs none: its label and
+its comment persist, every other steward skips the issue on the label alone, and the
 TTL expires against nobody. Without an actor the TTL is decoration and one crashed
-process removes an issue from every crew's queue permanently.
+process removes an issue from every steward's queue permanently.
 
-The actor is the next crew that would otherwise have skipped the issue — there is
-no sweeper, and none can be assumed, because the other participants are crews on
+The actor is the next steward that would otherwise have skipped the issue — there is
+no sweeper, and none can be assumed, because the other participants are stewards on
 other people's machines. It is the one carved exception to "never edit another
-crew's comment", and it is deliberately narrow: the successor may remove the stale
-`crew:` label, **append** a takeover note, and set that marker's `phase` to
+steward's comment", and it is deliberately narrow: the successor may remove the stale
+`steward:` label, **append** a takeover note, and set that marker's `phase` to
 `preempted`. Nothing existing is rewritten or deleted, so the record stays
 auditable and exactly one marker on the issue reads as a live claim afterwards.
 
 The bar is evidence, not arithmetic, because `claim_ttl_hours` is a
-**per-installation** setting that the comment protocol does not communicate: a crew
+**per-installation** setting that the comment protocol does not communicate: a steward
 elsewhere may run a shorter TTL and think a live claim expired. So a takeover
 additionally requires that the issue has had **no activity of any kind** since the
 claimed timestamp — no comment, no cross-referenced commit or PR, no label change —
 and a compare-and-set immediately before the write, re-reading `updated` and
-aborting if it moved. Work a crew did but did not record still proves it is alive;
-the timestamp cannot see that and the issue's timeline can. A crew that later finds
+aborting if it moved. Work a steward did but did not record still proves it is alive;
+the timestamp cannot see that and the issue's timeline can. A steward that later finds
 `phase=preempted` on its own comment accepts it rather than contesting it. Full
 conditions in `steward_ledger_spec.md`.
 
 ## 8. Work isolation
 
 **One worktree per issue**, created at claim, path recorded in the work item.
-Branch `crew/<name>/issue-<n>`.
+Branch `steward/<name>/issue-<n>`.
 
-**At most one item in an editing phase per crew**, enforced by the store rather
+**At most one item in an editing phase per steward**, enforced by the store rather
 than asked for in the brief. Editing means a worktree with uncommitted changes.
 Two of them is how a fix for one issue gets committed onto another issue's branch,
-across a `cd` the crew has forgotten about, and it is close to undetectable
+across a `cd` the steward has forgotten about, and it is close to undetectable
 afterwards.
 
 Cost is real: a worktree of this repository measures **1.3 GB, of which 763 MB is
@@ -317,7 +327,7 @@ Cost is real: a worktree of this repository measures **1.3 GB, of which 763 MB i
 
 - Install frontend dependencies **only when the diff touches `website/`**. Most
   issues are backend-only. Never share or symlink `node_modules` between
-  worktrees — a rebase that moves `package-lock.json` leaves the crew testing
+  worktrees — a rebase that moves `package-lock.json` leaves the steward testing
   against a toolchain it does not have, and the resulting red looks exactly like
   inherited breakage.
 - Delete on `resolved` — not on green (a conflict may still arrive) and not on
@@ -331,11 +341,11 @@ succeed on retry (`non-fast-forward`, a real conflict).
 ## 9. Behaviour delivery and its cost
 
 The brief is **injected into the conversation by the backend**, so it works with
-whatever agent the user picked. No agent spec is shipped for crews, and nothing
+whatever agent the user picked. No agent spec is shipped for stewards, and nothing
 has to be pasted anywhere.
 
 **Injection is a presence check, not a schedule.** The backend scans
-`slot.messages` for the sentinel `<!-- junction-crew-brief v1 -->`, requiring the
+`slot.messages` for the sentinel `<!-- junction-steward-brief v1 -->`, requiring the
 carrying message to be at least as long as the brief so that a compaction summary
 quoting the sentinel is not a false hit. On a miss, inject. One rule covers session
 start, post-compaction, gateway restart, and any future truncation mechanism, with
@@ -354,7 +364,7 @@ own usage shards (3,241 records over 10 days):
 Anything appended to `slot.messages` **accumulates**: a nudge is appended as a user
 message (`state.py`, `enqueue_or_run_prompt`), and so is a tool result
 (`chat_runner.py:3668`). A brief re-sent on all ~80 turns of a day is therefore
-present ~80 times, costing about 0.5·N² ≈ **3,200 credits/day/crew** — three times
+present ~80 times, costing about 0.5·N² ≈ **3,200 credits/day/steward** — three times
 the entire real session above. Reading it from a file each turn is worse still: the
 tool result accumulates identically *and* costs an extra full-context round-trip.
 The 1M window means compaction does not rescue this early.
@@ -368,7 +378,7 @@ volatile snapshot. The injected brief is a *user* message, not a system prompt, 
 carries less authority for it; keeping the hard prohibitions adjacent to the
 instruction is the cheap way to buy that back.
 
-Per-crew `model` overrides whatever the chosen agent pins, since
+Per-steward `model` overrides whatever the chosen agent pins, since
 `get_or_create_slot` takes `model=`.
 
 ## 10. Storage
@@ -387,7 +397,7 @@ three phases; counting against `max_open` is every non-terminal phase *except*
 editing is `implementing` plus `addressing-review` with uncommitted
 changes. One boolean cannot express this.
 
-**Event text becomes public.** The event log feeds both the crew page's work log
+**Event text becomes public.** The event log feeds both the steward page's work log
 and the `<details>` list inside the public claim comment, so the stricter side
 governs: no absolute paths, no host names, nothing about the machine. Worktree
 paths live in the work item's own fields, which stay local. Redact on the way in,
@@ -402,14 +412,14 @@ GitHub write routes to anything holding the internal secret
 
 ## 11. UI
 
-Crews is a fourth `MainView`, not a dashboard tab. Dashboard tabs render full-width
+Stewards is a fourth `MainView`, not a dashboard tab. Dashboard tabs render full-width
 with no list column (`Workspace.tsx`), while `issues` and `pulls` render
 `list column + ResizeHandle + main` — which is the shape this feature needs.
 
 ```
 COLUMN 1 (nav only)   COLUMN 2 (list)        COLUMN 3
-CREWS            3    ▸ Andromeda    ●    the selected crew's page:
-  Crews               ▸ Whirlpool    ●    stats, open work, recent events
+STEWARDS         3    ▸ Andromeda    ●    the selected steward's page:
+  Stewards            ▸ Whirlpool    ●    stats, open work, recent events
 FILTERS               ▸ Pinwheel     ●
 PULL REQUESTS
 SETTINGS                                    (protocol settings live on the
@@ -419,12 +429,12 @@ SETTINGS                                    (protocol settings live on the
 This mirrors the Settings section's existing general-page-plus-per-item structure.
 State indicators live on the column-2 rows, as they do in `IssueList`; column 1
 stays navigation. Filter chips (All / Working / Needs you / Paused) sit in the
-column-2 header. Give the crew list its own width key rather than reusing
-`LIST_WIDTH_KEY`, or crew and issue column widths move together.
+column-2 header. Give the steward list its own width key rather than reusing
+`LIST_WIDTH_KEY`, or steward and issue column widths move together.
 
-There is no human inbox, and that is the point: a crew never queues work for a
+There is no human inbox, and that is the point: a steward never queues work for a
 person, so there is nothing for an inbox to hold. A judgement that is not the
-crew's becomes a comment on the issue and a labelled, indexed pass — visible where
+steward's becomes a comment on the issue and a labelled, indexed pass — visible where
 the issue already is, to anyone who looks at the repository, rather than only
 inside this app. The repo-wide protocol settings, including which label marks an
 issue as needing a human, live on the app's existing Settings page.
@@ -432,7 +442,7 @@ issue as needing a human, live on the app's existing Settings page.
 Registration is two files: `lib/types.ts` (`MainView`, `ExpandedSection`) and the
 `Workspace.tsx` branch.
 
-Evidence: `.github/screenshots/issue-radar-stewards/` — the crew list, the crew page,
+Evidence: `.github/screenshots/issue-radar-stewards/` — the steward list, the steward page,
 the create dialog and the protocol settings in both themes, plus a recording
 walking the flow end to end. Captured from the real built SPA by
 `website/scripts/capture-stewards.mjs` and `record-stewards.mjs`, which share their
@@ -449,7 +459,7 @@ through `components/AgentAvatar.tsx`. The generator emits SVG as a string and th
 components render it as a data-URI `<img>`, which keeps `AUTOSDE.yaml`'s
 `use-lucide-icons` rule (no inline `<svg viewBox>` in a `.tsx` file) satisfied.
 
-`avatar_seed` is stored **separately from `name`**, so renaming a crew keeps its
+`avatar_seed` is stored **separately from `name`**, so renaming a steward keeps its
 plate. An explicit `avatar_variant` pins one line colour.
 
 **Names are galaxies**, 24 of them, no two sharing their first two letters so a log
@@ -462,26 +472,26 @@ Mayall     Medusa    Pinwheel   Porpoise   Sculptor   Sombrero
 Spindle    Tadpole   Triangulum Tucana     Ursa       Whirlpool
 ```
 
-Allocation excludes every name ever used, **including retired crews** — a retired
-crew's work log and its check-in comments still carry its name, and reuse would
+Allocation excludes every name ever used, **including retired stewards** — a retired
+steward's work log and its check-in comments still carry its name, and reuse would
 make an old comment look like a live claim. Exhaustion degrades to `<Galaxy> II`,
 which is also astronomically correct. Uniqueness is enforced server-side on create
 (409), not merely by the suggestion chips: the name field is free text.
 
-## 13. What bounds a crew
+## 13. What bounds a steward
 
-All crews run allow-all-tools and unattended. What that means, and what is left:
+All stewards run allow-all-tools and unattended. What that means, and what is left:
 
 **Still enforced in code.** The PreToolUse hook path fires independently of
 `allowedTools` (`chat_runner.py:375` — `allowedTools` skips *approval*, not the
 hook), so Junction's own policy still hard-refuses destructive commands,
 force-pushes to protected branches, and credential-file reads. Branch protection
-keeps crews off `main`. Every PR needs human approval before merge, so nothing
+keeps stewards off `main`. Every PR needs human approval before merge, so nothing
 lands unreviewed. `_repo_can_write` fails closed on permission checks
-(`routes.py:1357`). The `crew: ` label prefix is enforceable server-side at the
+(`routes.py:1357`). The `steward: ` label prefix is enforceable server-side at the
 label route. The one-editing-item rule is enforced by the store.
 
-**Asked for, not enforced.** Not modifying the gate configs that judge a crew's own
+**Asked for, not enforced.** Not modifying the gate configs that judge a steward's own
 PR (`.github/`, `AUTOSDE.yaml`, `.woke.yml`, `.jscpd.json`). A `pull_request` run
 on a same-repo branch executes the workflow from the PR head, so a PR that raises
 `--max-warnings` makes its own lint failure disappear and the mechanical gate goes
@@ -491,7 +501,7 @@ that list rides in every nudge, it is now the most-repeated rule in the design
 rather than the least.
 
 **Inherited from the chosen agent.** Whatever MCP servers it carries. An unattended
-crew on an agent with credential-adjacent servers has that reach.
+steward on an agent with credential-adjacent servers has that reach.
 
 ## 14. Phase 0 — runtime gaps that must close first
 
@@ -502,27 +512,27 @@ These are not hardening; without them the feature does not work.
 `await asyncio.wait_for(fut, timeout=7200.0)`, then denies. There is no
 `is_background` on this path — the 180s background variant
 (`_BACKGROUND_APPROVAL_TIMEOUT_SECS`, `state.py:2329`) is only reachable from the
-Slack gateway. A crew that trips one untrusted tool holds its slot for two hours
+Slack gateway. A steward that trips one untrusted tool holds its slot for two hours
 and then fails, silently.
 
-Fix: set `slot._trust = True` per crew, and re-establish it every cycle from a
-crew watchdog. `_trust` is **not persisted** — `auto_research` re-sets it each
+Fix: set `slot._trust = True` per steward, and re-establish it every cycle from a
+steward watchdog. `_trust` is **not persisted** — `auto_research` re-sets it each
 watchdog cycle for exactly this reason (`handlers.py:867-869`, "restart-durable;
 bounded above"). A process-wide yolo toggle is not a substitute: it dies with the
 process while autonudge survives it, so the first turn after a restart walks into
-the 7200s wait. A crew that finds itself unauthorised must report and pass rather than
+the 7200s wait. A steward that finds itself unauthorised must report and pass rather than
 wait.
 
 **Nothing caps concurrency.** Chat slots are uncapped and concurrent turns are
 uncapped; the nearest analogue, terminal sessions, caps at 12
 (`handlers/terminal.py:53`). The real ceiling today is `Semaphore(4)` on agent
-cold starts (`session.py:748`) and host memory. Add a crew-level semaphore —
+cold starts (`session.py:748`) and host memory. Add a steward-level semaphore —
 `code_review_sage`'s `Semaphore(max)` plus a ceiling is the pattern.
 
 **Idle cleanup kills loops permanently.** `/api/chat/slots/cleanup`
 (`chat_handlers.py:1941`, 3-day default) marks an idle slot `closed`. The autonudge
 fire path rehydrates without `adopt_closed=True`, so it cannot reach a closed slot
-and **removes the loop** — terminally. Pin crew slots, and pass `adopt_closed=True`
+and **removes the loop** — terminally. Pin steward slots, and pass `adopt_closed=True`
 on that rehydrate.
 
 ## 15. Missing GitHub client surface
@@ -535,7 +545,7 @@ on that rehydrate.
 | `/issue/comment` HTTP route | **missing.** `add_issue_comment` exists at `github_client.py:2416`; only `/pull/comment` is routed |
 | everything else (list, timeline, labels, checks, reviews, merge, auto-merge, rerun) | present — 12 write functions |
 
-The marker's `v` needs one more read-side change. `_parse_crew_marker` already
+The marker's `v` needs one more read-side change. `_parse_steward_marker` already
 tolerates an unrecognised key — it reads named keys only — so a `v=1` marker parses
 today without breaking, but the version is dropped rather than reported, and a
 caller that cannot see it cannot apply the compatibility rule. So the parsed payload
@@ -551,38 +561,38 @@ conflict, which is idempotent and costs nothing if it was still armed.
 
 ## 16. Implementation phases
 
-**Phase 0 — guardrails.** §14, three independent changes. No crew yet.
+**Phase 0 — guardrails.** §14, three independent changes. No steward yet.
 
 **Phase 1 — client surface.** §15's four missing pieces. Independently testable.
 
-**Phase 2 — one crew, vertical slice.** Crew record + work item + event log with a
+**Phase 2 — one steward, vertical slice.** Steward record + work item + event log with a
 schema stamp from the first release (Issue Radar's "schema mismatch → refetch from
-GitHub" strategy does not transfer: a crew record has no upstream). One worker,
+GitHub" strategy does not transfer: a steward record has no upstream). One worker,
 one repo, claim → investigate → dedup → reply, stopping short of implementation.
 This is where the claim protocol and the tie-break get exercised for real.
 
 **Phase 3 — implementation and PR.** Worktree lifecycle, commit identity and
 trailer, `Fixes #N`, CI-to-green, review rounds, merge conflicts, auto-merge.
 
-**Phase 4 — N crews and the UI.** The crew semaphore, label-scoped routing, Your
-Desk, the crew page, the create/edit dialog, notifications.
+**Phase 4 — N stewards and the UI.** The steward semaphore, label-scoped routing, Your
+Desk, the steward page, the create/edit dialog, notifications.
 
 ## 17. Open items
 
 - **`max_open` is the only cap on concurrent worktrees now that nothing is held for
-  a human.** A crew releases an issue the moment it needs a judgement it cannot
-  make, so the old escalation queue — and the per-crew cap and 3-day window that
+  a human.** A steward releases an issue the moment it needs a judgement it cannot
+  make, so the old escalation queue — and the per-steward cap and 3-day window that
   bounded it — are gone. Whether `max_open` alone is the right bound is a question
   for the first real run, not a design decision.
 - **The brief's phase playbooks are all always-present.** Splitting the ~6.4k into
   a small always-on core plus files read on entering a phase would cut the flat
   cost to ~10 credits/day and put the i18n rules in front of the model at the
   moment they matter. Not adopted; the flat cost is affordable and the indirection
-  has its own failure mode (a crew that skips the "read this first" step acts on
+  has its own failure mode (a steward that skips the "read this first" step acts on
   incomplete rules). The takeover rules make this worth revisiting if the brief
-  keeps growing — they are read on one turn in many, and a crew that has never met
+  keeps growing — they are read on one turn in many, and a steward that has never met
   a dead claim pays for them on every turn.
-- **Requiring the crew to declare any gate-config change in the PR body** would
+- **Requiring the steward to declare any gate-config change in the PR body** would
   convert §13's residual risk from silent to declared. Cheap; not yet in the brief.
 
 ## Appendix — measured facts
@@ -606,4 +616,4 @@ Everything quantitative in this document, and where it came from.
 | Terminal session cap (contrast) | 12 | `handlers/terminal.py:53` |
 | Idle cleanup threshold | 3 days | `chat_handlers.py:1941` |
 | `auto_research` trust TTL | 24h | `auto_research/handlers.py:126` |
-| Repository labels | 34 total; `crew: ` is the crew-writable set | `gh label list` |
+| Repository labels | 34 total; `steward: ` is the steward-writable set | `gh label list` |

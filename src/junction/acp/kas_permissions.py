@@ -1,4 +1,4 @@
-"""Translate a Crew agent's ``allowedTools`` into a KAS inline permissions policy.
+"""Translate a Junction agent's ``allowedTools`` into a KAS inline permissions policy.
 
 kiro-cli and KAS express "do not prompt for this" in two different currencies.
 kiro-cli takes a flat allowlist of TOOL NAMES (``allowedTools``); KAS takes a
@@ -27,17 +27,17 @@ approval means no permission request, and no permission request means the deny
 floor and the sensitive-path check never run.
 
 Both consumers use this one module so the wire projection
-(``kas_agents.to_client_custom_agent``) and the on-disk spec Crew writes
+(``kas_agents.to_client_custom_agent``) and the on-disk spec Junction writes
 (``agent.rebuild_agent_config``) cannot drift into disagreeing about what a
 given ``allowedTools`` list means.
 
 ``allowedTools`` is also the ONLY input either consumer derives from. A
 ``permissions`` block already present in a spec is never read back and never
-translated: it has not passed Crew's governance ceiling, and an auto-approved
-call never reaches Crew's permission callback, so relaying one would route around
+translated: it has not passed Junction's governance ceiling, and an auto-approved
+call never reaches Junction's permission callback, so relaying one would route around
 the deny-list and the audit trail at once. On disk such a block is left untouched
-(it is the user's file, and it applies when Crew is not injecting an agent); on
-the wire it is simply not Crew's to forward.
+(it is the user's file, and it applies when Junction is not injecting an agent); on
+the wire it is simply not Junction's to forward.
 """
 
 from __future__ import annotations
@@ -47,7 +47,7 @@ from typing import Any
 
 logger = logging.getLogger(__name__)
 
-#: Marks an MCP server (or one of its tools) in a Crew ``tools``/``allowedTools``
+#: Marks an MCP server (or one of its tools) in a Junction ``tools``/``allowedTools``
 #: entry: ``@server`` for the whole server, ``@server/tool`` for one action.
 _MCP_PREFIX = "@"
 
@@ -55,8 +55,8 @@ _MCP_PREFIX = "@"
 _MCP_CAPABILITY = "mcp"
 
 #: Tool name -> KAS capability, mirroring KAS's own tool classification for the
-#: built-in tools Crew's specs actually name. Deliberately NOT exhaustive over
-#: KAS's table: an entry here is a promise that auto-approving the Crew tool and
+#: built-in tools Junction's specs actually name. Deliberately NOT exhaustive over
+#: KAS's table: an entry here is a promise that auto-approving the Junction tool and
 #: allowing the KAS capability mean the same thing. Anything absent is treated as
 #: unclassifiable and left to prompt (see the module docstring).
 CAPABILITY_BY_TOOL: dict[str, str] = {
@@ -71,14 +71,14 @@ CAPABILITY_BY_TOOL: dict[str, str] = {
 #: Tools this module refuses to translate even though the capability exists.
 #:
 #: Auto-approval is not just "one fewer prompt" — it is the absence of a
-#: permission request, and a Crew control that runs ON that request does not run
+#: permission request, and a Junction control that runs ON that request does not run
 #: at all: the deny floor, the sensitive-path check, the ceiling's own last word.
 #: For the shell and filesystem families the cost of losing those is the whole
 #: blast radius (an arbitrary command, an overwritten file, a credential file
 #: read), and the grant they would produce is unscoped, because a tool-name
 #: allowlist carries no resource pattern to narrow it with.
 #:
-#: This is not a behaviour change for anything Crew ships: its own spec
+#: This is not a behaviour change for anything Junction ships: its own spec
 #: deliberately keeps these OUT of ``allowedTools`` (see ``TestTheRealAllowlist``),
 #: and on a governed host the ceiling withholds them anyway. What the refusal buys
 #: is that a spec which asks for them — from an app manifest, or a hand edit on an
@@ -106,7 +106,7 @@ WITHHELD_FROM_AUTO_APPROVE: frozenset[str] = frozenset(
 )
 
 
-#: Glob syntax KAS's resource matcher honours, and Crew's auto-approve check does
+#: Glob syntax KAS's resource matcher honours, and Junction's auto-approve check does
 #: not. An entry carrying any of these means one thing to the list it was written
 #: on and something wider here, so it is never translated (see
 #: :func:`_mcp_pattern`).
@@ -119,7 +119,7 @@ def _mcp_pattern(entry: str) -> str | None:
     KAS addresses an MCP tool as ``<server>/<tool>``, so a bare server becomes a
     one-level glob and a named action becomes an exact match.
 
-    ``None`` for a reference that is not a plain name. Crew's own auto-approve
+    ``None`` for a reference that is not a plain name. Junction's own auto-approve
     check compares ``allowedTools`` entries literally, so ``@*`` on that list
     grants a server actually called ``*`` — nothing. Here it would become the
     pattern ``*/*``, which KAS resolves as every tool on every server: the same
@@ -152,7 +152,7 @@ def allowed_tools_to_permissions(
     *,
     agent_id: str = "",
 ) -> dict[str, Any] | None:
-    """Build a KAS inline permissions policy from a Crew ``allowedTools`` list.
+    """Build a KAS inline permissions policy from a Junction ``allowedTools`` list.
 
     Returns ``None`` when there is nothing to say — no usable entries, or none
     that classify — so callers can omit the field entirely rather than sending
@@ -207,7 +207,7 @@ def allowed_tools_to_permissions(
         # against the projected policy should not have to guess which it was.
         logger.info(
             "agent %r: not auto-approving %s on this backend — an auto-approved call "
-            "raises no permission request, so Crew's deny floor and sensitive-path "
+            "raises no permission request, so Junction's deny floor and sensitive-path "
             "check would not run for it",
             agent_id,
             ", ".join(sorted(withheld)),

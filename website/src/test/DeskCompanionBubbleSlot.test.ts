@@ -27,7 +27,7 @@ describe('collapsedText', () => {
     expect(two).not.toContain('✅')
     // Neither a raw i18n key nor its namespace leaks to the screen.
     expect(two).not.toContain('jobs_finished')
-    expect(two).not.toContain('crewCompanion')
+    expect(two).not.toContain('deskCompanion')
   })
 
   it('uses the singular form for a single job', () => {

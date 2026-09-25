@@ -1,5 +1,5 @@
 /**
- * CrewCompanion - Color Customizer Panel
+ * Companion - Color Customizer Panel
  *
  * Preset picker grid (each preset shows an SVG preview) + manual color editor
  * with per-body-part highlighting. i18n via useT().
@@ -21,16 +21,16 @@ const api = petBridge
 
 /** i18n key for each source color's body part label */
 const BODY_PART_KEYS: Record<string, string> = {
-  '#F9A85F': 'apps.crewCompanion.color.bodyFur',
-  '#F18D50': 'apps.crewCompanion.color.earsShadow',
-  '#EB8849': 'apps.crewCompanion.color.chinLegs',
-  '#E98649': 'apps.crewCompanion.color.belly',
-  '#FCD9B3': 'apps.crewCompanion.color.tummyPaws',
-  '#F49681': 'apps.crewCompanion.color.innerEar',
-  '#F5E6CB': 'apps.crewCompanion.color.paws',
-  '#522210': 'apps.crewCompanion.color.outlines',
-  '#522214': 'apps.crewCompanion.color.bodyOutline',
-  '#391F19': 'apps.crewCompanion.color.shadows',
+  '#F9A85F': 'apps.deskCompanion.color.bodyFur',
+  '#F18D50': 'apps.deskCompanion.color.earsShadow',
+  '#EB8849': 'apps.deskCompanion.color.chinLegs',
+  '#E98649': 'apps.deskCompanion.color.belly',
+  '#FCD9B3': 'apps.deskCompanion.color.tummyPaws',
+  '#F49681': 'apps.deskCompanion.color.innerEar',
+  '#F5E6CB': 'apps.deskCompanion.color.paws',
+  '#522210': 'apps.deskCompanion.color.outlines',
+  '#522214': 'apps.deskCompanion.color.bodyOutline',
+  '#391F19': 'apps.deskCompanion.color.shadows',
 }
 
 const CS = {
@@ -175,22 +175,22 @@ export const ColorCustomizerPanel: React.FC<Props> = ({ idleSvgContent }) => {
 
   return (
     <div style={CS.root}>
-      <div style={CS.section}>{i18nT('apps.crewCompanion.color.presets')}</div>
+      <div style={CS.section}>{i18nT('apps.deskCompanion.color.presets')}</div>
       <div style={CS.presetGrid}>
         {registry.getAllPresets().map(p => (
           <PresetCard key={p.id} preset={p} active={activePresetId === p.id}
             svgContent={idleSvgContent} onClick={() => applyPreset(p)}
             onDelete={!p.builtIn ? () => handleDeletePreset(p.id) : undefined}
-            deleteLabel={i18nT('apps.crewCompanion.color.delete')} i18nT={i18nT} />
+            deleteLabel={i18nT('apps.deskCompanion.color.delete')} i18nT={i18nT} />
         ))}
       </div>
 
-      <div style={CS.section}>{i18nT('apps.crewCompanion.color.manual')}</div>
+      <div style={CS.section}>{i18nT('apps.deskCompanion.color.manual')}</div>
       <div style={CS.presetGrid}>
         <div style={{ padding: 6, borderRadius: 8, textAlign: 'center' as const, border: '2px solid var(--accent)', background: 'var(--accent-glow)' }}>
           <img src={Object.keys(colorMap).length > 0 ? toDataUri(applySvgColorMap(idleSvgContent, colorMap)) : toDataUri(idleSvgContent)}
             alt="final" style={CS.presetThumb} draggable={false} />
-          <div style={{ fontSize: 10, fontWeight: 600 }}>{i18nT('apps.crewCompanion.color.currentEffect')}</div>
+          <div style={{ fontSize: 10, fontWeight: 600 }}>{i18nT('apps.deskCompanion.color.currentEffect')}</div>
         </div>
         {sourceColors.map(src => (
           <ColorEditorCard key={src} sourceColor={src} targetColor={colorMap[src] || src}
@@ -201,9 +201,9 @@ export const ColorCustomizerPanel: React.FC<Props> = ({ idleSvgContent }) => {
       </div>
 
       <div style={CS.btnRow}>
-        <button style={CS.btn} onClick={handleReset}>{i18nT('apps.crewCompanion.color.reset')}</button>
+        <button style={CS.btn} onClick={handleReset}>{i18nT('apps.deskCompanion.color.reset')}</button>
         {!showSaveForm ? (
-          <button style={CS.btn} onClick={() => setShowSaveForm(true)}>{i18nT('apps.crewCompanion.color.savePreset')}</button>
+          <button style={CS.btn} onClick={() => setShowSaveForm(true)}>{i18nT('apps.deskCompanion.color.savePreset')}</button>
         ) : (
           <div style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
             <input
@@ -211,8 +211,8 @@ export const ColorCustomizerPanel: React.FC<Props> = ({ idleSvgContent }) => {
               value={saveNameInput}
               onChange={e => setSaveNameInput(e.target.value)}
               {...ime.bindEnter({ onEnter: handleSaveAsPreset, onEscape: () => setShowSaveForm(false) })}
-              placeholder={i18nT('apps.crewCompanion.color.promptName')}
-              aria-label={i18nT('apps.crewCompanion.color.promptName')}
+              placeholder={i18nT('apps.deskCompanion.color.promptName')}
+              aria-label={i18nT('apps.deskCompanion.color.promptName')}
               autoFocus
               style={{
                 padding: '5px 10px', borderRadius: 6, border: '1px solid var(--border)',
@@ -221,11 +221,11 @@ export const ColorCustomizerPanel: React.FC<Props> = ({ idleSvgContent }) => {
               }}
             />
             <button style={CS.btn} onClick={handleSaveAsPreset} disabled={!saveNameInput.trim()}
-              aria-label={i18nT('apps.crewCompanion.color.savePreset')}>
+              aria-label={i18nT('apps.deskCompanion.color.savePreset')}>
               <Check className="lucide-inline" aria-hidden="true" />
             </button>
             <button style={CS.btn} onClick={() => { setShowSaveForm(false); setSaveNameInput('') }}
-              aria-label={i18nT('apps.crewCompanion.gallery.cancel')}>
+              aria-label={i18nT('apps.deskCompanion.gallery.cancel')}>
               <X className="lucide-inline" aria-hidden="true" />
             </button>
           </div>

@@ -116,14 +116,14 @@ function stubPreload(offBridge = vi.fn()): PreloadStub {
     updateHitbox: vi.fn(),
     setMenuHitbox: vi.fn(),
   }
-  ;(window as unknown as { crewCompanion?: unknown }).crewCompanion = bridge
+  ;(window as unknown as { deskCompanion?: unknown }).deskCompanion = bridge
   return bridge
 }
 
 afterEach(() => {
   vi.unstubAllGlobals()
   vi.restoreAllMocks()
-  delete (window as unknown as { crewCompanion?: unknown }).crewCompanion
+  delete (window as unknown as { deskCompanion?: unknown }).deskCompanion
 })
 
 describe('getWindowPosition', () => {
@@ -207,14 +207,14 @@ describe('savePosition coalescing', () => {
 })
 
 describe('config and export reads', () => {
-  it('getCrewCompanionConfig hands back the snapshot verbatim', async () => {
+  it('getDeskCompanionConfig hands back the snapshot verbatim', async () => {
     stubFetchAll({ body: { activeAppearance: 'lantern', petX: 4 } })
-    expect(await petBridge.getCrewCompanionConfig!()).toEqual({ activeAppearance: 'lantern', petX: 4 })
+    expect(await petBridge.getDeskCompanionConfig!()).toEqual({ activeAppearance: 'lantern', petX: 4 })
   })
 
-  it('getCrewCompanionConfig reports null when the body is not JSON', async () => {
+  it('getDeskCompanionConfig reports null when the body is not JSON', async () => {
     stubFetchAll({ badJson: true })
-    expect(await petBridge.getCrewCompanionConfig!()).toBeNull()
+    expect(await petBridge.getDeskCompanionConfig!()).toBeNull()
   })
 
   it('galleryExport encodes the pack id into the query', async () => {
@@ -817,7 +817,7 @@ describe('contextMenuAction', () => {
     const bridge = stubPreload()
     petBridge.contextMenuAction!('quit')
     await Promise.resolve()
-    expect(calls[0].url).toBe('/api/apps/crew-companion/disable')
+    expect(calls[0].url).toBe('/api/apps/desk-companion/disable')
     expect(calls[0].method).toBe('POST')
     // Disabling is a gateway call, not a window-level one.
     expect(bridge.contextMenuAction).not.toHaveBeenCalled()

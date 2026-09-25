@@ -235,7 +235,7 @@ test("the hitbox IPC routes a renderer's report to its own overlay", () => {
     // Sender identity resolves to this window via the stub's fromWebContents.
     const sender = { __win: win };
 
-    stub.ipcHandlers["crew-companion:update-hitbox"](
+    stub.ipcHandlers["desk-companion:update-hitbox"](
       { sender },
       { x: 100, y: 100, w: 128, h: 128 },
       null,
@@ -243,7 +243,7 @@ test("the hitbox IPC routes a renderer's report to its own overlay", () => {
     overlay.refreshOverlayInput(win, { x: 150, y: 150 });
     assert.strictEqual(win.ignoreMouse.ignore, false, "reported pet rect makes the companion clickable");
 
-    stub.ipcHandlers["crew-companion:menu-hitbox"]({ sender }, { x: 500, y: 400, w: 160, h: 90 });
+    stub.ipcHandlers["desk-companion:menu-hitbox"]({ sender }, { x: 500, y: 400, w: 160, h: 90 });
     overlay.refreshOverlayInput(win, { x: 550, y: 440 });
     assert.strictEqual(win.ignoreMouse.ignore, false, "reported menu rect makes the menu clickable");
 

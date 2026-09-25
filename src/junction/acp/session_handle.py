@@ -210,18 +210,18 @@ def _warn_if_above_chat_ceiling(key: str, value: float, chat_ceiling: float) -> 
         )
 
 
-def _load_watchdog_settings(crew_agent: str = "") -> WatchdogSettings:
+def _load_watchdog_settings(canonical_agent: str = "") -> WatchdogSettings:
     """Snapshot ``watchdog.*`` from config. Function-level import (mirrors
     ``_sync_effort_levels``) avoids the config -> dashboard -> acp import
     cycle; any failure falls back to defaults rather than breaking a handle.
 
-    ``crew_agent`` is the CANONICAL Junction agent name — a ``cfg.agents``
+    ``canonical_agent`` is the CANONICAL Junction agent name — a ``cfg.agents``
     key resolved by the surface that owns the identity (the dashboard slot,
-    or a crew-name-passing surface like Slack/cron) and plumbed here through
-    provider -> runtime -> handle. Resolution is a direct dict lookup: no
-    cross-namespace matching happens here, so a bound kiro agent name (or any
-    non-crew name) simply inherits the globals. That crew's
-    ``watchdog_tool_stall_*`` overrides overlay the globals (> 0 means
+    or a surface that passes an agent name, like Slack/cron) and plumbed here
+    through provider -> runtime -> handle. Resolution is a direct dict lookup:
+    no cross-namespace matching happens here, so a bound kiro agent name (or
+    any name that is not a ``cfg.agents`` key) simply inherits the globals.
+    That agent's ``watchdog_tool_stall_*`` overrides overlay the globals (> 0 means
     override; 0 inherits — the same empty-inherits convention as the agent's
     ``model``).
     """
@@ -233,13 +233,13 @@ def _load_watchdog_settings(crew_agent: str = "") -> WatchdogSettings:
         w = cfg.watchdog
         raw = {key: float(getattr(w, key)) for key in _TURN_BOUNDED_WINDOWS}
         overridden = False
-        crew = cfg.agents.get(crew_agent) if crew_agent else None
-        if crew is not None:
-            if crew.watchdog_tool_stall_suspect_secs > 0:
-                raw["tool_stall_suspect_secs"] = float(crew.watchdog_tool_stall_suspect_secs)
+        agent = cfg.agents.get(canonical_agent) if canonical_agent else None
+        if agent is not None:
+            if agent.watchdog_tool_stall_suspect_secs > 0:
+                raw["tool_stall_suspect_secs"] = float(agent.watchdog_tool_stall_suspect_secs)
                 overridden = True
-            if crew.watchdog_tool_stall_hard_cap_secs > 0:
-                raw["tool_stall_hard_cap_secs"] = float(crew.watchdog_tool_stall_hard_cap_secs)
+            if agent.watchdog_tool_stall_hard_cap_secs > 0:
+                raw["tool_stall_hard_cap_secs"] = float(agent.watchdog_tool_stall_hard_cap_secs)
                 overridden = True
         # Overrides are applied BEFORE the ceiling pass so a per-agent window is
         # bounded exactly like a global one — an over-ceiling override is clamped
@@ -450,7 +450,7 @@ class AcpSessionHandle:
         queue: asyncio.Queue[JsonRpcMessage | None],
         runtime: AcpRuntimeProtocol,
         watchdog: WatchdogSettings | None = None,
-        crew_agent: str = "",
+        canonical_agent: str = "",
     ) -> None:
         self._session_id = session_id
         self._queue = queue
@@ -461,7 +461,7 @@ class AcpSessionHandle:
         # Watchdog windows are snapshotted here (construction time) so the
         # dispatch loop never reads config; the liveness oracle carries the
         # per-session evidence state (tracked child, counter samples).
-        # ``crew_agent`` is the CANONICAL crew identity resolved by the surface
+        # ``canonical_agent`` is the CANONICAL agent identity resolved by the surface
         # that owns it and plumbed down (see _load_watchdog_settings): it keys
         # the per-agent watchdog_tool_stall_* overrides by direct config lookup.
         # It must NEVER become an OTel metric attribute (free-form =>
@@ -470,8 +470,10 @@ class AcpSessionHandle:
         # verbatim: the async creation paths (runtime.create_session /
         # load_session) resolve it off-loop and hand it in, so the synchronous
         # load below is only the fallback for direct constructions (tests).
-        self._crew_agent = crew_agent
-        self._watchdog = watchdog if watchdog is not None else _load_watchdog_settings(crew_agent)
+        self._canonical_agent = canonical_agent
+        self._watchdog = (
+            watchdog if watchdog is not None else _load_watchdog_settings(canonical_agent)
+        )
         self._oracle = LivenessOracle(sample_min_secs=self._watchdog.wellness_sample_secs)
         # Keep the executor future, not an await-scoped flag: wait_for can time
         # out while the underlying thread continues its /proc walk. A pending
@@ -531,7 +533,7 @@ class AcpSessionHandle:
         # User-visible notices for permission requests this handle answered
         # itself (fail-close gate below, pre-turn drain): flushed as
         # EVENT_SUBAGENT_ACTIVITY at the next dispatch so the rejection shows
-        # on the child's crew card instead of vanishing into the log.
+        # on the child's subagent card instead of vanishing into the log.
         self._pending_reject_notices: list[tuple[str, str]] = []
         # In-flight SEL audit tasks for handle-owned permission rejections
         # (fail-close gate, pre-turn drain) — retained so they cannot be
@@ -830,7 +832,7 @@ class AcpSessionHandle:
         # EXCEPTION — permission REQUESTS are answered, never dropped: a
         # server→client request discarded here strands the backend's response
         # oneshot and wedges the requesting (sub)agent's whole tool batch until
-        # process teardown — the 2026-08-15 2h crew stall. A request stranded
+        # process teardown, which can be hours away. A request stranded
         # from an abandoned turn (or routed here for a backend child between
         # turns) gets the fail-closed reject; the live turn's requests are
         # handled by the dispatch loop as before.
@@ -892,7 +894,7 @@ class AcpSessionHandle:
                     "frame) — answering so the backend cannot hang",
                     stale.id,
                 )
-                # Crew-card notice ONLY for a child-origin strand: the card
+                # Subagent-card notice ONLY for a child-origin strand: the card
                 # keys on sub_session_id, so the parent's own session id (an
                 # abandoned parent-turn request) can never match a card —
                 # emitting it would name the wrong actor. The parent case is
@@ -949,7 +951,7 @@ class AcpSessionHandle:
 
         try:
             # Surface any drain-time rejections (see the pre-turn drain above)
-            # as crew-card activity before the turn's own events — the user
+            # as subagent-card activity before the turn's own events — the user
             # sees WHY a child's tool failed instead of an unexplained error.
             # INSIDE the try/finally: these are yields, i.e. abandonment
             # points. A consumer that closes the stream at a notice yield
@@ -1613,18 +1615,18 @@ class AcpSessionHandle:
         return []
 
     def rebind_watchdog(
-        self, crew_agent: str, settings: WatchdogSettings | None = None
+        self, canonical_agent: str, settings: WatchdogSettings | None = None
     ) -> None:
-        """Re-snapshot the watchdog windows for a new canonical crew identity.
+        """Re-snapshot the watchdog windows for a new canonical agent identity.
 
         Called on warm-pool rekey: the pooled runtime was spawned before any
-        crew claimed it, so the construction-time snapshot cannot know the
-        claiming crew's ``watchdog_tool_stall_*`` overrides — the identity
+        agent claimed it, so the construction-time snapshot cannot know the
+        claiming agent's ``watchdog_tool_stall_*`` overrides — the identity
         travels with the SESSION, not the pool key. The dispatch loop reads
         ``self._watchdog`` on every tick, so the swap takes effect at the next
-        watchdog check; an empty ``crew_agent`` (a claim with no crew) rebinds
-        to the globals so a recycled runtime never carries a previous crew's
-        windows. The oracle keeps its per-session evidence state — only its
+        watchdog check; an empty ``canonical_agent`` (a claim with no agent)
+        rebinds to the globals so a recycled runtime never carries a previous
+        agent's windows. The oracle keeps its per-session evidence state — only its
         sampling floor follows the new snapshot.
 
         ``settings`` is the pre-resolved snapshot: an ASYNC caller (the
@@ -1633,8 +1635,10 @@ class AcpSessionHandle:
         cache-timing contract; None loads synchronously (config-cache hit in
         practice) for callers without an off-loop path.
         """
-        self._crew_agent = crew_agent
-        self._watchdog = settings if settings is not None else _load_watchdog_settings(crew_agent)
+        self._canonical_agent = canonical_agent
+        self._watchdog = (
+            settings if settings is not None else _load_watchdog_settings(canonical_agent)
+        )
         self._oracle._sample_min_secs = self._watchdog.wellness_sample_secs
 
     def store_session_config(self, resp: dict[str, Any]) -> None:
@@ -2852,7 +2856,7 @@ class AcpSessionHandle:
         return event
 
     def _handle_kas_update(self, session_update: str, update: dict) -> list[AcpEvent] | None:
-        """Map a KAS-only ``session/update`` discriminant to Crew events.
+        """Map a KAS-only ``session/update`` discriminant to Junction events.
 
         Returns a (possibly empty) event list for a discriminant KAS uses in
         place of a kiro-cli ``_kiro.dev/*`` method, or ``None`` when the
@@ -2879,7 +2883,7 @@ class AcpSessionHandle:
         if session_update == UPDATE_SESSION_INFO:
             return self._handle_kas_session_info(update)
         # available_commands_update / any other KAS discriminant falls through to
-        # the shared parser, which already returns [] for it — Crew surfaces no
+        # the shared parser, which already returns [] for it — Junction surfaces no
         # available-commands UI for any backend (kiro-cli's
         # _kiro.dev/commands/available is likewise unconsumed), so there is
         # nothing to render and no separate branch is needed.
@@ -3106,7 +3110,7 @@ class AcpSessionHandle:
         # child permission request real command bytes (tool_input, is_shell,
         # raw params), so the policy gates evaluate it with main-agent
         # fidelity instead of the LLM-authored title. The parsed events are
-        # re-tagged as subagent activity (crew monitor), NOT emitted as this
+        # re-tagged as subagent activity (subagent monitor), NOT emitted as this
         # session's own transcript events — a child's text chunks and tool
         # cards must not render as parent output.
         frame_sid = str(params.get("sessionId") or "")
@@ -3141,7 +3145,7 @@ class AcpSessionHandle:
                         )
                     )
                 # Thinking chunks, tool results, and refinements update the
-                # caches above but emit nothing: the crew monitor only shows
+                # caches above but emit nothing: the subagent monitor only shows
                 # coarse activity, and the caches are the security payload.
             return out
 

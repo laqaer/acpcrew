@@ -1,11 +1,11 @@
 /**
- * The crew editor's webhook pane answers one crew-shaped question — "can an
- * outside system wake THIS crew, and with what credential" — from the global
+ * The agent editor's webhook pane answers one agent-shaped question — "can an
+ * outside system wake THIS agent, and with what credential" — from the global
  * token store. The load-bearing cases are the honesty rules:
  *
- *  - a fetch failure must not render as "nothing can wake this crew";
- *  - an UNBOUND token can name any crew per request, so its existence belongs
- *    in this pane's answer even though it is not in this crew's list;
+ *  - a fetch failure must not render as "nothing can wake this agent";
+ *  - an UNBOUND token can name any agent per request, so its existence belongs
+ *    in this pane's answer even though it is not in this agent's list;
  *  - the kill switch silences bound tokens too, so a live-looking list without
  *    that line would overstate what can actually call in.
  */
@@ -14,8 +14,8 @@ import { render, screen, waitFor, renderHook } from '@testing-library/react'
 import { MemoryRouter } from 'react-router-dom'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 
-import CrewWebhookSection from '../components/AgentWebhookSection'
-import { useCrewEditorSections, type CrewEditorFacts } from '../components/agent/agentEditorSections'
+import AgentWebhookSection from '../components/AgentWebhookSection'
+import { useAgentEditorSections, type AgentEditorFacts } from '../components/agent/agentEditorSections'
 
 const mockApi = vi.hoisted(() => ({ webhooks: vi.fn() }))
 vi.mock('../api/client', () => ({ api: mockApi }))
@@ -40,12 +40,12 @@ function view(tokens: unknown[], over: Record<string, unknown> = {}) {
   return { enabled: true, switch_on: true, has_tokens: tokens.length > 0, tokens, ...over }
 }
 
-function renderPane(crew = 'oncall') {
+function renderPane(agent = 'oncall') {
   const qc = new QueryClient({ defaultOptions: { queries: { retry: false } } })
   render(
     <QueryClientProvider client={qc}>
       <MemoryRouter>
-        <CrewWebhookSection crew={crew} />
+        <AgentWebhookSection agent={agent} />
       </MemoryRouter>
     </QueryClientProvider>,
   )
@@ -55,7 +55,7 @@ beforeEach(() => {
   mockApi.webhooks.mockReset()
 })
 
-describe('crew webhook pane — lists only this crew\'s bindings', () => {
+describe('agent webhook pane — lists only this agent\'s bindings', () => {
   it('shows bound tokens and omits ones bound elsewhere', async () => {
     mockApi.webhooks.mockResolvedValue(view([
       token({ label: 'CI runner', agent: 'oncall' }),
@@ -64,7 +64,7 @@ describe('crew webhook pane — lists only this crew\'s bindings', () => {
     renderPane('oncall')
     await waitFor(() => expect(screen.getByText('CI runner')).toBeInTheDocument())
     expect(screen.queryByText('Deploy bot')).not.toBeInTheDocument()
-    expect(screen.getAllByTestId('crew-webhook-row')).toHaveLength(1)
+    expect(screen.getAllByTestId('agent-webhook-row')).toHaveLength(1)
   })
 
   it('shows the non-secret slice and the signing badge', async () => {
@@ -80,25 +80,25 @@ describe('crew webhook pane — lists only this crew\'s bindings', () => {
   it('states the empty case in words when nothing is bound', async () => {
     mockApi.webhooks.mockResolvedValue(view([]))
     renderPane('oncall')
-    await waitFor(() => expect(screen.getByTestId('crew-webhook-empty')).toBeInTheDocument())
+    await waitFor(() => expect(screen.getByTestId('agent-webhook-empty')).toBeInTheDocument())
   })
 })
 
-describe('crew webhook pane — honesty rules', () => {
-  it('reports a failed fetch as unknown, never as "nothing wakes this crew"', async () => {
+describe('agent webhook pane — honesty rules', () => {
+  it('reports a failed fetch as unknown, never as "nothing wakes this agent"', async () => {
     mockApi.webhooks.mockRejectedValue(new Error('boom'))
     renderPane('oncall')
     await waitFor(() => expect(screen.getByRole('alert')).toBeInTheDocument())
-    expect(screen.queryByTestId('crew-webhook-empty')).not.toBeInTheDocument()
+    expect(screen.queryByTestId('agent-webhook-empty')).not.toBeInTheDocument()
   })
 
-  it('discloses unbound tokens beside the empty state — they can wake this crew too', async () => {
+  it('discloses unbound tokens beside the empty state — they can wake this agent too', async () => {
     mockApi.webhooks.mockResolvedValue(view([token({ agent: '' })]))
     renderPane('oncall')
-    await waitFor(() => expect(screen.getByTestId('crew-webhook-empty')).toBeInTheDocument())
-    expect(screen.getByTestId('crew-webhook-unbound-note').textContent).toContain('1 token')
-    // Not listed as a row: it is not bound to this crew, it merely can reach it.
-    expect(screen.queryAllByTestId('crew-webhook-row')).toHaveLength(0)
+    await waitFor(() => expect(screen.getByTestId('agent-webhook-empty')).toBeInTheDocument())
+    expect(screen.getByTestId('agent-webhook-unbound-note').textContent).toContain('1 token')
+    // Not listed as a row: it is not bound to this agent, it merely can reach it.
+    expect(screen.queryAllByTestId('agent-webhook-row')).toHaveLength(0)
   })
 
   it('says so when the kill switch silences everything, bound tokens included', async () => {
@@ -106,19 +106,19 @@ describe('crew webhook pane — honesty rules', () => {
       [token({ agent: 'oncall' })], { switch_on: false },
     ))
     renderPane('oncall')
-    await waitFor(() => expect(screen.getByTestId('crew-webhook-switch-off')).toBeInTheDocument())
+    await waitFor(() => expect(screen.getByTestId('agent-webhook-switch-off')).toBeInTheDocument())
     // The list still renders — the tokens exist — the line qualifies them, and
     // the rows dim the same way a per-token Off does, so a user scanning for
     // why their webhook died does not leave reassured by live-looking rows.
-    const row = screen.getByTestId('crew-webhook-row')
+    const row = screen.getByTestId('agent-webhook-row')
     expect(row.className).toContain('opacity-60')
     // But no per-row Off badge: the token's own switch is on, and the pane-level
     // notice already carries the global cause once instead of once per row.
-    expect(screen.queryByTestId('crew-webhook-row-off')).not.toBeInTheDocument()
+    expect(screen.queryByTestId('agent-webhook-row-off')).not.toBeInTheDocument()
   })
 })
 
-describe('crew webhook pane — a disabled binding is visible but not live', () => {
+describe('agent webhook pane — a disabled binding is visible but not live', () => {
   it('lists it dimmed with an Off badge instead of hiding it', async () => {
     // Hiding it would send a user wondering why their webhook stopped firing
     // off to mint a duplicate; showing it live would overstate the wake surface.
@@ -127,37 +127,37 @@ describe('crew webhook pane — a disabled binding is visible but not live', () 
     ]))
     renderPane('oncall')
     await waitFor(() => expect(screen.getByText('CI runner')).toBeInTheDocument())
-    expect(screen.getByTestId('crew-webhook-row-off')).toBeInTheDocument()
+    expect(screen.getByTestId('agent-webhook-row-off')).toBeInTheDocument()
   })
 
-  it('excludes a disabled unbound token from the any-crew disclosure', async () => {
+  it('excludes a disabled unbound token from the any-agent disclosure', async () => {
     mockApi.webhooks.mockResolvedValue(view([token({ agent: '', enabled: false })]))
     renderPane('oncall')
-    await waitFor(() => expect(screen.getByTestId('crew-webhook-empty')).toBeInTheDocument())
-    expect(screen.queryByTestId('crew-webhook-unbound-note')).not.toBeInTheDocument()
+    await waitFor(() => expect(screen.getByTestId('agent-webhook-empty')).toBeInTheDocument())
+    expect(screen.queryByTestId('agent-webhook-unbound-note')).not.toBeInTheDocument()
   })
 
-  it('mutes the any-crew disclosure while the kill switch is off', async () => {
-    // "Nothing can call in" and "this token can wake any crew" cannot both be
+  it('mutes the any-agent disclosure while the kill switch is off', async () => {
+    // "Nothing can call in" and "this token can wake any agent" cannot both be
     // present-tense true on one screen; the disclosure yields to the switch.
     mockApi.webhooks.mockResolvedValue(view(
       [token({ agent: '' })], { switch_on: false },
     ))
     renderPane('oncall')
-    await waitFor(() => expect(screen.getByTestId('crew-webhook-switch-off')).toBeInTheDocument())
-    expect(screen.queryByTestId('crew-webhook-unbound-note')).not.toBeInTheDocument()
+    await waitFor(() => expect(screen.getByTestId('agent-webhook-switch-off')).toBeInTheDocument())
+    expect(screen.queryByTestId('agent-webhook-unbound-note')).not.toBeInTheDocument()
   })
 })
 
-describe('crew editor rail — the webhook row is a real pane row', () => {
-  const facts = (over: Partial<CrewEditorFacts> = {}): CrewEditorFacts => ({
+describe('agent editor rail — the webhook row is a real pane row', () => {
+  const facts = (over: Partial<AgentEditorFacts> = {}): AgentEditorFacts => ({
     templateLabel: 'Agent Template', activeSchedules: 1, totalSchedules: 2, routingWords: 0,
     sharesStorage: false, canDelete: true, webhookTokens: 0, webhookTokensActive: 0,
     dirtyPanes: new Set(),
     ...over,
   })
-  const webhookRow = (f: CrewEditorFacts) => {
-    const { result } = renderHook(() => useCrewEditorSections(f))
+  const webhookRow = (f: AgentEditorFacts) => {
+    const { result } = renderHook(() => useAgentEditorSections(f))
     return result.current.find(r => r.key === 'webhook')!
   }
 
@@ -185,8 +185,8 @@ describe('crew editor rail — the webhook row is a real pane row', () => {
     // exactly what the async webhooks query would hit. `dirtyPanes` must be the
     // SAME Set across both renders — a fresh identity would recompute the memo
     // for the wrong reason and hide a missing dependency.
-    const dirtyPanes: CrewEditorFacts['dirtyPanes'] = new Set()
-    const { result, rerender } = renderHook((f: CrewEditorFacts) => useCrewEditorSections(f), {
+    const dirtyPanes: AgentEditorFacts['dirtyPanes'] = new Set()
+    const { result, rerender } = renderHook((f: AgentEditorFacts) => useAgentEditorSections(f), {
       initialProps: facts({ webhookTokens: 0, dirtyPanes }),
     })
     expect(result.current.find(r => r.key === 'webhook')!.count).toBeUndefined()

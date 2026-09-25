@@ -31,7 +31,7 @@
     ]
   },
   "useCases": [
-    "Keep an at-a-glance, second-screen view of live agents, crons, and subagents while a crew is working."
+    "Keep an at-a-glance, second-screen view of live agents, crons, and subagents while your agents are working."
   ],
   "configuration": [
     "Enable the app, open Agent Worlds, choose a scene, and optionally pop it out; no credentials or external service are required."

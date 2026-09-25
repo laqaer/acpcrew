@@ -1,10 +1,10 @@
 /**
- * CrewPageView — one crew's page: who it is, what it is holding, and what it did.
+ * StewardPageView — one steward's page: who it is, what it is holding, and what it did.
  *
- * Five regions, top to bottom (the layout is `temp-screenshots/crews-mock/02-crew-page-*.png`):
+ * Five regions, top to bottom:
  *
  *   1. header       identity + derived state + the three actions
- *   2. extra prompt the crew's standing instruction, verbatim
+ *   2. extra prompt the steward's standing instruction, verbatim
  *   3. stat row     slot usage, 24h throughput, replies waited on
  *   4. work items   what it is holding RIGHT NOW, and what it will do next
  *   5. work log     what it has actually done, newest first
@@ -12,7 +12,7 @@
  * ## The `next` column is the point of this page
  *
  * A phase says where an item sits; it does not say what to do about it. `next`
- * holds a RESUMABLE INTENT written by the crew for its own future self ("add the
+ * holds a RESUMABLE INTENT written by the steward for its own future self ("add the
  * Windows branch to `_safe_chmod`, the regression test already fails"), which is
  * also the only thing a human can read to decide whether to intervene. So it is
  * rendered as full prose — no clamp, no ellipsis, no fixed-height cell. Truncating
@@ -28,14 +28,14 @@
  *
  * ## Two derivations this page owns, and why
  *
- * `GET /crew` does NOT carry the `status` field that `GET /crews` adds per crew
- * (`steward_routes._crew_page` vs `_crews_page`), so the header's state badge is
+ * `GET /steward` does NOT carry the `status` field that `GET /stewards` adds per steward
+ * (`steward_routes._steward_page` vs `_stewards_page`), so the header's state badge is
  * derived here from the same input the backend's own `working` flag uses: the
  * NEWEST non-terminal item, `list_work_items` being newest-progress-first. Paused
- * outranks it (a paused crew is doing nothing regardless of what it holds), and no
+ * outranks it (a paused steward is doing nothing regardless of what it holds), and no
  * non-terminal item at all reads as idle.
  *
- * The work log's OUTCOME column shows the event's `kind`. A `CrewEvent` carries no
+ * The work log's OUTCOME column shows the event's `kind`. A `StewardEvent` carries no
  * outcome or phase field, and the phase an event moved an item to is not
  * recoverable after the fact — the item's CURRENT phase would be wrong for every
  * row but the newest. `kind` is the honest answer the record actually holds.
@@ -52,9 +52,9 @@ import { useAppDispatch } from '../../../store'
 import { switchSlot } from '../../../store/chatSlice'
 import {
   EDITING_PHASES, TERMINAL_PHASES, countsTowardOpen, issueRadarApi,
-  type Crew, type CrewEvent, type CrewEventKind, type CrewPhase, type WorkItem,
+  type Steward, type StewardEvent, type StewardEventKind, type StewardPhase, type WorkItem,
 } from '../api'
-import CrewPlate from '../components/StewardPlate'
+import StewardPlate from '../components/StewardPlate'
 import { useIssueRadar } from '../context'
 import { issueUrlFor, repoScopeKey } from '../lib/links'
 
@@ -80,7 +80,7 @@ function byProgressDesc(a: WorkItem, b: WorkItem): number {
 /** Badge colour for a phase.
  *
  * Reads the imported classifications rather than listing phases: `EDITING_PHASES`
- * is exactly "the crew is typing right now" (green), and `TERMINAL_PHASES` minus
+ * is exactly "the steward is typing right now" (green), and `TERMINAL_PHASES` minus
  * `resolved` is "over, without a fix" (grey). Only the three parked phases are
  * named, because parked-on-what is the distinction the colour is carrying. */
 /** Catalog key for a phase's human label.
@@ -93,38 +93,38 @@ function byProgressDesc(a: WorkItem, b: WorkItem): number {
  *  of every reader and showed the SAME English in all 12 non-English locales,
  *  which the untranslated-literal gate cannot catch because the value is dynamic.
  */
-const PHASE_LABEL_KEY: Record<CrewPhase, string> = {
-  'selected': 'apps.issueRadar.views.crews.page.phase_selected',
-  'claimed': 'apps.issueRadar.views.crews.page.phase_claimed',
-  'investigating': 'apps.issueRadar.views.crews.page.phase_investigating',
-  'implementing': 'apps.issueRadar.views.crews.page.phase_implementing',
-  'awaiting-ci': 'apps.issueRadar.views.crews.page.phase_awaiting_ci',
-  'addressing-review': 'apps.issueRadar.views.crews.page.phase_addressing_review',
-  'awaiting-merge': 'apps.issueRadar.views.crews.page.phase_awaiting_merge',
-  'awaiting-reply': 'apps.issueRadar.views.crews.page.phase_awaiting_reply',
-  'resolved': 'apps.issueRadar.views.crews.page.phase_resolved',
-  'skipped': 'apps.issueRadar.views.crews.page.phase_skipped',
-  'yielded': 'apps.issueRadar.views.crews.page.phase_yielded',
-  'handed-back': 'apps.issueRadar.views.crews.page.phase_handed_back',
-  'preempted': 'apps.issueRadar.views.crews.page.phase_preempted',
+const PHASE_LABEL_KEY: Record<StewardPhase, string> = {
+  'selected': 'apps.issueRadar.views.stewards.page.phase_selected',
+  'claimed': 'apps.issueRadar.views.stewards.page.phase_claimed',
+  'investigating': 'apps.issueRadar.views.stewards.page.phase_investigating',
+  'implementing': 'apps.issueRadar.views.stewards.page.phase_implementing',
+  'awaiting-ci': 'apps.issueRadar.views.stewards.page.phase_awaiting_ci',
+  'addressing-review': 'apps.issueRadar.views.stewards.page.phase_addressing_review',
+  'awaiting-merge': 'apps.issueRadar.views.stewards.page.phase_awaiting_merge',
+  'awaiting-reply': 'apps.issueRadar.views.stewards.page.phase_awaiting_reply',
+  'resolved': 'apps.issueRadar.views.stewards.page.phase_resolved',
+  'skipped': 'apps.issueRadar.views.stewards.page.phase_skipped',
+  'yielded': 'apps.issueRadar.views.stewards.page.phase_yielded',
+  'handed-back': 'apps.issueRadar.views.stewards.page.phase_handed_back',
+  'preempted': 'apps.issueRadar.views.stewards.page.phase_preempted',
 }
 
 /** Catalog key for a ledger line's kind. Same reasoning as `PHASE_LABEL_KEY`. */
-const KIND_LABEL_KEY: Record<CrewEventKind, string> = {
-  'claim': 'apps.issueRadar.views.crews.page.kind_claim',
-  'investigate': 'apps.issueRadar.views.crews.page.kind_investigate',
-  'reply': 'apps.issueRadar.views.crews.page.kind_reply',
-  'implement': 'apps.issueRadar.views.crews.page.kind_implement',
-  'ci': 'apps.issueRadar.views.crews.page.kind_ci',
-  'review': 'apps.issueRadar.views.crews.page.kind_review',
-  'conflict': 'apps.issueRadar.views.crews.page.kind_conflict',
-  'merge': 'apps.issueRadar.views.crews.page.kind_merge',
-  'handback': 'apps.issueRadar.views.crews.page.kind_handback',
-  'skip': 'apps.issueRadar.views.crews.page.kind_skip',
-  'yield': 'apps.issueRadar.views.crews.page.kind_yield',
+const KIND_LABEL_KEY: Record<StewardEventKind, string> = {
+  'claim': 'apps.issueRadar.views.stewards.page.kind_claim',
+  'investigate': 'apps.issueRadar.views.stewards.page.kind_investigate',
+  'reply': 'apps.issueRadar.views.stewards.page.kind_reply',
+  'implement': 'apps.issueRadar.views.stewards.page.kind_implement',
+  'ci': 'apps.issueRadar.views.stewards.page.kind_ci',
+  'review': 'apps.issueRadar.views.stewards.page.kind_review',
+  'conflict': 'apps.issueRadar.views.stewards.page.kind_conflict',
+  'merge': 'apps.issueRadar.views.stewards.page.kind_merge',
+  'handback': 'apps.issueRadar.views.stewards.page.kind_handback',
+  'skip': 'apps.issueRadar.views.stewards.page.kind_skip',
+  'yield': 'apps.issueRadar.views.stewards.page.kind_yield',
 }
 
-function phaseVariant(phase: CrewPhase): 'ok' | 'err' | 'warn' | 'aim' | 'muted' {
+function phaseVariant(phase: StewardPhase): 'ok' | 'err' | 'warn' | 'aim' | 'muted' {
   if (phase === 'resolved') return 'ok'
   if (TERMINAL_PHASES.has(phase)) return 'muted'
   if (EDITING_PHASES.has(phase)) return 'ok'
@@ -135,7 +135,7 @@ function phaseVariant(phase: CrewPhase): 'ok' | 'err' | 'warn' | 'aim' | 'muted'
 
 /** Badge colour for a ledger line's kind — what happened, in the same colour
  *  vocabulary the phases use. */
-function kindVariant(kind: CrewEventKind): 'ok' | 'err' | 'warn' | 'aim' | 'muted' {
+function kindVariant(kind: StewardEventKind): 'ok' | 'err' | 'warn' | 'aim' | 'muted' {
   if (kind === 'merge') return 'ok'
   if (kind === 'ci' || kind === 'conflict') return 'warn'
   if (kind === 'skip' || kind === 'yield' || kind === 'handback') return 'muted'
@@ -194,15 +194,15 @@ function StatBlock({ label, value, note, colorClass, testId }: {
   )
 }
 
-export interface CrewPageViewProps {
-  crewId: string
-  /** Open the crew editor. The dialog lives outside this view, so the page only
+export interface StewardPageViewProps {
+  stewardId: string
+  /** Open the steward editor. The dialog lives outside this view, so the page only
    *  reports the intent — and the Edit action is hidden when nothing can handle
    *  it rather than rendering a dead control. */
-  onEdit?: (crew: Crew) => void
+  onEdit?: (steward: Steward) => void
 }
 
-export default function CrewPageView({ crewId, onEdit }: CrewPageViewProps) {
+export default function StewardPageView({ stewardId, onEdit }: StewardPageViewProps) {
   const { t } = useTranslation()
   const { active, refreshPrefs } = useIssueRadar()
   const qc = useQueryClient()
@@ -210,18 +210,18 @@ export default function CrewPageView({ crewId, onEdit }: CrewPageViewProps) {
   const navigate = useNavigate()
   const [sessionError, setSessionError] = useState<string | null>(null)
 
-  const queryKey = ['issue-radar', 'crew', repoScopeKey(active), crewId]
-  // Polled exactly the way `context.tsx` polls its lists: the crew record moves
-  // on the crew's own turns, not on the user's, so this page is a live view.
+  const queryKey = ['issue-radar', 'steward', repoScopeKey(active), stewardId]
+  // Polled exactly the way `context.tsx` polls its lists: the steward record moves
+  // on the steward's own turns, not on the user's, so this page is a live view.
   const detail = useQuery({
     queryKey,
-    queryFn: () => issueRadarApi.crew(active, crewId),
+    queryFn: () => issueRadarApi.steward(active, stewardId),
     refetchInterval: refreshPrefs.listPollMs,
     refetchIntervalInBackground: refreshPrefs.pollInBackground,
     staleTime: refreshPrefs.staleTimeMs,
   })
 
-  const crew = detail.data?.crew ?? null
+  const steward = detail.data?.steward ?? null
   // Memoized, not `detail.data?.items ?? []` inline: a fresh `[]` on every render
   // makes it a new dependency identity and every `useMemo` below re-runs, which is
   // what `react-hooks/exhaustive-deps` flags. One identity per query result.
@@ -230,12 +230,12 @@ export default function CrewPageView({ crewId, onEdit }: CrewPageViewProps) {
   const counts = detail.data?.counts ?? { open: 0 }
 
   const pause = useMutation({
-    mutationFn: (paused: boolean) => issueRadarApi.setCrewPaused(active, crewId, paused),
+    mutationFn: (paused: boolean) => issueRadarApi.setStewardPaused(active, stewardId, paused),
     onSuccess: (res) => {
       // Write the returned record straight into the cache so the header flips on
       // the response rather than on the next poll, then let the poll reconcile.
       qc.setQueryData(queryKey, (prev: typeof detail.data) =>
-        prev ? { ...prev, crew: res.crew } : prev)
+        prev ? { ...prev, steward: res.steward } : prev)
       void qc.invalidateQueries({ queryKey })
     },
   })
@@ -250,7 +250,7 @@ export default function CrewPageView({ crewId, onEdit }: CrewPageViewProps) {
 
   // ── work log: the 24h split ──
   // A ROLLING 24-hour window on absolute epoch milliseconds (`now - 86_400_000`),
-  // not a calendar day: the crew works around the clock and across timezones, so
+  // not a calendar day: the steward works around the clock and across timezones, so
   // "since yesterday 00:00" would mean something different every hour of the day
   // and something different again for a user who moved. Only the RENDERING of the
   // stamps is locale-aware (`fmtRelative` / `fmtDateFields`); the boundary itself
@@ -263,7 +263,7 @@ export default function CrewPageView({ crewId, onEdit }: CrewPageViewProps) {
   // and it is what makes the ages advance at all: react-query's structural sharing
   // hands back the SAME `events` reference when a poll returns identical data, so
   // a memo keyed on `events` alone would pin the clock to the first fetch and
-  // freeze every "12m ago" for as long as the crew records nothing new.
+  // freeze every "12m ago" for as long as the steward records nothing new.
   const dataUpdatedAt = detail.dataUpdatedAt
   const log = useMemo(() => {
     const nowMs = dataUpdatedAt > 0 ? dataUpdatedAt : Date.now()
@@ -273,7 +273,7 @@ export default function CrewPageView({ crewId, onEdit }: CrewPageViewProps) {
     // one boundary, and recent/earlier stay contiguous.
     const split = sorted.findIndex((e) => stampMs(e.ts) < cutoff)
     return split === -1
-      ? { nowMs, recent: sorted, earlier: [] as CrewEvent[] }
+      ? { nowMs, recent: sorted, earlier: [] as StewardEvent[] }
       : { nowMs, recent: sorted.slice(0, split), earlier: sorted.slice(split) }
   }, [events, dataUpdatedAt])
 
@@ -289,44 +289,44 @@ export default function CrewPageView({ crewId, onEdit }: CrewPageViewProps) {
 
   if (detail.isPending) {
     return (
-      <div className="px-4 md:px-6 pt-4 pb-6 text-[13px] text-muted" data-testid="crew-page-loading">
-        {t('apps.issueRadar.views.crews.page.loading')}
+      <div className="px-4 md:px-6 pt-4 pb-6 text-[13px] text-muted" data-testid="steward-page-loading">
+        {t('apps.issueRadar.views.stewards.page.loading')}
       </div>
     )
   }
-  if (detail.isError || !crew) {
+  if (detail.isError || !steward) {
     return (
-      <div className="px-4 md:px-6 pt-4 pb-6" data-testid="crew-page-error">
+      <div className="px-4 md:px-6 pt-4 pb-6" data-testid="steward-page-error">
         <EmptyState
           icon={<Inbox className="lucide-inline" />}
-          title={t('apps.issueRadar.views.crews.page.load_failed')}
+          title={t('apps.issueRadar.views.stewards.page.load_failed')}
           subtitle={detail.error instanceof Error ? detail.error.message : undefined}
         />
       </div>
     )
   }
 
-  const paused = !crew.enabled
+  const paused = !steward.enabled
   const newestLive = items.filter((it) => !TERMINAL_PHASES.has(it.phase)).sort(byProgressDesc)[0]
   const stateLabel = paused
-    ? t('apps.issueRadar.views.crews.page.state_paused')
+    ? t('apps.issueRadar.views.stewards.page.state_paused')
     : newestLive
       ? t(PHASE_LABEL_KEY[newestLive.phase])
-      : t('apps.issueRadar.views.crews.page.state_idle')
+      : t('apps.issueRadar.views.stewards.page.state_idle')
   const stateVariant = paused ? 'muted' : newestLive ? phaseVariant(newestLive.phase) : 'muted'
-  const atLimit = counts.open >= crew.max_open
+  const atLimit = counts.open >= steward.max_open
 
   const openSession = async () => {
     setSessionError(null)
     try {
-      // The crew's session is a normal chat slot, so this is the dashboard's own
+      // The steward's session is a normal chat slot, so this is the dashboard's own
       // switch — the same call `lib/agentSession.ts` makes to RESUME a session.
-      await dispatch(switchSlot(crew.slot_key)).unwrap()
+      await dispatch(switchSlot(steward.slot_key)).unwrap()
       navigate('/chat')
     } catch {
-      // A 404 here means the slot was deleted; the crew opens a fresh one on its
+      // A 404 here means the slot was deleted; the steward opens a fresh one on its
       // next turn, so this is a message and not a retry.
-      setSessionError(t('apps.issueRadar.views.crews.page.session_gone'))
+      setSessionError(t('apps.issueRadar.views.stewards.page.session_gone'))
     }
   }
 
@@ -334,58 +334,58 @@ export default function CrewPageView({ crewId, onEdit }: CrewPageViewProps) {
   // states above — a gutter that changed as the read landed would shift the
   // content sideways on arrival.
   return (
-    <div className="px-4 md:px-6 pt-4 pb-6 flex flex-col gap-4" data-testid="crew-page">
+    <div className="px-4 md:px-6 pt-4 pb-6 flex flex-col gap-4" data-testid="steward-page">
       {/* ── 1. header ── */}
       <div className="flex items-start gap-4">
-        <CrewPlate seed={crew.avatar_seed} variant={crew.avatar_variant} size={78} />
+        <StewardPlate seed={steward.avatar_seed} variant={steward.avatar_variant} size={78} />
         <div className="min-w-0 flex-1">
-          <h2 className="text-[22px] leading-none text-text-strong truncate" data-testid="crew-name">
-            {crew.name}
+          <h2 className="text-[22px] leading-none text-text-strong truncate" data-testid="steward-name">
+            {steward.name}
           </h2>
           <div className="mt-2.5 flex flex-wrap items-center gap-2">
-            <Badge variant={stateVariant} className="font-body" data-testid="crew-state">{stateLabel}</Badge>
-            <Badge variant="muted" data-testid="crew-agent">{crew.agent}</Badge>
-            {crew.labels.map((label) => (
+            <Badge variant={stateVariant} className="font-body" data-testid="steward-state">{stateLabel}</Badge>
+            <Badge variant="muted" data-testid="steward-agent">{steward.agent}</Badge>
+            {steward.labels.map((label) => (
               <Badge key={label} variant="muted">{label}</Badge>
             ))}
-            <span className="text-[13px] text-muted" title={fmtDateTime(crew.created_at)}>
-              {t('apps.issueRadar.views.crews.page.on_duty_since', { date: shortDate(crew.created_at, log.nowMs) })}
+            <span className="text-[13px] text-muted" title={fmtDateTime(steward.created_at)}>
+              {t('apps.issueRadar.views.stewards.page.on_duty_since', { date: shortDate(steward.created_at, log.nowMs) })}
             </span>
           </div>
-          {paused && crew.paused_reason.trim() !== '' && (
-            <div className="mt-1.5 text-[13px] text-muted" data-testid="crew-paused-reason">
-              {t('apps.issueRadar.views.crews.page.paused_reason', { reason: crew.paused_reason })}
+          {paused && steward.paused_reason.trim() !== '' && (
+            <div className="mt-1.5 text-[13px] text-muted" data-testid="steward-paused-reason">
+              {t('apps.issueRadar.views.stewards.page.paused_reason', { reason: steward.paused_reason })}
             </div>
           )}
           {sessionError !== null && (
-            <div className="mt-1.5 text-[13px] text-danger" data-testid="crew-session-error">{sessionError}</div>
+            <div className="mt-1.5 text-[13px] text-danger" data-testid="steward-session-error">{sessionError}</div>
           )}
         </div>
         <div className="flex items-center gap-2 shrink-0">
           <Btn
             onClick={() => { void openSession() }}
-            disabled={crew.slot_key === ''}
-            title={crew.slot_key === '' ? t('apps.issueRadar.views.crews.page.session_unavailable') : undefined}
-            data-testid="crew-session"
+            disabled={steward.slot_key === ''}
+            title={steward.slot_key === '' ? t('apps.issueRadar.views.stewards.page.session_unavailable') : undefined}
+            data-testid="steward-session"
           >
             <CirclePlus className="lucide-inline" />
-            {t('apps.issueRadar.views.crews.page.session')}
+            {t('apps.issueRadar.views.stewards.page.session')}
           </Btn>
           {onEdit && (
-            <Btn onClick={() => { onEdit(crew) }} data-testid="crew-edit">
+            <Btn onClick={() => { onEdit(steward) }} data-testid="steward-edit">
               <Pencil className="lucide-inline" />
-              {t('apps.issueRadar.views.crews.page.edit')}
+              {t('apps.issueRadar.views.stewards.page.edit')}
             </Btn>
           )}
           <Btn
             onClick={() => { pause.mutate(!paused) }}
             disabled={pause.isPending}
-            data-testid="crew-pause-toggle"
+            data-testid="steward-pause-toggle"
           >
             {paused ? <Play className="lucide-inline" /> : <Pause className="lucide-inline" />}
             {paused
-              ? t('apps.issueRadar.views.crews.page.resume')
-              : t('apps.issueRadar.views.crews.page.pause')}
+              ? t('apps.issueRadar.views.stewards.page.resume')
+              : t('apps.issueRadar.views.stewards.page.pause')}
           </Btn>
         </div>
       </div>
@@ -393,17 +393,17 @@ export default function CrewPageView({ crewId, onEdit }: CrewPageViewProps) {
       {/* ── 2. additional prompt ──
         * The label is its own element rather than a prefix on the text: gluing a
         * translated label onto free-form user content is a concatenation seam, and
-        * this block renders the prompt VERBATIM (whitespace preserved) so a crew's
+        * this block renders the prompt VERBATIM (whitespace preserved) so a steward's
         * standing instruction reads exactly as it was written. Prose, though — it is
         * an instruction a human typed, not code — so it follows the user's Font
         * Family choice rather than being pinned to `--mono`. */}
-      {crew.extra_prompt.trim() !== '' && (
-        <div className="border-l-2 border-accent bg-card rounded-r-md px-4 py-3" data-testid="crew-extra-prompt">
+      {steward.extra_prompt.trim() !== '' && (
+        <div className="border-l-2 border-accent bg-card rounded-r-md px-4 py-3" data-testid="steward-extra-prompt">
           <div className="text-[11px] uppercase tracking-[.06em] text-muted/70 mb-1.5">
-            {t('apps.issueRadar.views.crews.page.additional_prompt')}
+            {t('apps.issueRadar.views.stewards.page.additional_prompt')}
           </div>
           <div className="text-[13px] leading-relaxed text-text whitespace-pre-wrap break-words">
-            {crew.extra_prompt}
+            {steward.extra_prompt}
           </div>
         </div>
       )}
@@ -415,50 +415,50 @@ export default function CrewPageView({ crewId, onEdit }: CrewPageViewProps) {
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
         <StatBlock
           testId="stat-open-items"
-          label={t('apps.issueRadar.views.crews.page.open_work_items')}
-          value={t('apps.issueRadar.views.crews.page.open_of_max', {
-            open: fmtNumber(counts.open), max: fmtNumber(crew.max_open),
+          label={t('apps.issueRadar.views.stewards.page.open_work_items')}
+          value={t('apps.issueRadar.views.stewards.page.open_of_max', {
+            open: fmtNumber(counts.open), max: fmtNumber(steward.max_open),
           })}
           note={atLimit
-            ? t('apps.issueRadar.views.crews.page.at_its_limit')
-            : t('apps.issueRadar.views.crews.page.slots_free', { count: Math.max(0, crew.max_open - counts.open) })}
+            ? t('apps.issueRadar.views.stewards.page.at_its_limit')
+            : t('apps.issueRadar.views.stewards.page.slots_free', { count: Math.max(0, steward.max_open - counts.open) })}
         />
         <StatBlock
           testId="stat-resolved"
-          label={t('apps.issueRadar.views.crews.page.resolved_24h')}
+          label={t('apps.issueRadar.views.stewards.page.resolved_24h')}
           value={fmtNumber(resolved24h)}
           colorClass={resolved24h > 0 ? 'text-ok' : undefined}
-          note={t('apps.issueRadar.views.crews.page.resolved_note')}
+          note={t('apps.issueRadar.views.stewards.page.resolved_note')}
         />
         <StatBlock
           testId="stat-asked"
-          label={t('apps.issueRadar.views.crews.page.asked_requester')}
+          label={t('apps.issueRadar.views.stewards.page.asked_requester')}
           value={fmtNumber(askedRequester)}
-          note={t('apps.issueRadar.views.crews.page.asked_note')}
+          note={t('apps.issueRadar.views.stewards.page.asked_note')}
         />
       </div>
 
       {/* ── 4. open work items ── */}
       <Card className="mb-0">
         <CardTitle>
-          {t('apps.issueRadar.views.crews.page.open_work_items')}
+          {t('apps.issueRadar.views.stewards.page.open_work_items')}
           <span className="font-normal text-muted">{fmtNumber(openItems.length)}</span>
         </CardTitle>
         {openItems.length === 0 ? (
           <EmptyState
             icon={<ListChecks className="lucide-inline" />}
-            title={t('apps.issueRadar.views.crews.page.no_open_work_items')}
-            subtitle={t('apps.issueRadar.views.crews.page.no_open_work_items_hint')}
+            title={t('apps.issueRadar.views.stewards.page.no_open_work_items')}
+            subtitle={t('apps.issueRadar.views.stewards.page.no_open_work_items_hint')}
             testId="work-items-empty"
           />
         ) : (
           <table className="w-full border-collapse table-striped" data-testid="work-items-table">
             <thead>
               <tr>
-                <th className={TH}>{t('apps.issueRadar.views.crews.page.col_issue')}</th>
-                <th className={TH}>{t('apps.issueRadar.views.crews.page.col_phase')}</th>
-                <th className={TH}>{t('apps.issueRadar.views.crews.page.col_next')}</th>
-                <th className={`${TH} text-right`}>{t('apps.issueRadar.views.crews.page.col_last_progress')}</th>
+                <th className={TH}>{t('apps.issueRadar.views.stewards.page.col_issue')}</th>
+                <th className={TH}>{t('apps.issueRadar.views.stewards.page.col_phase')}</th>
+                <th className={TH}>{t('apps.issueRadar.views.stewards.page.col_next')}</th>
+                <th className={`${TH} text-right`}>{t('apps.issueRadar.views.stewards.page.col_last_progress')}</th>
               </tr>
             </thead>
             <tbody>
@@ -480,7 +480,7 @@ export default function CrewPageView({ crewId, onEdit }: CrewPageViewProps) {
                   {/* Prose, in full. No truncate/line-clamp here — see the header note. */}
                   <td className={`${TD} whitespace-pre-wrap break-words leading-relaxed`} data-testid={`work-item-next-${item.number}`}>
                     {item.next.trim() === ''
-                      ? <span className="text-muted italic">{t('apps.issueRadar.views.crews.page.no_next_recorded')}</span>
+                      ? <span className="text-muted italic">{t('apps.issueRadar.views.stewards.page.no_next_recorded')}</span>
                       : item.next}
                   </td>
                   <td className={`${TD} text-right whitespace-nowrap text-muted`} title={fmtDateTime(item.last_progress_at)}>
@@ -499,24 +499,24 @@ export default function CrewPageView({ crewId, onEdit }: CrewPageViewProps) {
         * the last 24 hours are highlighted. */}
       <Card className="mb-0">
         <CardTitle>
-          {t('apps.issueRadar.views.crews.page.work_log')}
-          <span className="font-normal text-muted">{t('apps.issueRadar.views.crews.page.work_log_hint')}</span>
+          {t('apps.issueRadar.views.stewards.page.work_log')}
+          <span className="font-normal text-muted">{t('apps.issueRadar.views.stewards.page.work_log_hint')}</span>
         </CardTitle>
         {log.recent.length === 0 && log.earlier.length === 0 ? (
           <EmptyState
             icon={<ScrollText className="lucide-inline" />}
-            title={t('apps.issueRadar.views.crews.page.no_events')}
-            subtitle={t('apps.issueRadar.views.crews.page.no_events_hint')}
+            title={t('apps.issueRadar.views.stewards.page.no_events')}
+            subtitle={t('apps.issueRadar.views.stewards.page.no_events_hint')}
             testId="work-log-empty"
           />
         ) : (
           <table className="w-full border-collapse table-striped" data-testid="work-log-table">
             <thead>
               <tr>
-                <th className={TH}>{t('apps.issueRadar.views.crews.page.col_when')}</th>
-                <th className={TH}>{t('apps.issueRadar.views.crews.page.col_issue')}</th>
-                <th className={TH}>{t('apps.issueRadar.views.crews.page.col_event')}</th>
-                <th className={`${TH} text-right`}>{t('apps.issueRadar.views.crews.page.col_outcome')}</th>
+                <th className={TH}>{t('apps.issueRadar.views.stewards.page.col_when')}</th>
+                <th className={TH}>{t('apps.issueRadar.views.stewards.page.col_issue')}</th>
+                <th className={TH}>{t('apps.issueRadar.views.stewards.page.col_event')}</th>
+                <th className={`${TH} text-right`}>{t('apps.issueRadar.views.stewards.page.col_outcome')}</th>
               </tr>
             </thead>
             <tbody>
@@ -535,7 +535,7 @@ export default function CrewPageView({ crewId, onEdit }: CrewPageViewProps) {
               {log.earlier.length > 0 && (
                 <tr data-testid="work-log-earlier">
                   <td colSpan={4} className="px-2.5 pt-4 pb-1.5 border-b border-border text-[11px] uppercase tracking-[.06em] text-muted/70">
-                    {t('apps.issueRadar.views.crews.page.earlier')}
+                    {t('apps.issueRadar.views.stewards.page.earlier')}
                   </td>
                 </tr>
               )}

@@ -203,7 +203,7 @@ class TestBuildHelpText:
         assert "`/junction #channel`" in text
 
     def test_honours_custom_command_name(self):
-        assert "`/crew status`" in ev._build_help_text("crew")
+        assert "`/ops status`" in ev._build_help_text("ops")
 
     def test_description_less_command_renders_bare(self):
         ev.register_slash_command("zzcovtmp", AsyncMock(), "")

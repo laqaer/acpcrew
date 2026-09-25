@@ -32,7 +32,7 @@ describe('nudgeTextFor', () => {
       for (const n of VARIANTS) {
         const key = `break.${kind}.${n}`
         expect(nudgeTextFor(key)).not.toBe(key)
-        expect(nudgeTextFor(key)).not.toContain('crewCompanion')
+        expect(nudgeTextFor(key)).not.toContain('deskCompanion')
       }
     }
   })

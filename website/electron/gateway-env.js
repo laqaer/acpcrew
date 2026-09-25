@@ -2,8 +2,8 @@
 
 // Environment invariants for every gateway the desktop shell owns.
 //
-// CPython chooses the encoding for redirected stdout/stderr before any Kiro
-// Crew Python runs.  Reconfiguring sys.stdout later is therefore only a
+// CPython chooses the encoding for redirected stdout/stderr before any Junction
+// Python runs.  Reconfiguring sys.stdout later is therefore only a
 // best-effort repair.  Windows defaults redirected files/pipes to its ANSI code
 // page, while every platform permits PYTHONIOENCODING to override an otherwise
 // UTF-8 locale.  The gateway prints emoji during boot, so a hostile inherited

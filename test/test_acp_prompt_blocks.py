@@ -277,10 +277,10 @@ class TestUncProbeGate:
         """Roaming profile: the data home ITSELF is a UNC share."""
         monkeypatch.setattr(
             "junction.config.paths.data_home",
-            lambda: Path(r"\\fileserver\home\me\.kiro\crew"),
+            lambda: Path(r"\\fileserver\home\me\.junction"),
         )
         allowed = hooks.unc_probe_allowed(
-            r"\\fileserver\home\me\.kiro\crew\uploads\shot.png"
+            r"\\fileserver\home\me\.junction\uploads\shot.png"
         )
         forward = hooks.unc_probe_allowed(
             "//fileserver/home/me/.junction/uploads/shot.png"
@@ -295,7 +295,7 @@ class TestUncProbeGate:
     def test_sibling_share_on_same_server_is_refused(self, monkeypatch):
         monkeypatch.setattr(
             "junction.config.paths.data_home",
-            lambda: Path(r"\\fileserver\home\me\.kiro\crew"),
+            lambda: Path(r"\\fileserver\home\me\.junction"),
         )
         if os.name == "nt":
             assert hooks.unc_probe_allowed(r"\\fileserver\other\x.png") is False

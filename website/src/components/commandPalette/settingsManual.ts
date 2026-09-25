@@ -230,8 +230,8 @@ export const SETTINGS_MANUAL: ManualSettingEntry[] = [
   {
     // One-way enable action on the disabled-state gate card (writes
     // instances.enabled); not a toggle row, so no primitive fits.
-    id: 'instances.enable-remote-crew-management',
-    labelKey: 'pages.settings.instancesPanel.enable_remote_crew_management',
+    id: 'instances.enable-multi-instance-management',
+    labelKey: 'pages.settings.instancesPanel.enable_multi_instance_management',
     tab: 'instances',
     type: 'toggle',
     occurrence: 1,

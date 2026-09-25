@@ -1,5 +1,5 @@
 /**
- * RemoteCrewPanel — Settings → Remote Instances. One page, two tabs:
+ * RemoteInstancesPanel — Settings → Remote Instances. One page, two tabs:
  *
  *   1. "Your instances" (default) — the machines you can switch to from the top
  *      header: any in-progress cloud launch (a durable gateway job), the
@@ -9,7 +9,7 @@
  *      offer the cloud lifecycle (Stop / Delete-by-tag) that a plain tunnel row
  *      cannot.
  *   2. "Set up a new one" — an AWS prerequisite checklist (from the cloud
- *      preflight) and a launch form that spins up a cloud-hosted crew on the
+ *      preflight) and a launch form that spins up a cloud-hosted Junction on the
  *      user's OWN AWS account, then a progress card that polls the launch job.
  *
  * The instance CRUD (connect / disconnect / diagnose / remove) and the
@@ -66,7 +66,7 @@ import { AddInstanceForm, StatusBadge } from './InstancesPanel'
 import { EditInstanceForm, instanceFormFromView, type InstanceDraft } from './InstanceFormFields'
 
 
-/** A launch job the user is still waiting on (not yet a switchable crew). */
+/** A launch job the user is still waiting on (not yet a switchable instance). */
 const IN_PROGRESS: LaunchJob['status'][] = ['pending', 'running', 'awaiting_signin']
 const isInProgress = (j: LaunchJob) => IN_PROGRESS.includes(j.status)
 
@@ -79,9 +79,9 @@ const DEFAULT_REGION = 'us-east-1'
 const TERMINAL: LaunchJob['status'][] = ['done', 'failed', 'cancelled']
 const isTerminal = (j: LaunchJob) => TERMINAL.includes(j.status)
 
-/** The AWS coordinates a lifecycle call needs, taken from the crew itself.
+/** The AWS coordinates a lifecycle call needs, taken from the instance itself.
  *
- *  A crew launched under a non-default profile or region is invisible to the
+ *  An instance launched under a non-default profile or region is invisible to the
  *  gateway's defaults, so stop/start/destroy must carry them; destroy also needs
  *  the instance id so the local registration goes away with the stack.
  */
@@ -124,16 +124,16 @@ const X86_TIERS: SizeTier[] = [
 // statically (a map-field indirection is opaque to it).
 const tierLabel = (key: SizeTier['family']) =>
   key === 'light'
-    ? i18nT('pages.settings.remoteCrewPanel.tier_light')
+    ? i18nT('pages.settings.remoteInstancesPanel.tier_light')
     : key === 'balanced'
-      ? i18nT('pages.settings.remoteCrewPanel.tier_development')
-      : i18nT('pages.settings.remoteCrewPanel.tier_power')
+      ? i18nT('pages.settings.remoteInstancesPanel.tier_development')
+      : i18nT('pages.settings.remoteInstancesPanel.tier_power')
 const tierWhy = (key: SizeTier['family']) =>
   key === 'light'
-    ? i18nT('pages.settings.remoteCrewPanel.tier_light_why')
+    ? i18nT('pages.settings.remoteInstancesPanel.tier_light_why')
     : key === 'balanced'
-      ? i18nT('pages.settings.remoteCrewPanel.tier_development_why')
-      : i18nT('pages.settings.remoteCrewPanel.tier_power_why')
+      ? i18nT('pages.settings.remoteInstancesPanel.tier_development_why')
+      : i18nT('pages.settings.remoteInstancesPanel.tier_power_why')
 
 const PRICING_CALCULATOR_URL = 'https://calculator.aws'
 // NOTE: the session-manager-plugin install command is NOT hardcoded here. It has to
@@ -155,11 +155,11 @@ function SizeCard({ tier, on, onPick }: { tier: SizeTier; on: boolean; onPick: (
       <span className="min-w-0">
         <span className="font-bold text-[13px] text-text-strong flex items-center gap-2">
           {tierLabel(tier.family)}
-          {tier.recommended && <Badge variant="aim">{i18nT('pages.settings.remoteCrewPanel.default_tag')}</Badge>}
-          <span className="font-normal text-muted">· {i18nT('pages.settings.remoteCrewPanel.subagents', { n: tier.subagents })}</span>
+          {tier.recommended && <Badge variant="aim">{i18nT('pages.settings.remoteInstancesPanel.default_tag')}</Badge>}
+          <span className="font-normal text-muted">· {i18nT('pages.settings.remoteInstancesPanel.subagents', { n: tier.subagents })}</span>
         </span>
         <span className="block font-mono text-[12px] text-muted mt-1">
-          {i18nT('pages.settings.remoteCrewPanel.tier_spec', {
+          {i18nT('pages.settings.remoteInstancesPanel.tier_spec', {
             instanceType: tier.instanceType,
             arch: tier.arch,
             vcpu: tier.vcpu,
@@ -173,7 +173,7 @@ function SizeCard({ tier, on, onPick }: { tier: SizeTier; on: boolean; onPick: (
   )
 }
 
-/** One in-progress launch, shown among the crews as a "Setting up" row. */
+/** One in-progress launch, shown among the instances as a "Setting up" row. */
 function SettingUpRow({ job, onCancel, cancelling }: { job: LaunchJob; onCancel: (id: string) => void; cancelling: boolean }) {
   const total = job.steps.length || 4
   const current = Math.min(total, job.steps.filter(s => s.state === 'done').length + 1)
@@ -187,8 +187,8 @@ function SettingUpRow({ job, onCancel, cancelling }: { job: LaunchJob; onCancel:
         <div className="min-w-0">
           <div className="text-text-strong text-sm font-medium flex items-center gap-2 flex-wrap">
             <span className="inline-block w-2 h-2 rounded-full bg-accent" aria-hidden />
-            {i18nT('pages.settings.remoteCrewPanel.cloud_crew_name', { tag: job.tag })}
-            <Badge variant="aim">{i18nT('pages.settings.remoteCrewPanel.setting_up')}</Badge>
+            {i18nT('pages.settings.remoteInstancesPanel.cloud_instance_name', { tag: job.tag })}
+            <Badge variant="aim">{i18nT('pages.settings.remoteInstancesPanel.setting_up')}</Badge>
           </div>
           <div className="text-[12px] text-muted mt-0.5">
             {job.region}
@@ -197,25 +197,25 @@ function SettingUpRow({ job, onCancel, cancelling }: { job: LaunchJob; onCancel:
           <div className="mt-1.5 rounded-md border border-accent-subtle bg-bg-elevated px-2.5 py-2">
             <div className="text-[12px] text-text-strong font-medium flex items-center gap-1.5">
               <RefreshCw size={12} className="animate-spin" />
-              {i18nT('pages.settings.remoteCrewPanel.step_progress', { current, total })}
+              {i18nT('pages.settings.remoteInstancesPanel.step_progress', { current, total })}
               {active?.label ? ` — ${active.label}` : ''}
             </div>
-            <div className="text-[11px] text-muted mt-0.5">{i18nT('pages.settings.remoteCrewPanel.keeps_running')}</div>
+            <div className="text-[11px] text-muted mt-0.5">{i18nT('pages.settings.remoteInstancesPanel.keeps_running')}</div>
           </div>
         </div>
       </div>
       <div className="shrink-0">
-        <Btn onClick={() => onCancel(job.id)} disabled={cancelling} aria-label={i18nT('pages.settings.remoteCrewPanel.cancel_setup_of', { tag: job.tag })}>
-          {cancelling ? i18nT('pages.settings.remoteCrewPanel.cancelling') : i18nT('pages.settings.remoteCrewPanel.cancel')}
+        <Btn onClick={() => onCancel(job.id)} disabled={cancelling} aria-label={i18nT('pages.settings.remoteInstancesPanel.cancel_setup_of', { tag: job.tag })}>
+          {cancelling ? i18nT('pages.settings.remoteInstancesPanel.cancelling') : i18nT('pages.settings.remoteInstancesPanel.cancel')}
         </Btn>
       </div>
     </div>
   )
 }
 
-/** One switchable crew — a cloud-launched instance (Stop / Delete by tag) or a
- *  hand-added machine (Remove). */
-function CrewRow({
+/** One switchable remote instance — either launched in the cloud (Stop / Delete
+ *  by tag) or a hand-added machine (Remove). */
+function RemoteInstanceRow({
   inst,
   cloudTag,
   busy,
@@ -258,7 +258,7 @@ function CrewRow({
   onRequestRemove: (id: string | null) => void
   onEdit: (id: string | null) => void
   onEditSaved: (updated: InstanceView) => void
-  /** Unsaved work for THIS crew, held by the panel so it survives unmount. */
+  /** Unsaved work for THIS instance, held by the panel so it survives unmount. */
   editDraft: InstanceDraft | null
   onEditDraftChange: (draft: InstanceDraft | null) => void
   /** Persisted fields that moved under the open draft (see EditInstanceForm). */
@@ -273,7 +273,7 @@ function CrewRow({
   const connected = inst.status.state === 'connected'
   const isCloud = cloudTag !== null
   // An SSM machine with no matching launch job is NOT necessarily hand-added: the CLI
-  // launcher registers real cloud crews the same way, and those never produce a launch
+  // launcher registers real cloud instances the same way, and those never produce a launch
   // job in this gateway's store. Calling them "added by you" and offering the plain
   // one-click Remove would unregister a live, billing instance and take away the only
   // place the dashboard could still delete it. We cannot prove which it is, so treat it
@@ -287,7 +287,7 @@ function CrewRow({
     deleting || lifecycleBusy || (isCloud && confirmDelete) || (!isCloud && confirmRemove)
   const target = inst.connection_method === 'ssm' ? inst.ssm_target : inst.ssh_host
   return (
-    <div className="py-2.5 border-b border-border last:border-b-0" data-crew-id={inst.id}>
+    <div className="py-2.5 border-b border-border last:border-b-0" data-instance-id={inst.id}>
     <div className="flex items-start justify-between gap-3">
       <div className="flex items-start gap-3 min-w-0">
         <span className={`mt-0.5 w-8 h-8 shrink-0 grid place-items-center rounded-md ${isCloud ? 'bg-accent-subtle text-accent' : 'bg-bg-hover text-muted'}`}>
@@ -303,10 +303,10 @@ function CrewRow({
           <div className="mt-1"><StatusBadge status={inst.status} /></div>
           <div className="text-[11px] text-muted-strong mt-1">
             {isCloud
-              ? i18nT('pages.settings.remoteCrewPanel.launched_by_junction')
+              ? i18nT('pages.settings.remoteInstancesPanel.launched_by_junction')
               : unverifiedCloud
-                ? i18nT('pages.settings.remoteCrewPanel.unverified_cloud_note')
-                : `${i18nT('pages.settings.remoteCrewPanel.added_by_you')} · ${i18nT('pages.settings.remoteCrewPanel.doesnt_manage')}`}
+                ? i18nT('pages.settings.remoteInstancesPanel.unverified_cloud_note')
+                : `${i18nT('pages.settings.remoteInstancesPanel.added_by_you')} · ${i18nT('pages.settings.remoteInstancesPanel.doesnt_manage')}`}
           </div>
         </div>
       </div>
@@ -329,39 +329,39 @@ function CrewRow({
             the delete only requested the teardown, and AWS confirms minutes later
             when the row is dropped. Hiding that read as "nothing happened". */}
         {deleting ? (
-          <Btn danger disabled aria-label={i18nT('pages.settings.remoteCrewPanel.deleting')}>
-            <RefreshCw className="lucide-inline animate-spin" /> {i18nT('pages.settings.remoteCrewPanel.deleting')}
+          <Btn danger disabled aria-label={i18nT('pages.settings.remoteInstancesPanel.deleting')}>
+            <RefreshCw className="lucide-inline animate-spin" /> {i18nT('pages.settings.remoteInstancesPanel.deleting')}
           </Btn>
         ) : lifecycleBusy ? (
           // The action was chosen from the menu, which then closed. Report its
           // progress on the row under the SAME accessible name the menu item
-          // carried, so the crew a request belongs to is never ambiguous.
+          // carried, so the instance a request belongs to is never ambiguous.
           <Btn
             disabled
             aria-label={
               busy === `stop:${cloudTag}`
-                ? i18nT('pages.settings.remoteCrewPanel.stop_crew', { name: inst.name })
-                : i18nT('pages.settings.remoteCrewPanel.start_crew', { name: inst.name })
+                ? i18nT('pages.settings.remoteInstancesPanel.stop_instance', { name: inst.name })
+                : i18nT('pages.settings.remoteInstancesPanel.start_instance', { name: inst.name })
             }
           >
             <RefreshCw className="lucide-inline animate-spin" />{' '}
             {busy === `stop:${cloudTag}`
-              ? i18nT('pages.settings.remoteCrewPanel.stopping')
-              : i18nT('pages.settings.remoteCrewPanel.starting')}
+              ? i18nT('pages.settings.remoteInstancesPanel.stopping')
+              : i18nT('pages.settings.remoteInstancesPanel.starting')}
           </Btn>
         ) : isCloud && confirmDelete ? (
           <>
-            <Btn danger onClick={() => onDelete(cloudTag, coordsOf(inst))} disabled={!!busy} aria-label={i18nT('pages.settings.remoteCrewPanel.confirm_delete_of', { name: inst.name })}>
+            <Btn danger onClick={() => onDelete(cloudTag, coordsOf(inst))} disabled={!!busy} aria-label={i18nT('pages.settings.remoteInstancesPanel.confirm_delete_of', { name: inst.name })}>
               {/* Names its target on screen, not only to assistive tech: this click
                   terminates an EC2 instance, and "Confirm delete" beside two other
                   rows does not say WHICH. */}
-              <Trash2 className="lucide-inline" /> {i18nT('pages.settings.remoteCrewPanel.delete_crew', { name: inst.name })}
+              <Trash2 className="lucide-inline" /> {i18nT('pages.settings.remoteInstancesPanel.delete_instance', { name: inst.name })}
             </Btn>
             {/* An armed destructive button needs a way out. The overflow menu is
                 hidden while armed, so without this a mis-click leaves the row
                 showing nothing but a button that terminates an EC2 instance. */}
             <Btn onClick={() => onRequestDelete(null)} disabled={!!busy}>
-              {i18nT('pages.settings.remoteCrewPanel.cancel')}
+              {i18nT('pages.settings.remoteInstancesPanel.cancel')}
             </Btn>
           </>
         ) : !isCloud && confirmRemove ? (
@@ -370,7 +370,7 @@ function CrewRow({
               <Trash2 className="lucide-inline" /> {i18nT('pages.settings.instancesPanel.remove', { name: inst.name })}
             </Btn>
             <Btn onClick={() => onRequestRemove(null)} disabled={!!busy}>
-              {i18nT('pages.settings.remoteCrewPanel.cancel')}
+              {i18nT('pages.settings.remoteInstancesPanel.cancel')}
             </Btn>
           </>
         ) : null}
@@ -382,7 +382,7 @@ function CrewRow({
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
             <IconButton
-              aria-label={i18nT('pages.settings.remoteCrewPanel.more_actions', { name: inst.name })}
+              aria-label={i18nT('pages.settings.remoteInstancesPanel.more_actions', { name: inst.name })}
               disabled={!!busy || deleting}
             >
               <MoreHorizontal className="lucide-inline" />
@@ -397,7 +397,7 @@ function CrewRow({
               <Stethoscope className="lucide-inline" /> {i18nT('pages.settings.instancesPanel.diagnose')}
             </DropdownMenuItem>
             <DropdownMenuItem className="gap-2 text-[13px]" onSelect={() => onEdit(inst.id)}>
-              <Pencil className="lucide-inline" /> {i18nT('pages.settings.remoteCrewPanel.edit_settings')}
+              <Pencil className="lucide-inline" /> {i18nT('pages.settings.remoteInstancesPanel.edit_settings')}
             </DropdownMenuItem>
             {isCloud ? (
               <>
@@ -405,27 +405,27 @@ function CrewRow({
                 <DropdownMenuItem
                   className="gap-2 text-[13px]"
                   onSelect={() => onStop(cloudTag, coordsOf(inst))}
-                  aria-label={i18nT('pages.settings.remoteCrewPanel.stop_crew', { name: inst.name })}
+                  aria-label={i18nT('pages.settings.remoteInstancesPanel.stop_instance', { name: inst.name })}
                 >
-                  <Power className="lucide-inline" /> {i18nT('pages.settings.remoteCrewPanel.stop')}
+                  <Power className="lucide-inline" /> {i18nT('pages.settings.remoteInstancesPanel.stop')}
                 </DropdownMenuItem>
                 {/* Stop without Start is a one-way door: the route exists and the client
-                    method existed, but nothing called it — a stopped crew had no path back
+                    method existed, but nothing called it — a stopped instance had no path back
                     to running from the dashboard, while its EBS volume kept billing. */}
                 <DropdownMenuItem
                   className="gap-2 text-[13px]"
                   onSelect={() => onStart(cloudTag, coordsOf(inst))}
-                  aria-label={i18nT('pages.settings.remoteCrewPanel.start_crew', { name: inst.name })}
+                  aria-label={i18nT('pages.settings.remoteInstancesPanel.start_instance', { name: inst.name })}
                 >
-                  <Play className="lucide-inline" /> {i18nT('pages.settings.remoteCrewPanel.start')}
+                  <Play className="lucide-inline" /> {i18nT('pages.settings.remoteInstancesPanel.start')}
                 </DropdownMenuItem>
                 <DropdownMenuSeparator />
                 <DropdownMenuItem
                   className="gap-2 text-[13px] text-danger"
                   onSelect={() => onRequestDelete(cloudTag)}
-                  aria-label={i18nT('pages.settings.remoteCrewPanel.delete_crew', { name: inst.name })}
+                  aria-label={i18nT('pages.settings.remoteInstancesPanel.delete_instance', { name: inst.name })}
                 >
-                  <Trash2 className="lucide-inline" /> {i18nT('pages.settings.remoteCrewPanel.delete')}
+                  <Trash2 className="lucide-inline" /> {i18nT('pages.settings.remoteInstancesPanel.delete')}
                 </DropdownMenuItem>
               </>
             ) : (
@@ -440,7 +440,7 @@ function CrewRow({
                   onSelect={() => onRequestRemove(inst.id)}
                   aria-label={i18nT('pages.settings.instancesPanel.remove', { name: inst.name })}
                 >
-                  <Trash2 className="lucide-inline" /> {i18nT('pages.settings.remoteCrewPanel.remove')}
+                  <Trash2 className="lucide-inline" /> {i18nT('pages.settings.remoteInstancesPanel.remove')}
                 </DropdownMenuItem>
               </>
             )}
@@ -453,7 +453,7 @@ function CrewRow({
       // At the row, and assertive: the menu closes on select, so a refusal that
       // renders anywhere else reads as the click having done nothing at all.
       <p role="alert" className="mt-2 text-[12px] text-warn">
-        {i18nT('pages.settings.remoteCrewPanel.finish_open_edit_first')}
+        {i18nT('pages.settings.remoteInstancesPanel.finish_open_edit_first')}
       </p>
     )}
     {editing && (
@@ -466,10 +466,10 @@ function CrewRow({
         externallyChanged={editExternallyChanged}
         onDraftChange={onEditDraftChange}
         onRebase={onEditRebase}
-        // Only a CORRELATED cloud crew is addressed by its connection identity:
+        // Only a CORRELATED cloud instance is addressed by its connection identity:
         // Stop / Start / Delete resolve the machine through {profile, region,
         // ssm_target}, so editing those would leave a billing instance the
-        // dashboard can no longer reach. A crew we cannot correlate is offered no
+        // dashboard can no longer reach. An instance we cannot correlate is offered no
         // lifecycle action at all, so freezing its fields would protect nothing
         // and would take away a legitimate way to correct its AWS profile.
         lockTransport={isCloud}
@@ -518,7 +518,7 @@ function PrereqRow({
           <div className="mt-2 flex gap-2 flex-wrap">
             {onCopyCommand && (
               <Btn onClick={onCopyCommand}>
-                {copied ? <Check className="lucide-inline" /> : <Copy className="lucide-inline" />} {copied ? i18nT('pages.settings.remoteCrewPanel.copied') : i18nT('pages.settings.remoteCrewPanel.copy_command')}
+                {copied ? <Check className="lucide-inline" /> : <Copy className="lucide-inline" />} {copied ? i18nT('pages.settings.remoteInstancesPanel.copied') : i18nT('pages.settings.remoteInstancesPanel.copy_command')}
               </Btn>
             )}
             {extraAction}
@@ -532,8 +532,8 @@ function PrereqRow({
               <Btn onClick={onRecheck} disabled={!!rechecking}>
                 <RefreshCw className={`lucide-inline${rechecking ? ' animate-spin' : ''}`} />{' '}
                 {rechecking
-                  ? i18nT('pages.settings.remoteCrewPanel.checking')
-                  : i18nT('pages.settings.remoteCrewPanel.re_check')}
+                  ? i18nT('pages.settings.remoteInstancesPanel.checking')
+                  : i18nT('pages.settings.remoteInstancesPanel.re_check')}
               </Btn>
             )}
           </div>
@@ -564,12 +564,12 @@ function LaunchProgressCard({ job, onCancel, onSignin, cancelling }: {
         {job.status === 'done'
           ? <Badge variant="ok">{i18nT('pages.settings.instancesPanel.connect')}</Badge>
           : job.status === 'failed'
-            ? <Badge variant="err">{i18nT('pages.settings.remoteCrewPanel.launch_failed_title')}</Badge>
-            : <Badge variant="aim">{i18nT('pages.settings.remoteCrewPanel.launching')}</Badge>}
-        <span className="text-text-strong text-sm font-medium">{i18nT('pages.settings.remoteCrewPanel.cloud_crew_name', { tag: job.tag })}</span>
+            ? <Badge variant="err">{i18nT('pages.settings.remoteInstancesPanel.launch_failed_title')}</Badge>
+            : <Badge variant="aim">{i18nT('pages.settings.remoteInstancesPanel.launching')}</Badge>}
+        <span className="text-text-strong text-sm font-medium">{i18nT('pages.settings.remoteInstancesPanel.cloud_instance_name', { tag: job.tag })}</span>
         {!terminal && (
-          <Btn className="ml-auto" onClick={() => onCancel(job.id)} disabled={cancelling} aria-label={i18nT('pages.settings.remoteCrewPanel.cancel_setup_of', { tag: job.tag })}>
-            {cancelling ? i18nT('pages.settings.remoteCrewPanel.cancelling') : i18nT('pages.settings.remoteCrewPanel.cancel')}
+          <Btn className="ml-auto" onClick={() => onCancel(job.id)} disabled={cancelling} aria-label={i18nT('pages.settings.remoteInstancesPanel.cancel_setup_of', { tag: job.tag })}>
+            {cancelling ? i18nT('pages.settings.remoteInstancesPanel.cancelling') : i18nT('pages.settings.remoteInstancesPanel.cancel')}
           </Btn>
         )}
       </div>
@@ -595,25 +595,25 @@ function LaunchProgressCard({ job, onCancel, onSignin, cancelling }: {
 
       {(job.status === 'awaiting_signin' || unconfirmedSignin) && (
         <div className="mt-3 rounded-md border border-accent-subtle bg-bg-elevated px-3 py-2.5">
-          <div className="text-[13px] font-medium text-text-strong">{i18nT('pages.settings.remoteCrewPanel.sign_in_to_kiro')}</div>
+          <div className="text-[13px] font-medium text-text-strong">{i18nT('pages.settings.remoteInstancesPanel.sign_in_to_kiro')}</div>
           <div className="text-[12px] text-muted mt-0.5">
             {unconfirmedSignin
-              ? i18nT('pages.settings.remoteCrewPanel.sign_in_unconfirmed')
-              : i18nT('pages.settings.remoteCrewPanel.sign_in_hint')}
+              ? i18nT('pages.settings.remoteInstancesPanel.sign_in_unconfirmed')
+              : i18nT('pages.settings.remoteInstancesPanel.sign_in_hint')}
           </div>
           {signin ? (
             <div className="mt-2 flex items-center gap-3 flex-wrap">
               <code className="rounded-md border border-border bg-bg px-2.5 py-1 font-mono text-[13px] text-accent">
-                {i18nT('pages.settings.remoteCrewPanel.your_code', { code: signin.code })}
+                {i18nT('pages.settings.remoteInstancesPanel.your_code', { code: signin.code })}
               </code>
               <a className="inline-flex items-center gap-1.5 text-accent text-[13px] font-medium hover:underline" href={signin.url} target="_blank" rel="noreferrer">
-                <ExternalLink size={13} /> {i18nT('pages.settings.remoteCrewPanel.open_sign_in')}
+                <ExternalLink size={13} /> {i18nT('pages.settings.remoteInstancesPanel.open_sign_in')}
               </a>
             </div>
           ) : (
             <div className="mt-2">
               <Btn onClick={() => onSignin(job.id)}>
-                <ExternalLink className="lucide-inline" /> {i18nT('pages.settings.remoteCrewPanel.open_sign_in')}
+                <ExternalLink className="lucide-inline" /> {i18nT('pages.settings.remoteInstancesPanel.open_sign_in')}
               </Btn>
             </div>
           )}
@@ -624,16 +624,16 @@ function LaunchProgressCard({ job, onCancel, onSignin, cancelling }: {
           (name, host, size) are still live — navigating away discards them. */}
       {job.error ? <ErrorNotice message={job.error} className="mt-3" /> : null}
       <p className="mt-3 text-[12px] text-muted">
-        {job.status === 'done' ? i18nT('pages.settings.remoteCrewPanel.launch_done') : i18nT('pages.settings.remoteCrewPanel.runs_on_gateway')}
+        {job.status === 'done' ? i18nT('pages.settings.remoteInstancesPanel.launch_done') : i18nT('pages.settings.remoteInstancesPanel.runs_on_gateway')}
       </p>
     </Card>
   )
 }
 
-export function RemoteCrewPanel() {
+export function RemoteInstancesPanel() {
   const queryClient = useQueryClient()
   const dispatch = useAppDispatch()
-  const [tab, setTab] = useState<'crews' | 'setup'>('crews')
+  const [tab, setTab] = useState<'instances' | 'setup'>('instances')
 
   // Setup-tab form + preflight state. `checkedProfile`/`checkedRegion` are the
   // committed values the preflight ran against, so typing a profile does not
@@ -657,13 +657,13 @@ export function RemoteCrewPanel() {
   const [activeLaunchId, setActiveLaunchId] = useState<string | null>(null)
   const [confirmDeleteTag, setConfirmDeleteTag] = useState<string | null>(null)
   const [confirmRemoveId, setConfirmRemoveId] = useState<string | null>(null)
-  // Only one crew is editable at a time: two open forms on the same list would
+  // Only one instance is editable at a time: two open forms on the same list would
   // let the user save conflicting ports without ever seeing the clash.
   const [editingId, setEditingId] = useState<string | null>(null)
   // Unsaved work in the open form. Swapping rows would unmount it and lose typed
   // host/port corrections silently, so the swap is refused instead.
-  // The unsaved edit itself, keyed by crew — NOT a boolean. The form unmounts
-  // whenever the crew list does (switching to the setup tab is enough), and a
+  // The unsaved edit itself, keyed by instance — NOT a boolean. The form unmounts
+  // whenever the instance list does (switching to the setup tab is enough), and a
   // guard can only refuse the exits it knows about; holding the values here means
   // the work survives the unmount instead of needing a new guard per exit.
   // `seq` counts REBASES, and is used as the form's React key: adopting the current
@@ -674,7 +674,7 @@ export function RemoteCrewPanel() {
   const editDirty = editDraft !== null
   // Which row's Edit was refused, not a bare flag: the refusal has to render at
   // the row the user actually clicked. Shown once at the bottom of the Card it
-  // could sit off-screen in a long crew list, so the click looked like a no-op.
+  // could sit off-screen in a long instance list, so the click looked like a no-op.
   const [editBlockedId, setEditBlockedId] = useState<string | null>(null)
   // Tags whose delete has been accepted by the gateway but not yet confirmed by AWS.
   // The DELETE endpoint returns `cleanup: "pending"` the moment the CloudFormation
@@ -707,9 +707,9 @@ export function RemoteCrewPanel() {
     instancesQuery.error instanceof ApiError &&
     instancesQuery.error.status === 403 &&
     /disabled/i.test(instancesQuery.error.message)
-  // Any OTHER failure is a load error, not "you have no crews": rendering the
-  // empty state over it would tell the user their crews are gone.
-  // Both queries gate the crew list: a row's cloud-vs-manual identity comes from the
+  // Any OTHER failure is a load error, not "you have no instances": rendering the
+  // empty state over it would tell the user their instances are gone.
+  // Both queries gate the instance list: a row's cloud-vs-manual identity comes from the
   // Enabled (data present, no 403) but not active => the flag was set after the
   // gateway started, so tunnels cannot be opened until it restarts. Connect would
   // return 503. Same distinction InstancesPanel draws.
@@ -729,9 +729,9 @@ export function RemoteCrewPanel() {
   const launches = useMemo(() => launchesQuery.data?.jobs ?? [], [launchesQuery.data])
   const inProgress = useMemo(() => launches.filter(isInProgress), [launches])
 
-  // Both queries gate the crew list: a row's cloud-vs-manual identity comes from the
+  // Both queries gate the instance list: a row's cloud-vs-manual identity comes from the
   // launch history, and the two destructive actions are NOT interchangeable. Treating
-  // absent launch data as [] makes a real cloud crew render as "added by you", whose
+  // absent launch data as [] makes a real cloud instance render as "added by you", whose
   // trash button is a single unconfirmed click that unregisters the instance and
   // leaves the EC2 stack running and billing, invisible to the dashboard. So the list
   // waits until both are known, and surfaces either failure instead of guessing.
@@ -749,13 +749,13 @@ export function RemoteCrewPanel() {
   // A job that FINISHED without a confirmed sign-in needs the same treatment: the
   // gateway keeps its prompt alive on purpose (it clears job.signin only once sign-in
   // is confirmed), so restricting the fallback to in-progress jobs left the surviving
-  // code unreachable — the crew is registered but never signed in, and the one screen
+  // code unreachable — the instance is registered but never signed in, and the one screen
   // that could fix it renders nothing.
   //
   // Falling back to the newest persisted job (launches[0] — the API returns them
   // created-at descending) rather than only jobs that still carry a prompt: a launch
   // that FAILED or was reaped on restart has no signin, so gating on `!!j.signin`
-  // hid its failure card after a reload — including the "check your crews, it may
+  // hid its failure card after a reload — including the "check your instances, it may
   // still be running" warning for a stack that could still be billing.
   const effectiveLaunchId = activeLaunchId ?? inProgress[0]?.id ?? launches[0]?.id ?? null
 
@@ -778,16 +778,16 @@ export function RemoteCrewPanel() {
   const instances = useMemo(() => instancesQuery.data?.instances ?? [], [instancesQuery.data])
   const warmCap = instancesQuery.data?.warm_set_cap || 5
 
-  // A draft outlives its form ON PURPOSE, which means it can also outlive the CREW
-  // it belongs to: Remove a crew mid-edit and the draft stays keyed by that id, so
-  // adding a crew that lands on the same id (ids are derived from the name) would
+  // A draft outlives its form ON PURPOSE, which means it can also outlive the INSTANCE
+  // it belongs to: Remove an instance mid-edit and the draft stays keyed by that id, so
+  // adding an instance that lands on the same id (ids are derived from the name) would
   // remount the stale draft on a different machine and let Save overwrite settings
-  // the user never typed. Anchored to the crew's EXISTENCE rather than to the
+  // the user never typed. Anchored to the instance's EXISTENCE rather than to the
   // remove button, so a removal from the CLI, or a cloud Delete, clears it too.
   // Gated on a successful fetch: an errored poll must not be read as "all gone"
   // and throw away unsaved work.
-  // Which of the draft's own fields no longer match the crew as it is PERSISTED.
-  // The id staying alive is not proof the record did: a crew removed and recreated
+  // Which of the draft's own fields no longer match the instance as it is PERSISTED.
+  // The id staying alive is not proof the record did: an instance removed and recreated
   // under the same derived id between two polls never disappears from the list, and
   // a concurrent CLI edit moves the record without touching its id. Both make the
   // draft's baseline a description of something that no longer exists, so the form
@@ -799,7 +799,7 @@ export function RemoteCrewPanel() {
     const now = instanceFormFromView(live)
     const then = instanceFormFromView(editDraft.draft.baseline)
     // Only the fields that ADDRESS a machine. A label or lifetime someone changed
-    // elsewhere cannot make this a different crew, and the baseline diff already
+    // elsewhere cannot make this a different instance, and the baseline diff already
     // stops the save from reverting it — interrupting for that would spend the
     // user's attention on the case that was never dangerous.
     const identifying = ['method', 'sshHost', 'remotePort', 'ssmTarget', 'awsProfile', 'awsRegion'] as const
@@ -815,7 +815,7 @@ export function RemoteCrewPanel() {
   }, [instances, instancesQuery.isSuccess, editingId])
 
   // instance_id → cloud tag, from every launch job that produced an instance.
-  // An SSM instance whose target matches is a cloud crew, and this is its tag.
+  // An SSM entry whose target matches was launched in the cloud, and this is its tag.
   const cloudTagByInstanceId = useMemo(() => {
     const m = new Map<string, string>()
     for (const j of launches) if (j.instance_id) m.set(j.instance_id, j.tag)
@@ -957,9 +957,9 @@ export function RemoteCrewPanel() {
   // status query has resolved.
   const activeJob = launchStatusQuery.data ?? inProgress[0] ?? null
 
-  // A launch that reaches `done` has just added a crew, but nothing else invalidates
+  // A launch that reaches `done` has just added an instance, but nothing else invalidates
   // the instances cache and switching tabs does not remount this component — so "Your
-  // crews" would keep showing the pre-launch list until an unrelated refetch happened.
+  // instances" would keep showing the pre-launch list until an unrelated refetch happened.
   // Keyed by job id so this fires once per launch instead of on every poll.
   const reconciledLaunch = useRef<string | null>(null)
   useEffect(() => {
@@ -1001,7 +1001,7 @@ export function RemoteCrewPanel() {
   if (disabled) {
     return (
       <Card>
-        <div className="flex items-center gap-2 text-text font-medium mb-1" data-setting-label={i18nT('pages.settings.instancesPanel.enable_remote_crew_management')}>
+        <div className="flex items-center gap-2 text-text font-medium mb-1" data-setting-label={i18nT('pages.settings.instancesPanel.enable_multi_instance_management')}>
           <Server className="lucide-inline" /> {i18nT('pages.settings.instancesPanel.multi_instance_management_is_off')}
         </div>
         <p className="text-[13px] text-muted mb-3">{i18nT('pages.settings.instancesPanel.enable_it_to_let_this_gateway_open_ssh_tunnels_t')}</p>
@@ -1012,7 +1012,7 @@ export function RemoteCrewPanel() {
           </div>
         )}
         <Btn primary onClick={() => enableMutation.mutate()} disabled={enableMutation.isPending}>
-          <Power className="lucide-inline" /> {enableMutation.isPending ? i18nT('pages.settings.instancesPanel.enabling') : i18nT('pages.settings.instancesPanel.enable_remote_crew_management')}
+          <Power className="lucide-inline" /> {enableMutation.isPending ? i18nT('pages.settings.instancesPanel.enabling') : i18nT('pages.settings.instancesPanel.enable_multi_instance_management')}
         </Btn>
         <ErrorNotice message={actionErr} askAgent className="mt-2" />
       </Card>
@@ -1023,20 +1023,20 @@ export function RemoteCrewPanel() {
     <div className="flex gap-1 border-b border-border mb-5">
       <button
         type="button"
-        onClick={() => setTab('crews')}
-        aria-label={i18nT('pages.settings.remoteCrewPanel.your_crews')}
-        className={`px-3.5 py-2 text-[13px] font-semibold -mb-px border-b-2 transition-colors flex items-center gap-2 ${tab === 'crews' ? 'text-text-strong border-accent' : 'text-muted border-transparent hover:text-text'}`}
+        onClick={() => setTab('instances')}
+        aria-label={i18nT('pages.settings.remoteInstancesPanel.your_instances')}
+        className={`px-3.5 py-2 text-[13px] font-semibold -mb-px border-b-2 transition-colors flex items-center gap-2 ${tab === 'instances' ? 'text-text-strong border-accent' : 'text-muted border-transparent hover:text-text'}`}
       >
-        {i18nT('pages.settings.remoteCrewPanel.your_crews')}
-        <span className={`text-[11px] px-1.5 rounded-full ${tab === 'crews' ? 'bg-accent-subtle text-accent' : 'bg-bg-hover text-muted'}`}>{instances.length}</span>
+        {i18nT('pages.settings.remoteInstancesPanel.your_instances')}
+        <span className={`text-[11px] px-1.5 rounded-full ${tab === 'instances' ? 'bg-accent-subtle text-accent' : 'bg-bg-hover text-muted'}`}>{instances.length}</span>
       </button>
       <button
         type="button"
         onClick={() => setTab('setup')}
-        aria-label={i18nT('pages.settings.remoteCrewPanel.set_up_a_new_one')}
+        aria-label={i18nT('pages.settings.remoteInstancesPanel.set_up_a_new_one')}
         className={`px-3.5 py-2 text-[13px] font-semibold -mb-px border-b-2 transition-colors flex items-center gap-2 ${tab === 'setup' ? 'text-text-strong border-accent' : 'text-muted border-transparent hover:text-text'}`}
       >
-        <Rocket size={14} /> {i18nT('pages.settings.remoteCrewPanel.set_up_a_new_one')}
+        <Rocket size={14} /> {i18nT('pages.settings.remoteInstancesPanel.set_up_a_new_one')}
         {inProgress.length > 0 && <span className="w-1.5 h-1.5 rounded-full bg-accent" aria-hidden />}
       </button>
     </div>
@@ -1060,15 +1060,15 @@ export function RemoteCrewPanel() {
       {Tabs}
       {Notices}
 
-      {tab === 'crews' ? (
+      {tab === 'instances' ? (
         <div className="space-y-4">
           <Card>
             <div className="flex items-center justify-between mb-1">
               <div className="flex items-center gap-2 text-text font-medium">
-                <Server className="lucide-inline" /> {i18nT('pages.settings.remoteCrewPanel.crews_you_can_switch_to')}
+                <Server className="lucide-inline" /> {i18nT('pages.settings.remoteInstancesPanel.instances_you_can_switch_to')}
               </div>
               <div className="flex items-center gap-2">
-                <span className="text-[12px] text-muted">{i18nT('pages.settings.remoteCrewPanel.up_to_warm', { n: warmCap })}</span>
+                <span className="text-[12px] text-muted">{i18nT('pages.settings.remoteInstancesPanel.up_to_warm', { n: warmCap })}</span>
                 <Btn onClick={reloadInstances} aria-label={i18nT('pages.settings.instancesPanel.refresh')}><RefreshCw className="lucide-inline" /></Btn>
               </div>
             </div>
@@ -1084,9 +1084,9 @@ export function RemoteCrewPanel() {
               </div>
             ) : loadError ? (
               // Never fall through to the empty state on a failed load — that
-              // reads as "your crews are gone" when the list simply did not load.
+              // reads as "your instances are gone" when the list simply did not load.
               <div className="py-1">
-                {/* No hand-off: the add-crew form shares this tab — a failed
+                {/* No hand-off: the add-instance form shares this tab — a failed
                     list refresh must not offer a navigation that discards it. */}
                 <ErrorNotice message={errMsg(instancesQuery.error ?? launchesQuery.error, i18nT('pages.settings.instancesPanel.unknown_error'))} />
                 {/* Refresh replays the same rejected credential, so it can only
@@ -1104,7 +1104,7 @@ export function RemoteCrewPanel() {
                   <SettingUpRow key={job.id} job={job} cancelling={cancelMutation.isPending && cancelMutation.variables === job.id} onCancel={id => cancelMutation.mutate(id)} />
                 ))}
                 {instances.map(inst => (
-                  <CrewRow
+                  <RemoteInstanceRow
                     key={inst.id}
                     inst={inst}
                     cloudTag={inst.connection_method === 'ssm' && inst.ssm_target ? cloudTagByInstanceId.get(inst.ssm_target) ?? null : null}
@@ -1191,12 +1191,12 @@ export function RemoteCrewPanel() {
                   />
                 ))}
                 {inProgress.length === 0 && instances.length === 0 && (
-                  <div className="text-[13px] text-muted py-1">{i18nT('pages.settings.remoteCrewPanel.no_crews')}</div>
+                  <div className="text-[13px] text-muted py-1">{i18nT('pages.settings.remoteInstancesPanel.no_instances')}</div>
                 )}
               </div>
             )}
-            {confirmDeleteTag !== null && <p className="mt-2 text-[12px] text-warn">{i18nT('pages.settings.remoteCrewPanel.delete_warning')}</p>}
-            {confirmRemoveId !== null && <p className="mt-2 text-[12px] text-warn">{i18nT('pages.settings.remoteCrewPanel.remove_warning')}</p>}
+            {confirmDeleteTag !== null && <p className="mt-2 text-[12px] text-warn">{i18nT('pages.settings.remoteInstancesPanel.delete_warning')}</p>}
+            {confirmRemoveId !== null && <p className="mt-2 text-[12px] text-warn">{i18nT('pages.settings.remoteInstancesPanel.remove_warning')}</p>}
           </Card>
 
           <AddInstanceForm onAdded={reloadInstances} />
@@ -1211,7 +1211,7 @@ export function RemoteCrewPanel() {
               values are also what the launch below uses. */}
           <Card>
             <div className="flex items-center gap-2 mb-3 text-text font-medium">
-              <CheckCircle className="lucide-inline" /> {i18nT('pages.settings.remoteCrewPanel.before_you_start')}
+              <CheckCircle className="lucide-inline" /> {i18nT('pages.settings.remoteInstancesPanel.before_you_start')}
             </div>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-3">
               <label htmlFor="cloud-profile" className="flex flex-col gap-1 text-[13px] text-muted">
@@ -1227,10 +1227,10 @@ export function RemoteCrewPanel() {
                 />
               </label>
               <label htmlFor="cloud-region" className="flex flex-col gap-1 text-[13px] text-muted">
-                {i18nT('pages.settings.remoteCrewPanel.region')}
+                {i18nT('pages.settings.remoteInstancesPanel.region')}
                 <input
                   id="cloud-region"
-                  aria-label={i18nT('pages.settings.remoteCrewPanel.region')}
+                  aria-label={i18nT('pages.settings.remoteInstancesPanel.region')}
                   className="bg-bg-elevated border border-border rounded-md px-3 py-2 text-text text-sm outline-none focus-ring"
                   value={region}
                   onChange={e => setRegion(e.target.value)}
@@ -1240,33 +1240,33 @@ export function RemoteCrewPanel() {
               </label>
             </div>
             <p className="mb-3 text-[12px] text-muted">
-              {i18nT('pages.settings.remoteCrewPanel.checking_against', {
-                profile: checkedProfile || i18nT('pages.settings.remoteCrewPanel.no_profile_set'),
+              {i18nT('pages.settings.remoteInstancesPanel.checking_against', {
+                profile: checkedProfile || i18nT('pages.settings.remoteInstancesPanel.no_profile_set'),
                 region: checkedRegion,
               })}
             </p>
             {preflightQuery.isLoading ? (
               <div className="flex items-center gap-2 text-muted text-sm py-2">
-                <RefreshCw className="lucide-inline animate-spin" /> {i18nT('pages.settings.remoteCrewPanel.checking')}
+                <RefreshCw className="lucide-inline animate-spin" /> {i18nT('pages.settings.remoteInstancesPanel.checking')}
               </div>
             ) : preflight ? (
               <ul className="m-0 p-0 list-none">
                 <PrereqRow
                   ok={preflight.reachable && !!preflight.account}
-                  title={i18nT('pages.settings.remoteCrewPanel.prereq_credentials')}
+                  title={i18nT('pages.settings.remoteInstancesPanel.prereq_credentials')}
                   detail={preflight.reachable && preflight.account
-                    ? i18nT('pages.settings.remoteCrewPanel.credentials_ok', { profile: checkedProfile || i18nT('pages.settings.remoteCrewPanel.no_profile_set'), account: preflight.account })
-                    : (preflight.detail || i18nT('pages.settings.remoteCrewPanel.credentials_bad'))}
+                    ? i18nT('pages.settings.remoteInstancesPanel.credentials_ok', { profile: checkedProfile || i18nT('pages.settings.remoteInstancesPanel.no_profile_set'), account: preflight.account })
+                    : (preflight.detail || i18nT('pages.settings.remoteInstancesPanel.credentials_bad'))}
                   onRecheck={runCheck}
                   rechecking={preflightQuery.isFetching}
                 />
-                <PrereqRow ok={preflight.ec2_reachable} title={i18nT('pages.settings.remoteCrewPanel.prereq_ec2')} detail={preflight.ec2_reachable ? i18nT('pages.settings.remoteCrewPanel.service_ok') : i18nT('pages.settings.remoteCrewPanel.service_missing')} />
-                <PrereqRow ok={preflight.cloudformation_reachable} title={i18nT('pages.settings.remoteCrewPanel.prereq_cloudformation')} detail={preflight.cloudformation_reachable ? i18nT('pages.settings.remoteCrewPanel.service_ok') : i18nT('pages.settings.remoteCrewPanel.service_missing')} extraAction={preflight.cloudformation_reachable ? undefined : <Btn onClick={copyPolicy}>{copied === 'policy' ? <Check className="lucide-inline" /> : <Copy className="lucide-inline" />} {copied === 'policy' ? i18nT('pages.settings.remoteCrewPanel.copied') : i18nT('pages.settings.remoteCrewPanel.copy_policy_json')}</Btn>} />
-                <PrereqRow ok={preflight.ssm_reachable} title={i18nT('pages.settings.remoteCrewPanel.prereq_ssm')} detail={preflight.ssm_reachable ? i18nT('pages.settings.remoteCrewPanel.service_ok') : i18nT('pages.settings.remoteCrewPanel.service_missing')} />
+                <PrereqRow ok={preflight.ec2_reachable} title={i18nT('pages.settings.remoteInstancesPanel.prereq_ec2')} detail={preflight.ec2_reachable ? i18nT('pages.settings.remoteInstancesPanel.service_ok') : i18nT('pages.settings.remoteInstancesPanel.service_missing')} />
+                <PrereqRow ok={preflight.cloudformation_reachable} title={i18nT('pages.settings.remoteInstancesPanel.prereq_cloudformation')} detail={preflight.cloudformation_reachable ? i18nT('pages.settings.remoteInstancesPanel.service_ok') : i18nT('pages.settings.remoteInstancesPanel.service_missing')} extraAction={preflight.cloudformation_reachable ? undefined : <Btn onClick={copyPolicy}>{copied === 'policy' ? <Check className="lucide-inline" /> : <Copy className="lucide-inline" />} {copied === 'policy' ? i18nT('pages.settings.remoteInstancesPanel.copied') : i18nT('pages.settings.remoteInstancesPanel.copy_policy_json')}</Btn>} />
+                <PrereqRow ok={preflight.ssm_reachable} title={i18nT('pages.settings.remoteInstancesPanel.prereq_ssm')} detail={preflight.ssm_reachable ? i18nT('pages.settings.remoteInstancesPanel.service_ok') : i18nT('pages.settings.remoteInstancesPanel.service_missing')} />
                 <PrereqRow
                   ok={preflight.session_manager_plugin}
-                  title={i18nT('pages.settings.remoteCrewPanel.plugin')}
-                  detail={preflight.session_manager_plugin ? i18nT('pages.settings.remoteCrewPanel.plugin_ok') : i18nT('pages.settings.remoteCrewPanel.plugin_missing')}
+                  title={i18nT('pages.settings.remoteInstancesPanel.plugin')}
+                  detail={preflight.session_manager_plugin ? i18nT('pages.settings.remoteInstancesPanel.plugin_ok') : i18nT('pages.settings.remoteInstancesPanel.plugin_missing')}
                   command={preflight.session_manager_plugin ? undefined : (preflight.session_manager_plugin_command || undefined)}
                   onCopyCommand={
                     preflight.session_manager_plugin || !preflight.session_manager_plugin_command
@@ -1280,22 +1280,22 @@ export function RemoteCrewPanel() {
               </ul>
             ) : (
               <div className="text-[13px] text-muted py-1">
-                {preflightQuery.error ? errMsg(preflightQuery.error, i18nT('pages.settings.remoteCrewPanel.credentials_bad')) : i18nT('pages.settings.remoteCrewPanel.credentials_bad')}
-                <div className="mt-2"><Btn onClick={runCheck} disabled={preflightQuery.isFetching}><RefreshCw className={`lucide-inline${preflightQuery.isFetching ? ' animate-spin' : ''}`} /> {preflightQuery.isFetching ? i18nT('pages.settings.remoteCrewPanel.checking') : i18nT('pages.settings.remoteCrewPanel.re_check')}</Btn></div>
+                {preflightQuery.error ? errMsg(preflightQuery.error, i18nT('pages.settings.remoteInstancesPanel.credentials_bad')) : i18nT('pages.settings.remoteInstancesPanel.credentials_bad')}
+                <div className="mt-2"><Btn onClick={runCheck} disabled={preflightQuery.isFetching}><RefreshCw className={`lucide-inline${preflightQuery.isFetching ? ' animate-spin' : ''}`} /> {preflightQuery.isFetching ? i18nT('pages.settings.remoteInstancesPanel.checking') : i18nT('pages.settings.remoteInstancesPanel.re_check')}</Btn></div>
               </div>
             )}
             <p className="mt-3 text-[12px] text-muted flex items-start gap-1.5">
-              <CheckCircle size={13} className="mt-0.5 shrink-0 text-ok" /> {i18nT('pages.settings.remoteCrewPanel.profile_name_only')}
+              <CheckCircle size={13} className="mt-0.5 shrink-0 text-ok" /> {i18nT('pages.settings.remoteInstancesPanel.profile_name_only')}
             </p>
           </Card>
 
           {/* Launch form — profile/region are set in the prerequisites card above,
               which is the same account this launches into. */}
           <Card>
-            <div className="text-text font-medium mb-3">{i18nT('pages.settings.remoteCrewPanel.new_cloud_crew')}</div>
+            <div className="text-text font-medium mb-3">{i18nT('pages.settings.remoteInstancesPanel.new_cloud_instance')}</div>
 
             <div>
-              <div className="text-[13px] text-muted mb-2">{i18nT('pages.settings.remoteCrewPanel.size')}</div>
+              <div className="text-[13px] text-muted mb-2">{i18nT('pages.settings.remoteInstancesPanel.size')}</div>
               <div className="space-y-2.5">
                 {SIZE_TIERS.map(tier => (
                   <SizeCard key={tier.key} tier={tier} on={sizeKey === tier.key} onPick={setSizeKey} />
@@ -1307,11 +1307,11 @@ export function RemoteCrewPanel() {
                 onClick={() => setShowMoreSizes(v => !v)}
                 className="mt-2.5 w-full flex items-center gap-2 text-[12px] text-muted px-3 py-2 rounded-md border border-dashed border-border-strong hover:text-text"
               >
-                <ChevronDown size={14} className={`transition-transform ${showMoreSizes ? 'rotate-180' : ''}`} /> {i18nT('pages.settings.remoteCrewPanel.more_sizes')}
+                <ChevronDown size={14} className={`transition-transform ${showMoreSizes ? 'rotate-180' : ''}`} /> {i18nT('pages.settings.remoteInstancesPanel.more_sizes')}
               </button>
               {showMoreSizes && (
                 <>
-                  <p className="mt-2 text-[12px] text-muted">{i18nT('pages.settings.remoteCrewPanel.more_sizes_hint')}</p>
+                  <p className="mt-2 text-[12px] text-muted">{i18nT('pages.settings.remoteInstancesPanel.more_sizes_hint')}</p>
                   <div className="mt-2 space-y-2.5">
                     {X86_TIERS.map(tier => (
                       <SizeCard key={tier.key} tier={tier} on={sizeKey === tier.key} onPick={setSizeKey} />
@@ -1324,18 +1324,18 @@ export function RemoteCrewPanel() {
             <div className="mt-4 flex items-start gap-2 rounded-md border border-border bg-bg-elevated px-3 py-2.5">
               <AlertTriangle size={15} className="mt-0.5 shrink-0 text-warn" />
               <div className="text-[12px] text-text">
-                {i18nT('pages.settings.remoteCrewPanel.billing')}{' '}
+                {i18nT('pages.settings.remoteInstancesPanel.billing')}{' '}
                 <a className="text-accent font-medium hover:underline inline-flex items-center gap-1" href={PRICING_CALCULATOR_URL} target="_blank" rel="noreferrer">
-                  {i18nT('pages.settings.remoteCrewPanel.pricing_calculator')} <ExternalLink size={12} />
+                  {i18nT('pages.settings.remoteInstancesPanel.pricing_calculator')} <ExternalLink size={12} />
                 </a>
               </div>
             </div>
 
             <div className="mt-4 flex items-center gap-3 flex-wrap">
               <Btn primary onClick={() => launchMutation.mutate()} disabled={!blockingOk || launchMutation.isPending}>
-                <Rocket className="lucide-inline" /> {launchMutation.isPending ? i18nT('pages.settings.remoteCrewPanel.launching') : i18nT('pages.settings.remoteCrewPanel.launch')}
+                <Rocket className="lucide-inline" /> {launchMutation.isPending ? i18nT('pages.settings.remoteInstancesPanel.launching') : i18nT('pages.settings.remoteInstancesPanel.launch')}
               </Btn>
-              <span className="text-[12px] text-muted">{blockingOk ? i18nT('pages.settings.remoteCrewPanel.ready_in_6') : i18nT('pages.settings.remoteCrewPanel.finish_prereqs')}</span>
+              <span className="text-[12px] text-muted">{blockingOk ? i18nT('pages.settings.remoteInstancesPanel.ready_in_6') : i18nT('pages.settings.remoteInstancesPanel.finish_prereqs')}</span>
             </div>
           </Card>
 

@@ -58,7 +58,7 @@ vi.mock('../apps/desk-companion/api', () => ({
 }))
 
 // Imported after the mock so it binds to the mocked api module.
-const { default: CrewCompanionPage } = await import(
+const { default: DeskCompanionPage } = await import(
   '../apps/desk-companion/DeskCompanionPage'
 )
 
@@ -69,10 +69,10 @@ beforeEach(() => {
   postFailFor.clear()
 })
 
-describe('CrewCompanionPage: reachable vs not', () => {
+describe('DeskCompanionPage: reachable vs not', () => {
   it('shows the live sections when the companion answers', async () => {
     state.reachable = true
-    const { container } = render(<CrewCompanionPage />)
+    const { container } = render(<DeskCompanionPage />)
     await waitFor(() => expect(container.querySelector('.cc-quit-tip')).not.toBeNull())
     // The away card is not showing.
     expect(container.querySelector('.cc-offline')).toBeNull()
@@ -80,14 +80,14 @@ describe('CrewCompanionPage: reachable vs not', () => {
 
   it('shows the away card when the companion does not answer', async () => {
     state.reachable = false
-    const { container } = render(<CrewCompanionPage />)
+    const { container } = render(<DeskCompanionPage />)
     await waitFor(() => expect(container.querySelector('.cc-offline')).not.toBeNull())
     expect(container.querySelector('.cc-quit-tip')).toBeNull()
   })
 
   it('keeps an action on the away card', async () => {
     state.reachable = false
-    const { container } = render(<CrewCompanionPage />)
+    const { container } = render(<DeskCompanionPage />)
     await waitFor(() => expect(container.querySelector('.cc-offline')).not.toBeNull())
     // The regression this pins: copy without a way to act on it.
     const cta = container.querySelector('.cc-offline .cc-cta')
@@ -99,7 +99,7 @@ describe('CrewCompanionPage: reachable vs not', () => {
     // The reverted revision put Open panel / Change avatar in their own card while the
     // away card already existed. One entry point, not two.
     state.reachable = true
-    const { container } = render(<CrewCompanionPage />)
+    const { container } = render(<DeskCompanionPage />)
     await waitFor(() => expect(container.querySelector('.cc-quit-tip')).not.toBeNull())
     const buttons = Array.from(container.querySelectorAll('button')).map((b) =>
       (b.textContent ?? '').toLowerCase(),
@@ -117,7 +117,7 @@ describe('the away card\'s button actually opens the companion', () => {
     state.enabled = false               // the app is switched off, so /window refuses
     posts.length = 0
 
-    const { container } = render(<CrewCompanionPage />)
+    const { container } = render(<DeskCompanionPage />)
     await waitFor(() => expect(container.querySelector('.cc-offline')).not.toBeNull())
     ;(container.querySelector('.cc-offline .cc-cta') as HTMLElement).click()
 
@@ -140,7 +140,7 @@ describe('the away card\'s button actually opens the companion', () => {
     posts.length = 0
     postFailFor.add('/enable')          // enabling fails too, so there is no way through
 
-    const { container } = render(<CrewCompanionPage />)
+    const { container } = render(<DeskCompanionPage />)
     await waitFor(() => expect(container.querySelector('.cc-offline')).not.toBeNull())
     ;(container.querySelector('.cc-offline .cc-cta') as HTMLElement).click()
 
@@ -155,10 +155,10 @@ describe('the away card\'s button actually opens the companion', () => {
 describe('the live page can turn the companion off', () => {
   it('posts disable and then shows the away card', async () => {
     state.reachable = true
-    const { container } = render(<CrewCompanionPage />)
+    const { container } = render(<DeskCompanionPage />)
     await waitFor(() => expect(container.querySelector('.cc-turn-off')).not.toBeNull())
     const turnOff = container.querySelector('.cc-turn-off') as HTMLButtonElement
-    expect(turnOff.textContent).toContain(i18nT('apps.crewCompanion.menu.quit'))
+    expect(turnOff.textContent).toContain(i18nT('apps.deskCompanion.menu.quit'))
     turnOff.click()
 
     await waitFor(() => expect(posts.some((p) => p.includes('/disable'))).toBe(true))
@@ -169,7 +169,7 @@ describe('the live page can turn the companion off', () => {
   it('keeps the live page and reports the reason when disable fails', async () => {
     state.reachable = true
     postFailFor.add('/disable')
-    const { container } = render(<CrewCompanionPage />)
+    const { container } = render(<DeskCompanionPage />)
     await waitFor(() => expect(container.querySelector('.cc-turn-off')).not.toBeNull())
     ;(container.querySelector('.cc-turn-off') as HTMLButtonElement).click()
 
@@ -180,7 +180,7 @@ describe('the live page can turn the companion off', () => {
 
   it('does not put a turn-off control on the away card', async () => {
     state.reachable = false
-    const { container } = render(<CrewCompanionPage />)
+    const { container } = render(<DeskCompanionPage />)
     await waitFor(() => expect(container.querySelector('.cc-offline')).not.toBeNull())
     expect(container.querySelector('.cc-turn-off')).toBeNull()
   })
@@ -188,7 +188,7 @@ describe('the live page can turn the companion off', () => {
   it('shows the away card when the companion is already disabled', async () => {
     state.reachable = true
     state.enabled = false
-    const { container } = render(<CrewCompanionPage />)
+    const { container } = render(<DeskCompanionPage />)
     await waitFor(() => expect(container.querySelector('.cc-offline')).not.toBeNull())
     expect(container.querySelector('.cc-turn-off')).toBeNull()
   })
@@ -196,7 +196,7 @@ describe('the live page can turn the companion off', () => {
   it('returns to the live page after Open re-enables the companion', async () => {
     state.reachable = true
     state.enabled = false
-    const { container } = render(<CrewCompanionPage />)
+    const { container } = render(<DeskCompanionPage />)
     await waitFor(() => expect(container.querySelector('.cc-offline')).not.toBeNull())
     ;(container.querySelector('.cc-offline .cc-cta') as HTMLElement).click()
 

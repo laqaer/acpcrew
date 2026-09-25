@@ -1,6 +1,6 @@
 /**
- * The 4-7-8 timeline, ported case-for-case from the desktop app's own suite
- * (`crew-companion/src/test/breathing.test.ts`, 11 cases).
+ * The 4-7-8 timeline, ported case-for-case from the standalone desktop app's own
+ * breathing suite (11 cases).
  *
  * The TypeScript is the specification. Several of these pin numbers that are easy
  * to break while tuning the animation — the 4/7/8 counts themselves, the 1:2
@@ -27,7 +27,7 @@ describe('4-7-8 breathing timeline', () => {
   // 4-7-8 is defined by those exact counts; easy to break while tuning.
   it('uses the 4-7-8 counts', () => {
     expect(BREATH_PHASES.map((p) => p.ms)).toEqual([4000, 7000, 8000])
-    expect(BREATH_PHASES.map((p) => p.labelKey)).toEqual(['apps.crewCompanion.breathe.inhale', 'apps.crewCompanion.breathe.hold', 'apps.crewCompanion.breathe.exhale'])
+    expect(BREATH_PHASES.map((p) => p.labelKey)).toEqual(['apps.deskCompanion.breathe.inhale', 'apps.deskCompanion.breathe.hold', 'apps.deskCompanion.breathe.exhale'])
   })
 
   it('exhales for twice the inhale', () => {
@@ -38,7 +38,7 @@ describe('4-7-8 breathing timeline', () => {
     it('starts in the ready state, counting down', () => {
       const s = breathStateAt(0)
       expect(s.ready).toBe(true)
-      expect(s.phase.labelKey).toBe('apps.crewCompanion.breathe.ready')
+      expect(s.phase.labelKey).toBe('apps.deskCompanion.breathe.ready')
       expect(s.cycle).toBe(0)
       expect(s.secondsLeft).toBe(3)
     })
@@ -52,21 +52,21 @@ describe('4-7-8 breathing timeline', () => {
       expect(breathStateAt(READY_MS - 1).ready).toBe(true)
       const first = breathStateAt(READY_MS)
       expect(first.ready).toBe(false)
-      expect(first.phase.labelKey).toBe('apps.crewCompanion.breathe.inhale')
+      expect(first.phase.labelKey).toBe('apps.deskCompanion.breathe.inhale')
       expect(first.cycle).toBe(1)
     })
   })
 
   it('walks the phases in order within a cycle', () => {
-    expect(breathStateAt(READY_MS + 1_000).phase.labelKey).toBe('apps.crewCompanion.breathe.inhale') // 0-4s
-    expect(breathStateAt(READY_MS + 6_000).phase.labelKey).toBe('apps.crewCompanion.breathe.hold') // 4-11s
-    expect(breathStateAt(READY_MS + 15_000).phase.labelKey).toBe('apps.crewCompanion.breathe.exhale') // 11-19s
+    expect(breathStateAt(READY_MS + 1_000).phase.labelKey).toBe('apps.deskCompanion.breathe.inhale') // 0-4s
+    expect(breathStateAt(READY_MS + 6_000).phase.labelKey).toBe('apps.deskCompanion.breathe.hold') // 4-11s
+    expect(breathStateAt(READY_MS + 15_000).phase.labelKey).toBe('apps.deskCompanion.breathe.exhale') // 11-19s
   })
 
   it('crosses into the next cycle cleanly', () => {
     const s = breathStateAt(READY_MS + CYCLE_MS + 200)
     expect(s.cycle).toBe(2)
-    expect(s.phase.labelKey).toBe('apps.crewCompanion.breathe.inhale')
+    expect(s.phase.labelKey).toBe('apps.deskCompanion.breathe.inhale')
   })
 
   // The count is the focal point, so it must never read 0 mid-phase.

@@ -12,7 +12,7 @@
  *
  * Ported from the desktop app's src/renderer/hooks/useEdgeHide.ts. Two adaptations
  * for this build: there is no separate SVG ref (the avatar reads `docked` from
- * `hideEdge` directly), and there is no `crewCompanion.setPeeking` bridge on the
+ * `hideEdge` directly), and there is no `deskCompanion.setPeeking` bridge on the
  * overlay window, so neither the `isPeekingForSvgRef` parameter nor the bridge call
  * is carried over.
  */

@@ -41,10 +41,10 @@ describe('Issue Radar at narrow widths', () => {
     const s = await shell()
     expect(s).toMatch(/const showList = listDetail\.showList && !railFull/)
     expect(s).toMatch(/const showDetail = listDetail\.showDetail && !railFull/)
-    // Three list panes (issues, pulls, crews) are gated, and none keeps a
+    // Three list panes (issues, pulls, stewards) are gated, and none keeps a
     // hard-coded column width that would survive onto a phone.
     expect((s.match(/\{showList && \(/g) ?? []).length).toBe(3)
-    expect(s).not.toMatch(/style=\{\{ width: (list|crewList)\.width \}\}/)
+    expect(s).not.toMatch(/style=\{\{ width: (list|stewardList)\.width \}\}/)
     expect((s.match(/showDetail \? '' : 'hidden'/g) ?? []).length).toBe(3)
   })
 
@@ -59,7 +59,7 @@ describe('Issue Radar at narrow widths', () => {
   it('keeps a way back out of the detail pane', async () => {
     const s = await shell()
     expect(s).toMatch(/import ListDetailBack from/)
-    // Only the crews pane still takes its Back row from the shell: the issue and
+    // Only the stewards pane still takes its Back row from the shell: the issue and
     // pull panes render theirs inside their own sticky header, so it can share a
     // row with the compact title instead of standing on its own 44px.
     expect((s.match(/\{narrowBack\(/g) ?? []).length).toBe(1)

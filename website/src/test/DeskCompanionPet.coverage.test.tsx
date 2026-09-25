@@ -39,7 +39,7 @@ let savedPos: { x: number; y: number } | null = { x: 300, y: 200 }
 const bridge = {
   getWindowPosition: vi.fn(async () => savedPos),
   savePosition: vi.fn(),
-  getCrewCompanionConfig: vi.fn(async () => config),
+  getDeskCompanionConfig: vi.fn(async () => config),
   galleryGetPackDetail: vi.fn(async () => packDetail),
   onGalleryActiveChanged: vi.fn(() => () => {}),
   onColorMapChanged: vi.fn(() => () => {}),
@@ -127,7 +127,7 @@ let galleryClosedCbs: Array<() => void> = []
 let sinceZeroFails = false
 
 /** The window-level preload bridge the overlay toggles window input through. */
-function installCrewCompanion() {
+function installDeskCompanion() {
   const preload = {
     setFocusable: vi.fn(),
     panelOpen: vi.fn(),
@@ -147,10 +147,10 @@ function installCrewCompanion() {
       return () => {}
     }),
   }
-  ;(window as unknown as { crewCompanion: typeof preload }).crewCompanion = preload
+  ;(window as unknown as { deskCompanion: typeof preload }).deskCompanion = preload
   return preload
 }
-let api: ReturnType<typeof installCrewCompanion>
+let api: ReturnType<typeof installDeskCompanion>
 
 /**
  * Mount the overlay through its real entry path.
@@ -204,7 +204,7 @@ beforeEach(() => {
   // English is pinned in setup.ts, but `vi.resetModules()` hands pet.tsx a FRESH
   // i18next whose `initI18n()` (no argument) resolves the language from storage.
   window.localStorage.setItem('mc-lang', 'en')
-  api = installCrewCompanion()
+  api = installDeskCompanion()
   vi.stubGlobal(
     'fetch',
     vi.fn(async (input: RequestInfo | URL) => {
@@ -589,7 +589,7 @@ describe('pointer and keyboard on the companion', () => {
 describe('the active appearance pack', () => {
   it('reads the built-in cat and asks for no pack detail', async () => {
     await mountPet()
-    await waitFor(() => expect(bridge.getCrewCompanionConfig).toHaveBeenCalled())
+    await waitFor(() => expect(bridge.getDeskCompanionConfig).toHaveBeenCalled())
     expect(bridge.galleryGetPackDetail).not.toHaveBeenCalled()
   })
 

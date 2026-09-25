@@ -1,9 +1,9 @@
-"""HTTP-level integration tests for Crew Mode.
+"""HTTP-level integration tests for Multitask Mode.
 
-Drives the REAL api_chat handler with a crew-mode slot and a CrewOrchestrator
+Drives the REAL api_chat handler with a multitask-mode slot and a MultitaskManager
 whose decision LLM is stubbed (deterministic actions) and whose subagent
 manager is mocked at the spawn/continue boundary. Proves the full pipeline:
-create crew slot via HTTP → interleaved messages → instant acks in the
+create multitask slot via HTTP → interleaved messages → instant acks in the
 transcript → topics spawned/routed → completion → forwarded result with
 attribution → held message auto-dispatch. The pieces NOT covered here (real
 LLM routing quality, real sub-session execution) are exercised by the live
@@ -20,13 +20,13 @@ import pytest
 from aiohttp.test_utils import TestClient, TestServer
 from chat_test_helpers import _make_app, _make_state
 
-import junction.multitask_chat as crew_mod
-from junction.multitask_chat import CrewOrchestrator
+import junction.multitask_chat as multitask_mod
+from junction.multitask_chat import MultitaskManager
 
 
 @pytest.fixture(autouse=True)
-def _isolate_crew_dir(tmp_path, monkeypatch):  # type: ignore[no-untyped-def]
-    monkeypatch.setattr(crew_mod, "data_home", lambda: tmp_path / "crewdata")
+def _isolate_multitask_dir(tmp_path, monkeypatch):  # type: ignore[no-untyped-def]
+    monkeypatch.setattr(multitask_mod, "data_home", lambda: tmp_path / "multitaskdata")
 
 
 def _spawn_info(run_id: str, done: bool = False, error: str = "") -> MagicMock:
@@ -37,13 +37,13 @@ def _spawn_info(run_id: str, done: bool = False, error: str = "") -> MagicMock:
     return info
 
 
-def _crew_state(tmp_path):  # type: ignore[no-untyped-def]
+def _multitask_state(tmp_path):  # type: ignore[no-untyped-def]
     state = _make_state(tmp_path)
     subagents = MagicMock()
     subagents.spawn = MagicMock(side_effect=[_spawn_info("rA"), _spawn_info("rB")])
     subagents.continue_conversation = MagicMock(return_value=_spawn_info("rC"))
     state.subagents = subagents
-    state.crew = CrewOrchestrator(state=state, sessions=state.sessions, subagents=subagents)
+    state.multitask = MultitaskManager(state=state, sessions=state.sessions, subagents=subagents)
     state.broadcast_ws = MagicMock()
     return state
 
@@ -51,7 +51,7 @@ def _crew_state(tmp_path):  # type: ignore[no-untyped-def]
 async def _until(cond, timeout: float = 5.0) -> None:  # type: ignore[no-untyped-def]
     """Yield to the loop until *cond* holds, or fail with a real deadline.
 
-    Crew ingest schedules its decision pass as a background task, so a caller
+    Multitask ingest schedules its decision pass as a background task, so a caller
     that wants to observe the result has to wait for it. A fixed `sleep(0.05)`
     encodes a guess about how fast the host is: it passed on Linux for months and
     failed on a Windows runner the moment the store gained one extra file read.
@@ -74,12 +74,12 @@ def _mode_app(state):  # type: ignore[no-untyped-def]
     return app
 
 
-class TestCrewHttpFlow:
+class TestMultitaskHttpFlow:
     @pytest.mark.asyncio
     async def test_interleaved_messages_full_flow(self, tmp_path) -> None:  # type: ignore[no-untyped-def]
-        state = _crew_state(tmp_path)
-        slot = state.get_or_create_slot("crew1", mode="crew")
-        assert slot.mode == "crew"
+        state = _multitask_state(tmp_path)
+        slot = state.get_or_create_slot("multitask1", mode="multitask")
+        assert slot.mode == "multitask"
 
         # Deterministic decision LLM: msg1 -> new topic; msg2 -> new topic;
         # msg3 -> route to topic rA (idle at that point).
@@ -100,17 +100,17 @@ class TestCrewHttpFlow:
             return tmpl % pending[0]
 
         async with TestClient(TestServer(_make_app(state))) as client:
-            with patch.object(crew_mod, "run_bg_oneliner", side_effect=fake_oneliner):
-                r1 = await client.post("/api/chat", json={"slot": "crew1", "message": "do task A"})
-                assert (await r1.json()).get("crew") is True
-                await _until(lambda: state.crew.owns("rA"))
-                r2 = await client.post("/api/chat", json={"slot": "crew1", "message": "do task B"})
+            with patch.object(multitask_mod, "run_bg_oneliner", side_effect=fake_oneliner):
+                r1 = await client.post("/api/chat", json={"slot": "multitask1", "message": "do task A"})
+                assert (await r1.json()).get("multitask") is True
+                await _until(lambda: state.multitask.owns("rA"))
+                r2 = await client.post("/api/chat", json={"slot": "multitask1", "message": "do task B"})
                 assert r2.status == 200
-                await _until(lambda: state.crew.owns("rB"))
+                await _until(lambda: state.multitask.owns("rB"))
 
-        st = state.crew._store("crew1")
+        st = state.multitask._store("multitask1")
         # Two topics spawned, owned, running
-        assert state.crew.owns("rA") and state.crew.owns("rB")
+        assert state.multitask.owns("rA") and state.multitask.owns("rB")
         assert {t["title"] for t in st.topics} == {"task A", "task B"}
         # Transcript got: 2 user messages + 2 acks (assistant)
         roles = [m.get("role") for m in slot.messages]
@@ -123,10 +123,10 @@ class TestCrewHttpFlow:
 
     @pytest.mark.asyncio
     async def test_completion_forwards_and_dispatches_held(self, tmp_path) -> None:  # type: ignore[no-untyped-def]
-        state = _crew_state(tmp_path)
-        slot = state.get_or_create_slot("crew1", mode="crew")
-        crew = state.crew
-        st = crew._store("crew1")
+        state = _multitask_state(tmp_path)
+        slot = state.get_or_create_slot("multitask1", mode="multitask")
+        manager = state.multitask
+        st = manager._store("multitask1")
         e = st.add_msg("original ask")
         e["state"] = "accepted"
         e["run_id"] = "rA"
@@ -134,11 +134,11 @@ class TestCrewHttpFlow:
         held = st.add_msg("follow up")
         held["state"] = "held"
         t["held"] = [held["msg_id"]]
-        crew._owned["rA"] = "crew1"
+        manager._owned["rA"] = "multitask1"
 
         info = _spawn_info("rA", done=True)
         info.result = "work work <<<SUMMARY task A finished: everything green >>>"
-        await crew.on_subagent_done(info)   # delivered synchronously, one message
+        await manager.on_subagent_done(info)   # delivered synchronously, one message
 
         # Forward landed in the transcript with attribution to the origin msg
         bodies = [m.get("content", "") for m in slot.messages if m.get("role") == "assistant"]
@@ -147,15 +147,15 @@ class TestCrewHttpFlow:
         # Held follow-up auto-dispatched via continue on the same conversation
         state.subagents.continue_conversation.assert_called_once()
         assert t["active_run_id"] == "rC"
-        assert crew.owns("rC")
+        assert manager.owns("rC")
 
     @pytest.mark.asyncio
-    async def test_non_crew_slot_unaffected(self, tmp_path) -> None:  # type: ignore[no-untyped-def]
-        """A default slot must not route through the crew pipeline."""
-        state = _crew_state(tmp_path)
+    async def test_non_multitask_slot_unaffected(self, tmp_path) -> None:  # type: ignore[no-untyped-def]
+        """A default slot must not route through the multitask pipeline."""
+        state = _multitask_state(tmp_path)
         state.get_or_create_slot("plain", mode="")
         ingest = AsyncMock()
-        with patch.object(state.crew, "ingest", ingest):
+        with patch.object(state.multitask, "ingest", ingest):
             async with TestClient(TestServer(_make_app(state))) as client:
                 with patch("junction.dashboard.chat_runner._run_chat", new=AsyncMock()):
                     await client.post("/api/chat", json={"slot": "plain", "message": "hi"})
@@ -165,13 +165,13 @@ class TestCrewHttpFlow:
     async def test_create_endpoint_rejects_bad_mode(self, tmp_path) -> None:  # type: ignore[no-untyped-def]
         from junction.dashboard.chat_handlers import api_chat_slot_create
 
-        state = _crew_state(tmp_path)
+        state = _multitask_state(tmp_path)
         app = _make_app(state)
         app.router.add_post("/api/chat/slots", api_chat_slot_create)
         async with TestClient(TestServer(app)) as client:
             r = await client.post("/api/chat/slots", json={"mode": "bogus"})
             assert r.status == 400
-            r2 = await client.post("/api/chat/slots", json={"mode": "crew"})
+            r2 = await client.post("/api/chat/slots", json={"mode": "multitask"})
             assert r2.status in (200, 201)
 
     @pytest.mark.asyncio
@@ -182,7 +182,7 @@ class TestCrewHttpFlow:
         mode, so every open of the app failed with 400 code=invalid_mode."""
         from junction.dashboard.chat_handlers import api_chat_slot_create
 
-        state = _crew_state(tmp_path)
+        state = _multitask_state(tmp_path)
         app = _make_app(state)
         app.router.add_post("/api/chat/slots", api_chat_slot_create)
         async with TestClient(TestServer(app)) as client:
@@ -206,27 +206,27 @@ class TestCrewHttpFlow:
             assert (await bad.json()).get("code") == "invalid_mode"
 
     @pytest.mark.asyncio
-    async def test_crew_ingest_refusal_is_not_a_200(self, tmp_path) -> None:  # type: ignore[no-untyped-def]
+    async def test_multitask_ingest_refusal_is_not_a_200(self, tmp_path) -> None:  # type: ignore[no-untyped-def]
         """`ingest` declines an app-owned session. Reporting 200 anyway told the
         caller its message was accepted for work that will never run — and an API
         caller never sees the transcript note the refusal posts."""
-        state = _crew_state(tmp_path)
+        state = _multitask_state(tmp_path)
         slot = state.get_or_create_slot("appslot")
-        slot.mode = "crew"
+        slot.mode = "multitask"
         slot._app = "owner-app"
         async with TestClient(TestServer(_make_app(state))) as client:
             r = await client.post(
                 "/api/chat", json={"slot": "appslot", "message": "do a thing"})
             body = await r.text()
-        assert r.status == 409, f"a refused crew ingress reported {r.status}"
-        assert "crew_app_session_unsupported" in body
+        assert r.status == 409, f"a refused multitask ingress reported {r.status}"
+        assert "multitask_app_session_unsupported" in body
 
     @pytest.mark.asyncio
     async def test_mode_switch_refuses_a_foreign_apps_slot(self, tmp_path) -> None:  # type: ignore[no-untyped-def]
         """The mode decides which execution model a session runs under, so this
         endpoint needs the same app-ownership rule `api_chat_send` and
         `api_chat_slot_create` apply. Without it an app holding `/api/chat` could
-        list a foreign slot and switch it into crew mode.
+        list a foreign slot and switch it into multitask mode.
 
         Calls the handler directly with a stub request: the app identity arrives
         as a request KEY set by upstream middleware, and faking that through a
@@ -234,7 +234,7 @@ class TestCrewHttpFlow:
         """
         from junction.dashboard.chat_folders import api_chat_slot_mode
 
-        state = _crew_state(tmp_path)
+        state = _multitask_state(tmp_path)
         slot = state.get_or_create_slot("victim")
         slot._app = ""            # a dashboard-owned session
 
@@ -248,7 +248,7 @@ class TestCrewHttpFlow:
                 return self._caller if key == "app" else default
 
             async def json(self):  # type: ignore[no-untyped-def]
-                return {"mode": "crew"}
+                return {"mode": "multitask"}
 
         resp = await api_chat_slot_mode(_Req("intruder-app"))  # type: ignore[arg-type]
         assert resp.status == 404, "an app switched a session it does not own"
@@ -256,7 +256,7 @@ class TestCrewHttpFlow:
         assert state._slots["victim"].mode == ""
 
         # The dashboard itself (no app identity) still switches it. The busy
-        # guard has to answer honestly here: `_crew_state` hands us a MagicMock
+        # guard has to answer honestly here: `_multitask_state` hands us a MagicMock
         # manager whose `has_pending_work_for` is truthy, which reads as "work in
         # flight" and would 409 for the wrong reason.
         state.subagents.has_pending_work_for = MagicMock(return_value=False)
@@ -264,23 +264,23 @@ class TestCrewHttpFlow:
                    new=AsyncMock()):
             ok = await api_chat_slot_mode(_Req(""))  # type: ignore[arg-type]
         assert ok.status == 200
-        assert state._slots["victim"].mode == "crew"
+        assert state._slots["victim"].mode == "multitask"
 
     @pytest.mark.asyncio
-    async def test_crew_entry_points_refuse_an_unstorable_name(self, tmp_path) -> None:  # type: ignore[no-untyped-def]
-        """A slot whose key folds to nothing but dots has no crew store, so
-        `CrewStore` raises — on the first MESSAGE, as an unhandled 500, and again
-        on every message after it. Both doors into crew mode answer instead."""
+    async def test_multitask_entry_points_refuse_an_unstorable_name(self, tmp_path) -> None:  # type: ignore[no-untyped-def]
+        """A slot whose key folds to nothing but dots has no multitask store, so
+        `MultitaskStore` raises — on the first MESSAGE, as an unhandled 500, and again
+        on every message after it. Both doors into multitask mode answer instead."""
         from junction.dashboard.chat_handlers import api_chat_slot_create
 
-        state = _crew_state(tmp_path)
+        state = _multitask_state(tmp_path)
         app = _mode_app(state)
         app.router.add_post("/api/chat/slots", api_chat_slot_create)
         async with TestClient(TestServer(app)) as client:
             created = await client.post(
-                "/api/chat/slots", json={"name": "..", "mode": "crew"})
+                "/api/chat/slots", json={"name": "..", "mode": "multitask"})
             assert created.status == 400
-            assert (await created.json())["code"] == "crew_unsupported_slot"
+            assert (await created.json())["code"] == "multitask_unsupported_slot"
             # The same shape of name is a perfectly legal PLAIN slot, so the
             # switch is the other door and has to hold the line too. Uses "..."
             # rather than "..": both are unstorable, but only "..." survives URL
@@ -288,112 +288,136 @@ class TestCrewHttpFlow:
             plain = await client.post("/api/chat/slots", json={"name": "..."})
             assert plain.status in (200, 201)
             switched = await client.patch("/api/chat/slots/.../mode",
-                                          json={"mode": "crew"})
+                                          json={"mode": "multitask"})
             assert switched.status == 400
-            assert (await switched.json())["code"] == "crew_unsupported_slot"
+            assert (await switched.json())["code"] == "multitask_unsupported_slot"
             assert state._slots["..."].mode == ""
 
 
 class TestModeSwitchGuard:
-    """Mode must not flip while crew work is in flight.
+    """Mode must not flip while multitask work is in flight.
 
-    `slot.running` stays false for the whole life of a crew session, because the
-    work executes in SUBAGENTS — so the pre-existing guard alone let the mode
+    `slot.running` stays false for the whole life of a multitask session, because
+    the work executes in SUBAGENTS — so the pre-existing guard alone let the mode
     change mid-flight and interleave two execution models in one session.
     """
 
     @pytest.mark.asyncio
-    async def test_refuses_while_crew_has_live_work(self, tmp_path) -> None:  # type: ignore[no-untyped-def]
-        state = _crew_state(tmp_path)
+    async def test_refuses_while_multitask_has_live_work(self, tmp_path) -> None:  # type: ignore[no-untyped-def]
+        state = _multitask_state(tmp_path)
         state.subagents.has_pending_work_for = MagicMock(return_value=False)
-        slot = state.get_or_create_slot("crew1", mode="crew")
-        # The premise: crew work lives in subagents, so the slot itself never
+        slot = state.get_or_create_slot("multitask1", mode="multitask")
+        # The premise: multitask work lives in subagents, so the slot itself never
         # looks busy — which is exactly why slot.running cannot be the guard.
         assert not slot.running
-        state.crew.has_live_work = AsyncMock(return_value=True)
+        state.multitask.has_live_work = AsyncMock(return_value=True)
         async with TestClient(TestServer(_mode_app(state))) as client:
-            r = await client.patch("/api/chat/slots/crew1/mode", json={"mode": ""})
+            r = await client.patch("/api/chat/slots/multitask1/mode", json={"mode": ""})
             assert r.status == 409
-        assert slot.mode == "crew"                # unchanged
+        assert slot.mode == "multitask"                # unchanged
 
     @pytest.mark.asyncio
-    async def test_allows_when_crew_is_idle(self, tmp_path) -> None:  # type: ignore[no-untyped-def]
-        state = _crew_state(tmp_path)
+    async def test_allows_when_multitask_is_idle(self, tmp_path) -> None:  # type: ignore[no-untyped-def]
+        state = _multitask_state(tmp_path)
         state.subagents.has_pending_work_for = MagicMock(return_value=False)
-        slot = state.get_or_create_slot("crew1", mode="crew")
+        slot = state.get_or_create_slot("multitask1", mode="multitask")
         assert not slot.running
-        state.crew.has_live_work = AsyncMock(return_value=False)
+        state.multitask.has_live_work = AsyncMock(return_value=False)
         async with TestClient(TestServer(_mode_app(state))) as client:
-            r = await client.patch("/api/chat/slots/crew1/mode", json={"mode": ""})
+            r = await client.patch("/api/chat/slots/multitask1/mode", json={"mode": ""})
             assert r.status == 200
         assert slot.mode == ""
 
     @pytest.mark.asyncio
-    async def test_a_non_crew_slot_is_not_gated_on_crew_work(self, tmp_path) -> None:  # type: ignore[no-untyped-def]
+    async def test_a_non_multitask_slot_is_not_gated_on_multitask_work(self, tmp_path) -> None:  # type: ignore[no-untyped-def]
         # Regression: the guard first asked the orchestrator on EVERY switch, so
-        # sessions that cannot have crew work (default / orchestrator mode) were
-        # refused too. Only a slot already IN crew mode can have such work — one
+        # sessions that cannot have multitask work (default / orchestrator mode)
+        # were refused too. Only a slot already IN multitask mode can have such
+        # work — one
         # entering it has none yet by construction.
-        state = _crew_state(tmp_path)
+        state = _multitask_state(tmp_path)
         state.subagents.has_pending_work_for = MagicMock(return_value=False)
         slot = state.get_or_create_slot("plain1", mode="")
-        state.crew.has_live_work = AsyncMock(return_value=True)
+        state.multitask.has_live_work = AsyncMock(return_value=True)
         async with TestClient(TestServer(_mode_app(state))) as client:
-            r = await client.patch("/api/chat/slots/plain1/mode", json={"mode": "crew"})
+            r = await client.patch("/api/chat/slots/plain1/mode", json={"mode": "multitask"})
             assert r.status == 200
-        assert slot.mode == "crew"
-        state.crew.has_live_work.assert_not_called()
+        assert slot.mode == "multitask"
+        state.multitask.has_live_work.assert_not_called()
 
     @pytest.mark.asyncio
-    async def test_a_stand_in_crew_attribute_does_not_refuse(self, tmp_path) -> None:  # type: ignore[no-untyped-def]
-        # `state.crew` is gated by isinstance, matching gateway.py's own check on
-        # this attribute. An identity check (`is not None`) would accept any
+    async def test_a_stand_in_multitask_attribute_does_not_refuse(self, tmp_path) -> None:  # type: ignore[no-untyped-def]
+        # `state.multitask` is gated by isinstance, matching gateway.py's own check
+        # on this attribute. An identity check (`is not None`) would accept any
         # stand-in object, whose `has_live_work` then answers with something
         # truthy and refuses a switch that is perfectly fine — the same
         # truthiness-on-a-double mistake an earlier round of this PR already hit.
-        state = _crew_state(tmp_path)
+        state = _multitask_state(tmp_path)
         state.subagents.has_pending_work_for = MagicMock(return_value=False)
-        slot = state.get_or_create_slot("crew1", mode="crew")
-        state.crew = MagicMock()          # not a CrewOrchestrator
+        slot = state.get_or_create_slot("multitask1", mode="multitask")
+        state.multitask = MagicMock()          # not a MultitaskManager
         async with TestClient(TestServer(_mode_app(state))) as client:
-            r = await client.patch("/api/chat/slots/crew1/mode", json={"mode": ""})
+            r = await client.patch("/api/chat/slots/multitask1/mode", json={"mode": ""})
             assert r.status == 200
         assert slot.mode == ""
 
     @pytest.mark.asyncio
-    async def test_entering_crew_is_refused_while_a_plain_subagent_runs(self, tmp_path) -> None:  # type: ignore[no-untyped-def]
+    async def test_entering_multitask_is_refused_while_a_plain_subagent_runs(self, tmp_path) -> None:  # type: ignore[no-untyped-def]
         # The asymmetry the previous guard missed: it gated the whole check on
-        # `slot.mode == "crew"`, so ENTERING crew mode skipped it — while a
+        # `slot.mode == "multitask"`, so ENTERING multitask mode skipped it — while a
         # plain-chat subagent was running on that very slot. Its completion
         # follows the default `_run_chat` path, so the session would end up
-        # mixing main-agent and crew execution.
-        state = _crew_state(tmp_path)
+        # mixing main-agent and multitask execution.
+        state = _multitask_state(tmp_path)
         slot = state.get_or_create_slot("plain2", mode="")
         state.subagents.has_pending_work_for = MagicMock(return_value=True)
         async with TestClient(TestServer(_mode_app(state))) as client:
-            r = await client.patch("/api/chat/slots/plain2/mode", json={"mode": "crew"})
+            r = await client.patch("/api/chat/slots/plain2/mode", json={"mode": "multitask"})
             assert r.status == 409
         assert slot.mode == ""
         state.subagents.has_pending_work_for.assert_called_with("dashboard:plain2")
 
     @pytest.mark.asyncio
     async def test_background_work_check_fails_closed(self, tmp_path) -> None:  # type: ignore[no-untyped-def]
-        state = _crew_state(tmp_path)
+        state = _multitask_state(tmp_path)
         state.get_or_create_slot("plain3", mode="")
         state.subagents.has_pending_work_for = MagicMock(side_effect=RuntimeError("down"))
         async with TestClient(TestServer(_mode_app(state))) as client:
-            r = await client.patch("/api/chat/slots/plain3/mode", json={"mode": "crew"})
+            r = await client.patch("/api/chat/slots/plain3/mode", json={"mode": "multitask"})
             assert r.status == 409
 
     @pytest.mark.asyncio
     async def test_fails_closed_when_the_orchestrator_raises(self, tmp_path) -> None:  # type: ignore[no-untyped-def]
         # An orchestrator that cannot answer is not permission to flip the mode.
-        state = _crew_state(tmp_path)
+        state = _multitask_state(tmp_path)
         state.subagents.has_pending_work_for = MagicMock(return_value=False)
-        slot = state.get_or_create_slot("crew1", mode="crew")
+        slot = state.get_or_create_slot("multitask1", mode="multitask")
         assert not slot.running
-        state.crew.has_live_work = AsyncMock(side_effect=RuntimeError("store unreadable"))
+        state.multitask.has_live_work = AsyncMock(side_effect=RuntimeError("store unreadable"))
         async with TestClient(TestServer(_mode_app(state))) as client:
-            r = await client.patch("/api/chat/slots/crew1/mode", json={"mode": ""})
+            r = await client.patch("/api/chat/slots/multitask1/mode", json={"mode": ""})
             assert r.status == 409
-        assert slot.mode == "crew"
+        assert slot.mode == "multitask"
+
+
+class TestLegacySlotModeOnResume:
+    """A transcript an earlier build wrote records the multitask slot mode under
+    its legacy spelling. Resuming it must bring the tab back in multitask mode,
+    or it silently becomes plain chat and its durable queue is orphaned."""
+
+    @pytest.mark.asyncio
+    async def test_a_legacy_mode_resumes_as_multitask(self, tmp_path) -> None:  # type: ignore[no-untyped-def]
+        from junction.dashboard.chat_folders import LEGACY_SLOT_MODE_MULTITASK
+
+        state = _multitask_state(tmp_path)
+        log = state.conversation_log
+        log.append("dashboard:legacy1", "user", "queued before the upgrade")
+        log.update_metadata("dashboard:legacy1", {"mode": LEGACY_SLOT_MODE_MULTITASK})
+        async with TestClient(TestServer(_make_app(state))) as client:
+            r = await client.post(
+                "/api/chat/slots/legacy1/resume", json={"key": "dashboard:legacy1"}
+            )
+            assert r.status == 200
+            body = await r.json()
+        assert state._slots["legacy1"].mode == "multitask"
+        assert body["mode"] == "multitask"

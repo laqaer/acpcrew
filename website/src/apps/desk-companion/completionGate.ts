@@ -45,12 +45,11 @@ export const TURN_NOTIFY_MIN_MS = 10_000
  * Name of the companion's own background (housekeeping) agent, whose completions
  * never notify — otherwise the pet celebrates its own timers.
  *
- * `'crew-companion-bg'` follows this build's `<app-name>-bg` convention: the app
- * name is `crew-companion` (see `app.json` / backend `routes.py` `APP_NAME`), and
- * the sibling Mochi app names its own background agent `mochi-bg`. Verified against
- * the target repo before copying the constant verbatim from the source.
+ * `'desk-companion-bg'` follows the `<app-name>-bg` convention: the app name is
+ * `desk-companion` (see `app.json` / backend `routes.py` `APP_NAME`), and the
+ * sibling Mochi app names its own background agent `mochi-bg`.
  */
-export const BG_AGENT_PREFIX = 'crew-companion-bg'
+export const BG_AGENT_PREFIX = 'desk-companion-bg'
 
 export interface GateInput {
   /** Slot key that just went idle. */

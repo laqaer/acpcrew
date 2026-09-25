@@ -25,9 +25,9 @@ Architecture — three parts, no separate application:
 WHAT THIS REPLACED, AND WHY IT MATTERS
 --------------------------------------
 The companion used to be a SEPARATE macOS application. This builtin was a
-connector to it: the manifest declared ``mcpServers.crew-companion.url =
-http://127.0.0.1:7778/mcp`` and ran ``open "$HOME/Applications/Crew
-Companion.app"`` as an ``onEnable`` script. Because the enable path rolls back
+connector to it: the manifest declared an ``mcpServers`` entry at
+``http://127.0.0.1:7778/mcp`` and ran ``open "$HOME/Applications/Companion.app"``
+as an ``onEnable`` script. Because the enable path rolls back
 when that script fails, and because the app was never shipped, downloadable or in
 any registry, **the tile could not be enabled by anyone but its author** — on
 whose machine the app happened to exist from a local build.

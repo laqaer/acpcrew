@@ -138,7 +138,7 @@ export function Bubble({ text, kind, onDismiss, onAction }: BubbleProps) {
           <button
             type="button"
             className="cc-bubble-x"
-            aria-label={i18nT('apps.crewCompanion.panel.close')}
+            aria-label={i18nT('apps.deskCompanion.panel.close')}
             onClick={(e) => {
               e.stopPropagation()
               setLeaving(true)

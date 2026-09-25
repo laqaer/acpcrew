@@ -658,7 +658,7 @@ class TestAddIssueComment(AzureWriteCase):
         with self.patched(fake):
             out = azure_client.add_issue_comment(OWNER, REPO, NUMBER, "a note", host=HOST)
         # ``url`` is None rather than a guessed anchor: a work item comment has no
-        # web URL of its own, and the crew protocol needs ``id`` to rewrite its own
+        # web URL of its own, and the steward protocol needs ``id`` to rewrite its own
         # comment later, so that one is load-bearing.
         self.assertEqual(out, {"id": 91, "url": None, "created_at": "2026-02-03T04:05:06Z"})
 

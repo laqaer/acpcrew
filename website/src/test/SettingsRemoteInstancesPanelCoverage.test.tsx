@@ -1,5 +1,5 @@
 /**
- * RemoteCrewPanel — coverage for the paths the behavioural suite leaves alone:
+ * RemoteInstancesPanel — coverage for the paths the behavioural suite leaves alone:
  * the instance CRUD mutations (connect / disconnect / remove / diagnose) and
  * every mutation's failure branch, the copy-to-clipboard affordances and their
  * 1.5s revert, the enable-the-feature gate, the sign-in fetch when a job carries
@@ -18,7 +18,7 @@ import type {
   InstanceTunnelStatus,
   LaunchJob,
 } from '../api/client'
-import { RemoteCrewPanel } from '../pages/settings/RemoteInstancesPanel'
+import { RemoteInstancesPanel } from '../pages/settings/RemoteInstancesPanel'
 
 vi.mock('../api/client', () => {
   class ApiError extends Error {
@@ -180,7 +180,7 @@ beforeEach(() => {
   vi.mocked(api.cloudLaunches).mockResolvedValue({ jobs: [] })
   vi.mocked(api.cloudPreflight).mockResolvedValue(PREFLIGHT_OK)
   // The status query is enabled by the mere existence of a persisted job, so a
-  // test that only cares about the crew list still polls it — an unmocked
+  // test that only cares about the instance list still polls it — an unmocked
   // resolve returns undefined, which React Query rejects noisily.
   vi.mocked(api.cloudLaunchStatus).mockResolvedValue(DONE_JOB)
 })
@@ -190,12 +190,12 @@ afterEach(() => {
 })
 
 
-/** Open a crew row's overflow menu — Edit / Stop / Start / Delete / Remove live there. */
+/** Open an instance row's overflow menu — Edit / Stop / Start / Delete / Remove live there. */
 async function openRowMenu(u: ReturnType<typeof setup>, name: RegExp = /More actions/i) {
   await u.click(await screen.findByRole('button', { name }))
 }
 
-describe('RemoteCrewPanel — instance actions', () => {
+describe('RemoteInstancesPanel — instance actions', () => {
   it('reports progress on the clicked Connect, then explains a connect that did not finish', async () => {
     vi.mocked(api.listInstances).mockResolvedValue(list([MANUAL_INSTANCE]))
     let release: (v: InstanceTunnelStatus) => void = () => {}
@@ -203,7 +203,7 @@ describe('RemoteCrewPanel — instance actions', () => {
       new Promise<InstanceTunnelStatus>(r => { release = r }) as ReturnType<typeof api.connectInstance>,
     )
     const u = setup()
-    renderWithProviders(<RemoteCrewPanel />)
+    renderWithProviders(<RemoteInstancesPanel />)
 
     await u.click(await screen.findByRole('button', { name: 'Connect' }))
     // The busy key is per-instance, so the clicked row is the one that changes.
@@ -222,20 +222,20 @@ describe('RemoteCrewPanel — instance actions', () => {
     vi.mocked(api.listInstances).mockResolvedValue(list([MANUAL_INSTANCE]))
     vi.mocked(api.connectInstance).mockRejectedValue(new ApiError(502, 'ssm tunnel refused'))
     const u = setup()
-    renderWithProviders(<RemoteCrewPanel />)
+    renderWithProviders(<RemoteInstancesPanel />)
 
     await u.click(await screen.findByRole('button', { name: 'Connect' }))
     expect(await screen.findByText(/Connect to m1 failed: ssm tunnel refused/, undefined, { timeout: 5_000 })).toBeInTheDocument()
   })
 
-  it('drops the warm connection from the store when a crew is disconnected', async () => {
+  it('drops the warm connection from the store when an instance is disconnected', async () => {
     // The warm entry holds the loopback port for a mounted pane. Leaving it
     // behind would keep a dead iframe in the switcher after the tunnel is gone.
     vi.mocked(api.listInstances).mockResolvedValue(list([CONNECTED_MANUAL]))
     vi.mocked(api.disconnectInstance).mockResolvedValue({ disconnected: 'm1', was_connected: true })
     const u = setup()
     const store = storeWithWarm('m1')
-    renderWithProviders(<RemoteCrewPanel />, { store })
+    renderWithProviders(<RemoteInstancesPanel />, { store })
 
     await u.click(await screen.findByRole('button', { name: 'Disconnect' }))
     await waitFor(() => expect(api.disconnectInstance).toHaveBeenCalledWith('m1'))
@@ -247,7 +247,7 @@ describe('RemoteCrewPanel — instance actions', () => {
     vi.mocked(api.listInstances).mockResolvedValue(list([CONNECTED_MANUAL]))
     vi.mocked(api.disconnectInstance).mockRejectedValue(new Error('socket already gone'))
     const u = setup()
-    renderWithProviders(<RemoteCrewPanel />)
+    renderWithProviders(<RemoteInstancesPanel />)
 
     await u.click(await screen.findByRole('button', { name: 'Disconnect' }))
     expect(await screen.findByText(/Disconnect of m1 failed: socket already gone/, undefined, { timeout: 5_000 })).toBeInTheDocument()
@@ -261,7 +261,7 @@ describe('RemoteCrewPanel — instance actions', () => {
     vi.mocked(api.removeInstance).mockResolvedValue({ removed: 'm1' } as never)
     const u = setup()
     const store = storeWithWarm('m1')
-    renderWithProviders(<RemoteCrewPanel />, { store })
+    renderWithProviders(<RemoteInstancesPanel />, { store })
 
     await openRowMenu(u)
     await u.click(await screen.findByRole('menuitem', { name: 'Remove dev-box-1' }))
@@ -277,7 +277,7 @@ describe('RemoteCrewPanel — instance actions', () => {
     vi.mocked(api.disconnectInstance).mockResolvedValue({ disconnected: 'm1', was_connected: false })
     vi.mocked(api.removeInstance).mockRejectedValue(new ApiError(409, 'registry is locked'))
     const u = setup()
-    renderWithProviders(<RemoteCrewPanel />)
+    renderWithProviders(<RemoteInstancesPanel />)
 
     await openRowMenu(u)
     await u.click(await screen.findByRole('menuitem', { name: 'Remove dev-box-1' }))
@@ -293,7 +293,7 @@ describe('RemoteCrewPanel — instance actions', () => {
       diagnosis: { code: 'ssh_unreachable', ok: false, reason: 'host did not answer', probes: [] },
     } as never)
     const u = setup()
-    renderWithProviders(<RemoteCrewPanel />)
+    renderWithProviders(<RemoteInstancesPanel />)
 
     await openRowMenu(u)
     await u.click(await screen.findByRole('menuitem', { name: 'Diagnose dev-box-1' }))
@@ -309,7 +309,7 @@ describe('RemoteCrewPanel — instance actions', () => {
     vi.mocked(api.listInstances).mockResolvedValue(list([MANUAL_INSTANCE]))
     vi.mocked(api.instanceStatus).mockResolvedValue({ instance_id: 'm1', state: 'connected' } as never)
     const u = setup()
-    renderWithProviders(<RemoteCrewPanel />)
+    renderWithProviders(<RemoteInstancesPanel />)
 
     await openRowMenu(u)
     await u.click(await screen.findByRole('menuitem', { name: 'Diagnose dev-box-1' }))
@@ -321,14 +321,14 @@ describe('RemoteCrewPanel — instance actions', () => {
     vi.mocked(api.listInstances).mockResolvedValue(list([MANUAL_INSTANCE]))
     vi.mocked(api.instanceStatus).mockRejectedValue(new Error('probe blew up'))
     const u = setup()
-    renderWithProviders(<RemoteCrewPanel />)
+    renderWithProviders(<RemoteInstancesPanel />)
 
     await openRowMenu(u)
     await u.click(await screen.findByRole('menuitem', { name: 'Diagnose dev-box-1' }))
     expect(await screen.findByText(/Diagnose of m1 failed: probe blew up/, undefined, { timeout: 5_000 })).toBeInTheDocument()
   })
 
-  it('actually unregisters an unverifiable SSM crew once the removal is confirmed', async () => {
+  it('actually unregisters an unverifiable SSM instance once the removal is confirmed', async () => {
     // The confirm step exists because Remove leaves a real cloud instance
     // running; it must still complete when the user goes through with it.
     vi.mocked(api.listInstances).mockResolvedValue(list([CLOUD_INSTANCE]))
@@ -336,7 +336,7 @@ describe('RemoteCrewPanel — instance actions', () => {
     vi.mocked(api.disconnectInstance).mockResolvedValue({ disconnected: 'kc1', was_connected: true })
     vi.mocked(api.removeInstance).mockResolvedValue({ removed: 'kc1' } as never)
     const u = setup()
-    renderWithProviders(<RemoteCrewPanel />)
+    renderWithProviders(<RemoteInstancesPanel />)
 
     await openRowMenu(u)
     await u.click(await screen.findByRole('menuitem', { name: /Remove Junction Cloud/ }))
@@ -345,14 +345,14 @@ describe('RemoteCrewPanel — instance actions', () => {
     await waitFor(() => expect(api.removeInstance).toHaveBeenCalledWith('kc1'))
   })
 
-  it('carries the crew AWS coordinates into a lifecycle call, and reports a failed Stop', async () => {
-    // A crew launched under a non-default profile/region is invisible to the
+  it('carries the AWS coordinates of the instance into a lifecycle call, and reports a failed Stop', async () => {
+    // An instance launched under a non-default profile/region is invisible to the
     // gateway defaults, so the coordinates come off the row itself.
     vi.mocked(api.listInstances).mockResolvedValue(list([CLOUD_INSTANCE]))
     vi.mocked(api.cloudLaunches).mockResolvedValue({ jobs: [DONE_JOB] })
     vi.mocked(api.cloudStop).mockRejectedValue(new ApiError(404, 'stack jn-3f9a not found'))
     const u = setup()
-    renderWithProviders(<RemoteCrewPanel />)
+    renderWithProviders(<RemoteInstancesPanel />)
 
     await openRowMenu(u)
     await u.click(await screen.findByRole('menuitem', { name: /^Stop Junction Cloud/ }))
@@ -373,7 +373,7 @@ describe('RemoteCrewPanel — instance actions', () => {
     vi.mocked(api.cloudLaunches).mockResolvedValue({ jobs: [DONE_JOB] })
     vi.mocked(api.cloudStart).mockRejectedValue('nope')
     const u = setup()
-    renderWithProviders(<RemoteCrewPanel />)
+    renderWithProviders(<RemoteInstancesPanel />)
 
     await openRowMenu(u)
     await u.click(await screen.findByRole('menuitem', { name: /^Start Junction Cloud/ }))
@@ -388,7 +388,7 @@ describe('RemoteCrewPanel — instance actions', () => {
     vi.mocked(api.cloudLaunches).mockResolvedValue({ jobs: [DONE_JOB] })
     vi.mocked(api.cloudDestroy).mockResolvedValue({ ok: true })
     const u = setup()
-    renderWithProviders(<RemoteCrewPanel />)
+    renderWithProviders(<RemoteInstancesPanel />)
 
     // An absent cap falls back to the default rather than advertising "up to 0".
     expect(await screen.findByText(/Up to 5 stay warm at once/i)).toBeInTheDocument()
@@ -411,7 +411,7 @@ describe('RemoteCrewPanel — instance actions', () => {
     vi.mocked(api.cloudLaunchStatus).mockResolvedValue(RUNNING_JOB)
     vi.mocked(api.cloudLaunchCancel).mockRejectedValue(new ApiError(409, 'too late to cancel'))
     const u = setup()
-    renderWithProviders(<RemoteCrewPanel />)
+    renderWithProviders(<RemoteInstancesPanel />)
 
     await u.click(await screen.findByRole('button', { name: 'Cancel setup of jn-4d10' }))
     expect(await screen.findByText(/too late to cancel/, undefined, { timeout: 5_000 })).toBeInTheDocument()
@@ -426,7 +426,7 @@ describe('RemoteCrewPanel — instance actions', () => {
       new Promise<LaunchJob>(r => { release = r }) as ReturnType<typeof api.cloudLaunchCancel>,
     )
     const u = setup()
-    renderWithProviders(<RemoteCrewPanel />)
+    renderWithProviders(<RemoteInstancesPanel />)
 
     const cancel = await screen.findByRole('button', { name: 'Cancel setup of jn-4d10' })
     await u.click(cancel)
@@ -436,7 +436,7 @@ describe('RemoteCrewPanel — instance actions', () => {
   })
 })
 
-describe('RemoteCrewPanel — AWS prerequisites', () => {
+describe('RemoteInstancesPanel — AWS prerequisites', () => {
   it('marks Copied on the install command, then reverts on its own', async () => {
     vi.mocked(api.listInstances).mockResolvedValue(list([]))
     vi.mocked(api.cloudPreflight).mockResolvedValue({
@@ -445,7 +445,7 @@ describe('RemoteCrewPanel — AWS prerequisites', () => {
       session_manager_plugin_command: 'sudo dnf install -y https://example.invalid/smp.rpm',
     })
     const u = setup()
-    renderWithProviders(<RemoteCrewPanel />)
+    renderWithProviders(<RemoteInstancesPanel />)
     await openSetupTab(u)
 
     await u.click(await screen.findByRole('button', { name: /Copy command/ }))
@@ -464,7 +464,7 @@ describe('RemoteCrewPanel — AWS prerequisites', () => {
     vi.mocked(api.cloudPreflight).mockResolvedValue({ ...PREFLIGHT_OK, cloudformation_reachable: false })
     vi.mocked(api.cloudIamPolicy).mockResolvedValue({ policy: '{"Version":"2012-10-17"}' })
     const u = setup()
-    renderWithProviders(<RemoteCrewPanel />)
+    renderWithProviders(<RemoteInstancesPanel />)
     await openSetupTab(u)
 
     await u.click(await screen.findByRole('button', { name: /Copy policy JSON/ }))
@@ -477,7 +477,7 @@ describe('RemoteCrewPanel — AWS prerequisites', () => {
     vi.mocked(api.cloudPreflight).mockResolvedValue({ ...PREFLIGHT_OK, cloudformation_reachable: false })
     vi.mocked(api.cloudIamPolicy).mockRejectedValue(new ApiError(500, 'policy render failed'))
     const u = setup()
-    renderWithProviders(<RemoteCrewPanel />)
+    renderWithProviders(<RemoteInstancesPanel />)
     await openSetupTab(u)
 
     await u.click(await screen.findByRole('button', { name: /Copy policy JSON/ }))
@@ -488,7 +488,7 @@ describe('RemoteCrewPanel — AWS prerequisites', () => {
   it('re-probes the region the user just typed, not the remembered one', async () => {
     vi.mocked(api.listInstances).mockResolvedValue(list([]))
     const u = setup()
-    renderWithProviders(<RemoteCrewPanel />)
+    renderWithProviders(<RemoteInstancesPanel />)
     await openSetupTab(u)
     await waitFor(() => expect(api.cloudPreflight).toHaveBeenCalledWith(undefined, 'us-east-1'))
 
@@ -514,7 +514,7 @@ describe('RemoteCrewPanel — AWS prerequisites', () => {
       detail: 'Credentials for this profile have expired.',
     })
     const u = setup()
-    renderWithProviders(<RemoteCrewPanel />)
+    renderWithProviders(<RemoteInstancesPanel />)
     await openSetupTab(u)
 
     expect(await screen.findByText('Credentials for this profile have expired.')).toBeInTheDocument()
@@ -528,7 +528,7 @@ describe('RemoteCrewPanel — AWS prerequisites', () => {
     vi.mocked(api.listInstances).mockResolvedValue(list([]))
     vi.mocked(api.cloudPreflight).mockRejectedValue(new ApiError(500, 'sts call timed out'))
     const u = setup()
-    renderWithProviders(<RemoteCrewPanel />)
+    renderWithProviders(<RemoteInstancesPanel />)
     await openSetupTab(u)
 
     expect(await screen.findByText(/sts call timed out/, undefined, { timeout: 5_000 })).toBeInTheDocument()
@@ -538,12 +538,12 @@ describe('RemoteCrewPanel — AWS prerequisites', () => {
   })
 })
 
-describe('RemoteCrewPanel — launching', () => {
+describe('RemoteInstancesPanel — launching', () => {
   it('surfaces a rejected launch', async () => {
     vi.mocked(api.listInstances).mockResolvedValue(list([]))
     vi.mocked(api.cloudLaunch).mockRejectedValue(new ApiError(500, 'no capacity for m7g.2xlarge'))
     const u = setup()
-    renderWithProviders(<RemoteCrewPanel />)
+    renderWithProviders(<RemoteInstancesPanel />)
     await openSetupTab(u)
 
     const launch = await screen.findByRole('button', { name: 'Launch' })
@@ -563,7 +563,7 @@ describe('RemoteCrewPanel — launching', () => {
       signin: { url: 'https://device.sso/verify', code: 'ABCD-9999' },
     })
     const u = setup()
-    renderWithProviders(<RemoteCrewPanel />)
+    renderWithProviders(<RemoteInstancesPanel />)
     await openSetupTab(u)
 
     await u.click(await screen.findByRole('button', { name: /Open sign-in page/ }))
@@ -577,7 +577,7 @@ describe('RemoteCrewPanel — launching', () => {
     vi.mocked(api.cloudLaunchStatus).mockResolvedValue(waiting)
     vi.mocked(api.cloudLaunchSignin).mockRejectedValue(new ApiError(409, 'no pending sign-in'))
     const u = setup()
-    renderWithProviders(<RemoteCrewPanel />)
+    renderWithProviders(<RemoteInstancesPanel />)
     await openSetupTab(u)
 
     await u.click(await screen.findByRole('button', { name: /Open sign-in page/ }))
@@ -602,7 +602,7 @@ describe('RemoteCrewPanel — launching', () => {
     vi.mocked(api.cloudLaunches).mockResolvedValue({ jobs: [failed] })
     vi.mocked(api.cloudLaunchStatus).mockResolvedValue(failed)
     const u = setup()
-    renderWithProviders(<RemoteCrewPanel />)
+    renderWithProviders(<RemoteInstancesPanel />)
     await openSetupTab(u)
 
     expect(await screen.findByText('Launch failed')).toBeInTheDocument()
@@ -612,13 +612,13 @@ describe('RemoteCrewPanel — launching', () => {
   })
 })
 
-describe('RemoteCrewPanel — disabled feature gate', () => {
+describe('RemoteInstancesPanel — disabled feature gate', () => {
   it('enables the feature, reports progress, then asks for a restart', async () => {
     vi.mocked(api.listInstances).mockRejectedValue(new ApiError(403, 'instances feature is disabled'))
     let release: (v: unknown) => void = () => {}
     vi.mocked(api.patchConfig).mockReturnValue(new Promise(r => { release = r }) as never)
     const u = setup()
-    renderWithProviders(<RemoteCrewPanel />)
+    renderWithProviders(<RemoteInstancesPanel />)
 
     const enable = await screen.findByRole('button', { name: /Enable remote instance management/ })
     await u.click(enable)
@@ -635,7 +635,7 @@ describe('RemoteCrewPanel — disabled feature gate', () => {
     vi.mocked(api.listInstances).mockRejectedValue(new ApiError(403, 'instances feature is disabled'))
     vi.mocked(api.patchConfig).mockRejectedValue(new ApiError(423, 'config is locked'))
     const u = setup()
-    renderWithProviders(<RemoteCrewPanel />)
+    renderWithProviders(<RemoteInstancesPanel />)
 
     await u.click(await screen.findByRole('button', { name: /Enable remote instance management/ }))
     expect(await screen.findByText(/config is locked/, undefined, { timeout: 5_000 })).toBeInTheDocument()
@@ -646,7 +646,7 @@ describe('RemoteCrewPanel — disabled feature gate', () => {
     // the panel intact so the user is not told to enable something already on.
     vi.mocked(api.listInstances).mockRejectedValue(new ApiError(403, 'owner only'))
     const u = setup()
-    renderWithProviders(<RemoteCrewPanel />)
+    renderWithProviders(<RemoteInstancesPanel />)
 
     expect(await screen.findByText('owner only', undefined, { timeout: 5_000 })).toBeInTheDocument()
     expect(screen.queryByRole('button', { name: /Enable remote instance management/ })).not.toBeInTheDocument()
@@ -655,16 +655,16 @@ describe('RemoteCrewPanel — disabled feature gate', () => {
   })
 })
 
-describe('RemoteCrewPanel — editing a crew', () => {
-  it('saves an edited host and port to the crew that was already configured', async () => {
-    // Correcting a crew used to mean deleting it and adding it back, which threw
+describe('RemoteInstancesPanel — editing an instance', () => {
+  it('saves an edited host and port to the instance that was already configured', async () => {
+    // Correcting an instance used to mean deleting it and adding it back, which threw
     // away the record (and its connect history) along with the typo.
     vi.mocked(api.listInstances).mockResolvedValue(list([MANUAL_INSTANCE]))
     vi.mocked(api.updateInstance).mockResolvedValue({ ...MANUAL_INSTANCE, ssh_host: 'dev-box-2' })
     // The host changed, so the save reconnects on the new coordinates.
     vi.mocked(api.connectInstance).mockResolvedValue({ instance_id: 'm1', state: 'connected', local_port: 7999, token: 't' })
     const u = setup()
-    renderWithProviders(<RemoteCrewPanel />)
+    renderWithProviders(<RemoteInstancesPanel />)
 
     await openRowMenu(u)
     await u.click(await screen.findByRole('menuitem', { name: /Edit settings/i }))
@@ -692,7 +692,7 @@ describe('RemoteCrewPanel — editing a crew', () => {
     vi.mocked(api.listInstances).mockResolvedValue(list([MANUAL_INSTANCE]))
     vi.mocked(api.updateInstance).mockRejectedValue(new ApiError(400, 'invalid ssh_host'))
     const u = setup()
-    renderWithProviders(<RemoteCrewPanel />)
+    renderWithProviders(<RemoteInstancesPanel />)
 
     await openRowMenu(u)
     await u.click(await screen.findByRole('menuitem', { name: /Edit settings/i }))
@@ -705,15 +705,15 @@ describe('RemoteCrewPanel — editing a crew', () => {
 
   it('actually clears an optional field the user emptied', async () => {
     // A PATCH is partial, so an omitted key means "leave as-is": emptying the
-    // remote binary path has to travel as an explicit clear, or the crew keeps
+    // remote binary path has to travel as an explicit clear, or the instance keeps
     // launching through a path that no longer appears anywhere in the form.
-    // (An SSM crew's profile/region are frozen instead — see the cloud-identity
+    // (An SSM instance's profile/region are frozen instead — see the cloud-identity
     // test — because those ADDRESS the machine rather than describe it.)
     const withBin = { ...MANUAL_INSTANCE, remote_bin: '/opt/old/bin/junction' }
     vi.mocked(api.listInstances).mockResolvedValue(list([withBin]))
     vi.mocked(api.updateInstance).mockResolvedValue({ ...withBin, remote_bin: '' })
     const u = setup()
-    renderWithProviders(<RemoteCrewPanel />)
+    renderWithProviders(<RemoteInstancesPanel />)
 
     await openRowMenu(u)
     await u.click(await screen.findByRole('menuitem', { name: /Edit settings/i }))
@@ -732,7 +732,7 @@ describe('RemoteCrewPanel — editing a crew', () => {
     vi.mocked(api.listInstances).mockResolvedValue(list([live]))
     vi.mocked(api.updateInstance).mockResolvedValue({ ...live, remote_port: 7999 })
     const u = setup()
-    renderWithProviders(<RemoteCrewPanel />)
+    renderWithProviders(<RemoteInstancesPanel />)
 
     await openRowMenu(u)
     await u.click(await screen.findByRole('menuitem', { name: /Edit settings/i }))
@@ -748,15 +748,15 @@ describe('RemoteCrewPanel — editing a crew', () => {
     expect(api.connectInstance).not.toHaveBeenCalled()
   })
 
-  it('will not let an edit rewrite the identity a cloud crew is tracked by', async () => {
-    // A cloud crew is matched to its EC2 stack through its SSM target. Editing
+  it('will not let an edit rewrite the identity a cloud instance is tracked by', async () => {
+    // A cloud instance is matched to its EC2 stack through its SSM target. Editing
     // that away would strand a billing machine the dashboard can no longer stop
     // or delete, and Remove would then unregister it silently.
     vi.mocked(api.listInstances).mockResolvedValue(list([CLOUD_INSTANCE]))
     vi.mocked(api.cloudLaunches).mockResolvedValue({ jobs: [DONE_JOB] })
     vi.mocked(api.updateInstance).mockResolvedValue(CLOUD_INSTANCE)
     const u = setup()
-    renderWithProviders(<RemoteCrewPanel />)
+    renderWithProviders(<RemoteInstancesPanel />)
 
     await openRowMenu(u, /More actions for Junction Cloud/i)
     await u.click(await screen.findByRole('menuitem', { name: /Edit settings/i }))
@@ -781,7 +781,7 @@ describe('RemoteCrewPanel — editing a crew', () => {
     // or a TTL the token minter cannot read — so Save is gated instead.
     vi.mocked(api.listInstances).mockResolvedValue(list([MANUAL_INSTANCE]))
     const u = setup()
-    renderWithProviders(<RemoteCrewPanel />)
+    renderWithProviders(<RemoteInstancesPanel />)
 
     await openRowMenu(u)
     await u.click(await screen.findByRole('menuitem', { name: /Edit settings/i }))
@@ -825,7 +825,7 @@ describe('RemoteCrewPanel — editing a crew', () => {
     vi.mocked(api.listInstances).mockResolvedValue(list([MANUAL_INSTANCE]))
     vi.mocked(api.updateInstance).mockResolvedValue({ ...MANUAL_INSTANCE, remote_port: 7999 })
     const u = setup()
-    renderWithProviders(<RemoteCrewPanel />)
+    renderWithProviders(<RemoteInstancesPanel />)
 
     await openRowMenu(u)
     await u.click(await screen.findByRole('menuitem', { name: /Edit settings/i }))
@@ -849,7 +849,7 @@ describe('RemoteCrewPanel — editing a crew', () => {
     vi.mocked(api.listInstances).mockImplementation(async () => list(rows))
     vi.mocked(api.updateInstance).mockResolvedValue(MANUAL_INSTANCE)
     const u = setup()
-    renderWithProviders(<RemoteCrewPanel />)
+    renderWithProviders(<RemoteInstancesPanel />)
 
     await openRowMenu(u)
     await u.click(await screen.findByRole('menuitem', { name: /Edit settings/i }))
@@ -877,9 +877,9 @@ describe('RemoteCrewPanel — editing a crew', () => {
     expect(body).not.toHaveProperty('ssh_host')
   })
 
-  it('keeps the AWS profile editable on an SSM crew it cannot correlate to a stack', async () => {
+  it('keeps the AWS profile editable on an SSM instance it cannot correlate to a stack', async () => {
     // Freezing the addressing fields is only load-bearing where lifecycle actions
-    // exist. An uncorrelated crew is offered none, so a freeze there would protect
+    // exist. An uncorrelated instance is offered none, so a freeze there would protect
     // nothing and would remove the only way to fix its AWS profile.
     const ssm = {
       ...MANUAL_INSTANCE,
@@ -892,7 +892,7 @@ describe('RemoteCrewPanel — editing a crew', () => {
     vi.mocked(api.cloudLaunches).mockResolvedValue({ jobs: [] })
     vi.mocked(api.updateInstance).mockResolvedValue({ ...ssm, aws_profile: 'Fixed' })
     const u = setup()
-    renderWithProviders(<RemoteCrewPanel />)
+    renderWithProviders(<RemoteInstancesPanel />)
 
     await openRowMenu(u)
     await u.click(await screen.findByRole('menuitem', { name: /Edit settings/i }))
@@ -914,7 +914,7 @@ describe('RemoteCrewPanel — editing a crew', () => {
     vi.mocked(api.listInstances).mockResolvedValue(list([CLOUD_INSTANCE]))
     vi.mocked(api.cloudLaunches).mockResolvedValue({ jobs: [DONE_JOB] })
     const u = setup()
-    renderWithProviders(<RemoteCrewPanel />)
+    renderWithProviders(<RemoteInstancesPanel />)
 
     await openRowMenu(u, /More actions for Junction Cloud/i)
     await u.click(await screen.findByRole('menuitem', { name: /Edit settings/i }))
@@ -929,7 +929,7 @@ describe('RemoteCrewPanel — editing a crew', () => {
     // on "Remove…" leaves the row showing nothing but a button with no undo.
     vi.mocked(api.listInstances).mockResolvedValue(list([MANUAL_INSTANCE]))
     const u = setup()
-    renderWithProviders(<RemoteCrewPanel />)
+    renderWithProviders(<RemoteInstancesPanel />)
 
     await openRowMenu(u)
     await u.click(await screen.findByRole('menuitem', { name: 'Remove dev-box-1' }))
@@ -956,7 +956,7 @@ describe('RemoteCrewPanel — editing a crew', () => {
     const second = { ...MANUAL_INSTANCE, id: 'm2', name: 'dev-box-2', ssh_host: 'dev-box-2', remote_port: 7788 }
     vi.mocked(api.listInstances).mockResolvedValue(list([MANUAL_INSTANCE, second]))
     const u = setup()
-    renderWithProviders(<RemoteCrewPanel />)
+    renderWithProviders(<RemoteInstancesPanel />)
 
     await openRowMenu(u, /More actions for dev-box-1/i)
     await u.click(await screen.findByRole('menuitem', { name: /Edit settings/i }))
@@ -965,7 +965,7 @@ describe('RemoteCrewPanel — editing a crew', () => {
     await u.clear(host)
     await u.type(host, 'dev-box-1-corrected')
 
-    // Trying to edit the other crew is refused, with the reason stated.
+    // Trying to edit the other instance is refused, with the reason stated.
     await openRowMenu(u, /More actions for dev-box-2/i)
     await u.click(await screen.findByRole('menuitem', { name: /Edit settings/i }))
 
@@ -980,17 +980,17 @@ describe('RemoteCrewPanel — editing a crew', () => {
     // to find is indistinguishable from the click having done nothing.
     const refusal = screen.getByRole('alert')
     expect(refusal).toHaveTextContent(/Save or cancel the open edit/i)
-    expect(refusal.closest('[data-crew-id]')?.getAttribute('data-crew-id')).toBe('m2')
+    expect(refusal.closest('[data-instance-id]')?.getAttribute('data-instance-id')).toBe('m2')
   })
 
   it('keeps a typed edit across a switch to the setup tab and back', async () => {
-    // The crew list unmounts when the setup tab opens, so an edit whose only home
+    // The instance list unmounts when the setup tab opens, so an edit whose only home
     // was the form's own state was silently reverted to the stored values on the
     // way back. A guard can only refuse the exits it enumerates; the draft lives
     // in the panel instead, so it survives the unmount rather than being defended
     // from it one exit at a time.
     const u = setup()
-    renderWithProviders(<RemoteCrewPanel />)
+    renderWithProviders(<RemoteInstancesPanel />)
 
     await openRowMenu(u, /More actions for dev-box-1/i)
     await u.click(await screen.findByRole('menuitem', { name: /Edit settings/i }))
@@ -1020,7 +1020,7 @@ describe('RemoteCrewPanel — editing a crew', () => {
     vi.mocked(api.listInstances).mockImplementation(async () => list(rows))
     vi.mocked(api.updateInstance).mockResolvedValue(MANUAL_INSTANCE)
     const u = setup()
-    renderWithProviders(<RemoteCrewPanel />)
+    renderWithProviders(<RemoteInstancesPanel />)
 
     await openRowMenu(u, /More actions for dev-box-1/i)
     await u.click(await screen.findByRole('menuitem', { name: /Edit settings/i }))
@@ -1062,7 +1062,7 @@ describe('RemoteCrewPanel — editing a crew', () => {
     // Preserving work must not mean it can never be dropped: Cancel is the user
     // choosing to discard, so reopening the row must show the stored record.
     const u = setup()
-    renderWithProviders(<RemoteCrewPanel />)
+    renderWithProviders(<RemoteInstancesPanel />)
 
     await openRowMenu(u, /More actions for dev-box-1/i)
     await u.click(await screen.findByRole('menuitem', { name: /Edit settings/i }))
@@ -1090,7 +1090,7 @@ describe('RemoteCrewPanel — editing a crew', () => {
     } as never)
     const u = setup()
     const store = storeWithWarm('m1')
-    renderWithProviders(<RemoteCrewPanel />, { store })
+    renderWithProviders(<RemoteInstancesPanel />, { store })
 
     await openRowMenu(u, /More actions for dev-box-1/i)
     await u.click(await screen.findByRole('menuitem', { name: /Edit settings/i }))
@@ -1105,14 +1105,14 @@ describe('RemoteCrewPanel — editing a crew', () => {
 
   it('keeps the warm pane when the save left the tunnel connected', async () => {
     // The counterpart: a name-or-ttl-only edit does not tear anything down, so
-    // dropping the pane would make the user reload a working crew for nothing.
+    // dropping the pane would make the user reload a working instance for nothing.
     vi.mocked(api.listInstances).mockResolvedValue(list([CONNECTED_MANUAL]))
     vi.mocked(api.updateInstance).mockResolvedValue({
       ...CONNECTED_MANUAL, name: 'renamed',
     } as never)
     const u = setup()
     const store = storeWithWarm('m1')
-    renderWithProviders(<RemoteCrewPanel />, { store })
+    renderWithProviders(<RemoteInstancesPanel />, { store })
 
     await openRowMenu(u, /More actions for dev-box-1/i)
     await u.click(await screen.findByRole('menuitem', { name: /Edit settings/i }))
@@ -1127,7 +1127,7 @@ describe('RemoteCrewPanel — editing a crew', () => {
   })
 
   it('refuses to save a draft onto a record that moved under it, until the user adopts it', async () => {
-    // A live id is not proof of a live RECORD: a crew removed and recreated under
+    // A live id is not proof of a live RECORD: an instance removed and recreated under
     // the same derived id never leaves the list, and a concurrent CLI edit moves the
     // record without touching its id. Those two want opposite outcomes — keep the
     // typing vs. never write it to this machine — and are indistinguishable here, so
@@ -1136,7 +1136,7 @@ describe('RemoteCrewPanel — editing a crew', () => {
     vi.mocked(api.listInstances).mockImplementation(async () => list(rows))
     vi.mocked(api.updateInstance).mockResolvedValue(MANUAL_INSTANCE)
     const u = setup()
-    renderWithProviders(<RemoteCrewPanel />)
+    renderWithProviders(<RemoteInstancesPanel />)
 
     await openRowMenu(u, /More actions for dev-box-1/i)
     await u.click(await screen.findByRole('menuitem', { name: /Edit settings/i }))
@@ -1168,15 +1168,15 @@ describe('RemoteCrewPanel — editing a crew', () => {
     expect(body).not.toHaveProperty('remote_port')
   })
 
-  it('discards a draft whose crew no longer exists', async () => {
-    // The draft outliving its FORM is the point; outliving its CREW is not. Ids
-    // derive from the name, so a crew added after a removal can land on the same
+  it('discards a draft whose instance no longer exists', async () => {
+    // The draft outliving its FORM is the point; outliving its INSTANCE is not. Ids
+    // derive from the name, so an instance added after a removal can land on the same
     // id — remounting a stale draft on a different machine and letting Save
     // overwrite settings the user never typed.
     let rows: InstanceView[] = [MANUAL_INSTANCE]
     vi.mocked(api.listInstances).mockImplementation(async () => list(rows))
     const u = setup()
-    renderWithProviders(<RemoteCrewPanel />)
+    renderWithProviders(<RemoteInstancesPanel />)
 
     await openRowMenu(u, /More actions for dev-box-1/i)
     await u.click(await screen.findByRole('menuitem', { name: /Edit settings/i }))
@@ -1185,7 +1185,7 @@ describe('RemoteCrewPanel — editing a crew', () => {
     await u.clear(host)
     await u.type(host, 'typed-before-removal')
 
-    // The crew goes away (this row's Remove, a CLI removal, or a cloud Delete).
+    // The instance goes away (this row's Remove, a CLI removal, or a cloud Delete).
     rows = []
     await act(async () => {
       await u.click(screen.getByRole('button', { name: 'Refresh' }))
@@ -1194,7 +1194,7 @@ describe('RemoteCrewPanel — editing a crew', () => {
       expect(screen.queryByRole('group', { name: /Edit dev-box-1/i })).not.toBeInTheDocument(),
     )
 
-    // A crew that lands on the same id gets a CLEAN form, not the dead draft.
+    // An instance that lands on the same id gets a CLEAN form, not the dead draft.
     rows = [MANUAL_INSTANCE]
     await act(async () => {
       await u.click(screen.getByRole('button', { name: 'Refresh' }))
@@ -1214,7 +1214,7 @@ describe('RemoteCrewPanel — editing a crew', () => {
     vi.mocked(api.listInstances).mockResolvedValue(list([MANUAL_INSTANCE, second]))
     vi.mocked(api.updateInstance).mockResolvedValue({ ...MANUAL_INSTANCE, ssh_host: 'fixed' } as never)
     const u = setup()
-    renderWithProviders(<RemoteCrewPanel />)
+    renderWithProviders(<RemoteInstancesPanel />)
 
     await openRowMenu(u, /More actions for dev-box-1/i)
     await u.click(await screen.findByRole('menuitem', { name: /Edit settings/i }))

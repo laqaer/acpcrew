@@ -10,17 +10,17 @@
  * dispatches the same click as a discrete task OUTSIDE any render pass.
  *
  * So this script drives the real thing and fails loudly on any console error:
- *   open the crew editor -> open the Memory Store select -> pick the value another
- *   crew already uses -> assert the collision warning appears.
+ *   open the agent editor -> open the Memory Store select -> pick the value another
+ *   agent already uses -> assert the collision warning appears.
  *
  * Usage: node scripts/verify-agents-dialog-select.mjs
  */
 import { chromium } from 'playwright'
 import { serveDist } from './lib/serve-dist.mjs'
 import { stubDashboardApi } from './lib/stub-dashboard-api.mjs'
-import { crewsApi } from './lib/agents-fixtures.mjs'
+import { agentsApi } from './lib/agents-fixtures.mjs'
 
-const CREWS = [
+const AGENTS = [
   { name: 'junction', kiro_agent: 'junction', workspace: 'core-ws', memory_store: 'core-mem' },
   { name: 'oncall', kiro_agent: 'junction', workspace: 'oncall', memory_store: 'oncall-mem' },
 ]
@@ -35,19 +35,20 @@ async function main() {
   page.on('pageerror', e => errors.push(`pageerror: ${e.message}`))
 
   await stubDashboardApi(page, {
-    extra: crewsApi({
-      crews: CREWS,
+    extra: agentsApi({
+      agents: AGENTS,
       defaultAgent: 'junction',
       memoryStores: ['core-mem', 'oncall-mem'],
     }),
   })
 
   await page.goto(base + '/capabilities', { waitUntil: 'domcontentloaded' })
-  await page.locator('[data-testid="crew-card"]').first().waitFor({ timeout: 15000 })
+  await page.locator('[data-testid="agent-card"]').first().waitFor({ timeout: 15000 })
 
-  // Open the editor on the NON-default crew (it has a danger zone and its own stores).
-  await page.getByRole('button', { name: 'Edit crew oncall' }).click()
-  const dialog = page.getByRole('dialog', { name: 'Edit crew oncall' })
+  // Open the editor on the NON-default agent (it has a danger zone and its own
+  // stores).
+  await page.getByRole('button', { name: 'Edit agent oncall' }).click()
+  const dialog = page.getByRole('dialog', { name: 'Edit agent oncall' })
   await dialog.waitFor({ timeout: 15000 })
 
   // No collision yet — oncall is on its own store.

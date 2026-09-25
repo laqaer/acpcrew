@@ -319,8 +319,8 @@ export interface CronJob {
   cron_expr?: string | null; every?: number | null; every_secs?: number | null
   at?: number | null; created_ts?: number | null
   agent?: string; model?: string; channel?: string; approval_mode?: string; silent?: boolean
-  /** Crews a sequence job runs, in order. Takes PRECEDENCE over `agent` at run
-   *  time, so any consumer attributing a job to a crew must read this first. */
+  /** Agents a sequence job runs, in order. Takes PRECEDENCE over `agent` at run
+   *  time, so any consumer attributing a job to an agent must read this first. */
   agent_sequence?: string[]
   strict_schedule?: boolean
   /** When true, this cron's runs do not appear as a chat session in the active

@@ -8,7 +8,7 @@
 // included, lived in that renderer), and the only way out is quitting the app.
 // Observed in the wild as a repeating daily crash: `EXC_BREAKPOINT` (a V8 fatal
 // abort) raised on a DedicatedWorker thread after a long session, in a renderer
-// hosting many remote-crew dashboard SPAs at once.
+// hosting many remote-instance dashboard SPAs at once.
 //
 // Electron does emit `render-process-gone` for exactly this, but the app never
 // listened, so a dead renderer was terminal. This module decides whether a given

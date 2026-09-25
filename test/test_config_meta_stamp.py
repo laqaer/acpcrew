@@ -81,7 +81,7 @@ class TestCliConfigSetKeepsMeta:
     """``junction config set <key> <value>`` rebuilds the file from the dataclass."""
 
     def test_set_refreshes_the_stamp_instead_of_dropping_it(self, tmp_path: Path) -> None:
-        config_dir = tmp_path / "crew"
+        config_dir = tmp_path / "home"
         config_dir.mkdir()
         (config_dir / "config.json").write_text(
             json.dumps({"meta": _OLD_STAMP, **_REAL_SETTINGS}), encoding="utf-8"
@@ -95,7 +95,7 @@ class TestCliConfigSetKeepsMeta:
         assert saved["timezone"] == "Europe/Berlin"
 
     def test_set_stamps_a_config_that_never_had_meta(self, tmp_path: Path) -> None:
-        config_dir = tmp_path / "crew"
+        config_dir = tmp_path / "home"
         config_dir.mkdir()
         (config_dir / "config.json").write_text(json.dumps(_REAL_SETTINGS), encoding="utf-8")
 
@@ -106,7 +106,7 @@ class TestCliConfigSetKeepsMeta:
 
     def test_set_from_file_stamps_the_written_config(self, tmp_path: Path) -> None:
         """``--file`` replaces the whole config, so it owns the new stamp too."""
-        config_dir = tmp_path / "crew"
+        config_dir = tmp_path / "home"
         config_dir.mkdir()
         source = tmp_path / "incoming.json"
         source.write_text(json.dumps({"meta": _OLD_STAMP, **_REAL_SETTINGS}), encoding="utf-8")
@@ -122,7 +122,7 @@ class TestCliConfigSetKeepsMeta:
 
     def test_local_set_does_not_stamp_the_overlay(self, tmp_path: Path) -> None:
         """Only the base file carries the block; the overlay holds settings alone."""
-        config_dir = tmp_path / "crew"
+        config_dir = tmp_path / "home"
         config_dir.mkdir()
 
         _run_config_cmd(_set_args("timezone", "Europe/Berlin", local=True), config_dir)
@@ -133,7 +133,7 @@ class TestCliConfigSetKeepsMeta:
 
     def test_set_from_file_refuses_a_non_object_payload(self, tmp_path: Path, capsys) -> None:
         """A JSON array parses but is not a config: refuse, leaving the file alone."""
-        config_dir = tmp_path / "crew"
+        config_dir = tmp_path / "home"
         config_dir.mkdir()
         existing = {"meta": _OLD_STAMP, **_REAL_SETTINGS}
         (config_dir / "config.json").write_text(json.dumps(existing), encoding="utf-8")
@@ -155,7 +155,7 @@ class TestConfigSaveKeepsMeta:
     def test_save_stamps_the_current_build(self, tmp_path: Path) -> None:
         from junction.config import JunctionConfig
 
-        config_dir = tmp_path / "crew"
+        config_dir = tmp_path / "home"
         config_dir.mkdir()
         (config_dir / "config.json").write_text(
             json.dumps({"meta": _OLD_STAMP, **_REAL_SETTINGS}), encoding="utf-8"

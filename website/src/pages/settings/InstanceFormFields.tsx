@@ -1,6 +1,6 @@
 /**
- * InstanceFormFields — the remote-crew field set, shared by the "add a crew"
- * form and the per-crew "edit" form.
+ * InstanceFormFields — the remote-instance field set, shared by the "add an instance"
+ * form and the per-instance "edit" form.
  *
  * Both forms write the same record through the same validation, so the fields,
  * their hints, and the transport-conditional layout live here once. `idPrefix`
@@ -41,14 +41,14 @@ export interface InstanceFormValues {
   remoteBin: string
 }
 
-// Defaults for a brand-new crew. The port and TTL mirror the backend's own
+// Defaults for a brand-new instance. The port and TTL mirror the backend's own
 // defaults so an untouched form round-trips to the same record the API would
 // have created on its own.
 export const DEFAULT_REMOTE_PORT = '5476'
 export const DEFAULT_TTL = '20h'
 // The backend's own default for the remote account an SSM session runs as. A
 // cleared field falls back to it rather than to the empty string, which the
-// registry rejects for an SSM crew.
+// registry rejects for an SSM instance.
 export const DEFAULT_SSM_RUN_AS = 'ec2-user'
 
 // A tunnel forwards ONE TCP port and mints a token with a bounded lifetime, so
@@ -78,7 +78,7 @@ export const EMPTY_INSTANCE_FORM: InstanceFormValues = {
   remoteBin: '',
 }
 
-/** Seed the form from an existing crew, so editing starts from what is stored. */
+/** Seed the form from an existing instance, so editing starts from what is stored. */
 export function instanceFormFromView(inst: InstanceView): InstanceFormValues {
   return {
     name: inst.name,
@@ -142,7 +142,7 @@ export function useInstanceFormState(
    * `explicitClears` is what an EDIT needs. A create can omit an empty optional
    * and let the backend apply its default, but an update is a partial one: an
    * omitted key means "leave as-is", so emptying a field the user wants gone
-   * would silently keep the old value — the crew would go on connecting through
+   * would silently keep the old value — the instance would go on connecting through
    * an AWS profile that no longer appears anywhere in the form. Sending the
    * empty value makes the clear real, and makes it visible to the
    * transport-change check that decides whether to reopen the tunnel.
@@ -168,7 +168,7 @@ export function useInstanceFormState(
         raw.trim() || (explicitClears ? cleared ?? '' : undefined)
       const full: AddInstanceBody = {
         name: v.name.trim(),
-        // Omitted for a locked crew so a partial update cannot rewrite the
+        // Omitted for a locked instance so a partial update cannot rewrite the
         // identity its cloud correlation depends on.
         ...(omitIdentity ? {} : { connection_method: v.method }),
         ...(ssm
@@ -185,7 +185,7 @@ export function useInstanceFormState(
                     aws_profile: opt(v.awsProfile),
                     aws_region: opt(v.awsRegion),
                   }),
-              // An SSM crew must always name a remote user, so a cleared field
+              // An SSM instance must always name a remote user, so a cleared field
               // returns to the default rather than to the empty string.
               ssm_run_as: opt(v.ssmRunAs, DEFAULT_SSM_RUN_AS),
             }
@@ -242,7 +242,7 @@ export function useInstanceFormState(
 export type InstanceFormState = ReturnType<typeof useInstanceFormState>
 
 /**
- * Edit an already-configured crew in place. Editing preserves the crew's
+ * Edit an already-configured instance in place. Editing preserves the instance's
  * identity; the only alternative is delete-and-re-add, which discards the record
  * along with the typo.
  *
@@ -250,7 +250,7 @@ export type InstanceFormState = ReturnType<typeof useInstanceFormState>
  * automatic reconnect races the user's own Disconnect — whatever moment the
  * intent is sampled, a disconnect can land after it and be undone by a
  * reconnection nobody asked for. The teardown preserves connect intent, so the
- * crew keeps its switcher entry and its row offers Connect; one explicit click
+ * instance keeps its switcher entry and its row offers Connect; one explicit click
  * is cheaper than a save that fights the user.
  */
 export function EditInstanceForm({
@@ -273,7 +273,7 @@ export function EditInstanceForm({
   onCancel: () => void
   /**
    * Unsaved work to restore, when this form is being remounted after the panel
-   * swapped it out (a tab switch unmounts the whole crew list). Carries the
+   * swapped it out (a tab switch unmounts the whole instance list). Carries the
    * BASELINE as well as the values: the baseline is the record the draft was
    * typed against, and re-deriving it from the current `inst` on remount would
    * rebase the stale draft onto a newer poll — turning a field the user never
@@ -282,7 +282,7 @@ export function EditInstanceForm({
   draft?: InstanceDraft | null
   /**
    * Fields whose PERSISTED value no longer matches the baseline this draft was
-   * typed against — the crew was edited (or removed and recreated under the same
+   * typed against — the instance was edited (or removed and recreated under the same
    * id) outside this form. The two cases are indistinguishable from here, and they
    * want opposite outcomes: a concurrent edit should keep the user's typing, a
    * replacement must not receive it. So the form refuses to guess and refuses to
@@ -305,7 +305,7 @@ export function EditInstanceForm({
   /**
    * Freeze the fields that ADDRESS the machine: connection method, SSM target,
    * AWS profile and region.
-   * A cloud crew is matched to its EC2 stack THROUGH that identity, so editing
+   * A cloud instance is matched to its EC2 stack THROUGH that identity, so editing
    * it away would leave the dashboard unable to stop or delete a machine that
    * keeps billing — and Remove would then unregister it silently.
    */
@@ -357,17 +357,17 @@ export function EditInstanceForm({
   const err = saveMutation.error
     ? saveMutation.error instanceof ApiError
       ? saveMutation.error.message
-      : i18nT('pages.settings.remoteCrewPanel.failed_to_save_crew')
+      : i18nT('pages.settings.remoteInstancesPanel.failed_to_save_instance')
     : ''
   return (
     <div
       className="mt-3 rounded-md border border-border bg-bg-elevated p-3"
       role="group"
-      aria-label={i18nT('pages.settings.remoteCrewPanel.edit_crew', { name: inst.name })}
+      aria-label={i18nT('pages.settings.remoteInstancesPanel.edit_instance', { name: inst.name })}
     >
       <div className="flex items-center gap-2 mb-3 text-text font-medium text-sm">
         <Pencil className="lucide-inline" />{' '}
-        {i18nT('pages.settings.remoteCrewPanel.edit_crew', { name: inst.name })}
+        {i18nT('pages.settings.remoteInstancesPanel.edit_instance', { name: inst.name })}
       </div>
       <InstanceFormFields
         idPrefix={`edit-instance-${inst.id}`}
@@ -376,22 +376,22 @@ export function EditInstanceForm({
       />
       {lockTransport && (
         <p className="mt-2 text-[12px] text-warn">
-          {i18nT('pages.settings.remoteCrewPanel.transport_locked_note')}
+          {i18nT('pages.settings.remoteInstancesPanel.transport_locked_note')}
         </p>
       )}
-      {/* Only meaningful while a tunnel is actually up: for a disconnected crew
+      {/* Only meaningful while a tunnel is actually up: for a disconnected instance
           this is prose about a consequence that cannot occur. Warn-weighted, not
           muted: it is the one consequence of this form the user cannot undo by
           editing again, and muted type is what made it discoverable only after
           the save had already closed the tunnel. */}
       {inst.status?.state === 'connected' ? (
         <p className="mt-2 text-[12px] text-warn">
-          {i18nT('pages.settings.remoteCrewPanel.edit_reconnect_note')}
+          {i18nT('pages.settings.remoteInstancesPanel.edit_reconnect_note')}
         </p>
       ) : null}
       {stale ? (
         <p role="alert" className="mt-2 text-[12px] text-warn">
-          {i18nT('pages.settings.remoteCrewPanel.changed_outside_this_form', {
+          {i18nT('pages.settings.remoteInstancesPanel.changed_outside_this_form', {
             fields: externallyChanged.join(', '),
           })}
         </p>
@@ -400,11 +400,11 @@ export function EditInstanceForm({
       <div className="mt-3 flex items-center gap-2">
         {/* Save is withheld while the record is stale, rather than the edit being
             discarded: throwing the typing away would punish the far more common
-            case (someone edited this same crew from the CLI) to guard the rarer
-            one (the crew was replaced under its id). */}
+            case (someone edited this same instance from the CLI) to guard the rarer
+            one (the instance was replaced under its id). */}
         {stale ? (
           <Btn primary onClick={onRebase} disabled={saveMutation.isPending}>
-            {i18nT('pages.settings.remoteCrewPanel.use_my_edits_anyway')}
+            {i18nT('pages.settings.remoteInstancesPanel.use_my_edits_anyway')}
           </Btn>
         ) : (
         <Btn
@@ -413,12 +413,12 @@ export function EditInstanceForm({
           disabled={saveMutation.isPending || !form.valid}
         >
           {saveMutation.isPending
-            ? i18nT('pages.settings.remoteCrewPanel.saving')
-            : i18nT('pages.settings.remoteCrewPanel.save_changes')}
+            ? i18nT('pages.settings.remoteInstancesPanel.saving')
+            : i18nT('pages.settings.remoteInstancesPanel.save_changes')}
         </Btn>
         )}
         <Btn onClick={onCancel} disabled={saveMutation.isPending}>
-          {i18nT('pages.settings.remoteCrewPanel.cancel')}
+          {i18nT('pages.settings.remoteInstancesPanel.cancel')}
         </Btn>
       </div>
     </div>
@@ -506,7 +506,7 @@ export function InstanceFormFields({
         </span>
         {!portValid ? (
           <span className="text-[12px] text-danger leading-snug">
-            {i18nT('pages.settings.remoteCrewPanel.port_must_be_in_range')}
+            {i18nT('pages.settings.remoteInstancesPanel.port_must_be_in_range')}
           </span>
         ) : null}
       </label>
@@ -515,7 +515,7 @@ export function InstanceFormFields({
         <input id={`${idPrefix}-ttl`} aria-label={i18nT('pages.settings.instancesPanel.token_ttl')} className={inputCls} value={values.ttl} onChange={e => set('ttl', e.target.value)} placeholder={i18nT('pages.settings.instancesPanel.20h')} />
         {!ttlValid ? (
           <span className="text-[12px] text-danger leading-snug">
-            {i18nT('pages.settings.remoteCrewPanel.ttl_must_be_hours_or_minutes')}
+            {i18nT('pages.settings.remoteInstancesPanel.ttl_must_be_hours_or_minutes')}
           </span>
         ) : null}
       </label>

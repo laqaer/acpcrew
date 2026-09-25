@@ -1,6 +1,6 @@
 """The write half of the Windows sharing-violation window (issue #4331).
 
-#4331 fixed the READ half: ``CrewStore._load`` now reads through
+#4331 fixed the READ half: ``MultitaskStore._load`` now reads through
 ``read_bytes_with_retry``. Its PR called out the other half explicitly --
 *"this store's write side still calls ``tmp.replace()`` directly rather than
 ``replace_with_retry``, so it remains exposed to the other half of the same
@@ -48,10 +48,10 @@ def _windows(monkeypatch):
 
 
 def _store(tmp_path):
-    """A CrewStore with only the write machinery, no disk-reading __init__."""
-    from junction.multitask_chat import CrewStore
+    """A MultitaskStore with only the write machinery, no disk-reading __init__."""
+    from junction.multitask_chat import MultitaskStore
 
-    store = CrewStore.__new__(CrewStore)
+    store = MultitaskStore.__new__(MultitaskStore)
     store.dir = tmp_path
     store._seq_lock = threading.Lock()
     store._io_locks_guard = threading.Lock()
@@ -62,7 +62,7 @@ def _store(tmp_path):
     return store
 
 
-class TestCrewStoreSaveSurvivesAContendedReplace:
+class TestMultitaskStoreSaveSurvivesAContendedReplace:
     def test_a_contended_write_retries_and_the_payload_lands(self, tmp_path, _windows):
         """The product path: one faulted rename, then one that succeeds."""
         store = _store(tmp_path)

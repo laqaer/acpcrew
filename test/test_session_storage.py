@@ -27,6 +27,11 @@ from junction.session_storage import SessionIndex, SessionStorageError
 _NOW = 1_700_000_000.0
 _DAY = 86400.0
 
+# The staging leaf earlier Junction builds used for Junction's own transcripts.
+# Batches staged by those builds can still sit in the trash, so restore must
+# still place them.
+LEGACY_STAGE_LEAF = "crew"
+
 
 @pytest.fixture(autouse=True)
 def _fresh_scan_cache() -> None:
@@ -43,20 +48,20 @@ def _fresh_scan_cache() -> None:
 
 @pytest.fixture()
 def stores(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> tuple[Path, Path]:
-    """Point both stores at temp dirs; return (crew data home, kiro home).
+    """Point both stores at temp dirs; return (data home, kiro home).
 
     The kiro home is nested INSIDE the data home because that is what
     :func:`reclaim_block_reason` requires of an isolated instance: a store outside
     the data home may be shared with an instance whose map this one cannot read, so
     reclaiming from a sibling layout is refused by design.
     """
-    crew_home = tmp_path / "crew"
-    kiro_home = crew_home / "kiro"
-    (crew_home / "sessions" / "archive").mkdir(parents=True)
+    home_dir = tmp_path / "home"
+    kiro_home = home_dir / "kiro"
+    (home_dir / "sessions" / "archive").mkdir(parents=True)
     (kiro_home / "sessions" / "cli").mkdir(parents=True)
-    monkeypatch.setenv("JUNCTION_HOME", str(crew_home))
+    monkeypatch.setenv("JUNCTION_HOME", str(home_dir))
     monkeypatch.setenv("KIRO_HOME", str(kiro_home))
-    return crew_home, kiro_home
+    return home_dir, kiro_home
 
 
 def _cli_half(kiro_home: Path, sid: str, *, log_bytes: int, age_days: float) -> int:
@@ -71,16 +76,16 @@ def _cli_half(kiro_home: Path, sid: str, *, log_bytes: int, age_days: float) -> 
     return total
 
 
-def _transcript(crew_home: Path, stem: str, *, size: int, age_days: float) -> int:
-    path = crew_home / "sessions" / f"{stem}.jsonl"
+def _transcript(home_dir: Path, stem: str, *, size: int, age_days: float) -> int:
+    path = home_dir / "sessions" / f"{stem}.jsonl"
     path.write_bytes(b"t" * size)
     mtime = _NOW - age_days * _DAY
     os.utime(path, (mtime, mtime))
     return size
 
 
-def _archive_segment(crew_home: Path, stem: str, stamp: str, *, size: int, age_days: float) -> int:
-    path = crew_home / "sessions" / "archive" / f"{stem}__{stamp}.jsonl"
+def _archive_segment(home_dir: Path, stem: str, stamp: str, *, size: int, age_days: float) -> int:
+    path = home_dir / "sessions" / "archive" / f"{stem}__{stamp}.jsonl"
     path.write_bytes(b"a" * size)
     mtime = _NOW - age_days * _DAY
     os.utime(path, (mtime, mtime))
@@ -106,51 +111,51 @@ class TestPairing:
     def test_a_paired_session_is_counted_once_with_one_total(
         self, stores: tuple[Path, Path]
     ) -> None:
-        crew_home, kiro_home = stores
+        home_dir, kiro_home = stores
         cli = _cli_half(kiro_home, "aaaa1111", log_bytes=4096, age_days=40)
-        crew = _transcript(crew_home, "dashboard_chat-1", size=500, age_days=40)
+        transcript = _transcript(home_dir, "dashboard_chat-1", size=500, age_days=40)
 
         report = session_storage.measure(_index({"aaaa1111": "dashboard_chat-1"}), now=_NOW)
 
         assert report.total_sessions == 1
-        assert report.total_bytes == cli + crew
+        assert report.total_bytes == cli + transcript
         assert report.reclaimable_sessions == 1
 
     def test_transcript_stem_is_derived_from_the_history_module(self) -> None:
         """The pairing rule has exactly one source; a local copy would drift."""
         assert transcript_stem("dashboard:chat-1") == "dashboard_chat-1"
-        assert transcript_stem("telegram:crew:direct:87431") == "telegram_crew_direct_87431"
+        assert transcript_stem("telegram:team:direct:87431") == "telegram_team_direct_87431"
 
     def test_archive_segments_belong_to_their_session(self, stores: tuple[Path, Path]) -> None:
-        crew_home, kiro_home = stores
+        home_dir, kiro_home = stores
         cli = _cli_half(kiro_home, "aaaa1111", log_bytes=64, age_days=40)
-        crew = _transcript(crew_home, "dashboard_chat-1", size=100, age_days=40)
+        transcript = _transcript(home_dir, "dashboard_chat-1", size=100, age_days=40)
         seg = _archive_segment(
-            crew_home, "dashboard_chat-1", "20260730-211852", size=900, age_days=40
+            home_dir, "dashboard_chat-1", "20260730-211852", size=900, age_days=40
         )
 
         report = session_storage.measure(_index({"aaaa1111": "dashboard_chat-1"}), now=_NOW)
 
         assert report.total_sessions == 1
-        assert report.total_bytes == cli + crew + seg
+        assert report.total_bytes == cli + transcript + seg
 
     def test_a_segment_is_not_mistaken_for_a_session_of_its_own(
         self, stores: tuple[Path, Path]
     ) -> None:
         """A stem that prefixes another must not absorb the other's segments."""
-        crew_home, _ = stores
-        _transcript(crew_home, "dashboard_chat-1", size=10, age_days=40)
-        _transcript(crew_home, "dashboard_chat-14", size=10, age_days=40)
-        _archive_segment(crew_home, "dashboard_chat-14", "20260730-211852", size=700, age_days=40)
+        home_dir, _ = stores
+        _transcript(home_dir, "dashboard_chat-1", size=10, age_days=40)
+        _transcript(home_dir, "dashboard_chat-14", size=10, age_days=40)
+        _archive_segment(home_dir, "dashboard_chat-14", "20260730-211852", size=700, age_days=40)
 
         units = {u.uid: u.bytes for u in session_storage.select_reclaimable(_index(), 0, now=_NOW)}
 
         assert units == {"dashboard_chat-1": 10, "dashboard_chat-14": 710}
 
     def test_unpaired_halves_are_each_their_own_session(self, stores: tuple[Path, Path]) -> None:
-        crew_home, kiro_home = stores
+        home_dir, kiro_home = stores
         _cli_half(kiro_home, "aaaa1111", log_bytes=16, age_days=40)
-        _transcript(crew_home, "cron_74173071", size=32, age_days=40)
+        _transcript(home_dir, "cron_74173071", size=32, age_days=40)
 
         report = session_storage.measure(_index(), now=_NOW)
 
@@ -160,9 +165,9 @@ class TestPairing:
 
 class TestActiveExclusion:
     def test_a_mapped_session_protects_both_halves(self, stores: tuple[Path, Path]) -> None:
-        crew_home, kiro_home = stores
+        home_dir, kiro_home = stores
         _cli_half(kiro_home, "aaaa1111", log_bytes=16, age_days=400)
-        _transcript(crew_home, "dashboard_chat-1", size=16, age_days=400)
+        _transcript(home_dir, "dashboard_chat-1", size=16, age_days=400)
 
         index = _index({"aaaa1111": "dashboard_chat-1"}, active={"aaaa1111"})
         report = session_storage.measure(index, now=_NOW)
@@ -174,10 +179,10 @@ class TestActiveExclusion:
 
 class TestMoveTakesBothHalves:
     def test_both_halves_and_segments_move_together(self, stores: tuple[Path, Path]) -> None:
-        crew_home, kiro_home = stores
+        home_dir, kiro_home = stores
         _cli_half(kiro_home, "aaaa1111", log_bytes=2048, age_days=40)
-        _transcript(crew_home, "dashboard_chat-1", size=300, age_days=40)
-        _archive_segment(crew_home, "dashboard_chat-1", "20260730-211852", size=400, age_days=40)
+        _transcript(home_dir, "dashboard_chat-1", size=300, age_days=40)
+        _archive_segment(home_dir, "dashboard_chat-1", "20260730-211852", size=400, age_days=40)
 
         batch = session_storage.move_to_trash(
             ["aaaa1111"],
@@ -188,21 +193,23 @@ class TestMoveTakesBothHalves:
 
         assert batch.sessions == 1
         cli_root = kiro_home / "sessions" / "cli"
-        crew_root = crew_home / "sessions"
+        junction_root = home_dir / "sessions"
         assert not (cli_root / "aaaa1111.json").exists()
         assert not (cli_root / "aaaa1111.jsonl").exists()
-        assert not (crew_root / "dashboard_chat-1.jsonl").exists()
-        assert not (crew_root / "archive" / "dashboard_chat-1__20260730-211852.jsonl").exists()
+        assert not (junction_root / "dashboard_chat-1.jsonl").exists()
+        assert not (junction_root / "archive" / "dashboard_chat-1__20260730-211852.jsonl").exists()
         staged = session_storage.trash_root() / batch.batch_id
         assert (staged / "cli" / "aaaa1111.jsonl").is_file()
-        assert (staged / "crew" / "dashboard_chat-1.jsonl").is_file()
-        assert (staged / "crew" / "archive" / "dashboard_chat-1__20260730-211852.jsonl").is_file()
+        assert (staged / "junction" / "dashboard_chat-1.jsonl").is_file()
+        assert (
+            staged / "junction" / "archive" / "dashboard_chat-1__20260730-211852.jsonl"
+        ).is_file()
 
     def test_halves_with_the_same_filename_do_not_collide(self, stores: tuple[Path, Path]) -> None:
         """A flat batch dir would let one half overwrite the other."""
-        crew_home, kiro_home = stores
+        home_dir, kiro_home = stores
         _cli_half(kiro_home, "collide", log_bytes=11, age_days=40)
-        _transcript(crew_home, "collide", size=22, age_days=40)
+        _transcript(home_dir, "collide", size=22, age_days=40)
 
         batch = session_storage.move_to_trash(
             ["collide"], reason="manual", index=_index({"collide": "collide"}), now=_NOW
@@ -210,19 +217,19 @@ class TestMoveTakesBothHalves:
 
         staged = session_storage.trash_root() / batch.batch_id
         assert (staged / "cli" / "collide.jsonl").read_bytes() == b"c" * 11
-        assert (staged / "crew" / "collide.jsonl").read_bytes() == b"t" * 22
+        assert (staged / "junction" / "collide.jsonl").read_bytes() == b"t" * 22
 
     def test_refuses_a_session_still_mapped(self, stores: tuple[Path, Path]) -> None:
-        crew_home, kiro_home = stores
+        home_dir, kiro_home = stores
         _cli_half(kiro_home, "aaaa1111", log_bytes=16, age_days=99)
-        _transcript(crew_home, "dashboard_chat-1", size=16, age_days=99)
+        _transcript(home_dir, "dashboard_chat-1", size=16, age_days=99)
 
         index = _index({"aaaa1111": "dashboard_chat-1"}, active={"aaaa1111"})
         with pytest.raises(SessionStorageError, match="still in use"):
             session_storage.move_to_trash(["aaaa1111"], reason="manual", index=index, now=_NOW)
 
         assert (kiro_home / "sessions" / "cli" / "aaaa1111.jsonl").is_file()
-        assert (crew_home / "sessions" / "dashboard_chat-1.jsonl").is_file()
+        assert (home_dir / "sessions" / "dashboard_chat-1.jsonl").is_file()
 
     @pytest.mark.parametrize("uid", ["../escape", "a/b", "", "..", "with space", "x" * 250])
     def test_refuses_ids_that_could_address_another_path(
@@ -232,10 +239,10 @@ class TestMoveTakesBothHalves:
             session_storage.move_to_trash([uid], reason="manual", index=_index(), now=_NOW)
 
     def test_manifest_records_every_file_of_the_session(self, stores: tuple[Path, Path]) -> None:
-        crew_home, kiro_home = stores
+        home_dir, kiro_home = stores
         _cli_half(kiro_home, "aaaa1111", log_bytes=8, age_days=40)
-        _transcript(crew_home, "dashboard_chat-1", size=8, age_days=40)
-        _archive_segment(crew_home, "dashboard_chat-1", "20260730-211852", size=8, age_days=40)
+        _transcript(home_dir, "dashboard_chat-1", size=8, age_days=40)
+        _archive_segment(home_dir, "dashboard_chat-1", "20260730-211852", size=8, age_days=40)
 
         batch = session_storage.move_to_trash(
             ["aaaa1111"],
@@ -256,15 +263,15 @@ class TestMoveTakesBothHalves:
         assert len(entry["files"]) == 4
         origins = {record["origin"] for record in entry["files"]}
         assert str(kiro_home / "sessions" / "cli" / "aaaa1111.json") in origins
-        assert str(crew_home / "sessions" / "dashboard_chat-1.jsonl") in origins
+        assert str(home_dir / "sessions" / "dashboard_chat-1.jsonl") in origins
 
 
 class TestRestoreIsAllOrNothing:
     def test_restores_every_half(self, stores: tuple[Path, Path]) -> None:
-        crew_home, kiro_home = stores
+        home_dir, kiro_home = stores
         _cli_half(kiro_home, "aaaa1111", log_bytes=32, age_days=40)
-        _transcript(crew_home, "dashboard_chat-1", size=64, age_days=40)
-        _archive_segment(crew_home, "dashboard_chat-1", "20260730-211852", size=16, age_days=40)
+        _transcript(home_dir, "dashboard_chat-1", size=64, age_days=40)
+        _archive_segment(home_dir, "dashboard_chat-1", "20260730-211852", size=16, age_days=40)
         batch = session_storage.move_to_trash(
             ["aaaa1111"],
             reason="manual",
@@ -276,18 +283,59 @@ class TestRestoreIsAllOrNothing:
 
         assert restored == 1
         assert (kiro_home / "sessions" / "cli" / "aaaa1111.jsonl").read_bytes() == b"c" * 32
-        assert (crew_home / "sessions" / "dashboard_chat-1.jsonl").read_bytes() == b"t" * 64
-        seg = crew_home / "sessions" / "archive" / "dashboard_chat-1__20260730-211852.jsonl"
+        assert (home_dir / "sessions" / "dashboard_chat-1.jsonl").read_bytes() == b"t" * 64
+        seg = home_dir / "sessions" / "archive" / "dashboard_chat-1__20260730-211852.jsonl"
         assert seg.read_bytes() == b"a" * 16
+        assert session_storage.list_trash() == []
+
+    def test_a_batch_staged_under_the_legacy_leaf_still_restores(
+        self, stores: tuple[Path, Path]
+    ) -> None:
+        home_dir, kiro_home = stores
+        _cli_half(kiro_home, "aaaa1111", log_bytes=32, age_days=40)
+        _transcript(home_dir, "dashboard_chat-1", size=64, age_days=40)
+        _archive_segment(home_dir, "dashboard_chat-1", "20260730-211852", size=16, age_days=40)
+        batch = session_storage.move_to_trash(
+            ["aaaa1111"],
+            reason="manual",
+            index=_index({"aaaa1111": "dashboard_chat-1"}),
+            now=_NOW,
+        )
+        # Rewrite the batch into the layout an earlier build left behind: the same
+        # files and origins, staged and recorded under the legacy leaf.
+        staged = session_storage.trash_root() / batch.batch_id
+        (staged / "junction").rename(staged / LEGACY_STAGE_LEAF)
+        manifest = staged / session_storage.MANIFEST_NAME
+        header, *entries = manifest.read_text(encoding="utf-8").splitlines()
+        rewritten = [header]
+        legacy_rels = 0
+        for line in entries:
+            entry = json.loads(line)
+            for record in entry["files"]:
+                leaf, _, rest = record["rel"].partition("/")
+                if leaf == "junction":
+                    record["rel"] = f"{LEGACY_STAGE_LEAF}/{rest}"
+                    legacy_rels += 1
+            rewritten.append(json.dumps(entry))
+        manifest.write_text("\n".join(rewritten) + "\n", encoding="utf-8")
+        assert legacy_rels == 2
+
+        restored = session_storage.restore(batch.batch_id)
+
+        assert restored == 1
+        assert (home_dir / "sessions" / "dashboard_chat-1.jsonl").read_bytes() == b"t" * 64
+        seg = home_dir / "sessions" / "archive" / "dashboard_chat-1__20260730-211852.jsonl"
+        assert seg.read_bytes() == b"a" * 16
+        assert (kiro_home / "sessions" / "cli" / "aaaa1111.jsonl").read_bytes() == b"c" * 32
         assert session_storage.list_trash() == []
 
     def test_an_occupied_half_leaves_the_whole_session_staged(
         self, stores: tuple[Path, Path]
     ) -> None:
         """Restoring only the free half would recreate a half-session."""
-        crew_home, kiro_home = stores
+        home_dir, kiro_home = stores
         _cli_half(kiro_home, "aaaa1111", log_bytes=8, age_days=40)
-        _transcript(crew_home, "dashboard_chat-1", size=8, age_days=40)
+        _transcript(home_dir, "dashboard_chat-1", size=8, age_days=40)
         batch = session_storage.move_to_trash(
             ["aaaa1111"],
             reason="manual",
@@ -295,12 +343,12 @@ class TestRestoreIsAllOrNothing:
             now=_NOW,
         )
         # The transcript came back on its own while the session sat in the trash.
-        (crew_home / "sessions" / "dashboard_chat-1.jsonl").write_bytes(b"NEWER")
+        (home_dir / "sessions" / "dashboard_chat-1.jsonl").write_bytes(b"NEWER")
 
         restored = session_storage.restore(batch.batch_id)
 
         assert restored == 0
-        assert (crew_home / "sessions" / "dashboard_chat-1.jsonl").read_bytes() == b"NEWER"
+        assert (home_dir / "sessions" / "dashboard_chat-1.jsonl").read_bytes() == b"NEWER"
         # The replay half must NOT have been put back on its own.
         assert not (kiro_home / "sessions" / "cli" / "aaaa1111.jsonl").exists()
         assert session_storage.list_trash()[0].sessions == 1
@@ -322,7 +370,7 @@ class TestRestoreIsAllOrNothing:
 
     def test_an_origin_naming_another_session_is_refused(self, stores: tuple[Path, Path]) -> None:
         """Both paths are inside a session store, so containment cannot catch it."""
-        crew_home, kiro_home = stores
+        home_dir, kiro_home = stores
         _cli_half(kiro_home, "aaaa1111", log_bytes=8, age_days=40)
         batch = session_storage.move_to_trash(
             ["aaaa1111"],
@@ -398,9 +446,9 @@ class TestRestoreIsAllOrNothing:
         self, stores: tuple[Path, Path], monkeypatch: pytest.MonkeyPatch
     ) -> None:
         """A half-restored session would be split AND wedged against every retry."""
-        crew_home, kiro_home = stores
+        home_dir, kiro_home = stores
         _cli_half(kiro_home, "aaaa1111", log_bytes=8, age_days=40)
-        _transcript(crew_home, "dashboard_chat-1", size=8, age_days=40)
+        _transcript(home_dir, "dashboard_chat-1", size=8, age_days=40)
         batch = session_storage.move_to_trash(
             ["aaaa1111"],
             reason="manual",
@@ -423,7 +471,7 @@ class TestRestoreIsAllOrNothing:
         monkeypatch.setattr(session_storage, "_move_file_exclusive", real_move)
         assert session_storage.restore(batch.batch_id) == 1
         assert (kiro_home / "sessions" / "cli" / "aaaa1111.jsonl").is_file()
-        assert (crew_home / "sessions" / "dashboard_chat-1.jsonl").is_file()
+        assert (home_dir / "sessions" / "dashboard_chat-1.jsonl").is_file()
         assert session_storage.list_trash() == []
 
     def test_restore_never_deletes_a_file_the_manifest_omits(
@@ -453,10 +501,10 @@ class TestRestoreIsAllOrNothing:
         Staging the rest would commit a manifest that omits it — exactly the split
         the rollback exists to prevent.
         """
-        crew_home, kiro_home = stores
+        home_dir, kiro_home = stores
         _cli_half(kiro_home, "aaaa1111", log_bytes=8, age_days=40)
-        _transcript(crew_home, "dashboard_chat-1", size=8, age_days=40)
-        target = crew_home / "sessions" / "dashboard_chat-1.jsonl"
+        _transcript(home_dir, "dashboard_chat-1", size=8, age_days=40)
+        target = home_dir / "sessions" / "dashboard_chat-1.jsonl"
         real_size = session_storage._file_size
 
         def flaky_size(path: Path) -> int:
@@ -482,9 +530,9 @@ class TestRestoreIsAllOrNothing:
         self, stores: tuple[Path, Path]
     ) -> None:
         """Restoring the readable files would leave the rest staged and unreferenced."""
-        crew_home, kiro_home = stores
+        home_dir, kiro_home = stores
         _cli_half(kiro_home, "aaaa1111", log_bytes=8, age_days=40)
-        _transcript(crew_home, "dashboard_chat-1", size=8, age_days=40)
+        _transcript(home_dir, "dashboard_chat-1", size=8, age_days=40)
         batch = session_storage.move_to_trash(
             ["aaaa1111"],
             reason="manual",
@@ -503,7 +551,7 @@ class TestRestoreIsAllOrNothing:
         assert restored == 0
         # Nothing was put back, so nothing is split.
         assert not (kiro_home / "sessions" / "cli" / "aaaa1111.jsonl").exists()
-        assert not (crew_home / "sessions" / "dashboard_chat-1.jsonl").exists()
+        assert not (home_dir / "sessions" / "dashboard_chat-1.jsonl").exists()
         assert session_storage.list_trash()[0].sessions == 1
 
     def test_unknown_batch_is_refused(self, stores: tuple[Path, Path]) -> None:
@@ -600,9 +648,9 @@ class TestPartialMoveRollsBack:
         self, stores: tuple[Path, Path], monkeypatch: pytest.MonkeyPatch
     ) -> None:
         """A half-moved session is invisible: emptying would destroy the staged half."""
-        crew_home, kiro_home = stores
+        home_dir, kiro_home = stores
         _cli_half(kiro_home, "aaaa1111", log_bytes=8, age_days=40)
-        _transcript(crew_home, "dashboard_chat-1", size=8, age_days=40)
+        _transcript(home_dir, "dashboard_chat-1", size=8, age_days=40)
         real_move = session_storage._move_file
         calls = {"n": 0}
 
@@ -626,7 +674,7 @@ class TestPartialMoveRollsBack:
         # Everything is back where it started; nothing is left staged.
         assert (kiro_home / "sessions" / "cli" / "aaaa1111.json").is_file()
         assert (kiro_home / "sessions" / "cli" / "aaaa1111.jsonl").is_file()
-        assert (crew_home / "sessions" / "dashboard_chat-1.jsonl").is_file()
+        assert (home_dir / "sessions" / "dashboard_chat-1.jsonl").is_file()
         assert session_storage.list_trash() == []
 
 
@@ -742,9 +790,9 @@ class TestManifestPersistenceFailure:
         self, stores: tuple[Path, Path], monkeypatch: pytest.MonkeyPatch
     ) -> None:
         """Moved-but-unrecorded is worse than never moved: gone and unrestorable."""
-        crew_home, kiro_home = stores
+        home_dir, kiro_home = stores
         _cli_half(kiro_home, "aaaa1111", log_bytes=8, age_days=40)
-        _transcript(crew_home, "dashboard_chat-1", size=8, age_days=40)
+        _transcript(home_dir, "dashboard_chat-1", size=8, age_days=40)
 
         def full_disk(handle, entry):
             raise OSError("simulated ENOSPC")
@@ -761,7 +809,7 @@ class TestManifestPersistenceFailure:
 
         assert (kiro_home / "sessions" / "cli" / "aaaa1111.json").is_file()
         assert (kiro_home / "sessions" / "cli" / "aaaa1111.jsonl").is_file()
-        assert (crew_home / "sessions" / "dashboard_chat-1.jsonl").is_file()
+        assert (home_dir / "sessions" / "dashboard_chat-1.jsonl").is_file()
         assert session_storage.list_trash() == []
 
 
@@ -837,10 +885,10 @@ class TestScanCache:
         "may this be reclaimed" is recomputed, so a session that became active
         after the pass cannot be offered.
         """
-        crew_home, kiro_home = stores
+        home_dir, kiro_home = stores
         stem = transcript_stem("dashboard:chat-1")
         _cli_half(kiro_home, "aaaa1111", log_bytes=32, age_days=40)
-        _transcript(crew_home, stem, size=64, age_days=40)
+        _transcript(home_dir, stem, size=64, age_days=40)
 
         idle = _index({"aaaa1111": stem})
         assert session_storage.measure(idle, now=_NOW).reclaimable_sessions == 1
@@ -856,10 +904,10 @@ class TestScanCache:
         self, stores: tuple[Path, Path]
     ) -> None:
         """Pairing decides which unit a transcript belongs to, so it keys the cache."""
-        crew_home, kiro_home = stores
+        home_dir, kiro_home = stores
         stem = transcript_stem("dashboard:chat-1")
         _cli_half(kiro_home, "aaaa1111", log_bytes=32, age_days=40)
-        _transcript(crew_home, stem, size=64, age_days=40)
+        _transcript(home_dir, stem, size=64, age_days=40)
 
         unpaired = session_storage.list_units(_index())
         assert len(unpaired) == 2, "unpaired, the two halves are separate units"
@@ -932,9 +980,9 @@ class TestSharedStoreRefusal:
     def test_reclaim_is_refused_when_only_the_data_home_is_isolated(
         self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
     ) -> None:
-        crew_home = tmp_path / "crew"
-        (crew_home / "sessions").mkdir(parents=True)
-        monkeypatch.setenv("JUNCTION_HOME", str(crew_home))
+        home_dir = tmp_path / "home"
+        (home_dir / "sessions").mkdir(parents=True)
+        monkeypatch.setenv("JUNCTION_HOME", str(home_dir))
         monkeypatch.delenv("KIRO_HOME", raising=False)
 
         assert session_storage.reclaim_block_reason() != ""
@@ -966,11 +1014,11 @@ class TestSharedStoreRefusal:
         self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
     ) -> None:
         """Two pods pointed at one custom KIRO_HOME see neither map."""
-        crew_home = tmp_path / "pod-a"
-        crew_home.mkdir()
+        home_dir = tmp_path / "pod-a"
+        home_dir.mkdir()
         shared_store = tmp_path / "shared-kiro"
         shared_store.mkdir()
-        monkeypatch.setenv("JUNCTION_HOME", str(crew_home))
+        monkeypatch.setenv("JUNCTION_HOME", str(home_dir))
         monkeypatch.setenv("KIRO_HOME", str(shared_store))
 
         # Not the DEFAULT store, so a default-location test would pass it — and
@@ -981,11 +1029,11 @@ class TestSharedStoreRefusal:
         self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
     ) -> None:
         """A dedicated private store is genuinely isolated."""
-        crew_home = tmp_path / "pod-b"
-        crew_home.mkdir()
-        own_store = crew_home / "kiro"
+        home_dir = tmp_path / "pod-b"
+        home_dir.mkdir()
+        own_store = home_dir / "kiro"
         own_store.mkdir()
-        monkeypatch.setenv("JUNCTION_HOME", str(crew_home))
+        monkeypatch.setenv("JUNCTION_HOME", str(home_dir))
         monkeypatch.setenv("KIRO_HOME", str(own_store))
 
         assert session_storage.reclaim_block_reason() == ""
@@ -1335,8 +1383,8 @@ class TestSharedStoreRefusal:
         Pointing the root at the live archive tree satisfies both the data-home
         anchor and per-batch containment, so `empty` would delete real session data.
         """
-        crew_home, _ = stores
-        archive = crew_home / "sessions" / "archive"
+        home_dir, _ = stores
+        archive = home_dir / "sessions" / "archive"
         victim = archive / "20260101T000000-victim01"
         victim.mkdir(parents=True)
         (victim / "dashboard_chat-1__20260101-000000.jsonl").write_bytes(b"history")
@@ -1361,8 +1409,8 @@ class TestSharedStoreRefusal:
         level up leaves the root a real directory while relocating it. Resolving and
         anchoring to the data home is what catches that.
         """
-        crew_home, _ = stores
-        outside = crew_home.parent / "not-ours"
+        home_dir, _ = stores
+        outside = home_dir.parent / "not-ours"
         victim = outside / "sessions" / "20260101T000000-victim01"
         victim.mkdir(parents=True)
         (victim / "keep.txt").write_bytes(b"precious")
@@ -1486,9 +1534,9 @@ class TestSharedStoreRefusal:
         self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
     ) -> None:
         """An unsafe override is silently rejected, so presence proves nothing."""
-        crew_home = tmp_path / "crew3"
-        (crew_home / "sessions").mkdir(parents=True)
-        monkeypatch.setenv("JUNCTION_HOME", str(crew_home))
+        home_dir = tmp_path / "home3"
+        (home_dir / "sessions").mkdir(parents=True)
+        monkeypatch.setenv("JUNCTION_HOME", str(home_dir))
         # A filesystem/drive root is refused on EVERY platform (a root is its own
         # parent). A POSIX system directory like /etc is not portable: on Windows it
         # resolves to C:\etc, which the validator accepts, so the override would be
@@ -1571,9 +1619,9 @@ class TestSharedStoreRefusal:
         self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
     ) -> None:
         """A client must be able to explain instead of offering a doomed button."""
-        crew_home = tmp_path / "crew2"
-        (crew_home / "sessions").mkdir(parents=True)
-        monkeypatch.setenv("JUNCTION_HOME", str(crew_home))
+        home_dir = tmp_path / "home2"
+        (home_dir / "sessions").mkdir(parents=True)
+        monkeypatch.setenv("JUNCTION_HOME", str(home_dir))
         monkeypatch.delenv("KIRO_HOME", raising=False)
 
         report = session_storage.measure(_index(), now=_NOW)
@@ -1600,9 +1648,9 @@ class TestBuckets:
 
     def test_age_uses_the_newest_file_across_both_halves(self, stores: tuple[Path, Path]) -> None:
         """A stale replay log must not age out a session whose transcript is fresh."""
-        crew_home, kiro_home = stores
+        home_dir, kiro_home = stores
         _cli_half(kiro_home, "aaaa1111", log_bytes=8, age_days=400)
-        _transcript(crew_home, "dashboard_chat-1", size=8, age_days=1)
+        _transcript(home_dir, "dashboard_chat-1", size=8, age_days=1)
 
         selected = session_storage.select_reclaimable(
             _index({"aaaa1111": "dashboard_chat-1"}), 30, now=_NOW
@@ -1626,7 +1674,7 @@ class TestBuckets:
 
 class TestTrashAccounting:
     def test_missing_stores_report_zero(self, tmp_path: Path, monkeypatch) -> None:
-        monkeypatch.setenv("JUNCTION_HOME", str(tmp_path / "absent-crew"))
+        monkeypatch.setenv("JUNCTION_HOME", str(tmp_path / "absent-home"))
         monkeypatch.setenv("KIRO_HOME", str(tmp_path / "absent-kiro"))
 
         report = session_storage.measure(_index(), now=_NOW)
@@ -1692,10 +1740,10 @@ class TestLegacyStems:
     """One session can own more than one transcript filename."""
 
     def test_a_legacy_stem_keeps_its_session_active(self, stores: tuple[Path, Path]) -> None:
-        crew_home, kiro_home = stores
+        home_dir, kiro_home = stores
         _cli_half(kiro_home, "aaaa1111", log_bytes=16, age_days=400)
         # The transcript sits under the pre-migration bare name, not the canonical.
-        _transcript(crew_home, "1785861252.833429", size=16, age_days=400)
+        _transcript(home_dir, "1785861252.833429", size=16, age_days=400)
 
         index = _multi_index(
             {"slack_1785861252.833429": "aaaa1111", "1785861252.833429": "aaaa1111"},
@@ -1707,15 +1755,15 @@ class TestLegacyStems:
         assert report.reclaimable_sessions == 0
 
     def test_both_stems_move_with_their_session(self, stores: tuple[Path, Path]) -> None:
-        crew_home, kiro_home = stores
+        home_dir, kiro_home = stores
         _cli_half(kiro_home, "aaaa1111", log_bytes=16, age_days=40)
-        _transcript(crew_home, "slack_123.456", size=8, age_days=40)
-        _transcript(crew_home, "123.456", size=8, age_days=40)
+        _transcript(home_dir, "slack_123.456", size=8, age_days=40)
+        _transcript(home_dir, "123.456", size=8, age_days=40)
 
         index = _multi_index({"slack_123.456": "aaaa1111", "123.456": "aaaa1111"})
         batch = session_storage.move_to_trash(["aaaa1111"], reason="manual", index=index, now=_NOW)
 
-        staged = session_storage.trash_root() / batch.batch_id / "crew"
+        staged = session_storage.trash_root() / batch.batch_id / "junction"
         assert (staged / "slack_123.456.jsonl").is_file()
         assert (staged / "123.456.jsonl").is_file()
         assert batch.sessions == 1
@@ -1848,7 +1896,7 @@ class TestEmptyTrash:
         """
         assert session_storage._plain_parts(rel) is None
 
-    @pytest.mark.parametrize("rel", ["cli/a.jsonl", "crew/archive/b.jsonl", "c.json"])
+    @pytest.mark.parametrize("rel", ["cli/a.jsonl", "junction/archive/b.jsonl", "c.json"])
     def test_a_plain_staged_name_is_accepted(self, rel: str) -> None:
         assert session_storage._plain_parts(rel) is not None
 
@@ -2122,8 +2170,8 @@ class TestEmptyTrash:
 
 class TestTrashLocation:
     def test_trash_lives_under_the_data_home(self, stores: tuple[Path, Path]) -> None:
-        crew_home, _ = stores
-        assert session_storage.trash_root() == crew_home / "trash" / "sessions"
+        home_dir, _ = stores
+        assert session_storage.trash_root() == home_dir / "trash" / "sessions"
 
     def test_same_filesystem_is_reported_for_a_default_layout(
         self, stores: tuple[Path, Path]

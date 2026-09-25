@@ -1,5 +1,5 @@
 /**
- * CrewCompanion - Animation Resolver
+ * Companion - Animation Resolver
  *
  * Resolves the correct animation source for a given PetState and PetMood
  * from the active appearance pack. Handles mood priority (mood animations

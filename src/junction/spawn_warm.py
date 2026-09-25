@@ -2,11 +2,11 @@
 
 Lives here rather than in ``dashboard/handlers/messaging.py``, where it grew,
 because both callers of it are not dashboard handlers: the ``POST /api/spawn``
-endpoint and Crew dispatch. Keeping it in the handlers package forced Crew's
-module to choose between a function-local import (against the repo's
+endpoint and Multitask Mode dispatch. Keeping it in the handlers package forced
+``multitask_chat`` to choose between a function-local import (against the repo's
 ``top-level-imports`` rule) and pulling the ENTIRE handler tree into every
-process that imports ``multitask_chat`` — including the Slack gateway, which imports
-it at module scope. This module depends on config, cwd validation and agent
+process that imports it — including the Slack gateway, which imports it at
+module scope. This module depends on config, cwd validation and agent
 discovery only, so neither caller pays for the other's surface.
 """
 

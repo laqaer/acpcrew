@@ -8,14 +8,14 @@
  * Shoots the three states that carry the change, because none alone shows it:
  * the sheet as it OPENS (the template now reads a placeholder instead of a
  * pre-filled `junction`, which is the whole defect — a pre-filled built-in made
- * every untouched crew an alias for the default agent), the dropdown OPEN (so the
+ * every untouched agent an alias for the default agent), the dropdown OPEN (so the
  * shot proves the real options are reachable rather than that the field is inert),
  * and the REFUSAL after pressing Create without choosing one.
  *
  * Each state gets a FRESH PAGE. Reusing one page across them does not work here:
  * Escape on an open Radix select inside this dialog closes the dialog too (see
  * components/ui/select.tsx), and the overlay teardown then keeps intercepting
- * pointer events, so the next `new-crew` click never lands.
+ * pointer events, so the next `new-agent` click never lands.
  *
  * Usage: node scripts/capture-agent-template-required.mjs [outDir] [prefix]
  *   Run against the branch (after) and against a main build (before). On a main
@@ -26,21 +26,21 @@ import { chromium } from 'playwright'
 import { mkdirSync } from 'node:fs'
 import { serveDist } from './lib/serve-dist.mjs'
 import { logPageProblems, stubDashboardApi } from './lib/stub-dashboard-api.mjs'
-import { crewsApi } from './lib/agents-fixtures.mjs'
+import { agentsApi } from './lib/agents-fixtures.mjs'
 
-const OUT = process.argv[2] || '../temp-screenshots/crew-template-required'
+const OUT = process.argv[2] || '../temp-screenshots/agent-template-required'
 const PREFIX = process.argv[3] || 'after'
 
 mkdirSync(OUT, { recursive: true })
 
-const CREWS = [
+const AGENTS = [
   { name: 'junction', kiro_agent: 'junction', workspace: 'default', memory_store: 'default' },
   { name: 'oncall', kiro_agent: 'oncall-agent', workspace: 'oncall', memory_store: 'default' },
 ]
 const INSTALLED = ['junction', 'oncall-agent', 'reviewer']
 
-const API = crewsApi({
-  crews: CREWS,
+const API = agentsApi({
+  agents: AGENTS,
   defaultAgent: 'junction',
   installed: INSTALLED,
   workspaces: ['default', 'oncall', 'research'],
@@ -64,10 +64,10 @@ async function main() {
     // Wait on a REAL locator so a blank page fails loudly instead of quietly
     // producing an empty screenshot.
     await page.locator('#main-content')
-      .locator('[data-testid="crew-card"], tbody tr')
+      .locator('[data-testid="agent-card"], tbody tr')
       .first().waitFor({ state: 'visible', timeout: 15000 })
-    await page.getByTestId('new-crew').click()
-    const sheet = page.getByRole('dialog', { name: 'Create a new crew' })
+    await page.getByTestId('new-agent').click()
+    const sheet = page.getByRole('dialog', { name: 'Create a new agent' })
     await sheet.waitFor({ state: 'visible', timeout: 10000 })
     await page.waitForTimeout(400) // let the slide-in settle
     return { page, sheet }

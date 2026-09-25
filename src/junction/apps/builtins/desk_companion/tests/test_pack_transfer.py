@@ -31,7 +31,7 @@ def store(tmp_path):
 
 def _bundle(pack_id="imported", **over):
     b = {
-        "kind": "crew-companion-pack",
+        "kind": pack_transfer.PACK_BUNDLE_KIND,
         "version": 1,
         "id": pack_id,
         "manifest": {
@@ -185,12 +185,20 @@ def test_export_then_import_reproduces_the_pack(store):
         {"idle.svg": "<svg/>"},
     )
     bundle = pack_transfer.export_bundle(store, "orig")
-    assert bundle is not None and bundle["kind"] == "crew-companion-pack"
+    assert bundle is not None and bundle["kind"] == pack_transfer.PACK_BUNDLE_KIND
 
     bundle["id"] = "copy"
     bundle["manifest"]["meta"]["id"] = "copy"
     assert pack_transfer.import_bundle(store, bundle)["ok"] is True
     assert {p["id"] for p in store.list_packs()} >= {"orig", "copy"}
+
+
+def test_import_accepts_a_bundle_exported_under_the_legacy_kind(store):
+    """A bundle is a file the user keeps, so one exported by an earlier build must
+    still import: nothing can rewrite it, and refusing it would strand the pack."""
+    bundle = _bundle("heirloom", kind=pack_transfer.LEGACY_PACK_BUNDLE_KIND)
+    assert pack_transfer.import_bundle(store, bundle)["ok"] is True
+    assert "heirloom" in {p["id"] for p in store.list_packs()}
 
 
 def test_export_of_a_missing_pack_is_none(store):
@@ -210,7 +218,7 @@ def test_import_refuses_to_replace_an_UNREADABLE_pack(store, tmp_path):
     assert all(p["id"] != "wounded" for p in store.list_packs())
 
     bundle = {
-        "kind": "crew-companion-pack",
+        "kind": pack_transfer.PACK_BUNDLE_KIND,
         "version": 1,
         "id": "wounded",
         "manifest": {"meta": {"id": "wounded", "name": "W"}, "states": {"idle": "idle.svg"}},
@@ -224,7 +232,7 @@ def test_import_refuses_to_replace_an_UNREADABLE_pack(store, tmp_path):
 
 def test_import_never_collides_with_the_builtin_id(store):
     bundle = {
-        "kind": "crew-companion-pack",
+        "kind": pack_transfer.PACK_BUNDLE_KIND,
         "version": 1,
         "id": "default-mochi",
         "manifest": {"meta": {"id": "default-mochi", "name": "Fake"}, "states": {"idle": "idle.svg"}},

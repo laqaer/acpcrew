@@ -46,7 +46,7 @@ vi.mock('../components/SimpleSelect', () => ({
 type Cfg = Record<string, unknown>
 
 /**
- * A config with something interesting in every conditional cell: `crew-beta`
+ * A config with something interesting in every conditional cell: `agent-beta`
  * carries an empty `kiro_agent` (em-dash fallback), `mem-spare` has neither a
  * description nor an embedding provider (inherited-provider italic), and
  * `ws-idle` is bound by nobody (empty Used By). Every name is distinct so a
@@ -54,10 +54,10 @@ type Cfg = Record<string, unknown>
  */
 const CFG = {
   agents: {
-    'crew-alpha': { kiro_agent: 'tmpl-alpha', workspace: 'ws-main', memory_store: 'mem-main', description: '', source: 'config' },
-    'crew-beta': { kiro_agent: '', workspace: 'ws-main', memory_store: 'mem-spare', description: '', source: 'config' },
+    'agent-alpha': { kiro_agent: 'tmpl-alpha', workspace: 'ws-main', memory_store: 'mem-main', description: '', source: 'config' },
+    'agent-beta': { kiro_agent: '', workspace: 'ws-main', memory_store: 'mem-spare', description: '', source: 'config' },
   },
-  default_agent: 'crew-alpha',
+  default_agent: 'agent-alpha',
   workspaces: { 'ws-main': { dir: 'dir-main' }, 'ws-idle': { dir: 'dir-idle' } },
   default_workspace: 'ws-main',
   memory_stores: {
@@ -66,7 +66,7 @@ const CFG = {
   },
   default_memory_store: 'mem-main',
   agent: {
-    default_agent: 'crew-alpha',
+    default_agent: 'agent-alpha',
     provider: 'kiroacp',
     model: 'claude-opus',
     approval_mode: 'auto',
@@ -178,11 +178,11 @@ describe('JunctionCfgTab — tables', () => {
     await renderTab()
     const agents = tables()[0]
 
-    const beta = within(agents).getByText('crew-beta').closest('tr') as HTMLElement
+    const beta = within(agents).getByText('agent-beta').closest('tr') as HTMLElement
     expect(within(beta).getByText('—')).toBeInTheDocument()
     expect(within(beta).getByText('mem-spare')).toBeInTheDocument()
 
-    const alpha = within(agents).getByText('crew-alpha').closest('tr') as HTMLElement
+    const alpha = within(agents).getByText('agent-alpha').closest('tr') as HTMLElement
     expect(within(alpha).getByText('default')).toBeInTheDocument()
     expect(within(alpha).getByText('tmpl-alpha')).toBeInTheDocument()
   })
@@ -193,8 +193,8 @@ describe('JunctionCfgTab — tables', () => {
 
     const bound = within(workspaces).getByText('dir-main').closest('tr') as HTMLElement
     // Both agents live in ws-main, so both surface as tags.
-    expect(within(bound).getByText('crew-alpha')).toBeInTheDocument()
-    expect(within(bound).getByText('crew-beta')).toBeInTheDocument()
+    expect(within(bound).getByText('agent-alpha')).toBeInTheDocument()
+    expect(within(bound).getByText('agent-beta')).toBeInTheDocument()
     expect(within(bound).getByText('default')).toBeInTheDocument()
 
     const idle = within(workspaces).getByText('dir-idle').closest('tr') as HTMLElement
@@ -208,7 +208,7 @@ describe('JunctionCfgTab — tables', () => {
     const spare = within(stores).getByText('mem-spare').closest('tr') as HTMLElement
     expect(within(spare).getByText('inherited (inherited-embedder)')).toBeInTheDocument()
     expect(within(spare).getByText('—')).toBeInTheDocument()
-    expect(within(spare).getByText('crew-beta')).toBeInTheDocument()
+    expect(within(spare).getByText('agent-beta')).toBeInTheDocument()
 
     const main = within(stores).getByText('legacy-default store').closest('tr') as HTMLElement
     expect(within(main).getByText('bge-m3')).toBeInTheDocument()
@@ -344,11 +344,11 @@ describe('JunctionCfgTab — select and toggle rows', () => {
 
   it('labels the empty pool agent with the configured default', async () => {
     await renderTab()
-    expect(optionIn('Pool Agent', '(crew-alpha)')).toBeInTheDocument()
+    expect(optionIn('Pool Agent', '(agent-alpha)')).toBeInTheDocument()
 
-    fireEvent.click(optionIn('Pool Agent', 'crew-beta'))
+    fireEvent.click(optionIn('Pool Agent', 'agent-beta'))
     await waitFor(() => {
-      expect(vi.mocked(api).patchConfig).toHaveBeenCalledWith('session.pool_agent', 'crew-beta')
+      expect(vi.mocked(api).patchConfig).toHaveBeenCalledWith('session.pool_agent', 'agent-beta')
     })
   })
 

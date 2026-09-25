@@ -1,8 +1,8 @@
 """Tests for the ``kiro_agent`` template contract on POST /api/agents.
 
 ``kiro_agent`` used to default to ``"junction"`` when a create request omitted
-it. Because dispatch flattens a crew alias to its ``kiro_agent`` pointer
-(``config.loader.resolve_agent_bindings``), such a crew was offered in the chat
+it. Because dispatch flattens an agent alias to its ``kiro_agent`` pointer
+(``config.loader.resolve_agent_bindings``), such an agent was offered in the chat
 picker and then the DEFAULT agent answered — the "picker reverts to default"
 report behind #1684, with only a log line marking the substitution.
 
@@ -14,9 +14,9 @@ The contract these tests pin:
   to look anything up;
 * existence is resolved through ``list_agents()`` — the hardened spec reader —
   never a raw filesystem probe;
-* ``"junction"`` stays a perfectly legal explicit CHOICE, because a crew that
-  boots the built-in agent against its own workspace/memory store is the common
-  case and must keep working;
+* ``"junction"`` stays a perfectly legal explicit CHOICE, because an agent that
+  boots the built-in template against its own workspace/memory store is the
+  common case and must keep working;
 * an unknown template is accepted with a WARNING rather than refused, matching
   the sync path's EXECUTABLE INVARIANT posture — an edition may resolve a row
   this listing cannot see, and hard-refusing it would itself be a bug.
@@ -111,7 +111,7 @@ class TestTemplateMustBeExplicit:
         # The machine-readable code is the contract; `error` is advisory prose the
         # dashboard cannot localize (test_error_code_contract enforces this).
         assert data["code"] == "kiro_agent_required"
-        # The crew must NOT exist: a 400 that still wrote the alias would leave
+        # The agent must NOT exist: a 400 that still wrote the alias would leave
         # exactly the broken row the refusal exists to prevent.
         assert cfg.agents == {}
         assert cfg.saved == []
@@ -138,7 +138,7 @@ class TestTemplateNameGrammar:
     """The template name must satisfy the shared agent-name grammar.
 
     A name carrying path separators, traversal or wildcards cannot identify an
-    agent, and storing it would leave the crew pointing at nothing. Refusing it
+    agent, and storing it would leave the new agent pointing at nothing. Refusing it
     here also keeps such a value away from every downstream lookup.
     """
 
@@ -185,10 +185,10 @@ class TestTemplateNameGrammar:
         """The guard must not narrow the legitimate name space."""
         cfg = _fake_config()
         status, _ = await _post(
-            {"name": "crew-d", "kiro_agent": "my_agent2"}, cfg, installed=("my_agent2",)
+            {"name": "agent-d", "kiro_agent": "my_agent2"}, cfg, installed=("my_agent2",)
         )
         assert status == 200
-        assert cfg.agents["crew-d"].kiro_agent == "my_agent2"
+        assert cfg.agents["agent-d"].kiro_agent == "my_agent2"
 
 
 class TestExplicitTemplateStillWorks:
@@ -211,7 +211,7 @@ class TestExplicitTemplateStillWorks:
         cfg = _fake_config()
         with caplog.at_level(logging.WARNING):
             status, _ = await _post(
-                {"name": "crew-a", "kiro_agent": "reviewer"},
+                {"name": "agent-a", "kiro_agent": "reviewer"},
                 cfg,
                 installed=("junction", "reviewer"),
             )
@@ -225,13 +225,13 @@ class TestMissingTemplateWarnsButCreates:
         cfg = _fake_config()
         with caplog.at_level(logging.WARNING):
             status, _ = await _post(
-                {"name": "crew-c", "kiro_agent": "not-installed"},
+                {"name": "agent-c", "kiro_agent": "not-installed"},
                 cfg,
                 installed=("junction",),
             )
         # Accepted (an edition may resolve it even when unlisted)…
         assert status == 200
-        assert cfg.agents["crew-c"].kiro_agent == "not-installed"
+        assert cfg.agents["agent-c"].kiro_agent == "not-installed"
         # …but the substitution risk is on the record rather than silent.
         assert "not in the installed agent listing" in caplog.text
         assert "not-installed" in caplog.text

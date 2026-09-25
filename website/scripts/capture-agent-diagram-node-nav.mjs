@@ -13,13 +13,13 @@ import { chromium } from 'playwright'
 import { mkdirSync } from 'node:fs'
 import { serveDist } from './lib/serve-dist.mjs'
 import { logPageProblems, stubDashboardApi } from './lib/stub-dashboard-api.mjs'
-import { crewsApi } from './lib/agents-fixtures.mjs'
+import { agentsApi } from './lib/agents-fixtures.mjs'
 
-const OUT = process.argv[2] || '../temp-screenshots/crew-diagram-node-nav'
+const OUT = process.argv[2] || '../temp-screenshots/agent-diagram-node-nav'
 
 mkdirSync(OUT, { recursive: true })
 
-const CREWS = [
+const AGENTS = [
   { name: 'junction', kiro_agent: 'junction', workspace: 'default', memory_store: 'default' },
   { name: 'oncall', kiro_agent: 'junction', workspace: 'oncall', memory_store: 'oncall-mem' },
   { name: 'research', kiro_agent: 'junction', workspace: 'oncall', memory_store: 'research' },
@@ -71,15 +71,15 @@ async function main() {
       await stubDashboardApi(page, {
         theme,
         extra: async (path, route) => (await editorApi(path, route))
-          || (await crewsApi({ crews: CREWS, defaultAgent: 'junction' })(path, route)),
+          || (await agentsApi({ agents: AGENTS, defaultAgent: 'junction' })(path, route)),
       })
 
       await page.goto(base + '/capabilities', { waitUntil: 'domcontentloaded' })
       const main$ = page.locator('#main-content')
-      await main$.locator('[data-testid="crew-card"]').first()
+      await main$.locator('[data-testid="agent-card"]').first()
         .waitFor({ state: 'visible', timeout: 15000 })
 
-      await main$.locator('[data-testid="crew-card"]', { hasText: 'oncall' }).first().click()
+      await main$.locator('[data-testid="agent-card"]', { hasText: 'oncall' }).first().click()
       const sheet = page.getByRole('dialog')
       await sheet.waitFor({ state: 'visible', timeout: 15000 })
       await page.waitForTimeout(500)
@@ -90,19 +90,19 @@ async function main() {
       }
 
       // The hover affordance the static diagram lacked.
-      await sheet.locator('[data-testid="crew-wire-workspace"]').hover()
+      await sheet.locator('[data-testid="agent-wire-workspace"]').hover()
       await page.waitForTimeout(150)
       await save('overview-workspace-hover')
 
       // Click lands on the workspace/memory pane with the rail row selected.
-      await sheet.locator('[data-testid="crew-wire-workspace"]').click()
+      await sheet.locator('[data-testid="agent-wire-workspace"]').click()
       await page.waitForTimeout(250)
       await save('after-click-workspace')
 
       // Back to the overview, then the ghost: unbound webhook still navigates.
-      await sheet.locator('[data-testid="crew-rail-overview"]').click()
+      await sheet.locator('[data-testid="agent-rail-overview"]').click()
       await page.waitForTimeout(250)
-      await sheet.locator('[data-testid="crew-wire-webhook"]').click()
+      await sheet.locator('[data-testid="agent-wire-webhook"]').click()
       await page.waitForTimeout(250)
       await save('after-click-webhook-ghost')
 

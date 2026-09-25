@@ -139,7 +139,7 @@ async def teardown_app_runtime(
     #
     # Ordering is the whole point. Every later step can take real time — the app's
     # own ``onDisable`` script is third-party code, and stopping a backend process
-    # waits on it — so a worker holding something time-bounded (Issue Radar's crews
+    # waits on it — so a worker holding something time-bounded (Issue Radar's stewards
     # hold an auto-approval grant) would keep that authority for the duration and
     # could take one more fully-approved turn after the operator said stop. This
     # call is first so the window is closed before it can open, and it runs before
@@ -466,7 +466,7 @@ def register_slot_close_undo_hook(app: str, hook: SlotCloseHook) -> None:
     always leaves a pair disagreeing when a later step fails: notify last leaves a
     live worker behind a dismissed tab, notify first leaves a stopped worker behind
     a tab that came back. Only a compensating action closes both, which is the same
-    discipline the crew store's own ``commit_work_progress`` rollback uses.
+    discipline the steward store's own ``commit_work_progress`` rollback uses.
 
     Same contract as :func:`register_slot_close_hook`: idempotent by app name, and
     re-registered from the app's watchdog because this registry is process memory.
@@ -516,8 +516,8 @@ async def notify_slot_closed(app: str, slot_key: str) -> bool:
 
     Never raises, and returns whether the app was actually TOLD. The caller needs
     that answer because the hook is not a notification for its own sake: for a
-    crew it is the write that pauses the worker. Swallowing a failure silently let
-    the close finish while the crew stayed live and auto-approved, and its
+    steward it is the write that pauses the worker. Swallowing a failure silently let
+    the close finish while the steward stayed live and auto-approved, and its
     watchdog then relaunched the tab the user had just dismissed. So the failure
     is reported rather than raised — the seam keeps its promise not to blow up an
     unrelated app's teardown, and the close path decides what a lost dismissal

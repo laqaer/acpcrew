@@ -85,7 +85,7 @@ function loadModules() {
 }
 
 /**
- * Let the reconcile that `initCrewCompanion` fires on entry actually finish.
+ * Let the reconcile that `initDeskCompanion` fires on entry actually finish.
  *
  * `reconcileOnce` is guarded by an in-flight flag, so awaiting a second call
  * returns immediately while the first is still running — an assertion placed
@@ -277,7 +277,7 @@ test("an inconclusive probe leaves the windows exactly as they are", async () =>
     // No gateway is listening, so the probe cannot answer: that is UNKNOWN, and
     // treating it as "disabled" is what makes the companion appear to crash and
     // reappear every few seconds during an ordinary restart.
-    index.initCrewCompanion({
+    index.initDeskCompanion({
       backendUrl: "http://127.0.0.1:9",
       fetchLocalToken: async () => "cred",
       glog: () => {},
@@ -285,7 +285,7 @@ test("an inconclusive probe leaves the windows exactly as they are", async () =>
     await settle();
 
     assert.strictEqual(overlay.petWindowCount(), before, "unknown must not tear down");
-    index.shutdownCrewCompanion();
+    index.shutdownDeskCompanion();
   } finally {
     stub.restore();
   }
@@ -299,7 +299,7 @@ test("an inconclusive probe does not OPEN a companion either", async () => {
     // Nothing open yet, and the probe cannot answer.
     assert.strictEqual(overlay.petWindowCount(), 0);
 
-    index.initCrewCompanion({
+    index.initDeskCompanion({
       backendUrl: "http://127.0.0.1:9",
       fetchLocalToken: async () => "cred",
       glog: () => {},
@@ -316,7 +316,7 @@ test("an inconclusive probe does not OPEN a companion either", async () => {
       0,
       "unknown must not summon a companion for a possibly-disabled app",
     );
-    index.shutdownCrewCompanion();
+    index.shutdownDeskCompanion();
   } finally {
     stub.restore();
   }
@@ -329,14 +329,14 @@ test("no credential is unknown, not disabled", async () => {
     overlay.setOverlayTarget("http://localhost:5476", "cred");
     overlay.openPetWindow();
 
-    index.initCrewCompanion({
+    index.initDeskCompanion({
       backendUrl: "http://localhost:5476",
       fetchLocalToken: async () => "", // cannot ask
       glog: () => {},
     });
     await settle();
     assert.strictEqual(overlay.petWindowCount(), 2, "kept, because we could not ask");
-    index.shutdownCrewCompanion();
+    index.shutdownDeskCompanion();
   } finally {
     stub.restore();
   }
@@ -348,12 +348,12 @@ test("shutdown closes every overlay", async () => {
     const { overlay, index } = loadModules();
     overlay.setOverlayTarget("http://localhost:5476", "cred");
     overlay.openPetWindow();
-    index.initCrewCompanion({
+    index.initDeskCompanion({
       backendUrl: "http://127.0.0.1:9",
       fetchLocalToken: async () => "cred",
       glog: () => {},
     });
-    index.shutdownCrewCompanion();
+    index.shutdownDeskCompanion();
     assert.strictEqual(overlay.petWindowCount(), 0);
   } finally {
     stub.restore();
@@ -370,17 +370,17 @@ test("the overlay registers the cursor-hitbox channels the renderer reports to",
     // main process polls the cursor and toggles ignore-mouse itself. Both channels
     // must be listened for or the reports are silent no-ops.
     assert.ok(
-      stub.ipcHandlers["crew-companion:update-hitbox"],
+      stub.ipcHandlers["desk-companion:update-hitbox"],
       "pet/bubble hitbox channel must be registered",
     );
     assert.ok(
-      stub.ipcHandlers["crew-companion:menu-hitbox"],
+      stub.ipcHandlers["desk-companion:menu-hitbox"],
       "menu hitbox channel must be registered",
     );
 
     // The removed pointer-toggle round-trip must be gone.
     assert.strictEqual(
-      stub.ipcHandlers["crew-companion:interactive"],
+      stub.ipcHandlers["desk-companion:interactive"],
       undefined,
       "the pointer-enter/leave toggle was replaced by the hitbox poll",
     );

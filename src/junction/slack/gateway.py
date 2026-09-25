@@ -6808,33 +6808,39 @@ class GatewayOrchestrator:
             # Channel, no tab → channel thread + dashboard notification
             # Cron/no parent  → dashboard notification only
 
-            # Crew-mode ownership (RFC orchestrator-chat-sessions): runs
-            # dispatched by the CrewOrchestrator deliver through its
-            # forward/attribution pipeline, never the default injection —
-            # placed after batch accounting so wave bookkeeping stays intact.
+            # Multitask Mode ownership (RFC orchestrator-chat-sessions): runs
+            # dispatched by the MultitaskManager deliver through its
+            # forward/attribution pipeline, never the default injection. This
+            # sits after batch accounting so wave bookkeeping stays intact.
             # isinstance (not truthiness): dashboard_state may be a test double
-            # whose .crew is an auto-created attribute; only a real
-            # CrewOrchestrator owns runs.
-            _crew = getattr(self.dashboard_state, "crew", None) if self.dashboard_state else None
+            # whose .multitask is an auto-created attribute; only a real
+            # MultitaskManager owns runs.
+            _multitask = (
+                getattr(self.dashboard_state, "multitask", None) if self.dashboard_state else None
+            )
             # Imported HERE, not at module scope: this module is on the gateway's
             # boot path and `--no-dashboard` must not pay for a dashboard-only
             # subsystem before it is ready to serve. By the time a subagent
-            # completes with a live `.crew`, `multitask_chat` is already imported, so
-            # this costs a sys.modules hit. `_crew is None` short-circuits first,
-            # which is the whole API-only case.
-            if _crew is not None:
-                from junction.multitask_chat import CrewOrchestrator
-            if _crew is not None and isinstance(_crew, CrewOrchestrator) and _crew.owns(info.id):
+            # completes with a live `.multitask`, `multitask_chat` is already
+            # imported, so this costs a sys.modules hit. `_multitask is None`
+            # short-circuits first, which is the whole API-only case.
+            if _multitask is not None:
+                from junction.multitask_chat import MultitaskManager
+            if (
+                _multitask is not None
+                and isinstance(_multitask, MultitaskManager)
+                and _multitask.owns(info.id)
+            ):
                 try:
-                    await _crew.on_subagent_done(info)
+                    await _multitask.on_subagent_done(info)
                     return
                 except Exception:
                     # Do NOT swallow-and-return: fall through to the default
-                    # injection path so the result still reaches the user
-                    # (a crew-store write failure must not silently discard
-                    # the completion — GPT review finding on 76d35e37).
+                    # injection path so the result still reaches the user. A
+                    # multitask store write failure must not silently discard
+                    # the completion.
                     logger.warning(
-                        "crew: completion delivery failed for %s — falling back to default injection",
+                        "multitask: completion delivery failed for %s — falling back to default injection",
                         info.id,
                         exc_info=True,
                     )
@@ -7695,22 +7701,22 @@ class GatewayOrchestrator:
         )
         self.subagent_mgr.start_reaper()
 
-    def _init_crew(self) -> None:
-        """Attach the Crew Mode control plane (engineered pipeline;
+    def _init_multitask(self) -> None:
+        """Attach the Multitask Mode control plane (engineered pipeline;
         decision-only agent) to dashboard_state so api_chat can route
-        crew-slot messages to it. MUST run after _init_dashboard() —
-        dashboard_state is None until then (GPT review finding on
-        faf5a127: attaching from _init_subagents silently skipped crew
-        setup in every real gateway boot)."""
+        multitask-slot messages to it. MUST run after _init_dashboard():
+        dashboard_state is None until then, so attaching any earlier (from
+        _init_subagents, say) silently skips multitask setup in every real
+        gateway boot."""
         if self.dashboard_state is None:
             return
         try:
             # Deferred import: `gateway` is on the boot path and this subsystem is
             # dashboard-only, so `--no-dashboard` must not pay for it. This method
             # is already dashboard-gated by the return above.
-            from junction.multitask_chat import CrewOrchestrator
+            from junction.multitask_chat import MultitaskManager
 
-            self.dashboard_state.crew = CrewOrchestrator(
+            self.dashboard_state.multitask = MultitaskManager(
                 state=self.dashboard_state,
                 sessions=self.sessions,
                 subagents=self.subagent_mgr,
@@ -7719,9 +7725,9 @@ class GatewayOrchestrator:
             # Attaching is not resuming. Without this, a request acknowledged
             # before a restart stayed pending with nothing scheduled to act on
             # it — the user saw the ack and then silence forever.
-            self.dashboard_state.crew.resume_persisted_slots()
+            self.dashboard_state.multitask.resume_persisted_slots()
         except Exception:
-            logger.warning("CrewOrchestrator init failed — crew mode disabled", exc_info=True)
+            logger.warning("MultitaskManager init failed — multitask mode disabled", exc_info=True)
 
     def _init_task_runner(self) -> None:
         """Initialize the task runner."""
@@ -9975,7 +9981,7 @@ class GatewayOrchestrator:
         self._init_task_runner()
         if not self._no_dashboard:
             await self._init_dashboard()
-            self._init_crew()
+            self._init_multitask()
         else:
             await self._init_api_server()
         # Record this gateway's own junction launcher, keyed by the port it

@@ -1,5 +1,5 @@
 /**
- * Crew roster (JunctionAgentsPage) — card grid, compact table, editor dialog.
+ * Agent roster (JunctionAgentsPage) — card grid, compact table, editor dialog.
  *
  * The page used to be a StatCard row plus an HTML table, and its tests read the
  * DOM structurally (`table tr`, nth-child cells). Those assertions could not
@@ -79,7 +79,7 @@ const mockApi = vi.hoisted(() => ({
 vi.mock('../api/client', () => ({ api: mockApi }))
 
 import JunctionAgentsPage from '../pages/JunctionAgentsPage'
-import CrewAvatar from '../components/AgentAvatar'
+import AgentAvatar from '../components/AgentAvatar'
 
 function createTestStore() {
   return configureStore({
@@ -101,16 +101,16 @@ function renderPage() {
   )
 }
 
-/* The default crew deliberately does NOT point at a workspace or memory store
+/* The default agent deliberately does NOT point at a workspace or memory store
    called "default": otherwise the literal "default" appears three times inside
    its own card and the `default` badge could not be asserted by text. */
-const DEFAULT_CREW = {
+const DEFAULT_AGENT = {
   name: 'junction',
   kiro_agent: 'junction',
   workspace: 'core-ws',
   memory_store: 'core-mem',
 }
-const OTHER_CREW = {
+const OTHER_AGENT = {
   name: 'oncall',
   kiro_agent: 'oncall-agent',
   workspace: 'oncall',
@@ -118,7 +118,7 @@ const OTHER_CREW = {
   model: 'claude-opus-5',
 }
 
-const AGENTS_RESPONSE = { agents: [DEFAULT_CREW, OTHER_CREW], default_agent: 'junction' }
+const AGENTS_RESPONSE = { agents: [DEFAULT_AGENT, OTHER_AGENT], default_agent: 'junction' }
 const WORKSPACES_RESPONSE = {
   workspaces: [{ name: 'default' }, { name: 'core-ws' }, { name: 'oncall' }],
 }
@@ -145,7 +145,7 @@ beforeEach(() => {
 /** Wait until the roster has rendered real data rather than the empty state. */
 async function renderRoster(expectCards = 2) {
   const rendered = renderPage()
-  await waitFor(() => expect(screen.getAllByTestId('crew-card')).toHaveLength(expectCards))
+  await waitFor(() => expect(screen.getAllByTestId('agent-card')).toHaveLength(expectCards))
   await waitFor(() => expect(mockApi.workspaces).toHaveBeenCalled())
   await waitFor(() => expect(mockApi.junctionConfig).toHaveBeenCalled())
   return rendered
@@ -163,20 +163,20 @@ function pressEscape() {
 }
 
 /** A roster card, addressed by the accessible name the card exposes. */
-function crewCard(name: string) {
-  return screen.getByRole('button', { name: `Edit crew ${name}` })
+function agentCard(name: string) {
+  return screen.getByRole('button', { name: `Edit agent ${name}` })
 }
 
 /** Open the editor dialog on `name` and return the dialog element. */
 async function openEditor(name: string): Promise<HTMLElement> {
-  fireEvent.click(crewCard(name))
-  return await screen.findByRole('dialog', { name: `Edit crew ${name}` })
+  fireEvent.click(agentCard(name))
+  return await screen.findByRole('dialog', { name: `Edit agent ${name}` })
 }
 
 /** Open the editor dialog in create mode and return the dialog element. */
 async function openCreate(): Promise<HTMLElement> {
-  fireEvent.click(screen.getByTestId('new-crew'))
-  return await screen.findByRole('dialog', { name: 'Create a new crew' })
+  fireEvent.click(screen.getByTestId('new-agent'))
+  return await screen.findByRole('dialog', { name: 'Create a new agent' })
 }
 
 /**
@@ -187,59 +187,59 @@ async function openCreate(): Promise<HTMLElement> {
  * step navigate there first — the same click a user makes.
  */
 function gotoPane(sheet: HTMLElement, key: string) {
-  fireEvent.click(within(sheet).getByTestId(`crew-rail-${key}`))
+  fireEvent.click(within(sheet).getByTestId(`agent-rail-${key}`))
 }
 
-describe('crew roster — cards', () => {
-  it('renders one card per crew and badges only the default one', async () => {
+describe('agent roster — cards', () => {
+  it('renders one card per agent and badges only the default one', async () => {
     await renderRoster()
 
-    const cards = screen.getAllByTestId('crew-card')
+    const cards = screen.getAllByTestId('agent-card')
     expect(cards).toHaveLength(2)
 
-    const defaultCard = crewCard('junction')
+    const defaultCard = agentCard('junction')
     expect(within(defaultCard).getByText('default')).toBeInTheDocument()
     expect(within(defaultCard).getByText('Used for all new chats')).toBeInTheDocument()
 
-    const otherCard = crewCard('oncall')
+    const otherCard = agentCard('oncall')
     expect(within(otherCard).queryByText('default')).not.toBeInTheDocument()
 
     // Bindings are on the card itself — that is the whole point of the grid.
     expect(within(otherCard).getByText('oncall-agent')).toBeInTheDocument()
     expect(within(otherCard).getByText('oncall-mem')).toBeInTheDocument()
     expect(within(otherCard).getByText('claude-opus-5')).toBeInTheDocument()
-    // No per-crew pin on the default crew → the model reads as inherited.
+    // No per-agent pin on the default agent → the model reads as inherited.
     expect(within(defaultCard).getByText('Inherited')).toBeInTheDocument()
     // Nothing collides in this fixture, so no store is flagged as shared.
     expect(within(otherCard).queryByText('shared')).not.toBeInTheDocument()
     expect(within(defaultCard).queryByText('shared')).not.toBeInTheDocument()
   })
 
-  it('flags only the store that a second crew also points at', async () => {
-    // Both crews on one memory store, distinct workspaces: the marker must land
+  it('flags only the store that a second agent also points at', async () => {
+    // Both agents on one memory store, distinct workspaces: the marker must land
     // on MEMORY STORE and nowhere else. A bare "Shared" badge in the header was
     // read by a first-run reviewer as "shared with my teammates", so the point
     // of this shape is that it names WHICH store is doubled up.
     mockApi.junctionAgents.mockResolvedValue({
       agents: [
-        { ...DEFAULT_CREW, memory_store: 'core-mem' },
-        { ...OTHER_CREW, workspace: 'oncall', memory_store: 'core-mem' },
+        { ...DEFAULT_AGENT, memory_store: 'core-mem' },
+        { ...OTHER_AGENT, workspace: 'oncall', memory_store: 'core-mem' },
       ],
       default_agent: 'junction',
     })
     await renderRoster()
 
     for (const name of ['junction', 'oncall']) {
-      const card = crewCard(name)
+      const card = agentCard(name)
       // One marker per card — the workspaces are distinct, so files are not shared.
       expect(within(card).getAllByText('shared')).toHaveLength(1)
     }
   })
 })
 
-describe('crew roster — isolation preview notice', () => {
-  const NOTICE = /Isolated memory per crew is on the way/
-  const TIP = /Isolated memory per crew is still being built/
+describe('agent roster — isolation preview notice', () => {
+  const NOTICE = /Isolated memory per agent is on the way/
+  const TIP = /Isolated memory per agent is still being built/
 
   /* The view choice persists to localStorage, so a test here that switches to
      List would otherwise hand every later block a table instead of the cards
@@ -261,9 +261,9 @@ describe('crew roster — isolation preview notice', () => {
 
   it('is not repeated on every card', async () => {
     await renderRoster()
-    // The claim is about the whole surface. Two crews, one notice — a per-card
+    // The claim is about the whole surface. Two agents, one notice — a per-card
     // copy would put the same sentence on the page as many times as there are
-    // crews, and the roster runs to dozens.
+    // agents, and the roster runs to dozens.
     expect(screen.getAllByText(NOTICE)).toHaveLength(1)
   })
 
@@ -288,35 +288,35 @@ describe('crew roster — isolation preview notice', () => {
   })
 })
 
-describe('crew roster — filtering', () => {
+describe('agent roster — filtering', () => {
   it('narrows the visible cards', async () => {
     await renderRoster()
-    fireEvent.change(screen.getByRole('textbox', { name: 'Filter crews…' }), {
+    fireEvent.change(screen.getByRole('textbox', { name: 'Filter agents…' }), {
       target: { value: 'oncall' },
     })
-    await waitFor(() => expect(screen.getAllByTestId('crew-card')).toHaveLength(1))
-    expect(crewCard('oncall')).toBeInTheDocument()
-    expect(screen.queryByRole('button', { name: 'Edit crew junction' })).not.toBeInTheDocument()
+    await waitFor(() => expect(screen.getAllByTestId('agent-card')).toHaveLength(1))
+    expect(agentCard('oncall')).toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: 'Edit agent junction' })).not.toBeInTheDocument()
   })
 
   it('shows the filter empty state when nothing matches', async () => {
     await renderRoster()
-    fireEvent.change(screen.getByRole('textbox', { name: 'Filter crews…' }), {
-      target: { value: 'no-such-crew' },
+    fireEvent.change(screen.getByRole('textbox', { name: 'Filter agents…' }), {
+      target: { value: 'no-such-agent' },
     })
-    await waitFor(() => expect(screen.queryAllByTestId('crew-card')).toHaveLength(0))
-    expect(screen.getByTestId('empty-state-title')).toHaveTextContent('No crews match your filter')
+    await waitFor(() => expect(screen.queryAllByTestId('agent-card')).toHaveLength(0))
+    expect(screen.getByTestId('empty-state-title')).toHaveTextContent('No agents match your filter')
   })
 
-  it('shows the zero-crew empty state when there are no crews at all', async () => {
+  it('shows the zero-agent empty state when there are no agents at all', async () => {
     mockApi.junctionAgents.mockResolvedValue({ agents: [], default_agent: '' })
     renderPage()
     await waitFor(() =>
-      expect(screen.getByTestId('empty-state-title')).toHaveTextContent('No crews'),
+      expect(screen.getByTestId('empty-state-title')).toHaveTextContent('No agents'),
     )
     // Distinct copy from the filter case — a first run is not a failed search.
     expect(screen.getByTestId('empty-state-title')).not.toHaveTextContent('match your filter')
-    expect(screen.queryAllByTestId('crew-card')).toHaveLength(0)
+    expect(screen.queryAllByTestId('agent-card')).toHaveLength(0)
   })
 
   it('does not flash the empty state while an invalidateQueries-driven refetch is in flight', async () => {
@@ -341,7 +341,7 @@ describe('crew roster — filtering', () => {
         </Provider>
       </QueryClientProvider>,
     )
-    await waitFor(() => expect(screen.getAllByTestId('crew-card')).toHaveLength(2))
+    await waitFor(() => expect(screen.getAllByTestId('agent-card')).toHaveLength(2))
 
     // Simulate the WS handler: invalidate the query in-place (no key change).
     act(() => { qc.invalidateQueries({ queryKey: ['junction-agents'] }) })
@@ -350,30 +350,30 @@ describe('crew roster — filtering', () => {
     // no empty state, cards intact.
     await waitFor(() => expect(mockApi.junctionAgents).toHaveBeenCalledTimes(2))
     expect(screen.queryByTestId('empty-state-title')).not.toBeInTheDocument()
-    expect(screen.getAllByTestId('crew-card')).toHaveLength(2)
+    expect(screen.getAllByTestId('agent-card')).toHaveLength(2)
 
     // And once the refetch resolves the roster is still there (now from fresh
     // data), never having blanked in between.
     resolveSecond(AGENTS_RESPONSE)
-    await waitFor(() => expect(screen.getAllByTestId('crew-card')).toHaveLength(2))
+    await waitFor(() => expect(screen.getAllByTestId('agent-card')).toHaveLength(2))
     expect(screen.queryByTestId('empty-state-title')).not.toBeInTheDocument()
   })
 })
 
-describe('crew roster — description', () => {
+describe('agent roster — description', () => {
   it('clamps a long description to two lines and keeps the full text reachable', async () => {
     // The card used to `truncate` to ONE line, which cut nearly every real
     // description mid-word. Two lines plus the full text in the tooltip.
     const long =
-      'Paged-alert triage crew — owns the runbooks, keeps the escalation ladder ' +
+      'Paged-alert triage agent — owns the runbooks, keeps the escalation ladder ' +
       'warm, and files the follow-up tickets after every page.'
     mockApi.junctionAgents.mockResolvedValue({
-      agents: [DEFAULT_CREW, { ...OTHER_CREW, description: long }],
+      agents: [DEFAULT_AGENT, { ...OTHER_AGENT, description: long }],
       default_agent: 'junction',
     })
     await renderRoster()
 
-    const desc = within(crewCard('oncall')).getByText(long)
+    const desc = within(agentCard('oncall')).getByText(long)
     expect(desc.className).toContain('line-clamp-2')
     // Height is pinned alongside the clamp: without it the clamp leaks a sliver
     // of a third line, and short-description cards sit shorter than their
@@ -382,35 +382,35 @@ describe('crew roster — description', () => {
     expect(desc).toHaveAttribute('title', long)
   })
 
-  it('does not put an empty title on a crew with no description', async () => {
+  it('does not put an empty title on an agent with no description', async () => {
     await renderRoster()
-    // DEFAULT_CREW has no description, so the card shows the default-crew line
+    // DEFAULT_AGENT has no description, so the card shows the default-agent line
     // instead — and must not advertise a tooltip that would render as blank.
-    const filler = within(crewCard('junction')).getByText('Used for all new chats')
+    const filler = within(agentCard('junction')).getByText('Used for all new chats')
     expect(filler).not.toHaveAttribute('title')
   })
 
   it('falls back to the same text in the card and the row', async () => {
-    // The two views drifted: a crew with no description was blank in the card
-    // but italic "No description" in the row, so the same crew read differently
+    // The two views drifted: an agent with no description was blank in the card
+    // but italic "No description" in the row, so the same agent read differently
     // depending on which layout you were in.
     await renderRoster()
-    // OTHER_CREW is non-default with no description -> the placeholder.
-    expect(within(crewCard('oncall')).getByText('No description')).toBeInTheDocument()
+    // OTHER_AGENT is non-default with no description -> the placeholder.
+    expect(within(agentCard('oncall')).getByText('No description')).toBeInTheDocument()
 
     fireEvent.click(screen.getByRole('button', { name: 'List' }))
     await screen.findByRole('table')
-    const row = screen.getByRole('button', { name: 'Edit crew oncall' }).closest('tr')!
+    const row = screen.getByRole('button', { name: 'Edit agent oncall' }).closest('tr')!
     expect(within(row).getByText('No description')).toBeInTheDocument()
 
-    // And the default crew keeps its own hint in BOTH views, rather than one
+    // And the default agent keeps its own hint in BOTH views, rather than one
     // view explaining why it matters and the other calling it undescribed.
-    const defaultRow = screen.getByRole('button', { name: 'Edit crew junction' }).closest('tr')!
+    const defaultRow = screen.getByRole('button', { name: 'Edit agent junction' }).closest('tr')!
     expect(within(defaultRow).getByText('Used for all new chats')).toBeInTheDocument()
   })
 })
 
-describe('crew roster — view toggle', () => {
+describe('agent roster — view toggle', () => {
   beforeEach(() => localStorage.clear())
 
   it('defaults to cards and switches to a table on List', async () => {
@@ -420,9 +420,9 @@ describe('crew roster — view toggle', () => {
     fireEvent.click(screen.getByRole('button', { name: 'List' }))
 
     const table = await screen.findByRole('table')
-    expect(screen.getAllByTestId('crew-row')).toHaveLength(2)
+    expect(screen.getAllByTestId('agent-roster-row')).toHaveLength(2)
     // The cards are gone, not merely hidden underneath.
-    expect(screen.queryAllByTestId('crew-card')).toHaveLength(0)
+    expect(screen.queryAllByTestId('agent-card')).toHaveLength(0)
     // Bindings move into columns, so the header names them once instead of
     // repeating a label per card. Exact names: the workspace and memory headers
     // carry the preview InfoTip, and each `th` pins its own `aria-label` so the
@@ -431,12 +431,12 @@ describe('crew roster — view toggle', () => {
     expect(within(table).getByRole('columnheader', { name: 'Memory Store' })).toBeInTheDocument()
   })
 
-  it('carries each crew’s bindings into its row', async () => {
+  it('carries each agent’s bindings into its row', async () => {
     await renderRoster()
     fireEvent.click(screen.getByRole('button', { name: 'List' }))
     await screen.findByRole('table')
 
-    const row = screen.getByRole('button', { name: 'Edit crew oncall' }).closest('tr')!
+    const row = screen.getByRole('button', { name: 'Edit agent oncall' }).closest('tr')!
     expect(within(row).getByText('oncall-agent')).toBeInTheDocument()
     expect(within(row).getByText('oncall-mem')).toBeInTheDocument()
     expect(within(row).getByText('claude-opus-5')).toBeInTheDocument()
@@ -447,8 +447,8 @@ describe('crew roster — view toggle', () => {
     fireEvent.click(screen.getByRole('button', { name: 'List' }))
     await screen.findByRole('table')
 
-    fireEvent.click(screen.getByRole('button', { name: 'Edit crew oncall' }))
-    expect(await screen.findByRole('dialog', { name: 'Edit crew oncall' })).toBeInTheDocument()
+    fireEvent.click(screen.getByRole('button', { name: 'Edit agent oncall' }))
+    expect(await screen.findByRole('dialog', { name: 'Edit agent oncall' })).toBeInTheDocument()
   })
 
   it('opens the editor exactly once when the row itself is clicked', async () => {
@@ -458,9 +458,9 @@ describe('crew roster — view toggle', () => {
     fireEvent.click(screen.getByRole('button', { name: 'List' }))
     await screen.findByRole('table')
 
-    const nameControl = screen.getByRole('button', { name: 'Edit crew oncall' })
+    const nameControl = screen.getByRole('button', { name: 'Edit agent oncall' })
     fireEvent.click(nameControl)
-    await screen.findByRole('dialog', { name: 'Edit crew oncall' })
+    await screen.findByRole('dialog', { name: 'Edit agent oncall' })
     // A second dialog would mean the row handler fired on top of the control's.
     expect(screen.getAllByRole('dialog')).toHaveLength(1)
   })
@@ -469,19 +469,19 @@ describe('crew roster — view toggle', () => {
     const { unmount } = await renderRoster()
     fireEvent.click(screen.getByRole('button', { name: 'List' }))
     await screen.findByRole('table')
-    expect(localStorage.getItem('mc-crews-view')).toBe('list')
+    expect(localStorage.getItem('mc-agents-view')).toBe('list')
 
     // A fresh mount reads the stored layout rather than snapping back to cards.
     unmount()
     renderPage()
-    await waitFor(() => expect(screen.getAllByTestId('crew-row')).toHaveLength(2))
+    await waitFor(() => expect(screen.getAllByTestId('agent-roster-row')).toHaveLength(2))
   })
 
   it('flags a doubled-up store in the row, naming which one', async () => {
     mockApi.junctionAgents.mockResolvedValue({
       agents: [
-        { ...DEFAULT_CREW, memory_store: 'core-mem' },
-        { ...OTHER_CREW, workspace: 'oncall', memory_store: 'core-mem' },
+        { ...DEFAULT_AGENT, memory_store: 'core-mem' },
+        { ...OTHER_AGENT, workspace: 'oncall', memory_store: 'core-mem' },
       ],
       default_agent: 'junction',
     })
@@ -489,24 +489,24 @@ describe('crew roster — view toggle', () => {
     fireEvent.click(screen.getByRole('button', { name: 'List' }))
     await screen.findByRole('table')
 
-    const row = screen.getByRole('button', { name: 'Edit crew oncall' }).closest('tr')!
+    const row = screen.getByRole('button', { name: 'Edit agent oncall' }).closest('tr')!
     // Memory is doubled; the workspaces are distinct, so exactly one marker.
     expect(within(row).getAllByText('shared')).toHaveLength(1)
   })
 
-  it('is not offered when there are no crews to lay out', async () => {
+  it('is not offered when there are no agents to lay out', async () => {
     mockApi.junctionAgents.mockResolvedValue({ agents: [], default_agent: '' })
     renderPage()
     await waitFor(() =>
-      expect(screen.getByTestId('empty-state-title')).toHaveTextContent('No crews'),
+      expect(screen.getByTestId('empty-state-title')).toHaveTextContent('No agents'),
     )
     expect(screen.queryByRole('button', { name: 'List' })).not.toBeInTheDocument()
     expect(screen.queryByRole('button', { name: 'Cards' })).not.toBeInTheDocument()
   })
 })
 
-describe('crew editor — opening', () => {
-  it('opens pre-filled with the clicked crew’s bindings', async () => {
+describe('agent editor — opening', () => {
+  it('opens pre-filled with the clicked agent’s bindings', async () => {
     await renderRoster()
     const sheet = await openEditor('oncall')
 
@@ -524,20 +524,20 @@ describe('crew editor — opening', () => {
     expect(within(sheet).getByRole('combobox', { name: 'Edit default model' })).toHaveTextContent('claude-opus-5')
   })
 
-  it('opens the create dialog from "New crew"', async () => {
+  it('opens the create dialog from "New agent"', async () => {
     await renderRoster()
     const sheet = await openCreate()
-    // Create mode has no crew to edit yet, so the bindings start on the defaults.
+    // Create mode has no agent to edit yet, so the bindings start on the defaults.
     expect(within(sheet).getByRole('combobox', { name: 'Workspace' })).toHaveTextContent('default')
     expect(within(sheet).getByRole('combobox', { name: 'Memory Store' })).toHaveTextContent('default')
     // The Agent Template is the exception: it has NO safe default, because
-    // pre-filling the built-in made a new crew an alias for the default agent.
+    // pre-filling the built-in made a new agent an alias for the default agent.
     expect(within(sheet).getByRole('combobox', { name: 'Agent Template' }))
       .toHaveTextContent('Select an agent template…')
   })
 })
 
-describe('crew editor — create', () => {
+describe('agent editor — create', () => {
   it('refuses an empty name without calling the api', async () => {
     await renderRoster()
     const sheet = await openCreate()
@@ -547,10 +547,10 @@ describe('crew editor — create', () => {
     expect(await within(sheet).findByText('Name is required')).toBeInTheDocument()
     expect(mockApi.createJunctionAgent).not.toHaveBeenCalled()
     // The dialog stays open so the user can fix it in place.
-    expect(screen.getByRole('dialog', { name: 'Create a new crew' })).toBeInTheDocument()
+    expect(screen.getByRole('dialog', { name: 'Create a new agent' })).toBeInTheDocument()
   })
 
-  it('refuses a crew with no Agent Template chosen, without calling the api', async () => {
+  it('refuses an agent with no Agent Template chosen, without calling the api', async () => {
     await renderRoster()
     const sheet = await openCreate()
 
@@ -558,14 +558,14 @@ describe('crew editor — create', () => {
     await user.type(within(sheet).getByPlaceholderText('e.g. oncall'), 'staging')
     fireEvent.click(within(sheet).getByRole('button', { name: 'Create' }))
 
-    // The template used to be pre-filled with 'junction', so a crew created
+    // The template used to be pre-filled with 'junction', so an agent created
     // this way became an alias for the DEFAULT agent and the chat picker
     // appeared to "fall back to default" (#1684). It is now an explicit choice.
     expect(await within(sheet).findByText('Agent Template is required')).toBeInTheDocument()
     expect(mockApi.createJunctionAgent).not.toHaveBeenCalled()
   })
 
-  it('creates the crew with the chosen bindings', async () => {
+  it('creates the agent with the chosen bindings', async () => {
     await renderRoster()
     const sheet = await openCreate()
 
@@ -592,8 +592,8 @@ describe('crew editor — create', () => {
   })
 })
 
-describe('crew editor — save', () => {
-  it('saves the bindings for the edited crew', async () => {
+describe('agent editor — save', () => {
+  it('saves the bindings for the edited agent', async () => {
     await renderRoster()
     const sheet = await openEditor('oncall')
 
@@ -647,7 +647,7 @@ describe('crew editor — save', () => {
   })
 
   it('does not touch the default from the editor at all', async () => {
-    // Promotion lives on the roster bar now, not per-crew: a per-crew control
+    // Promotion lives on the roster bar now, not per-agent: a per-agent control
     // could only ever offer promotion (the backend refuses to unset a default
     // without naming a replacement), which read as a broken switch.
     await renderRoster()
@@ -662,8 +662,8 @@ describe('crew editor — save', () => {
   })
 })
 
-describe('crew editor — stale writes', () => {
-  it('does not close the panel when a write for a DIFFERENT crew lands', async () => {
+describe('agent editor — stale writes', () => {
+  it('does not close the panel when a write for a DIFFERENT agent lands', async () => {
     // Save A, dismiss while it is in flight, then open B: A's success must not
     // dismiss B's panel or discard B's edits.
     let resolveA: (v: unknown) => void = () => {}
@@ -674,7 +674,7 @@ describe('crew editor — stale writes', () => {
     fireEvent.click(within(sheetA).getByRole('button', { name: 'Save changes' }))
     pressEscape()
     await waitFor(() =>
-      expect(screen.queryByRole('dialog', { name: 'Edit crew oncall' })).not.toBeInTheDocument(),
+      expect(screen.queryByRole('dialog', { name: 'Edit agent oncall' })).not.toBeInTheDocument(),
     )
 
     const sheetB = await openEditor('junction')
@@ -682,11 +682,11 @@ describe('crew editor — stale writes', () => {
 
     // B survives, and A's outcome is not reported against it.
     await waitFor(() => expect(mockApi.junctionAgents).toHaveBeenCalled())
-    expect(screen.getByRole('dialog', { name: 'Edit crew junction' })).toBeInTheDocument()
+    expect(screen.getByRole('dialog', { name: 'Edit agent junction' })).toBeInTheDocument()
     expect(within(sheetB).queryByRole('button', { name: 'Save changes' })).toBeInTheDocument()
   })
 
-  it('does not report a stale write\u2019s error against the crew now open', async () => {
+  it('does not report a stale write\u2019s error against the agent now open', async () => {
     let rejectA: (e: unknown) => void = () => {}
     mockApi.updateJunctionAgent.mockImplementation(() => new Promise((_res, rej) => { rejectA = rej }))
     await renderRoster()
@@ -695,19 +695,19 @@ describe('crew editor — stale writes', () => {
     fireEvent.click(within(sheetA).getByRole('button', { name: 'Save changes' }))
     pressEscape()
     await waitFor(() =>
-      expect(screen.queryByRole('dialog', { name: 'Edit crew oncall' })).not.toBeInTheDocument(),
+      expect(screen.queryByRole('dialog', { name: 'Edit agent oncall' })).not.toBeInTheDocument(),
     )
 
     const sheetB = await openEditor('junction')
     rejectA(new Error('oncall write blew up'))
 
-    await waitFor(() => expect(screen.getByRole('dialog', { name: 'Edit crew junction' })).toBeInTheDocument())
+    await waitFor(() => expect(screen.getByRole('dialog', { name: 'Edit agent junction' })).toBeInTheDocument())
     expect(within(sheetB).queryByText('oncall write blew up')).not.toBeInTheDocument()
   })
 
-  it('does not close a REOPENED panel for the same crew', async () => {
+  it('does not close a REOPENED panel for the same agent', async () => {
     // The narrower case a name comparison could not catch: dismiss and reopen
-    // the SAME crew, and the stale completion still matched by name.
+    // the SAME agent, and the stale completion still matched by name.
     let resolveA: (v: unknown) => void = () => {}
     mockApi.updateJunctionAgent.mockImplementation(() => new Promise(res => { resolveA = res }))
     await renderRoster()
@@ -716,14 +716,14 @@ describe('crew editor — stale writes', () => {
     fireEvent.click(within(first).getByRole('button', { name: 'Save changes' }))
     pressEscape()
     await waitFor(() =>
-      expect(screen.queryByRole('dialog', { name: 'Edit crew oncall' })).not.toBeInTheDocument(),
+      expect(screen.queryByRole('dialog', { name: 'Edit agent oncall' })).not.toBeInTheDocument(),
     )
 
     await openEditor('oncall')
     resolveA({ ok: true })
 
     await waitFor(() => expect(mockApi.junctionAgents).toHaveBeenCalled())
-    expect(screen.getByRole('dialog', { name: 'Edit crew oncall' })).toBeInTheDocument()
+    expect(screen.getByRole('dialog', { name: 'Edit agent oncall' })).toBeInTheDocument()
   })
 
   it('does not navigate away when a stale chat request completes', async () => {
@@ -734,10 +734,10 @@ describe('crew editor — stale writes', () => {
     await renderRoster()
 
     const sheet = await openEditor('oncall')
-    fireEvent.click(within(sheet).getByRole('button', { name: 'Chat with this crew' }))
+    fireEvent.click(within(sheet).getByRole('button', { name: 'Chat with this agent' }))
     pressEscape()
     await waitFor(() =>
-      expect(screen.queryByRole('dialog', { name: 'Edit crew oncall' })).not.toBeInTheDocument(),
+      expect(screen.queryByRole('dialog', { name: 'Edit agent oncall' })).not.toBeInTheDocument(),
     )
 
     const replacement = await openEditor('junction')
@@ -746,11 +746,11 @@ describe('crew editor — stale writes', () => {
     // The replacement panel survives; the user is not thrown into /chat.
     await waitFor(() => expect(mockApi.createChatSlot).toHaveBeenCalled())
     expect(replacement).toBeInTheDocument()
-    expect(screen.getByRole('dialog', { name: 'Edit crew junction' })).toBeInTheDocument()
+    expect(screen.getByRole('dialog', { name: 'Edit agent junction' })).toBeInTheDocument()
   })
 })
 
-describe('crew roster — default crew bar', () => {
+describe('agent roster — default agent bar', () => {
   it('names the current default and switches it on pick, with no Save step', async () => {
     await renderRoster()
 
@@ -766,15 +766,15 @@ describe('crew roster — default crew bar', () => {
   })
 
   it('is hidden when there is nothing to choose between', async () => {
-    mockApi.junctionAgents.mockResolvedValue({ agents: [DEFAULT_CREW], default_agent: 'junction' })
+    mockApi.junctionAgents.mockResolvedValue({ agents: [DEFAULT_AGENT], default_agent: 'junction' })
     await renderRoster(1)
 
-    expect(screen.getByTestId('crew-card')).toBeInTheDocument()
+    expect(screen.getByTestId('agent-card')).toBeInTheDocument()
     expect(screen.queryByRole('combobox', { name: 'New sessions use' })).not.toBeInTheDocument()
   })
 })
 
-/* The collision warning's test lives in CrewCollision.test.tsx, not here.
+/* The collision warning's test lives in AgentEditorSelect.test.tsx, not here.
    It is the only test on this page that drives a Radix Select to completion from
    INSIDE the Radix Dialog, and that combination cannot run in this harness:
    Radix commits discrete events via `ReactDOM.flushSync(...)`, Testing Library
@@ -783,7 +783,7 @@ describe('crew roster — default crew bar', () => {
    to keep the assertion; the REAL Radix path is verified end-to-end in
    scripts/verify-agents-dialog-select.mjs. */
 
-describe('crew editor — chat with this crew', () => {
+describe('agent editor — chat with this agent', () => {
   it('keeps the panel open and surfaces the error when the session cannot be created', async () => {
     // `dispatch(thunk)` RESOLVES with a rejected action; only `unwrap()` throws.
     // Without it a failed create still closed the panel and navigated to /chat,
@@ -792,26 +792,26 @@ describe('crew editor — chat with this crew', () => {
     await renderRoster()
     const sheet = await openEditor('oncall')
 
-    fireEvent.click(within(sheet).getByRole('button', { name: 'Chat with this crew' }))
+    fireEvent.click(within(sheet).getByRole('button', { name: 'Chat with this agent' }))
 
     await waitFor(() => expect(within(sheet).getByText('gateway is offline')).toBeInTheDocument())
-    expect(screen.getByRole('dialog', { name: 'Edit crew oncall' })).toBeInTheDocument()
+    expect(screen.getByRole('dialog', { name: 'Edit agent oncall' })).toBeInTheDocument()
   })
 })
 
-describe('crew editor — delete', () => {
-  it('deletes a non-default crew only after a confirm step', async () => {
+describe('agent editor — delete', () => {
+  it('deletes a non-default agent only after a confirm step', async () => {
     await renderRoster()
     const sheet = await openEditor('oncall')
 
     // First press arms the confirm; it must NOT delete. A one-click destructive
     // button in a slide-in panel was the flagged regret risk.
     gotoPane(sheet, 'danger')
-    fireEvent.click(within(sheet).getByRole('button', { name: 'Delete crew' }))
+    fireEvent.click(within(sheet).getByRole('button', { name: 'Delete agent' }))
     expect(mockApi.deleteJunctionAgent).not.toHaveBeenCalled()
-    expect(within(sheet).getByText(/Delete crew oncall\?/)).toBeInTheDocument()
+    expect(within(sheet).getByText(/Delete agent oncall\?/)).toBeInTheDocument()
 
-    fireEvent.click(within(sheet).getByTestId('confirm-delete-crew'))
+    fireEvent.click(within(sheet).getByTestId('confirm-delete-agent'))
     await waitFor(() => expect(mockApi.deleteJunctionAgent).toHaveBeenCalledWith('oncall'))
   })
 
@@ -820,31 +820,31 @@ describe('crew editor — delete', () => {
     const sheet = await openEditor('oncall')
 
     gotoPane(sheet, 'danger')
-    fireEvent.click(within(sheet).getByRole('button', { name: 'Delete crew' }))
-    fireEvent.click(within(sheet).getByTestId('cancel-delete-crew'))
-    expect(within(sheet).queryByTestId('confirm-delete-crew')).not.toBeInTheDocument()
+    fireEvent.click(within(sheet).getByRole('button', { name: 'Delete agent' }))
+    fireEvent.click(within(sheet).getByTestId('cancel-delete-agent'))
+    expect(within(sheet).queryByTestId('confirm-delete-agent')).not.toBeInTheDocument()
     expect(mockApi.deleteJunctionAgent).not.toHaveBeenCalled()
   })
 
-  it('hides the danger zone on the default crew', async () => {
+  it('hides the danger zone on the default agent', async () => {
     await renderRoster()
     const sheet = await openEditor('junction')
 
-    // The backend refuses to delete the default crew, so the affordance is not
+    // The backend refuses to delete the default agent, so the affordance is not
     // offered rather than offered-then-rejected.
-    expect(within(sheet).queryByRole('button', { name: 'Delete crew' })).not.toBeInTheDocument()
+    expect(within(sheet).queryByRole('button', { name: 'Delete agent' })).not.toBeInTheDocument()
     expect(within(sheet).queryByText('Danger zone')).not.toBeInTheDocument()
   })
 })
 
-describe('crew editor — keyboard', () => {
+describe('agent editor — keyboard', () => {
   it('closes on Escape', async () => {
     await renderRoster()
     await openEditor('oncall')
 
     pressEscape()
     await waitFor(() =>
-      expect(screen.queryByRole('dialog', { name: 'Edit crew oncall' })).not.toBeInTheDocument(),
+      expect(screen.queryByRole('dialog', { name: 'Edit agent oncall' })).not.toBeInTheDocument(),
     )
   })
 
@@ -853,9 +853,9 @@ describe('crew editor — keyboard', () => {
      which this harness cannot do (see that file's header). */
 })
 
-describe('CrewAvatar', () => {
+describe('AgentAvatar', () => {
   function renderAvatar(seed: string) {
-    const { container, unmount } = render(<CrewAvatar seed={seed} size={38} />)
+    const { container, unmount } = render(<AgentAvatar seed={seed} size={38} />)
     const img = container.querySelector('img')!
     const src = img.getAttribute('src')!
     return { img, src, unmount }
@@ -864,7 +864,7 @@ describe('CrewAvatar', () => {
   it('renders a decorative img backed by a local data URI', async () => {
     const { img, src } = renderAvatar('junction')
     expect(img).toBeTruthy()
-    // Generated in-process — never an http(s) URL, so no crew name leaves the
+    // Generated in-process — never an http(s) URL, so no agent name leaves the
     // machine and the roster works offline.
     expect(src.startsWith('data:image/svg+xml')).toBe(true)
     expect(img).toHaveAttribute('aria-hidden', 'true')

@@ -1,8 +1,8 @@
 /**
  * Tests for the Auto Triage Pipeline API client (`./api`).
  *
- * The module reads THROUGH Issue Radar's crew-fabric seam and PROMISES to be
- * forward-tolerant: `crewFabric` and `listConnectedRepos` never throw on "no
+ * The module reads THROUGH Issue Radar's steward-fabric seam and PROMISES to be
+ * forward-tolerant: `stewardFabric` and `listConnectedRepos` never throw on "no
  * data yet" — a transport failure, any non-2xx, a non-JSON body, or a payload
  * from a newer/wrong schema all collapse to the same normalized empty result.
  * These tests assert that contract (the request built, the request query, and
@@ -18,11 +18,11 @@ import {
   autoTriagePipelineFoldApi,
   loadStoredPreference,
   saveRepoPreference,
-  CREW_PHASES,
-  CREW_FABRIC_SCHEMA,
+  STEWARD_PHASES,
+  STEWARD_FABRIC_SCHEMA,
   REPO_PREFERENCE_KEY,
   ISSUE_RADAR_ACTIVE_REPO_KEY,
-  type CrewFabricResponse,
+  type StewardFabricResponse,
   type RepoRef,
 } from './api'
 
@@ -48,7 +48,7 @@ function calledUrl(spy: ReturnType<typeof vi.spyOn>): string {
   return url
 }
 
-describe('autoTriagePipelineApi.crewFabric', () => {
+describe('autoTriagePipelineApi.stewardFabric', () => {
   let fetchSpy: ReturnType<typeof vi.spyOn>
 
   beforeEach(() => {
@@ -59,17 +59,17 @@ describe('autoTriagePipelineApi.crewFabric', () => {
     fetchSpy.mockRestore()
   })
 
-  it('GETs the crew/fabric endpoint with owner/repo query and same-origin credentials', async () => {
+  it('GETs the steward/fabric endpoint with owner/repo query and same-origin credentials', async () => {
     fetchSpy.mockResolvedValue(
       jsonResponse({ schema: 1, owner: 'acme', repo: 'demo-repo', phases: [], items: [] }),
     )
 
-    await autoTriagePipelineApi.crewFabric({ owner: 'acme', repo: 'demo-repo' })
+    await autoTriagePipelineApi.stewardFabric({ owner: 'acme', repo: 'demo-repo' })
 
     expect(fetchSpy).toHaveBeenCalledOnce()
     const [url, init] = fetchSpy.mock.calls[0] as [string, RequestInit]
     const parsed = new URL(url, 'http://localhost')
-    expect(parsed.pathname).toBe(`${ISSUE_RADAR_API}/crew/fabric`)
+    expect(parsed.pathname).toBe(`${ISSUE_RADAR_API}/steward/fabric`)
     expect(parsed.searchParams.get('owner')).toBe('acme')
     expect(parsed.searchParams.get('repo')).toBe('demo-repo')
     // No identity was supplied, so provider/host must NOT ride on the request.
@@ -83,7 +83,7 @@ describe('autoTriagePipelineApi.crewFabric', () => {
   it('carries provider and host on the request when the ref has an identity', async () => {
     fetchSpy.mockResolvedValue(jsonResponse({ schema: 1, phases: [], items: [] }))
 
-    await autoTriagePipelineApi.crewFabric({
+    await autoTriagePipelineApi.stewardFabric({
       owner: 'grp',
       repo: 'proj',
       provider: 'gitlab',
@@ -96,7 +96,7 @@ describe('autoTriagePipelineApi.crewFabric', () => {
   })
 
   it('returns the folded payload verbatim when the response is a well-formed 200', async () => {
-    const wire: CrewFabricResponse = {
+    const wire: StewardFabricResponse = {
       schema: 1,
       owner: 'acme',
       repo: 'demo-repo',
@@ -107,7 +107,7 @@ describe('autoTriagePipelineApi.crewFabric', () => {
       items: [
         {
           number: 42,
-          crew_id: 'crew-1',
+          steward_id: 'steward-1',
           title: 'Fix the thing',
           next: 'add the branch',
           pr_number: 100,
@@ -118,7 +118,7 @@ describe('autoTriagePipelineApi.crewFabric', () => {
     }
     fetchSpy.mockResolvedValue(jsonResponse(wire))
 
-    const res = await autoTriagePipelineApi.crewFabric({ owner: 'acme', repo: 'demo-repo' })
+    const res = await autoTriagePipelineApi.stewardFabric({ owner: 'acme', repo: 'demo-repo' })
 
     expect(res.schema).toBe(1)
     expect(res.generated_at).toBe('2026-08-24T00:00:00Z')
@@ -128,53 +128,53 @@ describe('autoTriagePipelineApi.crewFabric', () => {
     expect(res.items[0].phase).toBe('implementing')
   })
 
-  it('degrades to a normalized empty result (items: [], HTTP 200 shape) for a repo with no crews', async () => {
+  it('degrades to a normalized empty result (items: [], HTTP 200 shape) for a repo with no stewards', async () => {
     // The documented COMMON case: a valid 200 whose items array is empty.
     fetchSpy.mockResolvedValue(
       jsonResponse({ schema: 1, owner: 'o', repo: 'r', phases: [], items: [] }),
     )
 
-    const res = await autoTriagePipelineApi.crewFabric({ owner: 'o', repo: 'r' })
+    const res = await autoTriagePipelineApi.stewardFabric({ owner: 'o', repo: 'r' })
 
     expect(res.items).toEqual([])
     // An empty phases array from the server is replaced by the full enum so a
     // drawing always has its columns.
-    expect(res.phases).toEqual([...CREW_PHASES])
+    expect(res.phases).toEqual([...STEWARD_PHASES])
   })
 
   it('never throws on a non-2xx response — synthesizes the empty result carrying the requested ref', async () => {
     fetchSpy.mockResolvedValue(jsonResponse({ error: 'not found' }, 404))
 
     const ref: RepoRef = { owner: 'o', repo: 'r', provider: 'github', host: 'github.com' }
-    const res = await autoTriagePipelineApi.crewFabric(ref)
+    const res = await autoTriagePipelineApi.stewardFabric(ref)
 
-    expect(res.schema).toBe(CREW_FABRIC_SCHEMA)
+    expect(res.schema).toBe(STEWARD_FABRIC_SCHEMA)
     expect(res.owner).toBe('o')
     expect(res.repo).toBe('r')
     expect(res.provider).toBe('github')
     expect(res.host).toBe('github.com')
     expect(res.generated_at).toBeNull()
-    expect(res.phases).toEqual([...CREW_PHASES])
+    expect(res.phases).toEqual([...STEWARD_PHASES])
     expect(res.items).toEqual([])
   })
 
   it('synthesizes the empty result for a 500', async () => {
     fetchSpy.mockResolvedValue(rawResponse('internal error', 500))
-    const res = await autoTriagePipelineApi.crewFabric({ owner: 'o', repo: 'r' })
+    const res = await autoTriagePipelineApi.stewardFabric({ owner: 'o', repo: 'r' })
     expect(res.items).toEqual([])
     expect(res.host).toBeNull()
   })
 
   it('synthesizes the empty result for a malformed / non-JSON body at 200', async () => {
     fetchSpy.mockResolvedValue(rawResponse('<html>not json</html>', 200))
-    const res = await autoTriagePipelineApi.crewFabric({ owner: 'o', repo: 'r' })
+    const res = await autoTriagePipelineApi.stewardFabric({ owner: 'o', repo: 'r' })
     expect(res.items).toEqual([])
-    expect(res.phases).toEqual([...CREW_PHASES])
+    expect(res.phases).toEqual([...STEWARD_PHASES])
   })
 
   it('synthesizes the empty result when the JSON body is not an object', async () => {
     fetchSpy.mockResolvedValue(jsonResponse(42))
-    const res = await autoTriagePipelineApi.crewFabric({ owner: 'o', repo: 'r' })
+    const res = await autoTriagePipelineApi.stewardFabric({ owner: 'o', repo: 'r' })
     expect(res.items).toEqual([])
   })
 
@@ -182,13 +182,13 @@ describe('autoTriagePipelineApi.crewFabric', () => {
     // A payload from a newer schema that no longer carries `items` as an array
     // must not crash the read — it collapses to empty.
     fetchSpy.mockResolvedValue(jsonResponse({ schema: 2, items: { not: 'an array' } }))
-    const res = await autoTriagePipelineApi.crewFabric({ owner: 'o', repo: 'r' })
+    const res = await autoTriagePipelineApi.stewardFabric({ owner: 'o', repo: 'r' })
     expect(res.items).toEqual([])
   })
 
   it('never throws on a transport-level failure (offline / DNS)', async () => {
     fetchSpy.mockRejectedValue(new TypeError('Failed to fetch'))
-    const res = await autoTriagePipelineApi.crewFabric({ owner: 'o', repo: 'r' })
+    const res = await autoTriagePipelineApi.stewardFabric({ owner: 'o', repo: 'r' })
     expect(res.items).toEqual([])
     expect(res.owner).toBe('o')
   })
@@ -197,16 +197,16 @@ describe('autoTriagePipelineApi.crewFabric', () => {
     // items present but owner/repo/schema partial: the client fills owner/repo
     // from the ref and keeps the server schema when it is a number.
     fetchSpy.mockResolvedValue(jsonResponse({ schema: 7, items: [] }))
-    const res = await autoTriagePipelineApi.crewFabric({ owner: 'fallback-o', repo: 'fallback-r' })
+    const res = await autoTriagePipelineApi.stewardFabric({ owner: 'fallback-o', repo: 'fallback-r' })
     expect(res.schema).toBe(7)
     expect(res.owner).toBe('fallback-o')
     expect(res.repo).toBe('fallback-r')
   })
 
-  it('defaults schema to CREW_FABRIC_SCHEMA when the body omits a numeric schema', async () => {
+  it('defaults schema to STEWARD_FABRIC_SCHEMA when the body omits a numeric schema', async () => {
     fetchSpy.mockResolvedValue(jsonResponse({ items: [] }))
-    const res = await autoTriagePipelineApi.crewFabric({ owner: 'o', repo: 'r' })
-    expect(res.schema).toBe(CREW_FABRIC_SCHEMA)
+    const res = await autoTriagePipelineApi.stewardFabric({ owner: 'o', repo: 'r' })
+    expect(res.schema).toBe(STEWARD_FABRIC_SCHEMA)
   })
 })
 
@@ -377,7 +377,7 @@ describe('repo preference storage', () => {
 
 // ---------------------------------------------------------------------------
 // The app's OWN backend clients — overview / step / itemSessions. Same
-// forward-tolerant law as crewFabric: assert the request built AND the coerced
+// forward-tolerant law as stewardFabric: assert the request built AND the coerced
 // shape on the well-formed path and on every degraded path (transport failure,
 // non-2xx, non-JSON, non-object, partial/newer-schema payload).
 // ---------------------------------------------------------------------------

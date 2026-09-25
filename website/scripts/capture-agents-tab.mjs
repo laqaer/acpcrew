@@ -6,7 +6,7 @@
  * interception — gateway-free, no kiro-cli, no dashboard auth.
  *
  * Proves the two things the rename touches: the side-nav tab label ("Agents")
- * and the tab description under the content header. Fixtures seed a few crews
+ * and the tab description under the content header. Fixtures seed a few agents
  * so the roster is populated rather than an empty state. Both label spellings
  * are accepted so a `before` run against an older build still captures.
  *
@@ -17,14 +17,14 @@ import { chromium } from 'playwright'
 import { mkdirSync } from 'node:fs'
 import { serveDist } from './lib/serve-dist.mjs'
 import { logPageProblems, stubDashboardApi } from './lib/stub-dashboard-api.mjs'
-import { crewsApi } from './lib/agents-fixtures.mjs'
+import { agentsApi } from './lib/agents-fixtures.mjs'
 
 const OUT = process.argv[2] || '../.github/screenshots/agents-tab'
 const PREFIX = process.argv[3] || 'after'
 
 mkdirSync(OUT, { recursive: true })
 
-const CREWS = [
+const AGENTS = [
   { name: 'junction', kiro_agent: 'junction', workspace: 'default', memory_store: 'default' },
   { name: 'oncall', kiro_agent: 'oncall', workspace: 'oncall', memory_store: 'default' },
   { name: 'research', kiro_agent: 'junction', workspace: 'research', memory_store: 'research' },
@@ -41,20 +41,20 @@ async function main() {
   logPageProblems(page)
 
   await stubDashboardApi(page, {
-    extra: crewsApi({ crews: CREWS, defaultAgent: 'junction' }),
+    extra: agentsApi({ agents: AGENTS, defaultAgent: 'junction' }),
   })
 
   await page.goto(base + '/capabilities', { waitUntil: 'domcontentloaded' })
   // The tab label is the assertion, so fail loudly rather than shoot a blank page.
-  const tab = page.locator('#main-content nav').getByRole('button', { name: /^(Agents|Crews)$/ })
+  const tab = page.locator('#main-content nav').getByRole('button', { name: 'Agents', exact: true })
   await tab.waitFor({ state: 'visible', timeout: 15000 })
-  await page.locator('#main-content').getByText(/(Agents|Crews) you chat with/)
+  await page.locator('#main-content').getByText('Agents you chat with')
     .first().waitFor({ state: 'visible', timeout: 15000 })
   // Roster content, in whichever DOM the build under test uses: the redesign's
   // cards or main's table rows. Matching both is deliberate -- the `before` run
   // builds from main, and a card-only wait would hang it for 15s and then fail,
   // which would defeat the prefix argument this script exists for.
-  await page.locator('#main-content [data-testid="crew-card"], #main-content tbody tr')
+  await page.locator('#main-content [data-testid="agent-card"], #main-content tbody tr')
     .first().waitFor({ state: 'visible', timeout: 15000 })
   await page.waitForTimeout(400) // let the roster settle before the shot
 
@@ -64,7 +64,7 @@ async function main() {
   // The editor sheet is the other half of the redesign, so shoot it too --
   // guarded, because main has no sheet and the `before` run must still finish.
   const shot = [`${PREFIX}-agents-tab.png`, `${PREFIX}-agents-nav.png`]
-  const firstCard = page.locator('[data-testid="crew-card"]').first()
+  const firstCard = page.locator('[data-testid="agent-card"]').first()
   if (await firstCard.count()) {
     await firstCard.click()
     await page.getByRole('dialog').waitFor({ state: 'visible', timeout: 15000 })

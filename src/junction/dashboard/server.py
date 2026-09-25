@@ -623,12 +623,12 @@ _MIXED_INTERNAL_API_PATHS = frozenset(
         "/api/apps/ops-mission-control/incident/transition",
         "/api/apps/ops-mission-control/incident/claim",
         "/api/apps/ops-mission-control/incident/action",
-        # Issue Radar crew ledger — the read leg and the work-item write leg, for
-        # the ``issue_radar_crew_read`` / ``issue_radar_crew_record`` MCP tools. A
-        # crew agent has no dashboard token (same three reasons as the
+        # Issue Radar steward ledger — the read leg and the work-item write leg,
+        # for the ``issue_radar_steward_read`` / ``issue_radar_steward_record`` MCP
+        # tools. A steward agent has no dashboard token (same three reasons as the
         # investigation entry above), and the ledger is the ONLY thing that
         # survives its compaction, its per-turn ceiling and a gateway restart, so
-        # without these entries an unattended crew has no memory at all.
+        # without these entries an unattended steward has no memory at all.
         #
         # FULL paths, never the ``/api/apps/issue-radar`` prefix — for the reason
         # spelled out on the investigation entry: prefix-matching there would also
@@ -636,17 +636,19 @@ _MIXED_INTERNAL_API_PATHS = frozenset(
         # comment) to anything holding the internal secret.
         #
         # Read this pair as ONE admission, not two. Matching is
-        # ``path == p or path.startswith(p + "/")``, so the ``/crew`` entry
-        # already covers ``/crew/work`` and EVERY future ``/crew/...`` sub-route:
-        # anything added under that segment becomes agent-reachable the moment it
-        # is routed, with no further edit here. So a forge-write or destructive
-        # route must not live under ``/crew/`` — put it on its own path, or refuse
-        # an internal-secret caller at the handler the way
-        # ``api_skills_discover_install`` does below.
-        "/api/apps/issue-radar/crew",
+        # ``path == p or path.startswith(p + "/")``, so the ``/steward`` entry
+        # already covers ``/steward/work`` and EVERY future ``/steward/...``
+        # sub-route: anything added under that segment becomes agent-reachable the
+        # moment it is routed, with no further edit here. So a forge-write or
+        # destructive route must not live under ``/steward/`` — put it on its own
+        # path, or refuse an internal-secret caller at the handler the way
+        # ``api_skills_discover_install`` does below. The plural ``/stewards``
+        # routes (list, create, names, settings) are a different segment and are
+        # NOT admitted: ``"/stewards".startswith("/steward/")`` is false.
+        "/api/apps/issue-radar/steward",
         # Redundant under the prefix match above; kept explicit so a reader sees
-        # both routes the crew tools actually call.
-        "/api/apps/issue-radar/crew/work",
+        # both routes the steward tools actually call.
+        "/api/apps/issue-radar/steward/work",
         # Registry skill discovery — the READ leg only, for the
         # ``skill_discover`` / ``skill_fetch`` MCP tools. The Skills page calls
         # the same two routes with cookie auth, hence mixed rather than strict.

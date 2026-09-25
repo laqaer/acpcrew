@@ -3440,9 +3440,9 @@ class JunctionAgentConfig:
         default="",
         metadata=_meta(
             "Triggers",
-            "Routing intent for orchestrator crew selection: free-text 'when to "
-            "use this crew' guidance the main agent reads via select_crew. A crew "
-            "with no triggers is not offered for selection.",
+            "Routing intent for orchestrator agent selection: free-text 'when to "
+            "use this agent' guidance the main agent reads via select_agent. An "
+            "agent with no triggers is not offered for selection.",
         ),
     )
     source: str = field(
@@ -7147,7 +7147,7 @@ class JunctionConfig:
                     # being ignored.
                     raw_model = entry.get("model", "")
                     # Same guard as model: a non-string triggers (e.g. `1`) must
-                    # not survive load — select_crew's roster calls .strip() on it.
+                    # not survive load — select_agent's roster calls .strip() on it.
                     raw_triggers = entry.get("triggers", "")
                     agents[name] = JunctionAgentConfig(
                         kiro_agent=entry.get("kiro_agent", ""),
@@ -8442,14 +8442,14 @@ class JunctionConfig:
             cwd: str | None = None,
             extra_env: dict[str, str] | None = None,
             reasoning_effort_override: str | None = None,
-            crew_agent: str | None = None,
+            canonical_agent: str | None = None,
             **_kwargs: object,
         ) -> AcpProvider:
             wdir = Path(cwd) if cwd else _session_work_dir(session_key)
-            # Canonical crew identity for the session (keys per-agent watchdog
+            # Canonical agent identity for the session (keys per-agent watchdog
             # windows on the handle) — one shared resolution rule, see
-            # resolve_crew_identity.
-            crew_agent = resolve_crew_identity(self, agent, crew_agent)
+            # resolve_agent_identity.
+            canonical_agent = resolve_agent_identity(self, agent, canonical_agent)
             # Resolve the model, highest tier first:
             #   1. model_override — the caller's explicit pick. The dashboard
             #      passes the slot's own model, else the Junction agent's
@@ -8507,7 +8507,7 @@ class JunctionConfig:
                 work_dir=wdir,
                 model=m,
                 agent=agent,
-                crew_agent=crew_agent,
+                canonical_agent=canonical_agent,
                 sandbox_mode=sandbox,
                 session_key=session_key,
                 channel_id=channel_id,
@@ -8697,15 +8697,15 @@ def refresh_materialized_agents() -> None:
         _MATERIALIZED_AGENTS_READY = True
         _MATERIALIZED_REFRESH_APPLIED = my_ticket
     # An app install/upgrade that rewrote agent JSON just landed in the snapshot;
-    # drop the context builder's per-agent includeCrewContext cache so the next
-    # build re-reads the flag rather than serving a value cached before the write
-    # (otherwise a flipped flag heals only on gateway restart).
+    # drop the context builder's per-agent includeJunctionContext cache so the
+    # next build re-reads the flag rather than serving a value cached before the
+    # write (otherwise a flipped flag heals only on gateway restart).
     try:
-        from junction.context import invalidate_include_crew_context_cache
+        from junction.context import invalidate_include_junction_context_cache
 
-        invalidate_include_crew_context_cache()
+        invalidate_include_junction_context_cache()
     except Exception:  # noqa: BLE001 — best-effort; a stale flag is not fatal
-        logger.debug("Failed to invalidate includeCrewContext cache", exc_info=True)
+        logger.debug("Failed to invalidate includeJunctionContext cache", exc_info=True)
 
 
 def publish_materialized_agents(names: Iterable[str]) -> None:
@@ -8921,29 +8921,29 @@ def _project_declares_agent(agent_name: str, project_dir: str) -> bool:
         return False
 
 
-def resolve_crew_identity(
-    config: "JunctionConfig", agent: str | None, crew_agent: str | None
+def resolve_agent_identity(
+    config: "JunctionConfig", agent: str | None, canonical_agent: str | None
 ) -> str:
     """Canonical Junction identity (a ``config.agents`` key) for a session.
 
     One rule shared by every session-granting path (provider factory, warm-pool
     claim) so cold starts and claims can never disagree. An explicit
-    ``crew_agent`` wins verbatim — including "" ("no crew"), which is how the
-    dashboard, the one kiro-name-passing surface, opts out of the fallback.
+    ``canonical_agent`` wins verbatim — including "" ("no agent"), which is how
+    the dashboard, the one kiro-name-passing surface, opts out of the fallback.
     When absent, the surface convention documented on
-    :func:`_resolve_model_for_agent` applies: Slack threads, cron jobs and
-    spawned agents pass a CREW name as ``agent``, so crew-namespace membership
-    makes it canonical — a membership check on names the surface owns, not a
-    cross-namespace match.
+    :func:`junction.session._session_model` applies: Slack threads, cron jobs and
+    spawned agents pass a JUNCTION agent name (a ``config.agents`` key) as
+    ``agent``, so membership in that namespace makes it canonical — a
+    membership check on names the surface owns, not a cross-namespace match.
     """
-    if crew_agent is not None:
-        return crew_agent
+    if canonical_agent is not None:
+        return canonical_agent
     if agent and agent in config.agents:
         # DEBUG, not INFO: every Slack/cron session resolves here routinely.
-        # The line exists so a kiro-template name that collides with a crew
-        # key (which would silently inherit that crew's watchdog windows) is
+        # The line exists so a kiro-template name that collides with an agent
+        # key (which would silently inherit that agent's watchdog windows) is
         # diagnosable from logs.
-        logger.debug("crew_agent %r resolved by crew-namespace fallback", agent)
+        logger.debug("canonical_agent %r resolved by agent-namespace fallback", agent)
         return agent
     return ""
 

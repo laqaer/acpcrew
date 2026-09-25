@@ -1,23 +1,23 @@
 /**
- * CrewProtocolSettings — the repo-wide rules every crew in one repository
- * negotiates by: how long a claim lives, the label a crew applies when a call is
- * a human's to make, and the trailer each crew signs its commits with.
+ * StewardProtocolSettings — the repo-wide rules every steward in one repository
+ * negotiates by: how long a claim lives, the label a steward applies when a call is
+ * a human's to make, and the trailer each steward signs its commits with.
  *
- * ## Why this is a settings page and not part of a crew
+ * ## Why this is a settings page and not part of a steward
  *
- * These three values are PER-REPO, not per-crew: the API behind them is
- * `GET`/`PUT /crews/settings?owner&repo`, and two crews in one repo negotiating
- * with different TTLs is exactly how a short-TTL crew steals a long-TTL crew's
- * live work. The needs-human label is the same kind of value — a crew that hits a
+ * These three values are PER-REPO, not per-steward: the API behind them is
+ * `GET`/`PUT /stewards/settings?owner&repo`, and two stewards in one repo negotiating
+ * with different TTLs is exactly how a short-TTL steward steals a long-TTL steward's
+ * live work. The needs-human label is the same kind of value — a steward that hits a
  * decision it cannot make comments on the issue and applies that label, and two
- * crews applying two different labels would leave a repo with no single thing to
+ * stewards applying two different labels would leave a repo with no single thing to
  * filter on. So they belong beside the repo's other preferences, where a value
  * that governs the whole repository is expected to live.
  *
  * ## One key per write
  *
  * Every commit sends a ONE-KEY merge patch, never the whole document.
- * `putCrewSettings` merges server-side, so a one-key patch needs no revision
+ * `putStewardSettings` merges server-side, so a one-key patch needs no revision
  * guard and two tabs editing different fields cannot erase each other. That is
  * what makes this page safe to leave open next to another surface reading the
  * same document.
@@ -52,7 +52,7 @@ import { useTranslation } from 'react-i18next'
 import { Input } from '../../../../components/ui'
 import {
   issueRadarApi,
-  type CrewSettings, type CrewSettingsPatch, type CrewSettingsResponse, type RepoRef,
+  type StewardSettings, type StewardSettingsPatch, type StewardSettingsResponse, type RepoRef,
 } from '../../api'
 import { repoScopeKey } from '../../lib/links'
 import { useImeGuard } from '../../../../hooks/useImeGuard'
@@ -76,14 +76,14 @@ const MIN_UNITS = 1
  *  successful-looking write discard what the user typed. */
 const MAX_TEXT = 200
 
-export default function CrewProtocolSettings({
+export default function StewardProtocolSettings({
   repoRef, settings,
 }: {
   repoRef: RepoRef
   /** The repo's saved protocol settings, or `undefined` while they load — every
    *  field is disabled until they arrive, because a commit needs the old value to
    *  tell a real edit from a no-op. */
-  settings: CrewSettings | undefined
+  settings: StewardSettings | undefined
 }) {
   // One instance covers every field render; the binding's focus/blur reset makes sharing safe.
   const ime = useImeGuard()
@@ -122,7 +122,7 @@ export default function CrewProtocolSettings({
    * A field typed into again while its write was in flight keeps the NEWER text:
    * that text is the only copy of that edit, for the same reason the first one
    * was held. */
-  const release = (patch: CrewSettingsPatch) => {
+  const release = (patch: StewardSettingsPatch) => {
     const field = (Object.keys(patch) as SettingsField[])[0]
     if (!field) return
     const sent = inFlight.current[field]
@@ -138,13 +138,13 @@ export default function CrewProtocolSettings({
 
   /** Let a field be committed again after its write FAILED. The text is still on
    *  screen, so blurring the field once more is the retry. */
-  const forget = (patch: CrewSettingsPatch) => {
+  const forget = (patch: StewardSettingsPatch) => {
     const field = (Object.keys(patch) as SettingsField[])[0]
     if (field) delete inFlight.current[field]
   }
 
   const save = useMutation({
-    mutationFn: (patch: CrewSettingsPatch) => issueRadarApi.putCrewSettings(repoRef, patch),
+    mutationFn: (patch: StewardSettingsPatch) => issueRadarApi.putStewardSettings(repoRef, patch),
     onMutate: () => { setError(''); setSaved(false) },
     onSuccess: (res, patch) => {
       // The record first, then the draft it replaces, so the field falls back to
@@ -160,8 +160,8 @@ export default function CrewProtocolSettings({
       // keeps every field's newest answer, whatever order the replies arrive in.
       const field = (Object.keys(patch) as SettingsField[])[0]
       queryClient.setQueryData(
-        ['issue-radar', 'crew-settings', scope],
-        (prev: CrewSettingsResponse | undefined) => {
+        ['issue-radar', 'steward-settings', scope],
+        (prev: StewardSettingsResponse | undefined) => {
           if (!prev || !field) return res
           const canonical = res.settings?.[field]
           // No canonical value for this key means the server refused it (an
@@ -173,9 +173,9 @@ export default function CrewProtocolSettings({
       )
       release(patch)
       setSaved(true)
-      void queryClient.invalidateQueries({ queryKey: ['issue-radar', 'crews', scope] })
+      void queryClient.invalidateQueries({ queryKey: ['issue-radar', 'stewards', scope] })
     },
-    onError: (e: unknown, patch: CrewSettingsPatch) => {
+    onError: (e: unknown, patch: StewardSettingsPatch) => {
       forget(patch)
       setError(e instanceof Error ? e.message : String(e))
     },
@@ -218,7 +218,7 @@ export default function CrewProtocolSettings({
    *
    * `sent` is the draft as typed, not the trimmed value, because it is what the
    * field is displaying and therefore what `release` has to match. */
-  const send = (field: SettingsField, sent: string, patch: CrewSettingsPatch) => {
+  const send = (field: SettingsField, sent: string, patch: StewardSettingsPatch) => {
     // ONE outstanding write per field, and the test is presence — not whether the
     // text matches. Comparing to `sent` only skipped an identical re-send: a NEWER
     // value overwrote the recorded draft and fired a second write, so when the
@@ -237,11 +237,11 @@ export default function CrewProtocolSettings({
 
   /** Commit ONE field as a one-key merge patch.
    *
-   * One key, never the whole document: `putCrewSettings` merges server-side, so
+   * One key, never the whole document: `putStewardSettings` merges server-side, so
    * sending only what changed means two tabs editing different fields cannot
    * erase each other. A no-op edit sends nothing at all. The patch is built from
    * a literal key per branch rather than a computed one, so its type is checked
-   * against `CrewSettingsPatch` instead of asserted onto it.
+   * against `StewardSettingsPatch` instead of asserted onto it.
    *
    * A value the store would refuse is refused HERE instead, and the draft is
    * kept: reverting it silently is indistinguishable from a save that worked.
@@ -258,8 +258,8 @@ export default function CrewProtocolSettings({
       if (!text) {
         reject(
           field === 'commit_trailer'
-            ? t('apps.issueRadar.views.crews.desk.trailer_required')
-            : t('apps.issueRadar.views.crews.desk.needs_human_required'),
+            ? t('apps.issueRadar.views.stewards.desk.trailer_required')
+            : t('apps.issueRadar.views.stewards.desk.needs_human_required'),
         )
         return
       }
@@ -273,7 +273,7 @@ export default function CrewProtocolSettings({
       // reverts and the form looks like it saved. Rejected here so the user is
       // told, rather than discovering it on the forge as a queue nobody watches.
       if (text.length > MAX_TEXT) {
-        reject(t('apps.issueRadar.views.crews.desk.text_too_long', { max: MAX_TEXT }))
+        reject(t('apps.issueRadar.views.stewards.desk.text_too_long', { max: MAX_TEXT }))
         return
       }
       send(
@@ -289,7 +289,7 @@ export default function CrewProtocolSettings({
     // admits ("1.5") instead of truncating them behind the user's back.
     const n = Number(raw)
     if (!Number.isInteger(n) || n < MIN_UNITS) {
-      reject(t('apps.issueRadar.views.crews.desk.claim_ttl_min'))
+      reject(t('apps.issueRadar.views.stewards.desk.claim_ttl_min'))
       return
     }
     if (n === settings.claim_ttl_hours) {
@@ -317,13 +317,13 @@ export default function CrewProtocolSettings({
 
   const numericField = (field: 'claim_ttl_hours', label: string, hint: string, unit: string, testId: string) => {
     const message = invalid[field]
-    const errorId = `crew-desk-${field}-error`
+    const errorId = `steward-desk-${field}-error`
     return (
       <div className="flex flex-col gap-1.5">
-        <label className="text-[13px] font-semibold text-text-strong" htmlFor={`crew-desk-${field}`}>{label}</label>
+        <label className="text-[13px] font-semibold text-text-strong" htmlFor={`steward-desk-${field}`}>{label}</label>
         <div className="flex items-center gap-2">
           <Input
-            id={`crew-desk-${field}`}
+            id={`steward-desk-${field}`}
             type="number"
             min={MIN_UNITS}
             value={shown(field)}
@@ -378,24 +378,24 @@ export default function CrewProtocolSettings({
 
   const ttl = settings?.claim_ttl_hours ?? 0
 
-  // The `crew-desk-*` element ids and test ids are kept verbatim from where this
-  // block used to render, so a harness or test that already addresses a field
-  // keeps addressing the same one across the move.
+  // The `steward-desk-*` prefix on these element ids and test ids names the block,
+  // not the page hosting it: harness scripts and tests address each field by it,
+  // so it stays fixed wherever the block renders.
   return (
-    <div data-testid="crew-desk-protocol">
+    <div data-testid="steward-desk-protocol">
       <div className="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-4">
         {numericField(
           'claim_ttl_hours',
-          t('apps.issueRadar.views.crews.desk.claim_ttl_label'),
-          t('apps.issueRadar.views.crews.desk.claim_ttl_hint'),
-          t('apps.issueRadar.views.crews.desk.unit_hours', { count: ttl }),
-          'crew-desk-claim-ttl',
+          t('apps.issueRadar.views.stewards.desk.claim_ttl_label'),
+          t('apps.issueRadar.views.stewards.desk.claim_ttl_hint'),
+          t('apps.issueRadar.views.stewards.desk.unit_hours', { count: ttl }),
+          'steward-desk-claim-ttl',
         )}
         {textField(
           'needs_human_label',
-          t('apps.issueRadar.views.crews.desk.needs_human_label'),
-          t('apps.issueRadar.views.crews.desk.needs_human_hint'),
-          'crew-desk-needs-human',
+          t('apps.issueRadar.views.stewards.desk.needs_human_label'),
+          t('apps.issueRadar.views.stewards.desk.needs_human_hint'),
+          'steward-desk-needs-human',
         )}
       </div>
       <div className="mt-4">
@@ -404,9 +404,9 @@ export default function CrewProtocolSettings({
             code, not prose. */}
         {textField(
           'commit_trailer',
-          t('apps.issueRadar.views.crews.desk.trailer_label'),
-          t('apps.issueRadar.views.crews.desk.trailer_hint'),
-          'crew-desk-commit-trailer',
+          t('apps.issueRadar.views.stewards.desk.trailer_label'),
+          t('apps.issueRadar.views.stewards.desk.trailer_hint'),
+          'steward-desk-commit-trailer',
           true,
         )}
       </div>
@@ -414,12 +414,12 @@ export default function CrewProtocolSettings({
       <div
         aria-live="polite"
         className="mt-3 text-[13px] min-h-[1.25rem]"
-        data-testid="crew-desk-protocol-status"
+        data-testid="steward-desk-protocol-status"
         data-state={save.isPending ? 'saving' : error ? 'failed' : saved ? 'saved' : 'idle'}
       >
-        {save.isPending && <span className="text-muted">{t('apps.issueRadar.views.crews.desk.settings_saving')}</span>}
-        {!save.isPending && error && <span className="text-danger">{t('apps.issueRadar.views.crews.desk.settings_failed', { error })}</span>}
-        {!save.isPending && !error && saved && <span className="text-ok">{t('apps.issueRadar.views.crews.desk.settings_saved')}</span>}
+        {save.isPending && <span className="text-muted">{t('apps.issueRadar.views.stewards.desk.settings_saving')}</span>}
+        {!save.isPending && error && <span className="text-danger">{t('apps.issueRadar.views.stewards.desk.settings_failed', { error })}</span>}
+        {!save.isPending && !error && saved && <span className="text-ok">{t('apps.issueRadar.views.stewards.desk.settings_saved')}</span>}
       </div>
     </div>
   )

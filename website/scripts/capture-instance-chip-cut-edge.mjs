@@ -1,5 +1,5 @@
 /**
- * Pixel evidence for the pinned-crew chip row's CUT EDGE cue.
+ * Pixel evidence for the pinned-instance chip row's CUT EDGE cue.
  *
  * The row is one nowrap line with `overflow:hidden`, so the chip at the boundary
  * is cut rather than dropped. That cut used to be marked with an alpha mask over
@@ -14,7 +14,7 @@
  * in the cue.
  *
  * Two scenes, because the defect has two regimes:
- *  - collapsed: at the `@container (max-width:152px)` rung the crew name is gone,
+ *  - collapsed: at the `@container (max-width:152px)` rung the instance name is gone,
  *    so the chip is a dot plus its badge and the ramp covers essentially all of it
  *    (this is the state a user reported as "why is this faded")
  *  - named: a wide group, where the ramp still lands on the badge because the
@@ -34,13 +34,13 @@
  *
  * Usage:
  *   npx vite --host 127.0.0.1 --port 6812 --strictPort   # in another shell
- *   node scripts/capture-instance-chip-cut-edge.mjs http://127.0.0.1:6812 ../temp-screenshots/crew-chip-cut-edge
+ *   node scripts/capture-instance-chip-cut-edge.mjs http://127.0.0.1:6812 ../temp-screenshots/instance-chip-cut-edge
  */
 import { chromium } from 'playwright'
 import { mkdirSync } from 'node:fs'
 
 const BASE = process.argv[2] || 'http://127.0.0.1:6812'
-const OUT = process.argv[3] || '../temp-screenshots/crew-chip-cut-edge'
+const OUT = process.argv[3] || '../temp-screenshots/instance-chip-cut-edge'
 mkdirSync(OUT, { recursive: true })
 
 const UNREAD = 3
@@ -78,10 +78,10 @@ const rgb = (page, sel, prop) => page.evaluate(([s, p]) => {
 
 /** Row / badge / trigger geometry, plus where the badge starts inside the row. */
 const geometry = (page) => page.evaluate(() => {
-  const rowEl = document.querySelector('[data-testid="crew-chip-row"]')
+  const rowEl = document.querySelector('[data-testid="instance-chip-row"]')
   const row = rowEl.getBoundingClientRect()
   const badge = document.querySelector('[data-badge-chip]').getBoundingClientRect()
-  const trig = document.querySelector('[aria-label="切换 crew"]').getBoundingClientRect()
+  const trig = document.querySelector('[aria-label="切换实例"]').getBoundingClientRect()
   return {
     rowLeft: +row.left.toFixed(2),
     rowWidth: +row.width.toFixed(2),
@@ -161,7 +161,7 @@ for (const scene of SCENES) {
   const cutW = Math.round(natural.badgeInRow + BITE)
   const accent = await rgb(page, '[data-badge-chip]', 'backgroundColor')
   const border = await rgb(page, '[data-badge-chip]', 'backgroundColor') && await page.evaluate(() => {
-    const v = getComputedStyle(document.querySelector('[data-testid="crew-chip-row"]'), '::after').backgroundColor
+    const v = getComputedStyle(document.querySelector('[data-testid="instance-chip-row"]'), '::after').backgroundColor
     const m = /color\(srgb\s+([\d.]+)\s+([\d.]+)\s+([\d.]+)/.exec(v)
     if (m) return m.slice(1, 4).map((n) => Math.round(parseFloat(n) * 255))
     const l = /rgba?\(([^)]+)\)/.exec(v)
@@ -227,7 +227,7 @@ for (const scene of SCENES) {
   }
 
   const rule = await page.evaluate(() => {
-    const cs = getComputedStyle(document.querySelector('[data-testid="crew-chip-row"]'), '::after')
+    const cs = getComputedStyle(document.querySelector('[data-testid="instance-chip-row"]'), '::after')
     return { content: cs.content, width: cs.width, position: cs.position }
   })
   console.log(`  cut rule: content=${rule.content} width=${rule.width} position=${rule.position}`)

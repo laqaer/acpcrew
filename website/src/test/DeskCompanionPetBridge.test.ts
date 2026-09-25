@@ -217,12 +217,12 @@ describe('cross-window appearance broadcast', () => {
   // live companion stays visually unchanged until reload.
   function stubPreload() {
     const appearanceChanged = vi.fn()
-    ;(window as unknown as { crewCompanion?: unknown }).crewCompanion = { appearanceChanged }
+    ;(window as unknown as { deskCompanion?: unknown }).deskCompanion = { appearanceChanged }
     return appearanceChanged
   }
 
   afterEach(() => {
-    delete (window as unknown as { crewCompanion?: unknown }).crewCompanion
+    delete (window as unknown as { deskCompanion?: unknown }).deskCompanion
   })
 
   it('a recolour save broadcasts to the overlay window', async () => {
@@ -261,7 +261,7 @@ describe('non-2xx responses are refusals, not successes', () => {
   // unsaved artwork was discarded. postForJson now stamps ok:false on any
   // non-2xx body.
   it('a 503 save reports ok:false to the editor, keeping the reason', async () => {
-    stubFetch({ ok: false, body: { error: 'crew-companion could not save to disk', code: 'store_write_failed' } })
+    stubFetch({ ok: false, body: { error: 'Companion could not save to disk', code: 'store_write_failed' } })
     const result = await petBridge.gallerySavePack!({
       meta: { id: 'p', name: 'P' },
       states: { idle: '<svg/>' },

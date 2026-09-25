@@ -6139,10 +6139,10 @@ async def test_send_and_await_timeout_error_names_the_budget():
 # A `session/request_permission` REQUEST for a sessionId this client never
 # registered comes from a backend-internal subagent (e.g. kiro-cli's own
 # `subagent` tool). Dropping it strands the backend's response oneshot and
-# wedges the child's whole tool batch until process teardown — the 2026-08-15
-# crew incident hung 13 such approvals for 2 hours. These tests pin the fix:
-# the runtime answers the request itself, with the request's own reject
-# option, and never counts it as a dropped frame.
+# wedges the child's whole tool batch until process teardown, which can hold
+# a subagent's approvals for hours. These tests pin the runtime's answer: it
+# replies to the request itself, with the request's own reject option, and
+# never counts it as a dropped frame.
 
 
 def _last_written_frame(proc) -> dict:

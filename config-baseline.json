@@ -6843,7 +6843,7 @@
       "sensitive": false,
       "tags": [],
       "label": "Triggers",
-      "help": "Routing intent for orchestrator crew selection: free-text 'when to use this crew' guidance the main agent reads via select_crew. A crew with no triggers is not offered for selection.",
+      "help": "Routing intent for orchestrator agent selection: free-text 'when to use this agent' guidance the main agent reads via select_agent. An agent with no triggers is not offered for selection.",
       "hasChildren": false,
       "enumValues": null,
       "defaultValue": ""

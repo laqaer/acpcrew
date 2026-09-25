@@ -21,7 +21,7 @@ const model = (over: Partial<HostModel> = {}): HostModel => ({
   self: null,
   macInset: false,
   electron: true,
-  pinnedCrews: [],
+  pinnedInstances: [],
   stableOrder: false,
   ...over,
 })
@@ -70,18 +70,18 @@ describe('EmbeddedInstanceTabBar (option B)', () => {
     expect(container.querySelector('[aria-label="Remote instances"]')).toBeNull()
   })
 
-  it('honors the relayed pin set: a pinned crew renders as a chip beside the dropdown', async () => {
+  it('honors the relayed pin set: a pinned instance renders as a chip beside the dropdown', async () => {
     const store = createTestStore({
       instances: {
         warm: {}, activeId: null, mru: [], unread: {},
-        // Local is active, so the pinned crew is the one that gets a chip.
-        host: model({ activeId: null, pinnedCrews: ['cd-1'] }),
+        // Local is active, so the pinned instance is the one that gets a chip.
+        host: model({ activeId: null, pinnedInstances: ['cd-1'] }),
       },
     })
     renderWithProviders(<InstanceTabBar variant="inline" />, { store })
-    // The chip row exists and holds the pinned crew. The dropdown stays — it is
-    // the trailing chevron that reaches every OTHER crew.
-    const row = screen.getByTestId('crew-chip-row')
+    // The chip row exists and holds the pinned instance. The dropdown stays — it
+    // is the trailing chevron that reaches every OTHER instance.
+    const row = screen.getByTestId('instance-chip-row')
     expect(row.textContent).toMatch(/Cloud One/)
     expect(screen.getByRole('button', { name: /Switch instance/i })).toBeTruthy()
   })
@@ -91,7 +91,7 @@ describe('EmbeddedInstanceTabBar (option B)', () => {
       instances: { warm: {}, activeId: null, mru: [], unread: {}, host: model({ activeId: null }) },
     })
     renderWithProviders(<InstanceTabBar variant="inline" />, { store })
-    expect(screen.queryByTestId('crew-chip-row')).toBeNull()
+    expect(screen.queryByTestId('instance-chip-row')).toBeNull()
   })
 
   it('offers the stable-order toggle and reflects the relayed value', async () => {
@@ -106,7 +106,7 @@ describe('EmbeddedInstanceTabBar (option B)', () => {
     })
     renderWithProviders(<InstanceTabBar variant="inline" />, { store })
     await userEvent.click(screen.getByRole('button', { name: /Switch instance/i }))
-    const toggle = await screen.findByTestId('crew-stable-order-toggle')
+    const toggle = await screen.findByTestId('instance-stable-order-toggle')
     expect(toggle).toBeTruthy()
     expect(toggle.getAttribute('aria-checked')).toBe('true')
   })
@@ -125,9 +125,9 @@ describe('EmbeddedInstanceTabBar (option B)', () => {
     const { container } = renderWithProviders(<InstanceTabBar variant="inline" />, { store })
     await userEvent.click(screen.getByRole('button', { name: /Switch instance/i }))
     await screen.findByRole('menuitemradio', { name: /Cloud One/ })
-    expect(screen.queryByTestId('crew-stable-order-toggle')).toBeNull()
-    // Ordering falls back to the pre-relay default: the active crew still leads.
-    expect(container.querySelector('.tb-crew-active-chip')).not.toBeNull()
+    expect(screen.queryByTestId('instance-stable-order-toggle')).toBeNull()
+    // Ordering falls back to the pre-relay default: the active instance still leads.
+    expect(container.querySelector('.tb-instance-active-chip')).not.toBeNull()
   })
 
   it('relays a stable-order toggle up to the parent instead of writing its own store', async () => {
@@ -143,37 +143,38 @@ describe('EmbeddedInstanceTabBar (option B)', () => {
     renderWithProviders(<InstanceTabBar variant="inline" />, { store })
 
     await userEvent.click(screen.getByRole('button', { name: /Switch instance/i }))
-    await userEvent.click(await screen.findByTestId('crew-stable-order-toggle'))
+    await userEvent.click(await screen.findByTestId('instance-stable-order-toggle'))
     expect(post).toHaveBeenCalledWith(
       expect.objectContaining({ type: 'mc-set-stable-order', on: true }),
       '*',
     )
   })
 
-  it('does NOT pull the active pinned crew to a leading chip when stable-order is relayed on', () => {
+  it('does NOT pull the active pinned instance to a leading chip when stable-order is relayed on', () => {
     // The exact runtime scenario the relay must fix: a CONNECTED remote instance is
     // the active pane, it is pinned, and the parent relays stableOrder=true. The
-    // active crew must be highlighted in place inside the chip row, never hoisted
-    // to a leading `tb-crew-active-chip` — that hoist is the reorder-on-switch.
+    // active instance must be highlighted in place inside the chip row, never
+    // hoisted to a leading `tb-instance-active-chip` — that hoist is the
+    // reorder-on-switch.
     const store = createTestStore({
       instances: {
         warm: {}, activeId: null, mru: [], unread: {},
-        host: model({ activeId: 'cd-1', pinnedCrews: ['cd-1'], stableOrder: true }),
+        host: model({ activeId: 'cd-1', pinnedInstances: ['cd-1'], stableOrder: true }),
       },
     })
     const { container } = renderWithProviders(<InstanceTabBar variant="inline" />, { store })
-    expect(container.querySelector('.tb-crew-active-chip')).toBeNull()
+    expect(container.querySelector('.tb-instance-active-chip')).toBeNull()
   })
 
-  it('DOES lead with the active crew when stable-order is relayed off (proves the mechanism)', () => {
+  it('DOES lead with the active instance when stable-order is relayed off (proves the mechanism)', () => {
     const store = createTestStore({
       instances: {
         warm: {}, activeId: null, mru: [], unread: {},
-        host: model({ activeId: 'cd-1', pinnedCrews: ['cd-1'], stableOrder: false }),
+        host: model({ activeId: 'cd-1', pinnedInstances: ['cd-1'], stableOrder: false }),
       },
     })
     const { container } = renderWithProviders(<InstanceTabBar variant="inline" />, { store })
-    expect(container.querySelector('.tb-crew-active-chip')).not.toBeNull()
+    expect(container.querySelector('.tb-instance-active-chip')).not.toBeNull()
   })
 
   it('relays a pin toggle up to the parent instead of writing its own store', async () => {
@@ -187,9 +188,9 @@ describe('EmbeddedInstanceTabBar (option B)', () => {
     // realm, so pinning here must travel up as a message rather than persist
     // locally — otherwise the pane would drift from every other bar.
     await userEvent.click(screen.getByRole('button', { name: /Switch instance/i }))
-    await userEvent.click(await screen.findByTestId('crew-pin-cd-1'))
+    await userEvent.click(await screen.findByTestId('instance-pin-cd-1'))
     expect(post).toHaveBeenCalledWith(
-      expect.objectContaining({ type: 'mc-set-crew-pin', id: 'cd-1' }),
+      expect.objectContaining({ type: 'mc-set-instance-pin', id: 'cd-1' }),
       '*',
     )
   })

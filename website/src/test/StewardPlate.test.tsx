@@ -1,22 +1,22 @@
 /**
- * CrewPlate — the crew roster's identity avatar.
+ * StewardPlate — the steward roster's identity avatar.
  *
- * A crew's seed draws its route diagram and the editor's face strip picks the
+ * A steward's seed draws its route diagram and the editor's face strip picks the
  * line colour. What is checked here is the whole of the component's own logic:
  * which colour a seed and a pin resolve to, that the pin changes ONLY the colour,
  * and that the render stays a decorative, local, non-draggable image.
  */
 import { describe, it, expect } from 'vitest'
 import { render } from '@testing-library/react'
-import CrewPlate, {
-  crewPlateVariant,
-  crewPlateVariantCount,
+import StewardPlate, {
+  stewardPlateVariant,
+  stewardPlateVariantCount,
   djb2,
 } from '../apps/issue-radar/components/StewardPlate'
 import { ROUTE_LINES } from '../lib/routePlateAvatar'
 
 function srcOf(seed: string, variant: number | null = null, size = 40): string {
-  const { container, unmount } = render(<CrewPlate seed={seed} variant={variant} size={size} />)
+  const { container, unmount } = render(<StewardPlate seed={seed} variant={variant} size={size} />)
   const src = container.querySelector('img')!.getAttribute('src')!
   unmount()
   return src
@@ -30,9 +30,9 @@ function lineOf(seed: string, variant: number | null = null): string {
   return fill![1]
 }
 
-describe('CrewPlate', () => {
+describe('StewardPlate', () => {
   it('renders a decorative, local, non-draggable image', () => {
-    const { container } = render(<CrewPlate seed="Whirlpool" size={38} />)
+    const { container } = render(<StewardPlate seed="Whirlpool" size={38} />)
     const img = container.querySelector('img')!
     expect(img.getAttribute('src')!.startsWith('data:image/svg+xml')).toBe(true)
     expect(img).toHaveAttribute('aria-hidden', 'true')
@@ -47,15 +47,15 @@ describe('CrewPlate', () => {
 
   it('colours an unpinned plate by the face the seed hashes to', () => {
     for (const seed of ['Whirlpool', 'Sombrero', 'Bode', 'Carina']) {
-      expect(lineOf(seed)).toBe(ROUTE_LINES[djb2(seed) % crewPlateVariantCount])
-      expect(srcOf(seed)).toBe(srcOf(seed, crewPlateVariant(seed)))
+      expect(lineOf(seed)).toBe(ROUTE_LINES[djb2(seed) % stewardPlateVariantCount])
+      expect(srcOf(seed)).toBe(srcOf(seed, stewardPlateVariant(seed)))
     }
   })
 
   it('lets `variant` pin the colour and nothing else', () => {
     const seed = 'Sombrero'
-    const plates = Array.from({ length: crewPlateVariantCount }, (_, i) => srcOf(seed, i))
-    expect(new Set(plates).size).toBe(crewPlateVariantCount)
+    const plates = Array.from({ length: stewardPlateVariantCount }, (_, i) => srcOf(seed, i))
+    expect(new Set(plates).size).toBe(stewardPlateVariantCount)
     plates.forEach((_, i) => expect(lineOf(seed, i)).toBe(ROUTE_LINES[i]))
     // Same route under every colour: the markup differs only in the fill values.
     const strip = (uri: string) =>
@@ -69,16 +69,16 @@ describe('CrewPlate', () => {
   })
 
   it('folds an out-of-range variant back onto the palette', () => {
-    const n = crewPlateVariantCount
-    expect(crewPlateVariant('x', n + 2)).toBe(2)
-    expect(crewPlateVariant('x', -1)).toBe(n - 1)
-    expect(crewPlateVariant('x', 3.7)).toBe(3)
-    expect(crewPlateVariant('x', Number.NaN)).toBe(djb2('x') % n)
+    const n = stewardPlateVariantCount
+    expect(stewardPlateVariant('x', n + 2)).toBe(2)
+    expect(stewardPlateVariant('x', -1)).toBe(n - 1)
+    expect(stewardPlateVariant('x', 3.7)).toBe(3)
+    expect(stewardPlateVariant('x', Number.NaN)).toBe(djb2('x') % n)
     expect(srcOf('Carina', n + 2)).toBe(srcOf('Carina', 2))
   })
 
   it('offers one face per line colour', () => {
-    expect(crewPlateVariantCount).toBe(ROUTE_LINES.length)
+    expect(stewardPlateVariantCount).toBe(ROUTE_LINES.length)
   })
 })
 
@@ -89,8 +89,8 @@ describe('djb2', () => {
     // copy never gets written; these values pin it.
     expect(djb2('')).toBe(5381)
     expect(djb2('a')).toBe(177670)
-    expect(djb2('crew-1')).not.toBe(djb2('crew-2'))
-    // Unsigned 32-bit, so `% crewPlateVariantCount` can never be negative.
+    expect(djb2('steward-1')).not.toBe(djb2('steward-2'))
+    // Unsigned 32-bit, so `% stewardPlateVariantCount` can never be negative.
     for (const s of ['andromeda', 'bode', 'whirlpool', 'sombrero', '', 'crëw-ünïcode']) {
       expect(djb2(s)).toBeGreaterThanOrEqual(0)
       expect(djb2(s)).toBeLessThanOrEqual(0xffffffff)

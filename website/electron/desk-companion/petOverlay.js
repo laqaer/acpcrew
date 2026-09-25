@@ -124,7 +124,7 @@ function createOverlayFor(display) {
 /** Open an overlay on every display. Idempotent per display. */
 function openPetWindow() {
   if (!baseUrl) {
-    log("crew-companion: no gateway origin yet, deferring overlay");
+    log("desk-companion: no gateway origin yet, deferring overlay");
     return;
   }
   for (const display of screen.getAllDisplays()) {
@@ -132,9 +132,9 @@ function openPetWindow() {
     if (existing && !existing.isDestroyed()) continue;
     try {
       overlays.set(display.id, createOverlayFor(display));
-      log(`crew-companion: overlay opened on display ${display.id}`);
+      log(`desk-companion: overlay opened on display ${display.id}`);
     } catch (err) {
-      log(`crew-companion: overlay failed on display ${display.id} — ${err && err.message}`);
+      log(`desk-companion: overlay failed on display ${display.id} — ${err && err.message}`);
     }
   }
 }
@@ -275,19 +275,19 @@ function stopHitboxPoll() {
 
 /**
  * Register the overlay's cursor-hitbox IPC and start the poll. Called once from
- * `initCrewCompanion`. Each renderer reports its own window's rects; the sender is
+ * `initDeskCompanion`. Each renderer reports its own window's rects; the sender is
  * resolved back to its overlay so one display's report cannot describe another's.
  */
 function registerOverlayIpc() {
   if (ipcRegistered) return;
   ipcRegistered = true;
 
-  ipcMain.on("crew-companion:update-hitbox", (event, pet, bubble) => {
+  ipcMain.on("desk-companion:update-hitbox", (event, pet, bubble) => {
     const win = BrowserWindow.fromWebContents(event.sender);
     if (win && isPetWindow(win)) setWindowHitbox(win, pet, bubble);
   });
 
-  ipcMain.on("crew-companion:menu-hitbox", (event, rect) => {
+  ipcMain.on("desk-companion:menu-hitbox", (event, rect) => {
     const win = BrowserWindow.fromWebContents(event.sender);
     if (win && isPetWindow(win)) setWindowMenuHitbox(win, rect);
   });

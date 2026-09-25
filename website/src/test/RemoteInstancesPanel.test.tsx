@@ -2,7 +2,7 @@ import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { renderWithProviders } from './helpers'
-import { RemoteCrewPanel } from '../pages/settings/RemoteInstancesPanel'
+import { RemoteInstancesPanel } from '../pages/settings/RemoteInstancesPanel'
 
 vi.mock('../api/client', () => {
   class ApiError extends Error {
@@ -41,7 +41,7 @@ vi.mock('../api/client', () => {
 })
 import { api, ApiError } from '../api/client'
 
-/** Open a crew row's overflow menu — Edit / Stop / Start / Delete live there. */
+/** Open an instance row's overflow menu — Edit / Stop / Start / Delete live there. */
 async function openRowMenu(u: ReturnType<typeof userEvent.setup>, name: RegExp = /More actions/i) {
   await u.click(await screen.findByRole('button', { name }))
 }
@@ -106,10 +106,10 @@ beforeEach(() => {
   localStorage.clear()
 })
 
-describe('RemoteCrewPanel', () => {
-  it('never offers the plain-machine delete to a cloud crew while the launch history is still loading', async () => {
+describe('RemoteInstancesPanel', () => {
+  it('never offers the plain-machine delete to a cloud instance while the launch history is still loading', async () => {
     // The row's cloud identity comes from cloudLaunches. If absent data were treated as
-    // [], a real cloud crew would render as hand-added — and its trash button is a
+    // [], a real cloud instance would render as hand-added — and its trash button is a
     // single unconfirmed click that unregisters the instance while the EC2 stack keeps
     // running and billing, invisible to the dashboard.
     vi.mocked(api.listInstances).mockResolvedValue({ active: true, warm_set_cap: 5, instances: [CLOUD_INSTANCE] })
@@ -118,7 +118,7 @@ describe('RemoteCrewPanel', () => {
       new Promise(resolve => { releaseLaunches = resolve }) as ReturnType<typeof api.cloudLaunches>,
     )
     const u = userEvent.setup()
-    renderWithProviders(<RemoteCrewPanel />)
+    renderWithProviders(<RemoteInstancesPanel />)
 
     // While launches are in flight the list is not classified at all.
     expect(await screen.findByText(/Loading/i)).toBeInTheDocument()
@@ -150,7 +150,7 @@ describe('RemoteCrewPanel', () => {
     const u = userEvent.setup()
 
     // A fresh mount: nothing was launched in this component's lifetime.
-    renderWithProviders(<RemoteCrewPanel />)
+    renderWithProviders(<RemoteInstancesPanel />)
     await u.click(await screen.findByRole('button', { name: /Set up a new one/i }))
 
     expect(await screen.findByText(/WXYZ-1234/)).toBeInTheDocument()
@@ -158,27 +158,27 @@ describe('RemoteCrewPanel', () => {
     await waitFor(() => expect(api.cloudLaunchStatus).toHaveBeenCalledWith('j-signin'))
   })
 
-  it('refreshes the crew list when a launch finishes, without waiting for a manual reload', async () => {
+  it('refreshes the instance list when a launch finishes, without waiting for a manual reload', async () => {
     // Switching tabs does not remount the panel, so nothing would invalidate the
     // instances cache and the brand-new instance would stay missing from Your instances.
     vi.mocked(api.listInstances).mockResolvedValue({ active: true, warm_set_cap: 5, instances: [] })
     vi.mocked(api.cloudLaunches).mockResolvedValue({ jobs: [RUNNING_JOB] })
     vi.mocked(api.cloudLaunchStatus).mockResolvedValue({ ...RUNNING_JOB, status: 'done' as const })
-    renderWithProviders(<RemoteCrewPanel />)
+    renderWithProviders(<RemoteInstancesPanel />)
 
     // listInstances is called once on mount, then again once the launch goes terminal.
     await waitFor(() => expect(vi.mocked(api.listInstances).mock.calls.length).toBeGreaterThan(1))
   })
 
-  it('does not offer a one-click Remove to an SSM crew it cannot identify', async () => {
-    // The CLI launcher registers real cloud crews over SSM, and those never produce a
+  it('does not offer a one-click Remove to an SSM instance it cannot identify', async () => {
+    // The CLI launcher registers real cloud instances over SSM, and those never produce a
     // launch job in this gateway's store — so an unmatched SSM row may well be a live
-    // cloud crew. The plain one-click Remove would unregister a billing instance and
+    // cloud instance. The plain one-click Remove would unregister a billing instance and
     // take away the only place the dashboard could still delete it.
     vi.mocked(api.listInstances).mockResolvedValue({ active: true, warm_set_cap: 5, instances: [CLOUD_INSTANCE] })
     vi.mocked(api.cloudLaunches).mockResolvedValue({ jobs: [] })  // no job matches it
     const u = userEvent.setup()
-    renderWithProviders(<RemoteCrewPanel />)
+    renderWithProviders(<RemoteInstancesPanel />)
 
     // Not labelled as hand-added, because we cannot know that.
     expect(await screen.findByText(/cannot verify whether this machine has AWS resources/i)).toBeInTheDocument()
@@ -203,7 +203,7 @@ describe('RemoteCrewPanel', () => {
       session_manager_plugin_command: 'sudo dnf install -y https://example.invalid/smp.rpm',
     })
     const u = userEvent.setup()
-    renderWithProviders(<RemoteCrewPanel />)
+    renderWithProviders(<RemoteInstancesPanel />)
     await u.click(await screen.findByRole('button', { name: /Set up a new one/i }))
 
     expect(await screen.findByText(/sudo dnf install -y/)).toBeInTheDocument()
@@ -219,7 +219,7 @@ describe('RemoteCrewPanel', () => {
       session_manager_plugin_command: '',
     })
     const u = userEvent.setup()
-    renderWithProviders(<RemoteCrewPanel />)
+    renderWithProviders(<RemoteInstancesPanel />)
     await u.click(await screen.findByRole('button', { name: /Set up a new one/i }))
 
     // The localized "not installed" line still explains the gap…
@@ -239,7 +239,7 @@ describe('RemoteCrewPanel', () => {
     vi.mocked(api.cloudLaunches).mockResolvedValue({ jobs: [] })
     vi.mocked(api.cloudPreflight).mockResolvedValue(PREFLIGHT_OK)
     const u = userEvent.setup()
-    renderWithProviders(<RemoteCrewPanel />)
+    renderWithProviders(<RemoteInstancesPanel />)
     await u.click(await screen.findByRole('button', { name: /Set up a new one/i }))
 
     // The field is repopulated…
@@ -264,7 +264,7 @@ describe('RemoteCrewPanel', () => {
         new Promise(resolve => { releaseSecond = resolve }) as ReturnType<typeof api.cloudPreflight>,
       )
     const u = userEvent.setup()
-    renderWithProviders(<RemoteCrewPanel />)
+    renderWithProviders(<RemoteInstancesPanel />)
     await u.click(await screen.findByRole('button', { name: /Set up a new one/i }))
 
     const recheck = (await screen.findAllByRole('button', { name: /Re-check/i }))[0]
@@ -289,7 +289,7 @@ describe('RemoteCrewPanel', () => {
     vi.mocked(api.cloudLaunches).mockResolvedValue({ jobs: [] })
     vi.mocked(api.cloudPreflight).mockResolvedValue({ ...PREFLIGHT_OK, account: '1234•••7890' })
     const u = userEvent.setup()
-    renderWithProviders(<RemoteCrewPanel />)
+    renderWithProviders(<RemoteInstancesPanel />)
     await u.click(await screen.findByRole('button', { name: /Set up a new one/i }))
 
     const profileInput = await screen.findByLabelText(/AWS profile/i)
@@ -315,7 +315,7 @@ describe('RemoteCrewPanel', () => {
     vi.mocked(api.cloudLaunches).mockResolvedValue({ jobs: [SIGNIN_JOB] })
     vi.mocked(api.cloudLaunchStatus).mockResolvedValue(SIGNIN_JOB)
     const u = userEvent.setup()
-    renderWithProviders(<RemoteCrewPanel />)
+    renderWithProviders(<RemoteInstancesPanel />)
     await u.click(await screen.findByRole('button', { name: /Set up a new one/i }))
 
     const card = (await screen.findByText(/WXYZ-1234/)).closest('div')?.parentElement
@@ -328,12 +328,12 @@ describe('RemoteCrewPanel', () => {
 
   it('offers Start so Stop is not a one-way door', async () => {
     // api.cloudStart existed and the route existed, but nothing in the UI called it:
-    // a stopped crew had no dashboard path back to running while its EBS kept billing.
+    // a stopped instance had no dashboard path back to running while its EBS kept billing.
     vi.mocked(api.listInstances).mockResolvedValue({ active: true, warm_set_cap: 5, instances: [CLOUD_INSTANCE] })
     vi.mocked(api.cloudLaunches).mockResolvedValue({ jobs: [DONE_JOB] })
     vi.mocked(api.cloudStart).mockResolvedValue({ started: true } as never)
     const u = userEvent.setup()
-    renderWithProviders(<RemoteCrewPanel />)
+    renderWithProviders(<RemoteInstancesPanel />)
 
     await openRowMenu(u)
     await u.click(await screen.findByRole('menuitem', { name: /^Start Junction Cloud/i }))
@@ -348,7 +348,7 @@ describe('RemoteCrewPanel', () => {
     vi.mocked(api.cloudLaunches).mockResolvedValue({ jobs: [job] } as never)
     vi.mocked(api.cloudLaunchStatus).mockResolvedValue(job as never)
     const u = userEvent.setup()
-    renderWithProviders(<RemoteCrewPanel />)
+    renderWithProviders(<RemoteInstancesPanel />)
     await u.click(await screen.findByRole('button', { name: /Set up a new one/i }))
 
     expect(await screen.findByText(/WXYZ-9876/)).toBeInTheDocument()
@@ -363,7 +363,7 @@ describe('RemoteCrewPanel', () => {
     let release: (v: unknown) => void = () => {}
     vi.mocked(api.cloudStop).mockReturnValue(new Promise(r => { release = r }) as never)
     const u = userEvent.setup()
-    renderWithProviders(<RemoteCrewPanel />)
+    renderWithProviders(<RemoteInstancesPanel />)
 
     await openRowMenu(u)
     await u.click(await screen.findByRole('menuitem', { name: /^Stop Junction Cloud/i }))
@@ -380,7 +380,7 @@ describe('RemoteCrewPanel', () => {
     vi.mocked(api.cloudLaunches).mockResolvedValue({ jobs: [DONE_JOB] })
     vi.mocked(api.cloudDestroy).mockResolvedValue({ cleanup: 'pending' } as never)
     const u = userEvent.setup()
-    renderWithProviders(<RemoteCrewPanel />)
+    renderWithProviders(<RemoteInstancesPanel />)
 
     await openRowMenu(u)
     await u.click(await screen.findByRole('menuitem', { name: /^Delete Junction Cloud/i }))
@@ -394,13 +394,13 @@ describe('RemoteCrewPanel', () => {
   it('shows the enable CTA when the feature is disabled (403)', async () => {
     vi.mocked(api.listInstances).mockRejectedValue(new ApiError(403, 'instances feature is disabled'))
     vi.mocked(api.cloudLaunches).mockResolvedValue({ jobs: [] })
-    renderWithProviders(<RemoteCrewPanel />)
+    renderWithProviders(<RemoteInstancesPanel />)
     expect(await screen.findByText(/Remote instance management is off/i)).toBeInTheDocument()
     expect(screen.getByRole('button', { name: /Enable remote instance management/i })).toBeInTheDocument()
   })
 
   it('does not flash the tabbed UI before showing the disabled state', async () => {
-    // Bug: the panel rendered the full form (tabs, crew list) during the initial
+    // Bug: the panel rendered the full form (tabs, instance list) during the initial
     // query, then jittered to the "off" card once the 403 arrived. Fix: show a
     // neutral loading card until the enabled/disabled state is determined.
     let rejectInstances: (e: Error) => void = () => {}
@@ -408,7 +408,7 @@ describe('RemoteCrewPanel', () => {
       new Promise((_resolve, reject) => { rejectInstances = reject }) as ReturnType<typeof api.listInstances>,
     )
     vi.mocked(api.cloudLaunches).mockResolvedValue({ jobs: [] })
-    renderWithProviders(<RemoteCrewPanel />)
+    renderWithProviders(<RemoteInstancesPanel />)
 
     // While loading: a spinner, no tabs, no form.
     expect(screen.getByText(/Loading/i)).toBeInTheDocument()
@@ -422,11 +422,11 @@ describe('RemoteCrewPanel', () => {
     expect(screen.queryByRole('button', { name: /Your instances/i })).not.toBeInTheDocument()
   })
 
-  it('distinguishes cloud crews from hand-added machines, and shows an in-progress launch', async () => {
+  it('distinguishes cloud instances from hand-added machines, and shows an in-progress launch', async () => {
     vi.mocked(api.listInstances).mockResolvedValue({ active: true, warm_set_cap: 5, instances: [CLOUD_INSTANCE, MANUAL_INSTANCE] })
     vi.mocked(api.cloudLaunches).mockResolvedValue({ jobs: [DONE_JOB, RUNNING_JOB] })
     const u = userEvent.setup()
-    renderWithProviders(<RemoteCrewPanel />)
+    renderWithProviders(<RemoteInstancesPanel />)
 
     // Cloud row carries the cloud attribution + a Stop control; manual row does not.
     expect(await screen.findByText('Launched by Junction')).toBeInTheDocument()
@@ -445,7 +445,7 @@ describe('RemoteCrewPanel', () => {
     vi.mocked(api.cloudLaunches).mockResolvedValue({ jobs: [] })
     vi.mocked(api.cloudPreflight).mockResolvedValue({ ...PREFLIGHT_OK, session_manager_plugin: false })
     const u = userEvent.setup()
-    renderWithProviders(<RemoteCrewPanel />)
+    renderWithProviders(<RemoteInstancesPanel />)
 
     await u.click(await screen.findByRole('button', { name: /Set up a new one/i }))
     // Prereq checklist rendered; a missing plugin blocks Launch.
@@ -460,7 +460,7 @@ describe('RemoteCrewPanel', () => {
     vi.mocked(api.cloudLaunches).mockResolvedValue({ jobs: [] })
     vi.mocked(api.cloudPreflight).mockResolvedValue(PREFLIGHT_OK)
     const u = userEvent.setup()
-    renderWithProviders(<RemoteCrewPanel />)
+    renderWithProviders(<RemoteInstancesPanel />)
 
     await u.click(await screen.findByRole('button', { name: /Set up a new one/i }))
     // The sub-agent count is the headline the size choice turns on, so it must be
@@ -471,12 +471,12 @@ describe('RemoteCrewPanel', () => {
     expect(document.body.textContent).not.toContain('{{')
   })
 
-  it('shows the error and a retry when the crew list fails to load', async () => {
-    // A failed load must not render "no crews yet" — that reads as "your crews
+  it('shows the error and a retry when the instance list fails to load', async () => {
+    // A failed load must not render "no instances yet" — that reads as "your instances
     // are gone" when the list simply did not come back.
     vi.mocked(api.listInstances).mockRejectedValue(new ApiError(500, 'gateway exploded'))
     vi.mocked(api.cloudLaunches).mockResolvedValue({ jobs: [] })
-    renderWithProviders(<RemoteCrewPanel />)
+    renderWithProviders(<RemoteInstancesPanel />)
 
     expect(await screen.findByText(/gateway exploded/i)).toBeInTheDocument()
     expect(screen.queryByText(/No instances yet/i)).not.toBeInTheDocument()
@@ -492,7 +492,7 @@ describe('RemoteCrewPanel', () => {
     ;(denial as unknown as { authRequired: boolean }).authRequired = true
     vi.mocked(api.listInstances).mockRejectedValue(denial)
     vi.mocked(api.cloudLaunches).mockResolvedValue({ jobs: [] })
-    renderWithProviders(<RemoteCrewPanel />)
+    renderWithProviders(<RemoteInstancesPanel />)
 
     expect(await screen.findByText(/junction token/i)).toBeInTheDocument()
     expect(screen.getAllByRole('button', { name: /Refresh/i }).length).toBe(1)
@@ -505,7 +505,7 @@ describe('RemoteCrewPanel', () => {
       active: false, warm_set_cap: 5, instances: [CLOUD_INSTANCE],
     })
     vi.mocked(api.cloudLaunches).mockResolvedValue({ jobs: [] })
-    renderWithProviders(<RemoteCrewPanel />)
+    renderWithProviders(<RemoteInstancesPanel />)
 
     expect(await screen.findByRole('status')).toHaveTextContent(/restart/i)
   })
@@ -515,7 +515,7 @@ describe('RemoteCrewPanel', () => {
     vi.mocked(api.cloudLaunches).mockResolvedValue({ jobs: [] })
     vi.mocked(api.cloudPreflight).mockResolvedValue(PREFLIGHT_OK)
     const u = userEvent.setup()
-    renderWithProviders(<RemoteCrewPanel />)
+    renderWithProviders(<RemoteInstancesPanel />)
 
     await u.click(await screen.findByRole('button', { name: /Set up a new one/i }))
     // Collapsed: the arm64 ladder only.
@@ -534,14 +534,14 @@ describe('RemoteCrewPanel', () => {
     )
   })
 
-  it('launches a cloud crew when prerequisites pass and shows the progress card', async () => {
+  it('launches a cloud instance when prerequisites pass and shows the progress card', async () => {
     vi.mocked(api.listInstances).mockResolvedValue({ active: true, warm_set_cap: 5, instances: [] })
     vi.mocked(api.cloudLaunches).mockResolvedValue({ jobs: [] })
     vi.mocked(api.cloudPreflight).mockResolvedValue(PREFLIGHT_OK)
     vi.mocked(api.cloudLaunch).mockResolvedValue(RUNNING_JOB)
     vi.mocked(api.cloudLaunchStatus).mockResolvedValue(RUNNING_JOB)
     const u = userEvent.setup()
-    renderWithProviders(<RemoteCrewPanel />)
+    renderWithProviders(<RemoteInstancesPanel />)
 
     await u.click(await screen.findByRole('button', { name: /Set up a new one/i }))
     const launch = await screen.findByRole('button', { name: /^Launch$/ })

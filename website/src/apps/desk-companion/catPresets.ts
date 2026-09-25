@@ -1,5 +1,5 @@
 /**
- * CrewCompanion - Cat Color Preset System
+ * Companion - Cat Color Preset System
  *
  * Data model, validation, and registry for cat color presets.
  * Pure logic — no Electron or DOM dependencies.

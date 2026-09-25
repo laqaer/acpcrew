@@ -243,9 +243,9 @@ def test_arbitrary_pycache_prefix_is_not_adopted(tmp_path, monkeypatch):
     """
     from junction import pycache_gc
 
-    configured = tmp_path / "crew" / "cache" / "pycache"
+    configured = tmp_path / "data-home" / "cache" / "pycache"
     foreign = tmp_path / "somewhere" / "else"
-    monkeypatch.setattr(pycache_gc, "config_dir", lambda: tmp_path / "crew")
+    monkeypatch.setattr(pycache_gc, "config_dir", lambda: tmp_path / "data-home")
     monkeypatch.setattr(pycache_gc.sys, "pycache_prefix", str(foreign))
 
     assert pycache_gc.pycache_cache_dir() == configured
@@ -255,9 +255,9 @@ def test_matching_pycache_prefix_form_is_honored(tmp_path, monkeypatch):
     """When the active prefix IS the configured dir, its path form wins."""
     from junction import pycache_gc
 
-    configured = tmp_path / "crew" / "cache" / "pycache"
+    configured = tmp_path / "data-home" / "cache" / "pycache"
     configured.mkdir(parents=True)
-    monkeypatch.setattr(pycache_gc, "config_dir", lambda: tmp_path / "crew")
+    monkeypatch.setattr(pycache_gc, "config_dir", lambda: tmp_path / "data-home")
     monkeypatch.setattr(pycache_gc.sys, "pycache_prefix", str(configured))
 
     assert pycache_gc.pycache_cache_dir() == configured

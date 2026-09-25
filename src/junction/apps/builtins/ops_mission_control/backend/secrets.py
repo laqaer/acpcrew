@@ -12,7 +12,7 @@ ambient credential chain (profile / role / instance role). The app never accepts
 stores, or transmits an AWS access key — "IAM roles over keys" applied directly.
 
 **Third-party tokens live on the keystone floor.** They go in
-``<crew_home>/ops_mission_control_secrets.json``, whose filename is registered in
+``<data home>/ops_mission_control_secrets.json``, whose filename is registered in
 ``security._DATA_HOME_SECRET_LEAVES``. That places it on the shared read+write
 sensitive-path floor, so the AGENT'S OWN file tools and shell cannot read or write
 it — the same mechanism that makes the governance ceiling un-disableable. The

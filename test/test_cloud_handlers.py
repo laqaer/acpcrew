@@ -183,7 +183,7 @@ class TestReadEndpoints:
 
 class TestPluginInstallCommand:
     """The remedy must match the GATEWAY's platform. A hardcoded Homebrew line is
-    wrong for every Linux host — and Linux is the common case for a remote crew."""
+    wrong for every Linux host — and Linux is the common case for a remote instance."""
 
     def _cmd(self, monkeypatch, system, arch, present):
         from junction.cloud import ssm
@@ -516,8 +516,8 @@ class TestInstanceMutations:
         self, tmp_path, monkeypatch
     ):
         """Confirmed deletion is what licenses dropping local state: without the
-        cleanup the crew stays in the Instances registry and keeps showing in the
-        crew list, where connecting to it fails because the box is gone."""
+        cleanup the instance stays in the Instances registry and keeps showing in the
+        instance list, where connecting to it fails because the box is gone."""
         calls = {}
 
         def _unregister(iid):
@@ -549,7 +549,7 @@ class TestInstanceMutations:
     async def test_destroy_keeps_local_state_when_deletion_does_not_confirm(
         self, tmp_path, monkeypatch
     ):
-        """DELETE_FAILED means the crew is still there. Dropping its registration
+        """DELETE_FAILED means the instance is still there. Dropping its registration
         and source archive then would strand a live, billing instance the user can
         no longer see in the dashboard — so both must survive."""
         calls = {}
@@ -577,7 +577,7 @@ class TestInstanceMutations:
         self, tmp_path, monkeypatch
     ):
         """instance_id is an optional query param, so a caller that omits it would
-        silently skip the unregister and leave a deleted crew listed. The route
+        silently skip the unregister and leave a deleted instance listed. The route
         resolves it from the stack itself — before the delete, since the outputs
         are unreadable once the stack is gone."""
         calls = {}
@@ -620,12 +620,12 @@ class TestInstanceMutations:
         assert resp.status == 400
         assert _body(resp)["code"] == "invalid_cloud_parameter"
 
-    async def test_a_mismatched_instance_id_query_cannot_unregister_another_crew(
+    async def test_a_mismatched_instance_id_query_cannot_unregister_another_instance(
         self, tmp_path, monkeypatch
     ):
         """`unregister_instance` matches its needle against every registered box with
         no cross-check against the tag, so honouring a caller-supplied id would let a
-        mismatched value drop a still-living crew's registration. The id is derived
+        mismatched value drop a still-living instance's registration. The id is derived
         from the stack being deleted; the query value is ignored."""
         calls = {}
         monkeypatch.setattr(hc.ec2, "describe", lambda tag, p, r: {"instance_id": "i-mine"})
@@ -649,7 +649,7 @@ class TestInstanceMutations:
     async def test_a_failed_id_lookup_still_deletes_the_stack(self, tmp_path, monkeypatch):
         """The id lookup shells out to AWS. If it throws — including non-AWSError
         types like a sandbox/exec failure — the delete must still go through, or the
-        user is stranded with a crew they cannot remove."""
+        user is stranded with an instance they cannot remove."""
         def _explode(*a, **k):
             raise RuntimeError("no sandbox backend available")
 

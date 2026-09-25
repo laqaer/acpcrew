@@ -1,11 +1,11 @@
 /**
- * The crew overview: what wakes this crew on the left, what it works with on the
- * right, the crew itself in the middle.
+ * The agent overview: what wakes this agent on the left, what it works with on the
+ * right, the agent itself in the middle.
  *
  * The two columns exist because the editor's hardest copy problem is that
- * `triggers` (which decides when the orchestrator PICKS this crew for work a
+ * `triggers` (which decides when the orchestrator PICKS this agent for work a
  * human started) and a schedule (which starts a turn with nobody present) read as
- * the same kind of thing when stacked as prose — `CrewWakeSection` carries a
+ * the same kind of thing when stacked as prose — `AgentWakeSection` carries a
  * sentence of disclaimer to say they are not. Direction is the thing being
  * explained, so it is drawn rather than asserted.
  *
@@ -26,7 +26,7 @@
 import type { LucideIcon } from 'lucide-react'
 
 /** One box in either column. */
-export interface CrewWireNode {
+export interface AgentWireNode {
   key: string
   icon: LucideIcon
   /** What kind of thing it is, e.g. "Workspace". */
@@ -39,7 +39,7 @@ export interface CrewWireNode {
   muted?: boolean
   /** Short status pill on the row's trailing edge. */
   tag?: string
-  /** Dashed and dimmed: a real input that carries no crew binding yet. Drawn so
+  /** Dashed and dimmed: a real input that carries no agent binding yet. Drawn so
    *  the gap is visible rather than absent. */
   ghost?: boolean
 }
@@ -120,7 +120,7 @@ function Elbow({ from, to, width, colour, dashed, toHub }: {
 
 /** A whole fan: one elbow per node, positioned from the column's LENGTH. */
 function Fan({ nodes, width, band, colour, toHub }: {
-  nodes: CrewWireNode[]
+  nodes: AgentWireNode[]
   width: number
   band: number
   colour: string
@@ -131,7 +131,7 @@ function Fan({ nodes, width, band, colour, toHub }: {
     <div
       className="relative hidden shrink-0 sm:block"
       style={{ width, height: band }}
-      data-testid={`crew-wire-fan-${toHub ? 'in' : 'out'}`}
+      data-testid={`agent-wire-fan-${toHub ? 'in' : 'out'}`}
       aria-hidden="true"
     >
       {nodes.map((n, i) => {
@@ -153,7 +153,7 @@ function Fan({ nodes, width, band, colour, toHub }: {
 }
 
 function WireNode({ node, side, onSelect }: {
-  node: CrewWireNode
+  node: AgentWireNode
   side: 'in' | 'out'
   /** Selecting the node opens the pane that edits what it shows. Required:
    *  a box that looks pressable but answers nothing is the affordance bug
@@ -221,33 +221,33 @@ function WireNode({ node, side, onSelect }: {
           : 'hover:bg-bg-hover',
       ].join(' ')}
       style={{ height: BOX }}
-      data-testid={`crew-wire-${node.key}`}
+      data-testid={`agent-wire-${node.key}`}
     >
       {inner}
     </button>
   )
 }
 
-export interface CrewOverviewDiagramProps {
-  inputs: CrewWireNode[]
-  outputs: CrewWireNode[]
+export interface AgentOverviewDiagramProps {
+  inputs: AgentWireNode[]
+  outputs: AgentWireNode[]
   /** Heading over the left column. */
   inputsLabel: string
   /** Heading over the right column. */
   outputsLabel: string
-  /** The crew's avatar, rendered in the hub. */
+  /** The agent's avatar, rendered in the hub. */
   hub: React.ReactNode
   /** Called with the node's `key` when a node is selected. Every node renders
    *  as a button; the map from key to editor pane lives with the caller. */
   onNodeSelect: (key: string) => void
 }
 
-export default function CrewOverviewDiagram({
+export default function AgentOverviewDiagram({
   inputs, outputs, inputsLabel, outputsLabel, hub, onNodeSelect,
-}: CrewOverviewDiagramProps) {
+}: AgentOverviewDiagramProps) {
   const band = Math.max(inputs.length, outputs.length, 1) * ROW
 
-  const column = (nodes: CrewWireNode[], side: 'in' | 'out', label: string) => (
+  const column = (nodes: AgentWireNode[], side: 'in' | 'out', label: string) => (
     <div className="min-w-0 flex-1">
       <div className="mb-1.5 text-[10px] uppercase tracking-[0.08em] text-muted-strong">{label}</div>
       <div className="flex flex-col" style={{ gap: ROW - BOX }}>
@@ -264,7 +264,7 @@ export default function CrewOverviewDiagram({
     // direction the layout no longer has.
     <div
       className="flex flex-col gap-4 sm:flex-row sm:items-center sm:gap-0"
-      data-testid="crew-overview-diagram"
+      data-testid="agent-overview-diagram"
     >
       {column(inputs, 'in', inputsLabel)}
       <Fan nodes={inputs} width={56} band={band} colour="var(--aim)" toHub />

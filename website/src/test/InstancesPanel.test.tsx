@@ -107,7 +107,7 @@ describe('InstancesPanel', () => {
     renderWithProviders(<InstancesPanel />)
 
     // The form pre-fills the port a stock gateway actually binds, which is the
-    // same port the existing crew uses.
+    // same port the existing instance uses.
     const portInput = await screen.findByPlaceholderText('5476')
     expect(portInput).toHaveValue('5476')
     expect(screen.queryByText(/already used by another remote instance/i)).not.toBeInTheDocument()
@@ -152,7 +152,7 @@ describe('InstancesPanel', () => {
 
   it('reports a connect that came back not-connected instead of claiming success', async () => {
     // The mutation resolves either way; only `state` says whether the tunnel is
-    // up, so treating a resolved promise as success would show a crew as
+    // up, so treating a resolved promise as success would show an instance as
     // connected while its forward never opened.
     const inst = {
       id: 'i1', name: 'box', ssh_host: 'box', remote_port: 7777, local_port: 7801,

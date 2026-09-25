@@ -163,9 +163,9 @@ class SignedClient:
 def fixtures(tmp_path: Path, monkeypatch: pytest.MonkeyPatch, _seed_template: Path):
     """A fresh backend module bound to a temp home, plus git fixture repos."""
     monkeypatch.setenv("MD_NOTEBOOK_HOME", str(tmp_path / "home"))
-    # The PAT lives under the crew data home (config_dir), never MD_NOTEBOOK_HOME,
+    # The PAT lives under the Junction data home (config_dir), never MD_NOTEBOOK_HOME,
     # so isolate JUNCTION_HOME too or tests would touch the real ~/.junction.
-    monkeypatch.setenv("JUNCTION_HOME", str(tmp_path / "crew"))
+    monkeypatch.setenv("JUNCTION_HOME", str(tmp_path / "data-home"))
     monkeypatch.setenv("JUNCTION_PROXY_SECRET", SECRET)
     monkeypatch.setenv("MD_NOTEBOOK_NO_PICKER", "1")
     from junction.apps.builtins.md_notebook import server as server_mod
@@ -1003,10 +1003,10 @@ def test_path_contains_sensitive_flags_ancestors_of_credentials(
     benign = tmp_path / "elsewhere" / "notes"
     benign.mkdir(parents=True)
     assert security.path_contains_sensitive(str(benign)) is False
-    # A custom JUNCTION_HOME re-anchors the crew secret leaves — a folder
+    # A custom JUNCTION_HOME re-anchors the data home's secret leaves — a folder
     # containing THAT must be refused as well (the Notes PAT lives there).
-    crew = tmp_path / "elsewhere" / "notes" / "crew"
-    monkeypatch.setenv("JUNCTION_HOME", str(crew))
+    data_home = tmp_path / "elsewhere" / "notes" / "data-home"
+    monkeypatch.setenv("JUNCTION_HOME", str(data_home))
     assert security.path_contains_sensitive(str(benign)) is True
 
 
@@ -1044,34 +1044,34 @@ async def test_attach_expands_leading_tilde(fixtures, monkeypatch, tmp_path: Pat
 
 def test_pat_stays_under_data_home_ignoring_md_notebook_home(monkeypatch, tmp_path: Path) -> None:
     """MD_NOTEBOOK_HOME may relocate vaults, but the PAT must stay under the
-    crew data home so it remains behind is_sensitive_path()'s floor. Pointing
+    Junction data home so it remains behind is_sensitive_path()'s floor. Pointing
     MD_NOTEBOOK_HOME at an unprotected dir must not move the credential there."""
-    crew = tmp_path / "crew"
+    data_home = tmp_path / "data-home"
     stray = tmp_path / "stray"
-    monkeypatch.setenv("JUNCTION_HOME", str(crew))
+    monkeypatch.setenv("JUNCTION_HOME", str(data_home))
     monkeypatch.setenv("MD_NOTEBOOK_HOME", str(stray))
     from junction.apps.builtins.md_notebook import server as server_mod
 
     server_mod = importlib.reload(server_mod)
     pat = server_mod._pat_file()
-    # The PAT is under the crew data home, NOT the stray MD_NOTEBOOK_HOME.
+    # The PAT is under the Junction data home, NOT the stray MD_NOTEBOOK_HOME.
     assert str(stray) not in str(pat), pat
     assert pat.parts[-3:] == ("workspace", "md-notebook", "pat"), pat
-    assert str(crew) in str(pat), pat
+    assert str(data_home) in str(pat), pat
     # settings.json carries `autoSync` (authorizes unattended push), so like the
-    # PAT it MUST stay under the crew data home behind the sensitive-path floor —
+    # PAT it MUST stay under the data home behind the sensitive-path floor —
     # MD_NOTEBOOK_HOME must not relocate it to an unprotected dir an agent could
     # write.
     settings = server_mod._settings_json()
     assert str(stray) not in str(settings), settings
-    assert str(crew) in str(settings), settings
+    assert str(data_home) in str(settings), settings
     # The vault REGISTRY carries each vault's push target (remoteUrl/gitDir) that
-    # the unattended sync loop trusts, so vaults.json is fenced under the crew data
+    # the unattended sync loop trusts, so vaults.json is fenced under the data
     # home too — MD_NOTEBOOK_HOME must not relocate it where an agent could repoint
     # the push.
     vaults = server_mod._vaults_json()
     assert str(stray) not in str(vaults), vaults
-    assert str(crew) in str(vaults), vaults
+    assert str(data_home) in str(vaults), vaults
     # The clone DATA, by contrast, is bulk per-instance content and DOES follow
     # MD_NOTEBOOK_HOME.
     assert str(stray) in str(server_mod._clone_root())

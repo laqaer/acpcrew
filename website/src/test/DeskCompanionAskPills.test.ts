@@ -38,7 +38,7 @@ const en = flatten(EN_TRANSLATION)
 describe('ask-row pill labels resolve', () => {
   it('every pill key is fully namespaced', () => {
     for (const key of ASK_CHOICE_KEYS) {
-      expect(key.startsWith('apps.crewCompanion.')).toBe(true)
+      expect(key.startsWith('apps.deskCompanion.')).toBe(true)
     }
   })
 

@@ -5312,14 +5312,14 @@ def register_routes(app: web.Application) -> None:
         "/api/apps/issue-radar/labels/apply-bulk", _require_enabled(_handle_labels_apply_bulk)
     )
 
-    # Crews (the worker-agent surface) live in their own module but register HERE,
+    # Stewards (the worker-agent surface) live in their own module but register HERE,
     # so this function stays the single place that lists this app's routes. The
     # import is function-local because it is CIRCULAR: steward_routes imports this
     # module for the shared gates (_require_enabled, _pr_action_preamble, _st), so
     # a module-scope import here would reach a half-initialized routes module.
     from . import steward_routes
 
-    steward_routes.register_crew_routes(app)
+    steward_routes.register_steward_routes(app)
 
     # Background new-issue watcher: a single in-process asyncio loop (NOT a cron
     # job) that polls opted-in repos every ~60s and pushes a Junction

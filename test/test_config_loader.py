@@ -3734,15 +3734,15 @@ class TestOrchestratorWatchdogThemeAreParsed:
         td = cfg.to_dict()
         assert td["agents"]["pr-reviewer"]["watchdog_tool_stall_suspect_secs"] == 900.0
 
-    def test_factory_resolves_canonical_crew_identity(
+    def test_factory_resolves_canonical_agent_identity(
         self, monkeypatch: pytest.MonkeyPatch
     ) -> None:
-        """The provider factory resolves crew_agent ONCE at provider-creation:
+        """The provider factory resolves canonical_agent ONCE at provider-creation:
         an explicit kwarg wins verbatim (the dashboard's resolved identity,
-        including the authoritative ""), and absent that, a crew-name-passing
-        surface (Slack/cron — see _resolve_model_for_agent's surface
-        convention) is covered by crew-namespace membership; a non-crew name
-        (a kiro template) yields "" so no override can attach to it."""
+        including the authoritative ""), and absent that, a surface that passes
+        a Junction agent name (Slack/cron — see junction.session._session_model's
+        surface convention) is covered by agent-namespace membership; any other
+        name (a kiro template) yields "" so no override can attach to it."""
         import junction.providers.acp as acp_mod
 
         captured: list[dict] = []
@@ -3755,12 +3755,12 @@ class TestOrchestratorWatchdogThemeAreParsed:
         cfg = _load_from_dict({"agents": {"pr-reviewer": {"kiro_agent": "pr-reviewer-kiro"}}})
         factory = cfg.create_provider_factory()
 
-        factory("k1", agent="pr-reviewer-kiro", crew_agent="pr-reviewer")
-        factory("k2", agent="pr-reviewer")  # crew-name surface, no kwarg
+        factory("k1", agent="pr-reviewer-kiro", canonical_agent="pr-reviewer")
+        factory("k2", agent="pr-reviewer")  # agent-name surface, no kwarg
         factory("k3", agent="pr-reviewer-kiro")  # kiro template, no kwarg
-        factory("k4", agent="pr-reviewer-kiro", crew_agent="")  # explicit no-crew
+        factory("k4", agent="pr-reviewer-kiro", canonical_agent="")  # explicit no-agent
 
-        assert [c["crew_agent"] for c in captured] == ["pr-reviewer", "pr-reviewer", "", ""]
+        assert [c["canonical_agent"] for c in captured] == ["pr-reviewer", "pr-reviewer", "", ""]
 
     def test_dashboard_theme_fields_are_parsed(self) -> None:
         cfg = _load_from_dict(
@@ -4827,12 +4827,12 @@ class TestUnsatisfiableSubagentCwdRoots(unittest.TestCase):
 
 
 def test_agent_triggers_load() -> None:
-    """`triggers` loads from config verbatim; a crew without triggers has ''."""
+    """`triggers` loads from config verbatim; an agent without triggers has ''."""
     cfg = _load_from_dict(
         {
             "agents": {
                 "oncall": {"kiro_agent": "junction", "triggers": "incident, outage"},
-                "research": {"kiro_agent": "junction", "description": "deep research crew"},
+                "research": {"kiro_agent": "junction", "description": "deep research agent"},
                 "weird": {"kiro_agent": "junction", "triggers": 1},
             },
             "default_agent": "oncall",
@@ -4841,11 +4841,11 @@ def test_agent_triggers_load() -> None:
     )
     # Explicit triggers load verbatim.
     assert cfg.agents["oncall"].triggers == "incident, outage"
-    # A crew that defines no triggers keeps an empty string — it is not a routing
+    # An agent that defines no triggers keeps an empty string — it is not a routing
     # candidate (no fallback to the description).
     assert cfg.agents["research"].triggers == ""
     # A non-string triggers value is normalized to "" on load (never survives to
-    # select_crew's .strip()).
+    # select_agent's .strip()).
     assert cfg.agents["weird"].triggers == ""
 
 

@@ -56,7 +56,7 @@ ARG KIRO_CLI_VERSION=latest
 ARG SOURCE_REPO_URL="https://github.com/laqaer/junction"
 
 LABEL org.opencontainers.image.source="${SOURCE_REPO_URL}" \
-      org.opencontainers.image.description="Junction gateway — personal AI agent crew (dashboard + Slack/Discord/Telegram/WeCom/Webex)" \
+      org.opencontainers.image.description="Junction gateway — local control plane for coding agents (dashboard + Slack/Discord/Telegram/WeCom/Webex)" \
       org.opencontainers.image.licenses="MIT" \
       org.opencontainers.image.version="${JUNCTION_VERSION}" \
       org.opencontainers.image.revision="${VCS_REF}" \

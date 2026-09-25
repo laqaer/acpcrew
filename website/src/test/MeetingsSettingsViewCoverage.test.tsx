@@ -66,7 +66,7 @@ function configResponse(overrides: Partial<MeetingsConfig> = {}): ConfigResponse
   return { ...REGISTRIES, config: { ...BASE_CONFIG, ...overrides } }
 }
 
-const TERM: DictionaryTerm = { correct: 'Junction', aliases: ['kiro cru', 'kero crew'] }
+const TERM: DictionaryTerm = { correct: 'Junction', aliases: ['junk shun', 'jung shin'] }
 
 function renderView() {
   const notify = vi.fn()
@@ -314,12 +314,12 @@ describe('Meetings SettingsView — speech dictionary', () => {
 
     const aliases = await screen.findByLabelText('Misheard forms')
     const correct = screen.getByLabelText('Correct term')
-    fireEvent.change(aliases, { target: { value: ' kiro cru , , kero crew ' } })
+    fireEvent.change(aliases, { target: { value: ' junk shun , , jung shin ' } })
     fireEvent.change(correct, { target: { value: '  Junction  ' } })
     fireEvent.keyDown(correct, { key: 'Enter' })
 
     await waitFor(() =>
-      expect(apiMocks.addTerm).toHaveBeenCalledWith('Junction', ['kiro cru', 'kero crew']),
+      expect(apiMocks.addTerm).toHaveBeenCalledWith('Junction', ['junk shun', 'jung shin']),
     )
     await waitFor(() => expect(aliases).toHaveValue(''))
     expect(correct).toHaveValue('')
@@ -361,7 +361,7 @@ describe('Meetings SettingsView — speech dictionary', () => {
     apiMocks.dictionary.mockResolvedValue({ terms: [TERM] })
     renderView()
 
-    expect(await screen.findByText('kiro cru, kero crew')).toBeInTheDocument()
+    expect(await screen.findByText('junk shun, jung shin')).toBeInTheDocument()
     fireEvent.click(screen.getByRole('button', { name: 'Remove Junction' }))
 
     await waitFor(() => expect(apiMocks.removeTerm).toHaveBeenCalledWith('Junction'))

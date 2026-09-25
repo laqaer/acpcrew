@@ -133,13 +133,13 @@ _REDACTION_SINKS: tuple[tuple[str, str, str], ...] = (
         "Azure DevOps comment bodies",
         "apps/builtins/issue_radar/backend/azure_client.py",
         "The text Issue Radar posts as a work-item or pull-request comment on Azure "
-        "DevOps. A comment body is frequently model-authored -- a crew's reply, or an "
+        "DevOps. A comment body is frequently model-authored -- a steward's reply, or an "
         "AI summary the user accepted -- and publishing it is irreversible: it lands "
         "somewhere public and permanent on the customer's own organization, so a "
         "credential or an exfiltration URL cannot be walked back. `_comment_text` "
         "therefore runs the two-pass chain at the client, immediately before the body "
         "reaches `az devops invoke`, rather than trusting each caller to have "
-        "redacted; the crew path already redacts and loses nothing, because both "
+        "redacted; the steward path already redacts and loses nothing, because both "
         "passes are idempotent.",
     ),
     (
@@ -526,9 +526,9 @@ _REDACTION_SINKS: tuple[tuple[str, str, str], ...] = (
         "Workflow progress summaries injected back into a session.",
     ),
     (
-        "Crew Mode delivery",
+        "Multitask Mode delivery",
         "multitask_chat.py",
-        "Every crew-slot post (`_post`): forwarded subagent summaries/errors, "
+        "Every multitask-slot post (`_post`): forwarded subagent summaries/errors, "
         "decision-agent questions, and topic-meta renders — all LLM-authored — "
         "written to the transcript, broadcast over WS, and persisted to the "
         "conversation log.",
@@ -1174,7 +1174,7 @@ NON_EGRESS_REDACTION_MODULES: frozenset[str] = frozenset(
         # scan hits, and the change degrades to the local queue instead. Lives in
         # push_policy because all three push paths share this one implementation.
         "apps/builtins/auto_improvement/spine/push_policy.py",
-        # Inbound: the crew worker's slot title is derived from an issue title,
+        # Inbound: the steward worker's slot title is derived from an issue title,
         # which is untrusted text anyone who can open an issue wrote. It is
         # scrubbed before it becomes a slot title (and fails CLOSED to the slot
         # key if the redactors are unavailable), so this is inbound sanitisation

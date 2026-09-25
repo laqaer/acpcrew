@@ -55,32 +55,32 @@ describe('topbar identity track at phone widths', () => {
     }
   })
 
-  // The identity group holds the nav button AND the crew switcher, whose dropdown
-  // TRAILS the chips -- so the dropdown, the only complete route to another crew,
+  // The identity group holds the nav button AND the instance switcher, whose dropdown
+  // TRAILS the chips -- so the dropdown, the only complete route to another instance,
   // is what leaves the clip box first when the group runs out of room. Two rungs
   // bound it: the chip names go, then the active chip. Both are asserted here
   // because the hooks live in a component and a rename would otherwise disable
   // the ladder silently, with no failing test and no visible change on a desktop.
-  it('bounds the identity group so the crew dropdown never leaves the clip box', async () => {
+  it('bounds the identity group so the instance dropdown never leaves the clip box', async () => {
     const s = await css()
     expect(s, 'expected the chip-name rung').toMatch(
-      /@container \(max-width:152px\)\{\s*\.tb-left \.tb-drop-crew-name\{display:none\}\s*\}/,
+      /@container \(max-width:152px\)\{\s*\.tb-left \.tb-drop-instance-name\{display:none\}\s*\}/,
     )
     expect(s, 'expected the terminal active-chip rung').toMatch(
-      /@container \(max-width:128px\)\{\s*\.tb-left \.tb-crew-active-chip\{display:none\}\s*\}/,
+      /@container \(max-width:128px\)\{\s*\.tb-left \.tb-instance-active-chip\{display:none\}\s*\}/,
     )
     // The chip row is deliberately NOT hidden: a display:none row measures as
     // zero-width chips at offset zero, which its own clipped-chip measurement
     // reads as "on screen" and the dropdown's aggregate badge then drops their
     // unread. Shrinking to nothing via min-width:0 reads as cut off instead.
     for (const rung of s.match(/@container[^{]*\{[^}]*\}/g) || []) {
-      expect(rung, 'a rung hides the chip row').not.toMatch(/crew-chip-row/)
+      expect(rung, 'a rung hides the chip row').not.toMatch(/instance-chip-row/)
     }
   })
 
   it('keeps both ladder hooks on the markup they collapse', async () => {
     const tsx = await readFile(join(__dirname, '..', 'components', 'InstanceTabBar.tsx'), 'utf8')
-    expect(tsx, 'the chip name carries the rung hook').toMatch(/tb-drop-crew-name/)
-    expect(tsx, 'the active chip carries the terminal-rung hook').toMatch(/tb-crew-active-chip/)
+    expect(tsx, 'the chip name carries the rung hook').toMatch(/tb-drop-instance-name/)
+    expect(tsx, 'the active chip carries the terminal-rung hook').toMatch(/tb-instance-active-chip/)
   })
 })

@@ -40,10 +40,10 @@ class _RealSigninHandle:
             # raise straight out of this constructor -> begin_signin -> the launch
             # worker, failing the job BEFORE register() ran — leaving a provisioned,
             # billing instance that was never registered and so never appeared in the
-            # crew list. That is the same stranding wait() was already hardened
+            # instance list. That is the same stranding wait() was already hardened
             # against; this constructor was the one remaining path that could still
             # cause it. Continue with an empty, unconfirmed prompt so the launch still
-            # reaches register(): the crew becomes visible and the user finishes
+            # reaches register(): the remote Junction becomes visible and the user finishes
             # sign-in from the dashboard (or deletes it) rather than paying for an
             # invisible instance. Broad on purpose — an exec/sandbox failure arrives
             # as an unrelated exception type, and every mode means the same thing here.
@@ -66,8 +66,8 @@ class _RealSigninHandle:
             # transient SSM failure here used to propagate out of wait(), fail the
             # whole job, and return before STEP_CONNECT — leaving a provisioned,
             # billing instance that was never registered and so never appeared in the
-            # crew list. "We could not confirm sign-in" is the honest outcome, and it
-            # lets the launch finish registering so the user can see the crew and
+            # instance list. "We could not confirm sign-in" is the honest outcome, and it
+            # lets the launch finish registering so the user can see the instance and
             # complete sign-in from the dashboard (the device code is preserved).
             login.resume_login_daemon(self._iid, self._profile, self._region)
             # Poll one attempt at a time so a cancel lands within ~5s. Calling
@@ -87,7 +87,7 @@ class _RealSigninHandle:
             # AWS CLI, so an exec/sandbox failure arrives as an unrelated exception
             # type. Every failure mode means the same thing to the caller — sign-in
             # is unconfirmed — and none of them justifies stranding a paid instance
-            # outside the crew list.
+            # outside the instance list.
             logger.info("could not confirm Kiro sign-in for %s", self._iid, exc_info=True)
             return False
 
@@ -112,10 +112,9 @@ class RealLaunchEngine:
     def provision(self, *, tag: str, size_key: str, profile: str, region: str) -> str:
         tier = sizes.get_tier(size_key)
         # No dashboard_port override: the stack binds its own DashboardPort
-        # default. A crew once needed a bespoke port here because the tunnel
-        # forced local_port == remote_port and hard-failed on a busy one; the
-        # hub now picks its local forward port independently, so crews can
-        # share the stock remote port instead of each consuming a fresh one.
+        # default. The hub picks its local forward port independently of the
+        # remote one, so every remote Junction shares the stock remote port
+        # instead of each consuming a fresh one.
         result = ec2.deploy(
             tag=tag,
             tier=tier,
@@ -130,7 +129,7 @@ class RealLaunchEngine:
     def register(self, *, instance_id: str, tag: str, profile: str, region: str) -> None:
         # remote_port stays at register_instance's own default, which matches
         # the stack's DashboardPort default bound above — the two ends of one
-        # crew must name the same port or the tunnel forwards to nothing.
+        # remote Junction must name the same port or the tunnel forwards to nothing.
         registered = connect_mod.register_instance(
             instance_id, name=f"Junction Cloud ({tag})", profile=profile, region=region,
         )
@@ -138,13 +137,14 @@ class RealLaunchEngine:
             # register_instance is best-effort BY CONTRACT: it returns None both when the
             # Instances feature is unavailable and when the registry write raises, logging
             # instead of propagating. Ignoring that return marks the launch `done` while
-            # the crew is absent from the dashboard — the user is told setup succeeded and
-            # is left paying for an instance that never appears in their crew list. Fail
-            # loudly, and name the instance so it can still be recovered by hand.
+            # the remote Junction is absent from the dashboard — the user is told setup
+            # succeeded and is left paying for an instance that never appears in their
+            # instance list. Fail loudly, and name the instance so it can still be
+            # recovered by hand.
             raise RuntimeError(
-                f"The crew was created (instance {instance_id}, stack {tag}) but could not "
-                "be added to your crews. It is running and billing — add it under Remote "
-                "crew, or delete it, so it does not sit idle."
+                f"The remote Junction was created (instance {instance_id}, stack {tag}) but "
+                "could not be added to your instances. It is running and billing — add it "
+                "under Remote Instances, or delete it, so it does not sit idle."
             )
 
     def teardown(self, *, tag: str, profile: str, region: str) -> bool:

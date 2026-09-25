@@ -537,26 +537,27 @@ def _session_model(cfg: "JunctionConfig", agent: str | None) -> "str | None":
 
     ``agent`` is whatever the caller passed, and callers are not consistent: the
     dashboard passes a resolved kiro template name, while Slack threads, cron
-    jobs and spawned agents pass a Junction agent (crew) name. Both are handled
-    by trying the crew namespace first, so a crew's own ``model`` applies no
-    matter which surface starts the turn. Without this, a crew pinned to one
-    model in the Crews table still ran the template/global model from Slack or
-    cron — the same per-surface drift this tier exists to remove.
+    jobs and spawned agents pass a Junction agent name (a ``cfg.agents`` key).
+    Both are handled by trying the Junction agent namespace first, so an agent's
+    own ``model`` applies no matter which surface starts the turn. Without this,
+    an agent pinned to one model in the Agents table would still run the
+    template/global model from Slack or cron — the same per-surface drift this
+    tier exists to remove.
 
     Returns ``None`` when nothing is pinned above the kiro layer, which leaves
-    the provider factory to resolve the template pin / global itself. A crew pin
-    is returned VERBATIM because the factory has no way to discover it: it never
-    sees the crew name.
+    the provider factory to resolve the template pin / global itself. An agent
+    pin is returned VERBATIM because the factory has no way to discover it: it
+    never sees the Junction agent name.
 
     Blocking I/O (globs + reads ``~/.kiro/agents/*.json``): call in an executor.
     """
-    crew_cfg = cfg.agents.get(agent) if agent else None
-    if crew_cfg is not None:
-        crew_model = normalize_agent_model(crew_cfg.model)
-        if crew_model:
-            return crew_model
-        # The crew defers, so continue down the chain on the template it binds.
-        agent = crew_cfg.kiro_agent or agent
+    agent_cfg = cfg.agents.get(agent) if agent else None
+    if agent_cfg is not None:
+        pinned_model = normalize_agent_model(agent_cfg.model)
+        if pinned_model:
+            return pinned_model
+        # The agent defers, so continue down the chain on the template it binds.
+        agent = agent_cfg.kiro_agent or agent
 
     per_agent_model = ""
     if agent and agent != "junction":
@@ -2881,7 +2882,7 @@ class SessionManager:
                 )
 
                 if isinstance(provider, AcpProvider):
-                    # The claiming session's canonical crew identity travels
+                    # The claiming session's canonical agent identity travels
                     # with the claim: a kiro-shared client rebinds the handle's
                     # per-agent watchdog windows; the AcpClient path accepts it
                     # for parity. Pool claims are default-agent-only, so the
@@ -2895,27 +2896,27 @@ class SessionManager:
                     # circular import: session -> acp.session_handle at module
                     # scope would loop through acp.client -> session.
                     from junction.acp.session_handle import _load_watchdog_settings
-                    from junction.config.loader import resolve_crew_identity
+                    from junction.config.loader import resolve_agent_identity
 
-                    _claim_kwarg = extra_factory_kwargs.get("crew_agent")
+                    _claim_kwarg = extra_factory_kwargs.get("canonical_agent")
 
                     def _resolve_claim_watchdog() -> tuple[str, object]:
                         # Same identity rule as the provider factory (a claim
                         # must match the cold start it replaces), on a FRESH
-                        # config so a crew added since factory build resolves.
+                        # config so an agent added since factory build resolves.
                         _cfg = JunctionConfig.load()
-                        _crew = resolve_crew_identity(
+                        canonical = resolve_agent_identity(
                             _cfg,
                             agent,
                             None if _claim_kwarg is None else str(_claim_kwarg),
                         )
-                        return _crew, _load_watchdog_settings(_crew)
+                        return canonical, _load_watchdog_settings(canonical)
 
-                    _claim_crew, _claim_wd = await asyncio.to_thread(_resolve_claim_watchdog)
+                    _claim_agent, _claim_wd = await asyncio.to_thread(_resolve_claim_watchdog)
                     provider.client.rekey(
                         key,
                         channel_id,
-                        crew_agent=_claim_crew,
+                        canonical_agent=_claim_agent,
                         watchdog=_claim_wd,
                     )
                     # Switch model post-claim if caller requested non-default.

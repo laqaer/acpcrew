@@ -123,18 +123,18 @@ export default function BreathingOverlay({ onDone, onEnd }: BreathingOverlayProp
    */
   const phrase: Array<{ text: string; muted: boolean }> = (() => {
     if (state.ready) {
-      return [{ text: i18nT('apps.crewCompanion.breathe.ready'), muted: false }]
+      return [{ text: i18nT('apps.deskCompanion.breathe.ready'), muted: false }]
     }
     if (state.phaseIndex === 1) {
-      return [{ text: i18nT('apps.crewCompanion.breathe.hold'), muted: false }]
+      return [{ text: i18nT('apps.deskCompanion.breathe.hold'), muted: false }]
     }
     const inhaling = state.phaseIndex === 0
     const route = inhaling
-      ? i18nT('apps.crewCompanion.breathe.through_nose')
-      : i18nT('apps.crewCompanion.breathe.through_mouth')
+      ? i18nT('apps.deskCompanion.breathe.through_nose')
+      : i18nT('apps.deskCompanion.breathe.through_mouth')
     const tmpl = inhaling
-      ? i18nT('apps.crewCompanion.breathe.inhale_with_route')
-      : i18nT('apps.crewCompanion.breathe.exhale_with_route')
+      ? i18nT('apps.deskCompanion.breathe.inhale_with_route')
+      : i18nT('apps.deskCompanion.breathe.exhale_with_route')
 
     // Split on the slot MARKER as a pattern, not a string literal — each language
     // places the
@@ -167,12 +167,12 @@ export default function BreathingOverlay({ onDone, onEnd }: BreathingOverlayProp
 
   return (
     <div className="cc-breathe" role="dialog" aria-modal="true"
-         aria-label={i18nT('apps.crewCompanion.breathe.start')}>
+         aria-label={i18nT('apps.deskCompanion.breathe.start')}>
       <button
         type="button"
         onClick={onEnd}
         className="cc-breathe-end"
-        aria-label={i18nT('apps.crewCompanion.breathe.end')}
+        aria-label={i18nT('apps.deskCompanion.breathe.end')}
       >
         <X size={14} aria-hidden="true" />
       </button>

@@ -307,7 +307,7 @@ function ProviderRow({
                 <Trash2 className="lucide-inline" /> {i18nT('apps.opsMissionControl.settingsPanel.revoke_stored_credentials')}
               </Btn>
               {/* Disclose the retention boundary HERE, next to the only control that
-                  changes it. Credentials live in a keystone file at the crew-home root
+                  changes it. Credentials live in a keystone file at the data home's root
                   (they must, for the sensitive-path floor), NOT under the app
                   directory — so uninstalling the app cannot remove them, and nothing
                   else tells the user that. Revoking before uninstall is the only way

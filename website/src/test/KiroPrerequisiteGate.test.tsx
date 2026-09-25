@@ -668,8 +668,8 @@ describe('KiroPrerequisiteGate', () => {
   })
 
   it('mounts the dashboard immediately while the first check is pending', async () => {
-    // The pending state must not render the full-screen SETUP shell ("Your
-    // crew is almost ready.") for the whole first round trip — that round trip
+    // The pending state must not render the full-screen SETUP shell ("Junction
+    // is almost ready.") for the whole first round trip — that round trip
     // is slow because the gateway probe shells out to kiro-cli twice, so a
     // returning user would see the first-run setup screen flash and vanish.
     //

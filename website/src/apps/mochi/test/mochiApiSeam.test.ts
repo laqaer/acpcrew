@@ -136,7 +136,7 @@ describe('mochiApi config shape', () => {
     // for `shortcuts`: one keyboard belongs to one computer.
     const api = await loadApi()
     await api.updateConfig({
-      mochi: { petName: 'Tofu', petInstance: 'crew-remote' },
+      mochi: { petName: 'Tofu', petInstance: 'inst-remote' },
       shortcuts: { toggleWindow: 'Alt+Shift+M' },
     })
     expect(updateSettings).toHaveBeenCalledWith({ petName: 'Tofu' })
@@ -146,7 +146,7 @@ describe('mochiApi config shape', () => {
     // The corollary: a save that changed nothing else must not fire a write whose
     // entire payload the gateway does not own.
     const api = await loadApi()
-    await api.updateConfig({ mochi: { petInstance: 'crew-remote' } })
+    await api.updateConfig({ mochi: { petInstance: 'inst-remote' } })
     expect(updateSettings).not.toHaveBeenCalled()
   })
 })
@@ -159,7 +159,7 @@ describe('mochiApi per-machine prefs overlay', () => {
     // user's real choice is invisible.
     const bridge = await import('../pet/petBridge')
     vi.spyOn(bridge, 'machinePrefs').mockResolvedValue({
-      petInstance: 'crew-shell',
+      petInstance: 'inst-shell',
       shortcuts: { toggleWindow: 'Alt+Shift+K' },
     })
 
@@ -168,7 +168,7 @@ describe('mochiApi per-machine prefs overlay', () => {
       mochi: Record<string, unknown>
       shortcuts: Record<string, string>
     }
-    expect(cfg.mochi.petInstance).toBe('crew-shell')
+    expect(cfg.mochi.petInstance).toBe('inst-shell')
     expect(cfg.shortcuts.toggleWindow).toBe('Alt+Shift+K')
   })
 

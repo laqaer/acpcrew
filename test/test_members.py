@@ -1,4 +1,4 @@
-"""Tests for the per-crew-member space (``$JUNCTION_HOME/members/<slug>/``).
+"""Tests for the per-agent member space (``$JUNCTION_HOME/members/<slug>/``).
 
 ``JUNCTION_HOME`` is pinned to a per-test tmp dir by the autouse
 ``_isolate_junction_home`` fixture, so every path here resolves under tmp.
@@ -12,6 +12,8 @@ import pytest
 
 from junction.members import (
     ACTIVITY_FILE_NAME,
+    LEGACY_VIA_SELECT_AGENT,
+    VIA_SELECT_AGENT,
     MemberSlugError,
     member_dir,
     members_root,
@@ -27,7 +29,7 @@ class TestSlugForName:
         assert slug_for_name("Code Review") == "code-review"
 
     def test_strips_accents_to_ascii(self):
-        assert slug_for_name("Café Crew") == "cafe-crew"
+        assert slug_for_name("Café Agent") == "cafe-agent"
 
     def test_collapses_punctuation_runs_to_single_hyphen(self):
         assert slug_for_name("PR   triage!!! (fast)") == "pr-triage-fast"
@@ -38,7 +40,7 @@ class TestSlugForName:
         assert slug_for_name("!!!") == "member"
 
     def test_result_always_satisfies_the_slug_pattern(self):
-        for name in ("Code Review", "Café Crew", "!!!", "a" * 200, "-leading", "trailing-"):
+        for name in ("Code Review", "Café Agent", "!!!", "a" * 200, "-leading", "trailing-"):
             validate_slug(slug_for_name(name))
 
     def test_long_name_is_truncated_without_trailing_hyphen(self):
@@ -173,23 +175,44 @@ class TestRecordActivity:
         assert len(read_activity("review-agent")) == 2
 
     def test_routing_decisions_are_not_deduped(self):
-        # Each select_crew bind is a distinct event even within one session.
-        record_activity("M", "s1", "persistent", via="select_crew")
-        record_activity("M", "s1", "persistent", via="select_crew")
+        # Each select_agent bind is a distinct event even within one session.
+        record_activity("M", "s1", "persistent", via=VIA_SELECT_AGENT)
+        record_activity("M", "s1", "persistent", via=VIA_SELECT_AGENT)
         assert len(read_activity("m")) == 2
 
     def test_routing_decision_uses_a_distinct_session_field(self):
         # A decision is recorded in the session that MADE it (the parent); the
         # member runs elsewhere. Filing it under `session` would let a consumer
         # count a session the member never ran in.
-        record_activity("M", "parent-1", "persistent", via="select_crew")
+        record_activity("M", "parent-1", "persistent", via=VIA_SELECT_AGENT)
         row = read_activity("m")[0]
         assert row["decided_in"] == "parent-1"
         assert "session" not in row
 
+    def test_legacy_via_is_filed_as_a_routing_decision(self):
+        # The legacy spelling is the same decision source: it lands under
+        # `decided_in` and is written back in the current spelling.
+        record_activity("M", "parent-1", "persistent", via=LEGACY_VIA_SELECT_AGENT)
+        row = read_activity("m")[0]
+        assert row["decided_in"] == "parent-1"
+        assert "session" not in row
+        raw = (member_dir("m") / ACTIVITY_FILE_NAME).read_text(encoding="utf-8")
+        assert json.loads(raw.strip())["via"] == VIA_SELECT_AGENT
+
+    def test_legacy_via_already_on_disk_reads_as_a_routing_decision(self):
+        # A log written by an earlier build carries the legacy value; reading it
+        # back yields the current spelling so consumers see one decision source.
+        path = member_dir("m")
+        path.mkdir(parents=True)
+        legacy_row = {"member": "M", "decided_in": "parent-1", "via": LEGACY_VIA_SELECT_AGENT}
+        (path / ACTIVITY_FILE_NAME).write_text(json.dumps(legacy_row) + "\n", encoding="utf-8")
+        rows = read_activity("m")
+        assert [r["via"] for r in rows] == [VIA_SELECT_AGENT]
+        assert rows[0]["decided_in"] == "parent-1"
+
     def test_participation_and_decisions_are_countable_apart(self):
         record_activity("M", "chat-1", "persistent", via="chat")
-        record_activity("M", "parent-1", "persistent", via="select_crew")
+        record_activity("M", "parent-1", "persistent", via=VIA_SELECT_AGENT)
         rows = read_activity("m")
         assert [r["session"] for r in rows if "session" in r] == ["chat-1"]
         assert [r["decided_in"] for r in rows if "decided_in" in r] == ["parent-1"]

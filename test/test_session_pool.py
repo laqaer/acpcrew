@@ -340,22 +340,22 @@ class TestGetOrCreatePoolIntegration:
         )
 
         assert provider is pooled
-        # crew_agent="" — the caller supplied no canonical crew identity, and
+        # canonical_agent="" — the caller supplied no canonical agent identity, and
         # the claim must still rebind (a recycled runtime never carries a
-        # previous crew's watchdog windows). The watchdog snapshot is resolved
+        # previous agent's watchdog windows). The watchdog snapshot is resolved
         # off-loop by the claim site and handed in as data.
         assert pooled.client.rekey.call_count == 1
         args, kwargs = pooled.client.rekey.call_args
         assert args == ("test-key", "ch-1")
-        assert kwargs["crew_agent"] == ""
+        assert kwargs["canonical_agent"] == ""
         assert isinstance(kwargs["watchdog"], WatchdogSettings)
         mgr._schedule_replenish.assert_called_once()
         factory.assert_not_called()
 
     @pytest.mark.asyncio
-    async def test_claim_forwards_canonical_crew_identity_to_rekey(self):
-        """The claiming session's crew_agent kwarg reaches rekey so the pooled
-        handle's watchdog windows rebind to the claiming crew — the identity
+    async def test_claim_forwards_canonical_agent_identity_to_rekey(self):
+        """The claiming session's canonical_agent kwarg reaches rekey so the pooled
+        handle's watchdog windows rebind to the claiming agent — the identity
         travels with the session, not the pool key."""
         from junction.providers.acp import AcpProvider
 
@@ -369,13 +369,13 @@ class TestGetOrCreatePoolIntegration:
         mgr._schedule_replenish = MagicMock()
 
         provider, _, _ = await mgr.get_or_create(
-            "test-key", agent="junction", channel_id="ch-1", crew_agent="pr-reviewer"
+            "test-key", agent="junction", channel_id="ch-1", canonical_agent="pr-reviewer"
         )
 
         assert provider is pooled
         args, kwargs = pooled.client.rekey.call_args
         assert args == ("test-key", "ch-1")
-        assert kwargs["crew_agent"] == "pr-reviewer"
+        assert kwargs["canonical_agent"] == "pr-reviewer"
         assert isinstance(kwargs["watchdog"], WatchdogSettings)
 
     @pytest.mark.asyncio

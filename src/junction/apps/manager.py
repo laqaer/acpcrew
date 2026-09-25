@@ -2332,6 +2332,26 @@ def _app_declares_backend(app_data: dict[str, Any]) -> bool:
     return resolve_mcp_backend_url(app_data.get("mcpServers")) is not None
 
 
+def _adopt_renamed_builtin_installs() -> None:
+    """Move an install made under a builtin's earlier app id to its current id.
+
+    Runs before registration, so a renamed builtin finds the user's record, data and
+    enabled state under its current name instead of registering a fresh, empty
+    install beside the old one. A failure is logged and registration carries on: the
+    old directory stays where it was and the next start retries, whereas an
+    exception here would stop every builtin from registering.
+    """
+    try:
+        # circular import: the companion package imports this module at load time.
+        from junction.apps.builtins.desk_companion.install_migration import (
+            adopt_legacy_install,
+        )
+
+        adopt_legacy_install()
+    except Exception:  # noqa: BLE001 -- see docstring
+        logger.warning("Adopting a renamed builtin's earlier install failed", exc_info=True)
+
+
 def register_builtin_apps() -> int:
     """Register built-in dashboard features as app entries.
 
@@ -2341,6 +2361,10 @@ def register_builtin_apps() -> int:
 
     Each app definition is validated before registration.  Invalid definitions
     are skipped with a warning log — they do not affect other apps.
+
+    Before anything registers, an install made under a renamed builtin's earlier
+    app id moves to its current id (``_adopt_renamed_builtin_installs``), so the
+    existing record and its enabled state are the ones updated below.
 
     The ``defaultEnabled`` field (default: True) controls the initial enabled
     state for newly registered apps.  Existing apps preserve their user-set
@@ -2355,6 +2379,8 @@ def register_builtin_apps() -> int:
        companion contributes its feature apps).  ADD-only: the hardcoded list
        and the package's own builtins still take precedence on name collision.
     """
+    _adopt_renamed_builtin_installs()
+
     # Merge hardcoded list with auto-discovered builtins + edition-contributed
     # builtins (PlatformContext).  Standalone contributes nothing extra
     # (manifest_sources == []), so ``discovered`` is exactly the package's

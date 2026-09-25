@@ -130,7 +130,7 @@ class TestChatSlotMode:
 
     @pytest.mark.asyncio
     async def test_busy_check_asks_about_the_linked_session(self):
-        """Crew dispatch spawns under the slot's LINKED session, and
+        """Multitask dispatch spawns under the slot's LINKED session, and
         `has_pending_work_for` matches `parent_session_key` exactly. Asking about
         `dashboard:<tab>` for a channel-linked slot reports idle while that
         slot's subagents are still running, flipping the execution model out from
@@ -146,7 +146,7 @@ class TestChatSlotMode:
         with patch("junction.dashboard.chat_folders.save_slot_off_loop"):
             async with TestClient(TestServer(_make_app(state))) as client:
                 resp = await client.patch(
-                    "/api/chat/slots/test/mode", json={"mode": "crew"},
+                    "/api/chat/slots/test/mode", json={"mode": "multitask"},
                 )
         assert asked == ["slack:1785370133.085469"]
         # And the answer is honoured: pending work refuses the switch.

@@ -4,7 +4,7 @@
 // Two views, because they answer different questions from DIFFERENT data:
 //   * PIPELINE (default) reads this machine's own pipeline trail: which step every
 //     item is in, what each step is moving, and what each session cost.
-//   * ITEM LANES reads the crew ledger through Issue Radar's crew-fabric seam and
+//   * ITEM LANES reads the steward ledger through Issue Radar's steward-fabric seam and
 //     draws one lane per work item across the phase enum.
 // They are not two renderings of one dataset, so a tab is honest where a merged
 // view would imply the numbers are comparable.

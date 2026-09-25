@@ -94,7 +94,7 @@ function SetupShell({
   asideHeadline?: string
   asideBody?: string
 }) {
-  const label = cardLabel || i18nT('components.kiroPrerequisiteGate.your_crew_is_almost_ready')
+  const label = cardLabel || i18nT('components.kiroPrerequisiteGate.product_is_almost_ready')
   return (
     <main className={SCRIM_CLASS} aria-label={label}>
       <div className={PANEL_CLASS}>
@@ -102,7 +102,7 @@ function SetupShell({
           copy={{
             ariaLabel: label,
             panelHeadline:
-              asideHeadline || i18nT('components.kiroPrerequisiteGate.your_crew_is_almost_ready'),
+              asideHeadline || i18nT('components.kiroPrerequisiteGate.product_is_almost_ready'),
             panelBody:
               asideBody
               || i18nT('components.kiroPrerequisiteGate.install_kiro_cli_sign_in_once_and_junction_will'),

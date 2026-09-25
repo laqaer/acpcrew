@@ -25,15 +25,15 @@
 export interface BreathPhase {
   /** What the user is told to do. */
   /**
-   * Catalogue key under `apps.crewCompanion.breathe.`, never prose. The same rule
+   * Catalogue key under `apps.deskCompanion.breathe.`, never prose. The same rule
    * the backend follows for break nudges: emit a key, let the renderer translate.
    * Holding English here would ship an untranslated exercise in every language.
    */
   labelKey:
-    | 'apps.crewCompanion.breathe.ready'
-    | 'apps.crewCompanion.breathe.inhale'
-    | 'apps.crewCompanion.breathe.hold'
-    | 'apps.crewCompanion.breathe.exhale'
+    | 'apps.deskCompanion.breathe.ready'
+    | 'apps.deskCompanion.breathe.inhale'
+    | 'apps.deskCompanion.breathe.hold'
+    | 'apps.deskCompanion.breathe.exhale'
   ms: number
   /** Companion scale to reach during this phase — stands in for lung volume. */
   scale: number
@@ -45,13 +45,13 @@ export interface BreathPhase {
  * and the whole first cycle is spent catching up.
  */
 export const READY_MS = 3000
-export const READY_PHASE: BreathPhase = { labelKey: 'apps.crewCompanion.breathe.ready', ms: READY_MS, scale: 0.85 }
+export const READY_PHASE: BreathPhase = { labelKey: 'apps.deskCompanion.breathe.ready', ms: READY_MS, scale: 0.85 }
 
 /** Inhale 4s, hold 7s, exhale 8s. The 1:2 inhale:exhale ratio is the active part. */
 export const BREATH_PHASES: readonly BreathPhase[] = [
-  { labelKey: 'apps.crewCompanion.breathe.inhale', ms: 4000, scale: 1.18 },
-  { labelKey: 'apps.crewCompanion.breathe.hold', ms: 7000, scale: 1.18 },
-  { labelKey: 'apps.crewCompanion.breathe.exhale', ms: 8000, scale: 0.58 },
+  { labelKey: 'apps.deskCompanion.breathe.inhale', ms: 4000, scale: 1.18 },
+  { labelKey: 'apps.deskCompanion.breathe.hold', ms: 7000, scale: 1.18 },
+  { labelKey: 'apps.deskCompanion.breathe.exhale', ms: 8000, scale: 0.58 },
 ]
 
 /** Weil's prescribed dose: four cycles. 4 x 19s = 76s, plus the 3s lead-in. */

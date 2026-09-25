@@ -20,7 +20,7 @@
  * when the catalog swaps, which `memo()`'s props comparison cannot suppress.
  * Between switches the snapshot is an unchanged primitive, so `Object.is`
  * skips every no-op notification for free (the same stable-snapshot-identity
- * rule as `useCrewPins` / `useArtifactPopouts` / `useBottomTerminal`).
+ * rule as `useInstancePins` / `useArtifactPopouts` / `useBottomTerminal`).
  *
  * ## Where it belongs — and where it does not
  *

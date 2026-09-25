@@ -1,5 +1,5 @@
 /**
- * Screen recording for the crew-bindings isolation preview notice.
+ * Screen recording for the agent-bindings isolation preview notice.
  *
  * Walks the surfaces a still frame cannot prove in sequence: banner on the card
  * roster, switch to List so the two column "?" appear, open one, back to Cards,
@@ -14,9 +14,9 @@ import { mkdirSync, readdirSync } from 'node:fs'
 import { join } from 'node:path'
 import { serveDist } from './lib/serve-dist.mjs'
 import { logPageProblems, stubDashboardApi } from './lib/stub-dashboard-api.mjs'
-import { crewsApi } from './lib/agents-fixtures.mjs'
+import { agentsApi } from './lib/agents-fixtures.mjs'
 
-const OUT = process.argv[2] || '/tmp/crew-preview-rec'
+const OUT = process.argv[2] || '/tmp/agent-preview-rec'
 mkdirSync(OUT, { recursive: true })
 // Playwright names the video by a random id, so the only way to tell this run's
 // capture from a file that was already there is to record what was there first.
@@ -24,7 +24,7 @@ mkdirSync(OUT, { recursive: true })
 // that are none of this script's business.
 const preexisting = new Set(readdirSync(OUT).filter(f => f.endsWith('.webm')))
 
-const CREWS = [
+const AGENTS = [
   { name: 'junction', kiro_agent: 'junction', workspace: 'default', memory_store: 'default' },
   { name: 'oncall', kiro_agent: 'oncall', workspace: 'oncall', memory_store: 'default' },
   { name: 'research', kiro_agent: 'junction', workspace: 'research', memory_store: 'research' },
@@ -39,29 +39,29 @@ async function main() {
   })
   const page = await context.newPage()
   logPageProblems(page)
-  await stubDashboardApi(page, { extra: crewsApi({ crews: CREWS, defaultAgent: 'junction' }) })
+  await stubDashboardApi(page, { extra: agentsApi({ agents: AGENTS, defaultAgent: 'junction' }) })
 
   const main$ = page.locator('#main-content')
   await page.goto(base + '/capabilities', { waitUntil: 'domcontentloaded' })
-  await main$.locator('[data-testid="crew-card"]').first().waitFor({ timeout: 15000 })
+  await main$.locator('[data-testid="agent-card"]').first().waitFor({ timeout: 15000 })
   await page.waitForTimeout(1800) // hold on the banner long enough to read it
 
   await main$.getByRole('button', { name: 'List' }).click()
   await main$.locator('table').waitFor({ timeout: 15000 })
   await page.waitForTimeout(900)
-  await main$.locator('th button[title*="Isolated memory per crew"]').first().click()
+  await main$.locator('th button[title*="Isolated memory per agent"]').first().click()
   await page.waitForTimeout(1800)
   await page.keyboard.press('Escape')
 
   await main$.getByRole('button', { name: 'Cards' }).click()
-  await main$.locator('[data-testid="crew-card"]').first().waitFor()
+  await main$.locator('[data-testid="agent-card"]').first().waitFor()
   await page.waitForTimeout(600)
 
-  await main$.locator('[data-testid="crew-card"]').first().click()
+  await main$.locator('[data-testid="agent-card"]').first().click()
   const sheet = page.getByRole('dialog')
   await sheet.waitFor({ timeout: 15000 })
   await page.waitForTimeout(900)
-  await sheet.locator('button[title*="Isolated memory per crew"]').first().click()
+  await sheet.locator('button[title*="Isolated memory per agent"]').first().click()
   await page.waitForTimeout(2200)
 
   await context.close() // flushes the video file

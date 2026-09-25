@@ -20,7 +20,7 @@ from junction.apps.builtins.desk_companion.backend import routes
 from junction.apps.builtins.desk_companion.reminders import parse_iso, to_iso
 from junction.apps.builtins.desk_companion.store import CompanionStore
 
-BASE = "/api/apps/crew-companion"
+BASE = "/api/apps/desk-companion"
 NOW = parse_iso("2026-07-31T14:00:00")
 
 

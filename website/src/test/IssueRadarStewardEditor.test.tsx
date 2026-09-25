@@ -1,10 +1,10 @@
 /**
- * CrewEditor — the Issue Radar crew create / edit dialog.
+ * StewardEditor — the Issue Radar steward create / edit dialog.
  *
  * Five properties, each one a way this dialog can silently do the wrong thing:
  *
  *  1. CREATE sends a COMPLETE spec. Every control the user filled in has to reach
- *     `createCrew`; a field that renders but is left out of the payload looks like
+ *     `createSteward`; a field that renders but is left out of the payload looks like
  *     it saved and did not.
  *  2. EDIT pre-fills from the record and sends ONLY what moved. A "patch" carrying
  *     the whole record would overwrite a field another surface changed while this
@@ -13,7 +13,7 @@
  *     cause and one field, so a banner or a toast would make the user hunt for it.
  *  4. Pinning a face OVERRIDES the name-derived one. The pin is the only way to
  *     escape the hash, so a pin that silently loses to the seed is a dead control.
- *  5. The dialog has an accessible name — in edit mode one that says WHICH crew.
+ *  5. The dialog has an accessible name — in edit mode one that says WHICH steward.
  *
  * i18n note: this file asserts through `i18nT` on the SAME keys the component
  * renders, never against English prose, so a copy edit to the catalog cannot
@@ -28,9 +28,9 @@ import { i18nT } from '../i18n/t'
    `repoScopeKey` deliberately lives in lib/links.ts, not api.ts, precisely so
    mocking the transport does not also take the cache-key builder with it. */
 const mockApi = vi.hoisted(() => ({
-  createCrew: vi.fn(),
-  updateCrew: vi.fn(),
-  suggestCrewNames: vi.fn(),
+  createSteward: vi.fn(),
+  updateSteward: vi.fn(),
+  suggestStewardNames: vi.fn(),
   labels: vi.fn(),
 }))
 
@@ -43,11 +43,11 @@ vi.mock('../apps/issue-radar/api', () => ({ issueRadarApi: mockApi }))
    EMPTY and every "pick an agent" assertion would fail for a reason that has
    nothing to do with this dialog.
 
-   `oncall` — the stored crew's agent below — is deliberately ABSENT from the
+   `oncall` — the stored steward's agent below — is deliberately ABSENT from the
    roster, so the pre-fill assertion doubles as the stale-value case. */
 const AGENTS = [
   { name: 'junction', source: 'kiro', description: 'The default agent' },
-  { name: 'junction-crew', source: 'kiro', description: 'Issue worker' },
+  { name: 'steward-agent', source: 'kiro', description: 'Issue worker' },
 ]
 const MODELS = [
   { name: 'auto', description: '' },
@@ -146,11 +146,11 @@ vi.mock('../apps/issue-radar/context', () => ({
   useIssueRadar: () => ({ active: ACTIVE }),
 }))
 
-import CrewEditor from '../apps/issue-radar/components/StewardEditor'
-import { crewPlateVariant, crewPlateVariantCount } from '../apps/issue-radar/components/StewardPlate'
-import type { Crew } from '../apps/issue-radar/api'
+import StewardEditor from '../apps/issue-radar/components/StewardEditor'
+import { stewardPlateVariant, stewardPlateVariantCount } from '../apps/issue-radar/components/StewardPlate'
+import type { Steward } from '../apps/issue-radar/api'
 
-const K = 'apps.issueRadar.views.crews.editor'
+const K = 'apps.issueRadar.views.stewards.editor'
 
 const SUGGESTIONS = ['Sombrero', 'Bode', 'Butterfly', 'Carina', 'Draco', 'Fireworks']
 const REPO_LABELS = [
@@ -159,9 +159,9 @@ const REPO_LABELS = [
   { name: 'area: core', color: 'ededed', description: '' },
 ]
 
-/** A stored crew, with values deliberately DIFFERENT from every create-mode
+/** A stored steward, with values deliberately DIFFERENT from every create-mode
  *  default, so a pre-fill assertion cannot pass on a coincidence. */
-const CREW: Crew = {
+const STEWARD: Steward = {
   schema: 1,
   id: 'c_1a2b3c4d',
   name: 'Whirlpool',
@@ -176,21 +176,21 @@ const CREW: Crew = {
   unattended: false,
   max_open: 2,
   worktree_root: '~/wt',
-  slot_key: 'crew-c_1a2b3c4d',
+  slot_key: 'steward-c_1a2b3c4d',
   enabled: true,
   paused_reason: '',
   created_at: '2026-08-01T00:00:00Z',
   retired_at: null,
 }
 
-function renderEditor(crew?: Crew | null) {
+function renderEditor(steward?: Steward | null) {
   const qc = new QueryClient({
     defaultOptions: { queries: { retry: false }, mutations: { retry: false } },
   })
   const onClose = vi.fn()
   const rendered = render(
     <QueryClientProvider client={qc}>
-      <CrewEditor open onClose={onClose} crew={crew} />
+      <StewardEditor open onClose={onClose} steward={steward} />
     </QueryClientProvider>,
   )
   return { ...rendered, onClose }
@@ -199,15 +199,15 @@ function renderEditor(crew?: Crew | null) {
 /** The dialog, once its two queries have resolved and the name has pre-filled. */
 async function openCreate() {
   const r = renderEditor()
-  const dialog = await screen.findByTestId('crew-editor')
+  const dialog = await screen.findByTestId('steward-editor')
   await waitFor(() =>
-    expect(screen.getByTestId('crew-editor-name')).toHaveValue(SUGGESTIONS[0]),
+    expect(screen.getByTestId('steward-editor-name')).toHaveValue(SUGGESTIONS[0]),
   )
   await waitFor(() => expect(screen.getByText('area: core')).toBeInTheDocument())
   return { ...r, dialog }
 }
 
-const submitBtn = () => screen.getByTestId('crew-editor-submit')
+const submitBtn = () => screen.getByTestId('steward-editor-submit')
 
 /** The agent / model pickers, addressed through the `data-testid` on each
  *  field's wrapper: both are on screen at once, so a bare `getByRole('option')`
@@ -232,44 +232,44 @@ function optionsOf(testId: string): string[] {
 
 beforeEach(() => {
   vi.clearAllMocks()
-  mockApi.suggestCrewNames.mockResolvedValue({ suggestions: SUGGESTIONS })
+  mockApi.suggestStewardNames.mockResolvedValue({ suggestions: SUGGESTIONS })
   mockApi.labels.mockResolvedValue({
     owner: ACTIVE.owner,
     repo: ACTIVE.repo,
     labels: REPO_LABELS,
     from_cache: false,
   })
-  mockApi.createCrew.mockResolvedValue({ crew: CREW })
-  mockApi.updateCrew.mockResolvedValue({ crew: CREW })
+  mockApi.createSteward.mockResolvedValue({ steward: STEWARD })
+  mockApi.updateSteward.mockResolvedValue({ steward: STEWARD })
 })
 
-describe('CrewEditor — create mode', () => {
+describe('StewardEditor — create mode', () => {
   it('submits every field the form collected as one complete spec', async () => {
     const { onClose } = await openCreate()
 
     // Touch one control per section, so a payload that drops a whole section
     // (rather than one key) is caught too.
-    pick('crew-editor-agent', 'junction-crew')
-    pick('crew-editor-model', 'claude-opus-5')
-    fireEvent.change(screen.getByTestId('crew-editor-prompt'), {
+    pick('steward-editor-agent', 'steward-agent')
+    pick('steward-editor-model', 'claude-opus-5')
+    fireEvent.change(screen.getByTestId('steward-editor-prompt'), {
       target: { value: 'stay off the release branch' },
     })
     fireEvent.click(screen.getByRole('button', { name: 'area: dashboard' }))
     fireEvent.click(
-      within(screen.getByTestId('crew-editor-auto-merge')).getByRole('switch'),
+      within(screen.getByTestId('steward-editor-auto-merge')).getByRole('switch'),
     )
-    fireEvent.change(screen.getByTestId('crew-editor-max-open'), { target: { value: '5' } })
-    fireEvent.change(screen.getByTestId('crew-editor-worktree'), {
+    fireEvent.change(screen.getByTestId('steward-editor-max-open'), { target: { value: '5' } })
+    fireEvent.change(screen.getByTestId('steward-editor-worktree'), {
       target: { value: '~/workplace/oss' },
     })
 
     fireEvent.click(submitBtn())
 
-    await waitFor(() => expect(mockApi.createCrew).toHaveBeenCalledTimes(1))
-    expect(mockApi.createCrew).toHaveBeenCalledWith(ACTIVE, {
+    await waitFor(() => expect(mockApi.createSteward).toHaveBeenCalledTimes(1))
+    expect(mockApi.createSteward).toHaveBeenCalledWith(ACTIVE, {
       name: 'Sombrero',
       avatar_variant: null,
-      agent: 'junction-crew',
+      agent: 'steward-agent',
       model: 'claude-opus-5',
       extra_prompt: 'stay off the release branch',
       labels: ['area: dashboard'],
@@ -281,43 +281,43 @@ describe('CrewEditor — create mode', () => {
     })
     // A create that closes before the write lands would hide a 409.
     await waitFor(() => expect(onClose).toHaveBeenCalledTimes(1))
-    expect(mockApi.updateCrew).not.toHaveBeenCalled()
+    expect(mockApi.updateSteward).not.toHaveBeenCalled()
   })
 
   it('carries a free-entry label the repo does not list', async () => {
-    // The repo's label list is not a closed vocabulary: a crew can own a label
+    // The repo's label list is not a closed vocabulary: a steward can own a label
     // that has not been created on the forge yet.
     await openCreate()
     fireEvent.click(screen.getByRole('button', { name: i18nT(`${K}.labels_add`) }))
-    fireEvent.change(await screen.findByTestId('crew-editor-new-label'), {
-      target: { value: 'area: crews' },
+    fireEvent.change(await screen.findByTestId('steward-editor-new-label'), {
+      target: { value: 'area: stewards' },
     })
     fireEvent.click(screen.getByLabelText(i18nT(`${K}.labels_add_commit`)))
 
     fireEvent.click(submitBtn())
-    await waitFor(() => expect(mockApi.createCrew).toHaveBeenCalledTimes(1))
-    expect(mockApi.createCrew.mock.calls[0][1].labels).toEqual(['area: crews'])
+    await waitFor(() => expect(mockApi.createSteward).toHaveBeenCalledTimes(1))
+    expect(mockApi.createSteward.mock.calls[0][1].labels).toEqual(['area: stewards'])
   })
 })
 
-describe('CrewEditor — edit mode', () => {
-  it('pre-fills from the crew and sends only the fields that moved', async () => {
-    const { onClose } = renderEditor(CREW)
-    await screen.findByTestId('crew-editor')
+describe('StewardEditor — edit mode', () => {
+  it('pre-fills from the steward and sends only the fields that moved', async () => {
+    const { onClose } = renderEditor(STEWARD)
+    await screen.findByTestId('steward-editor')
 
     // Pre-fill: the record, not the create-mode defaults.
-    expect(screen.getByTestId('crew-editor-name')).toHaveValue('Whirlpool')
+    expect(screen.getByTestId('steward-editor-name')).toHaveValue('Whirlpool')
     // The pickers show a value, not an <input> — and `oncall` is not in the
     // roster, so this is also the "keep a value the roster dropped" case.
-    expect(trigger('crew-editor-agent')).toHaveTextContent('oncall')
-    expect(trigger('crew-editor-model')).toHaveTextContent('claude-opus-5')
-    expect(screen.getByTestId('crew-editor-prompt')).toHaveValue('never touch CI config')
-    expect(screen.getByTestId('crew-editor-max-open')).toHaveValue(2)
-    expect(screen.getByTestId('crew-editor-worktree')).toHaveValue('~/wt')
+    expect(trigger('steward-editor-agent')).toHaveTextContent('oncall')
+    expect(trigger('steward-editor-model')).toHaveTextContent('claude-opus-5')
+    expect(screen.getByTestId('steward-editor-prompt')).toHaveValue('never touch CI config')
+    expect(screen.getByTestId('steward-editor-max-open')).toHaveValue(2)
+    expect(screen.getByTestId('steward-editor-worktree')).toHaveValue('~/wt')
     expect(
-      within(screen.getByTestId('crew-editor-unattended')).getByRole('switch'),
+      within(screen.getByTestId('steward-editor-unattended')).getByRole('switch'),
     ).toHaveAttribute('aria-checked', 'false')
-    // The crew's own label is selected even before the repo list resolves.
+    // The steward's own label is selected even before the repo list resolves.
     await waitFor(() =>
       expect(screen.getByRole('button', { name: 'area: gateway' })).toHaveAttribute(
         'aria-pressed',
@@ -325,117 +325,117 @@ describe('CrewEditor — edit mode', () => {
       ),
     )
 
-    pick('crew-editor-model', 'gpt-5.6-sol')
+    pick('steward-editor-model', 'gpt-5.6-sol')
     fireEvent.click(submitBtn())
 
-    await waitFor(() => expect(mockApi.updateCrew).toHaveBeenCalledTimes(1))
+    await waitFor(() => expect(mockApi.updateSteward).toHaveBeenCalledTimes(1))
     // Exactly one key. Re-sending `labels` (identical members, possibly reordered
     // by the chip strip) or an untouched toggle would clobber a concurrent write.
-    expect(mockApi.updateCrew).toHaveBeenCalledWith(ACTIVE, CREW.id, {
+    expect(mockApi.updateSteward).toHaveBeenCalledWith(ACTIVE, STEWARD.id, {
       model: 'gpt-5.6-sol',
     })
-    expect(mockApi.createCrew).not.toHaveBeenCalled()
+    expect(mockApi.createSteward).not.toHaveBeenCalled()
     await waitFor(() => expect(onClose).toHaveBeenCalledTimes(1))
   })
 
   it('sends an empty patch rather than the whole record when nothing changed', async () => {
-    renderEditor(CREW)
-    await screen.findByTestId('crew-editor')
+    renderEditor(STEWARD)
+    await screen.findByTestId('steward-editor')
     fireEvent.click(submitBtn())
-    await waitFor(() => expect(mockApi.updateCrew).toHaveBeenCalledTimes(1))
-    expect(mockApi.updateCrew).toHaveBeenCalledWith(ACTIVE, CREW.id, {})
+    await waitFor(() => expect(mockApi.updateSteward).toHaveBeenCalledTimes(1))
+    expect(mockApi.updateSteward).toHaveBeenCalledWith(ACTIVE, STEWARD.id, {})
   })
 })
 
-describe('CrewEditor — duplicate name', () => {
+describe('StewardEditor — duplicate name', () => {
   /** What the client actually delivers on a 409: `parseErrorBody` flattens the
    *  status away and leaves `steward_store`'s own message. */
-  const TAKEN = new Error("crew name 'Sombrero' is already taken in this repo")
+  const TAKEN = new Error("steward name 'Sombrero' is already taken in this repo")
 
   it('renders the conflict inline on the name field, not as a generic failure', async () => {
-    mockApi.createCrew.mockRejectedValue(TAKEN)
+    mockApi.createSteward.mockRejectedValue(TAKEN)
     const { onClose } = await openCreate()
 
     fireEvent.click(submitBtn())
 
-    const err = await screen.findByTestId('crew-editor-name-error')
+    const err = await screen.findByTestId('steward-editor-name-error')
     expect(err).toHaveTextContent(i18nT(`${K}.name_taken`))
     // Wired to the field, so a screen reader reaches it from the input itself.
-    const input = screen.getByTestId('crew-editor-name')
+    const input = screen.getByTestId('steward-editor-name')
     expect(input).toHaveAttribute('aria-invalid', 'true')
     expect(input).toHaveAttribute('aria-describedby', err.id)
     expect(err.id).toBeTruthy()
     // Not the catch-all banner, and the dialog stays open with the form intact.
-    expect(screen.queryByTestId('crew-editor-error')).not.toBeInTheDocument()
+    expect(screen.queryByTestId('steward-editor-error')).not.toBeInTheDocument()
     expect(onClose).not.toHaveBeenCalled()
-    expect(screen.getByTestId('crew-editor')).toBeInTheDocument()
+    expect(screen.getByTestId('steward-editor')).toBeInTheDocument()
   })
 
   it('clears the inline conflict as soon as the name is edited', async () => {
-    mockApi.createCrew.mockRejectedValue(TAKEN)
+    mockApi.createSteward.mockRejectedValue(TAKEN)
     await openCreate()
     fireEvent.click(submitBtn())
-    await screen.findByTestId('crew-editor-name-error')
+    await screen.findByTestId('steward-editor-name-error')
 
-    fireEvent.change(screen.getByTestId('crew-editor-name'), { target: { value: 'Tucana' } })
-    expect(screen.queryByTestId('crew-editor-name-error')).not.toBeInTheDocument()
-    expect(screen.getByTestId('crew-editor-name')).not.toHaveAttribute('aria-invalid')
+    fireEvent.change(screen.getByTestId('steward-editor-name'), { target: { value: 'Tucana' } })
+    expect(screen.queryByTestId('steward-editor-name-error')).not.toBeInTheDocument()
+    expect(screen.getByTestId('steward-editor-name')).not.toHaveAttribute('aria-invalid')
   })
 
   it('routes a non-conflict failure to the form-level message instead', async () => {
-    mockApi.createCrew.mockRejectedValue(new Error('HTTP 502'))
+    mockApi.createSteward.mockRejectedValue(new Error('HTTP 502'))
     await openCreate()
     fireEvent.click(submitBtn())
 
-    await screen.findByTestId('crew-editor-error')
-    expect(screen.queryByTestId('crew-editor-name-error')).not.toBeInTheDocument()
+    await screen.findByTestId('steward-editor-error')
+    expect(screen.queryByTestId('steward-editor-name-error')).not.toBeInTheDocument()
   })
 })
 
-describe('CrewEditor — face', () => {
+describe('StewardEditor — face', () => {
   /** The variant the NAME hashes to, which is what the strip shows unpinned. */
-  const derived = crewPlateVariant(SUGGESTIONS[0])
-  const pinned = (derived + 3) % crewPlateVariantCount
+  const derived = stewardPlateVariant(SUGGESTIONS[0])
+  const pinned = (derived + 3) % stewardPlateVariantCount
 
   it('starts on the seed-derived face', async () => {
     await openCreate()
-    expect(screen.getByTestId(`crew-face-${derived}`)).toHaveAttribute('aria-pressed', 'true')
+    expect(screen.getByTestId(`steward-face-${derived}`)).toHaveAttribute('aria-pressed', 'true')
   })
 
   it('pinning a variant overrides the seed default and is what gets submitted', async () => {
     await openCreate()
-    fireEvent.click(screen.getByTestId(`crew-face-${pinned}`))
+    fireEvent.click(screen.getByTestId(`steward-face-${pinned}`))
 
-    expect(screen.getByTestId(`crew-face-${pinned}`)).toHaveAttribute('aria-pressed', 'true')
-    expect(screen.getByTestId(`crew-face-${derived}`)).toHaveAttribute('aria-pressed', 'false')
+    expect(screen.getByTestId(`steward-face-${pinned}`)).toHaveAttribute('aria-pressed', 'true')
+    expect(screen.getByTestId(`steward-face-${derived}`)).toHaveAttribute('aria-pressed', 'false')
 
     fireEvent.click(submitBtn())
-    await waitFor(() => expect(mockApi.createCrew).toHaveBeenCalledTimes(1))
-    expect(mockApi.createCrew.mock.calls[0][1].avatar_variant).toBe(pinned)
+    await waitFor(() => expect(mockApi.createSteward).toHaveBeenCalledTimes(1))
+    expect(mockApi.createSteward.mock.calls[0][1].avatar_variant).toBe(pinned)
   })
 
   it('un-pins when the face already in effect is clicked again', async () => {
     // Otherwise an accidental pin can only be undone by closing the dialog.
     await openCreate()
-    fireEvent.click(screen.getByTestId(`crew-face-${pinned}`))
-    fireEvent.click(screen.getByTestId(`crew-face-${pinned}`))
+    fireEvent.click(screen.getByTestId(`steward-face-${pinned}`))
+    fireEvent.click(screen.getByTestId(`steward-face-${pinned}`))
 
-    expect(screen.getByTestId(`crew-face-${derived}`)).toHaveAttribute('aria-pressed', 'true')
+    expect(screen.getByTestId(`steward-face-${derived}`)).toHaveAttribute('aria-pressed', 'true')
     fireEvent.click(submitBtn())
-    await waitFor(() => expect(mockApi.createCrew).toHaveBeenCalledTimes(1))
-    expect(mockApi.createCrew.mock.calls[0][1].avatar_variant).toBeNull()
+    await waitFor(() => expect(mockApi.createSteward).toHaveBeenCalledTimes(1))
+    expect(mockApi.createSteward.mock.calls[0][1].avatar_variant).toBeNull()
   })
 })
 
-describe('CrewEditor — the agent and model pickers', () => {
+describe('StewardEditor — the agent and model pickers', () => {
   it('offers the app roster and the served model list, not free text', async () => {
     await openCreate()
-    // A free-text box here let a typo point a crew at an agent that does not
-    // exist, and the failure only surfaced on the crew's first cycle.
-    expect(field('crew-editor-agent').queryByRole('textbox')).toBeNull()
-    expect(field('crew-editor-model').queryByRole('textbox')).toBeNull()
+    // A free-text box here let a typo point a steward at an agent that does not
+    // exist, and the failure only surfaced on the steward's first cycle.
+    expect(field('steward-editor-agent').queryByRole('textbox')).toBeNull()
+    expect(field('steward-editor-model').queryByRole('textbox')).toBeNull()
 
-    expect(optionsOf('crew-editor-agent')).toEqual(['junction', 'junction-crew'])
+    expect(optionsOf('steward-editor-agent')).toEqual(['junction', 'steward-agent'])
   })
 
   it('leads the model list with one explicit Auto row that means "inherit"', async () => {
@@ -443,39 +443,39 @@ describe('CrewEditor — the agent and model pickers', () => {
     // the user could not see they had made. The served list's own `auto` entry
     // folds INTO this row; two rows both reading "Auto" would be a coin flip.
     await openCreate()
-    expect(optionsOf('crew-editor-model')).toEqual([
+    expect(optionsOf('steward-editor-model')).toEqual([
       i18nT(`${K}.model_auto`),
       'claude-opus-5',
       'gpt-5.6-sol',
     ])
-    expect(trigger('crew-editor-model')).toHaveTextContent(i18nT(`${K}.model_auto`))
+    expect(trigger('steward-editor-model')).toHaveTextContent(i18nT(`${K}.model_auto`))
   })
 
   it('sends an empty model when Auto is chosen', async () => {
-    // Without a row for it, a user who picked a model could never put the crew
+    // Without a row for it, a user who picked a model could never put the steward
     // back on the agent's own default.
-    renderEditor(CREW)
-    await screen.findByTestId('crew-editor')
-    pick('crew-editor-model', i18nT(`${K}.model_auto`))
+    renderEditor(STEWARD)
+    await screen.findByTestId('steward-editor')
+    pick('steward-editor-model', i18nT(`${K}.model_auto`))
     fireEvent.click(submitBtn())
 
-    await waitFor(() => expect(mockApi.updateCrew).toHaveBeenCalledTimes(1))
-    expect(mockApi.updateCrew).toHaveBeenCalledWith(ACTIVE, CREW.id, { model: '' })
+    await waitFor(() => expect(mockApi.updateSteward).toHaveBeenCalledTimes(1))
+    expect(mockApi.updateSteward).toHaveBeenCalledWith(ACTIVE, STEWARD.id, { model: '' })
   })
 
   it('keeps a stored value the roster or the model list no longer carries', async () => {
-    // A crew outlives the agent template and the model it names. Dropping the
-    // value would silently re-point the crew on the next save, which is a
+    // A steward outlives the agent template and the model it names. Dropping the
+    // value would silently re-point the steward on the next save, which is a
     // config change nobody asked for and nobody sees.
-    renderEditor({ ...CREW, agent: 'retired-agent', model: 'retired-model' })
-    await screen.findByTestId('crew-editor')
+    renderEditor({ ...STEWARD, agent: 'retired-agent', model: 'retired-model' })
+    await screen.findByTestId('steward-editor')
 
-    expect(optionsOf('crew-editor-agent')).toEqual([
+    expect(optionsOf('steward-editor-agent')).toEqual([
       'retired-agent',
       'junction',
-      'junction-crew',
+      'steward-agent',
     ])
-    expect(optionsOf('crew-editor-model')).toEqual([
+    expect(optionsOf('steward-editor-model')).toEqual([
       i18nT(`${K}.model_auto`),
       'retired-model',
       'claude-opus-5',
@@ -483,15 +483,15 @@ describe('CrewEditor — the agent and model pickers', () => {
     ])
     // Selected, not merely listed.
     expect(
-      field('crew-editor-model').getByRole('option', { name: 'retired-model' }),
+      field('steward-editor-model').getByRole('option', { name: 'retired-model' }),
     ).toHaveAttribute('aria-selected', 'true')
     expect(
-      field('crew-editor-agent').getByRole('option', { name: 'retired-agent' }),
+      field('steward-editor-agent').getByRole('option', { name: 'retired-agent' }),
     ).toHaveAttribute('aria-selected', 'true')
   })
 })
 
-describe('CrewEditor — the form survives what happens around it', () => {
+describe('StewardEditor — the form survives what happens around it', () => {
   /** Escape, dispatched where Radix listens for it: DismissableLayer binds
    *  `keydown` on `document` with `{ capture: true }`, so a handler on the input
    *  itself is already too late — which is why the interception lives on
@@ -501,41 +501,41 @@ describe('CrewEditor — the form survives what happens around it', () => {
   it('retracts the label entry box on Escape without discarding the form', async () => {
     const { onClose } = await openCreate()
     fireEvent.click(screen.getByRole('button', { name: i18nT(`${K}.labels_add`) }))
-    await screen.findByTestId('crew-editor-new-label')
+    await screen.findByTestId('steward-editor-new-label')
 
     pressEscape()
 
     await waitFor(() =>
-      expect(screen.queryByTestId('crew-editor-new-label')).not.toBeInTheDocument(),
+      expect(screen.queryByTestId('steward-editor-new-label')).not.toBeInTheDocument(),
     )
     // The whole point: one keypress must not cost the user the filled-in form.
     expect(onClose).not.toHaveBeenCalled()
-    expect(screen.getByTestId('crew-editor-name')).toHaveValue(SUGGESTIONS[0])
+    expect(screen.getByTestId('steward-editor-name')).toHaveValue(SUGGESTIONS[0])
 
     // With the inner layer gone, Escape closes the dialog again.
     pressEscape()
     await waitFor(() => expect(onClose).toHaveBeenCalledTimes(1))
   })
 
-  it('keeps an in-progress edit when the roster hands down a new object for the same crew', async () => {
-    // The crews query refetches in the background and yields a fresh object every
+  it('keeps an in-progress edit when the roster hands down a new object for the same steward', async () => {
+    // The stewards query refetches in the background and yields a fresh object every
     // time. Re-initializing on the object's identity would wipe the user's typing
     // whenever an unrelated poll landed.
-    const { rerender, onClose } = renderEditor(CREW)
-    await screen.findByTestId('crew-editor')
-    fireEvent.change(screen.getByTestId('crew-editor-prompt'), {
+    const { rerender, onClose } = renderEditor(STEWARD)
+    await screen.findByTestId('steward-editor')
+    fireEvent.change(screen.getByTestId('steward-editor-prompt'), {
       target: { value: 'half-typed' },
     })
 
     const qc = new QueryClient({ defaultOptions: { queries: { retry: false } } })
     rerender(
       <QueryClientProvider client={qc}>
-        {/* Same crew, structurally equal, different reference. */}
-        <CrewEditor open onClose={onClose} crew={{ ...CREW }} />
+        {/* Same steward, structurally equal, different reference. */}
+        <StewardEditor open onClose={onClose} steward={{ ...STEWARD }} />
       </QueryClientProvider>,
     )
 
-    expect(screen.getByTestId('crew-editor-prompt')).toHaveValue('half-typed')
+    expect(screen.getByTestId('steward-editor-prompt')).toHaveValue('half-typed')
   })
 })
 
@@ -547,9 +547,9 @@ describe('CrewEditor — the form survives what happens around it', () => {
  * teaches them to dismiss the prompt unread, which is when it stops protecting
  * anything. So the guard is asserted from both directions.
  */
-describe('CrewEditor — the close guard', () => {
+describe('StewardEditor — the close guard', () => {
   const pressEscape = () => fireEvent.keyDown(document, { key: 'Escape' })
-  const guard = () => screen.queryByTestId('crew-editor-discard')
+  const guard = () => screen.queryByTestId('steward-editor-discard')
 
   it('closes an untouched create dialog on one Escape', async () => {
     // The name pre-fill is the DIALOG writing to its own form. Counting it as an
@@ -561,8 +561,8 @@ describe('CrewEditor — the close guard', () => {
   })
 
   it('closes an untouched edit dialog on one Escape', async () => {
-    const { onClose } = renderEditor(CREW)
-    await screen.findByTestId('crew-editor')
+    const { onClose } = renderEditor(STEWARD)
+    await screen.findByTestId('steward-editor')
     pressEscape()
     await waitFor(() => expect(onClose).toHaveBeenCalledTimes(1))
     expect(guard()).not.toBeInTheDocument()
@@ -570,34 +570,34 @@ describe('CrewEditor — the close guard', () => {
 
   it('asks before discarding a half-filled form, and does not close on its own', async () => {
     const { onClose } = await openCreate()
-    fireEvent.change(screen.getByTestId('crew-editor-prompt'), {
+    fireEvent.change(screen.getByTestId('steward-editor-prompt'), {
       target: { value: 'never touch the release branch' },
     })
 
     pressEscape()
 
-    expect(await screen.findByTestId('crew-editor-discard')).toBeInTheDocument()
+    expect(await screen.findByTestId('steward-editor-discard')).toBeInTheDocument()
     // The veto: the form is still there, with the text still in it.
     expect(onClose).not.toHaveBeenCalled()
-    expect(screen.getByTestId('crew-editor-prompt')).toHaveValue('never touch the release branch')
+    expect(screen.getByTestId('steward-editor-prompt')).toHaveValue('never touch the release branch')
   })
 
   it('keeps editing when the guard is declined, and the form is intact', async () => {
     const { onClose } = await openCreate()
-    fireEvent.change(screen.getByTestId('crew-editor-name'), { target: { value: 'Tucana' } })
+    fireEvent.change(screen.getByTestId('steward-editor-name'), { target: { value: 'Tucana' } })
     pressEscape()
-    fireEvent.click(await screen.findByTestId('crew-editor-discard-keep'))
+    fireEvent.click(await screen.findByTestId('steward-editor-discard-keep'))
 
     await waitFor(() => expect(guard()).not.toBeInTheDocument())
     expect(onClose).not.toHaveBeenCalled()
-    expect(screen.getByTestId('crew-editor-name')).toHaveValue('Tucana')
+    expect(screen.getByTestId('steward-editor-name')).toHaveValue('Tucana')
   })
 
   it('closes only when the discard is confirmed', async () => {
     const { onClose } = await openCreate()
-    fireEvent.change(screen.getByTestId('crew-editor-name'), { target: { value: 'Tucana' } })
+    fireEvent.change(screen.getByTestId('steward-editor-name'), { target: { value: 'Tucana' } })
     pressEscape()
-    fireEvent.click(await screen.findByTestId('crew-editor-discard-confirm'))
+    fireEvent.click(await screen.findByTestId('steward-editor-discard-confirm'))
 
     await waitFor(() => expect(onClose).toHaveBeenCalledTimes(1))
   })
@@ -606,10 +606,10 @@ describe('CrewEditor — the close guard', () => {
     // Cancel used to call `onClose` directly, so the one control most likely to be
     // clicked by mistake was the one path with no guard on it.
     const { onClose } = await openCreate()
-    fireEvent.change(screen.getByTestId('crew-editor-prompt'), { target: { value: 'x' } })
+    fireEvent.change(screen.getByTestId('steward-editor-prompt'), { target: { value: 'x' } })
     fireEvent.click(screen.getByRole('button', { name: i18nT(`${K}.cancel`) }))
 
-    expect(await screen.findByTestId('crew-editor-discard')).toBeInTheDocument()
+    expect(await screen.findByTestId('steward-editor-discard')).toBeInTheDocument()
     expect(onClose).not.toHaveBeenCalled()
   })
 
@@ -617,20 +617,20 @@ describe('CrewEditor — the close guard', () => {
     // Dirtiness is measured field by field off the values the form opened with, so
     // every control counts — not only the text inputs.
     const { onClose } = await openCreate()
-    fireEvent.click(within(screen.getByTestId('crew-editor-unattended')).getByRole('switch'))
+    fireEvent.click(within(screen.getByTestId('steward-editor-unattended')).getByRole('switch'))
     pressEscape()
-    expect(await screen.findByTestId('crew-editor-discard')).toBeInTheDocument()
+    expect(await screen.findByTestId('steward-editor-discard')).toBeInTheDocument()
     expect(onClose).not.toHaveBeenCalled()
   })
 
   it('does not ask when an edit is undone back to where it started', async () => {
     // The comparison is against VALUES, not a "was touched" flag, so a user who
     // types and then reverts has nothing to lose and must not be asked.
-    const { onClose } = renderEditor(CREW)
-    await screen.findByTestId('crew-editor')
-    const prompt = screen.getByTestId('crew-editor-prompt')
+    const { onClose } = renderEditor(STEWARD)
+    await screen.findByTestId('steward-editor')
+    const prompt = screen.getByTestId('steward-editor-prompt')
     fireEvent.change(prompt, { target: { value: 'something else' } })
-    fireEvent.change(prompt, { target: { value: CREW.extra_prompt } })
+    fireEvent.change(prompt, { target: { value: STEWARD.extra_prompt } })
 
     pressEscape()
     await waitFor(() => expect(onClose).toHaveBeenCalledTimes(1))
@@ -641,7 +641,7 @@ describe('CrewEditor — the close guard', () => {
     // The dialog is maximally dirty at this point and closes anyway: the work is
     // on the server, so there is nothing left to protect.
     const { onClose } = await openCreate()
-    fireEvent.change(screen.getByTestId('crew-editor-prompt'), { target: { value: 'x' } })
+    fireEvent.change(screen.getByTestId('steward-editor-prompt'), { target: { value: 'x' } })
     fireEvent.click(submitBtn())
 
     await waitFor(() => expect(onClose).toHaveBeenCalledTimes(1))
@@ -649,41 +649,41 @@ describe('CrewEditor — the close guard', () => {
   })
 })
 
-describe('CrewEditor — the slot limit reads what the input reports', () => {
+describe('StewardEditor — the slot limit reads what the input reports', () => {
   it('takes scientific notation at face value instead of truncating it to 1', async () => {
     // REGRESSION: `parseInt('1e1', 10)` is 1 — it stops at the 'e'. An
     // <input type="number"> accepts 1e1 as a valid number and hands it back
-    // verbatim, so the clamp saw 1 and a ten-slot crew was created with ONE
-    // slot. Silent, and only visible later as a crew that will not pick up work.
+    // verbatim, so the clamp saw 1 and a ten-slot steward was created with ONE
+    // slot. Silent, and only visible later as a steward that will not pick up work.
     await openCreate()
-    fireEvent.change(screen.getByTestId('crew-editor-max-open'), { target: { value: '1e1' } })
-    expect(screen.getByTestId('crew-editor-max-open')).toHaveValue(10)
+    fireEvent.change(screen.getByTestId('steward-editor-max-open'), { target: { value: '1e1' } })
+    expect(screen.getByTestId('steward-editor-max-open')).toHaveValue(10)
   })
 
   it('keeps the previous value for a fraction rather than flooring it', async () => {
     // Number() admits '1.5' where parseInt floored it. Neither is what was typed,
     // so the field holds its last good value instead of inventing one.
     await openCreate()
-    fireEvent.change(screen.getByTestId('crew-editor-max-open'), { target: { value: '3' } })
-    expect(screen.getByTestId('crew-editor-max-open')).toHaveValue(3)
-    fireEvent.change(screen.getByTestId('crew-editor-max-open'), { target: { value: '1.5' } })
-    expect(screen.getByTestId('crew-editor-max-open')).toHaveValue(3)
+    fireEvent.change(screen.getByTestId('steward-editor-max-open'), { target: { value: '3' } })
+    expect(screen.getByTestId('steward-editor-max-open')).toHaveValue(3)
+    fireEvent.change(screen.getByTestId('steward-editor-max-open'), { target: { value: '1.5' } })
+    expect(screen.getByTestId('steward-editor-max-open')).toHaveValue(3)
   })
 })
 
-describe('CrewEditor — accessible name', () => {
+describe('StewardEditor — accessible name', () => {
   it('names the create dialog', async () => {
     renderEditor()
     expect(await screen.findByRole('dialog', { name: i18nT(`${K}.aria_create`) }))
       .toBeInTheDocument()
   })
 
-  it('names the edit dialog after the crew being edited', async () => {
-    // The visible title is just "Edit crew"; the accessible name has to say which.
-    renderEditor(CREW)
+  it('names the edit dialog after the steward being edited', async () => {
+    // The visible title is just "Edit Steward"; the accessible name has to say which.
+    renderEditor(STEWARD)
     expect(
       await screen.findByRole('dialog', {
-        name: i18nT(`${K}.aria_edit`, { name: CREW.name }),
+        name: i18nT(`${K}.aria_edit`, { name: STEWARD.name }),
       }),
     ).toBeInTheDocument()
   })

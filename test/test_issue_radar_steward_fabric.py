@@ -1,7 +1,7 @@
-"""Tests for Crew Fabric — the server-side fold (``steward_store.fold_fabric``) and
-its route (``steward_routes._handle_crew_fabric``, ``GET /crew/fabric``).
+"""Tests for Steward Fabric — the server-side fold (``steward_store.fold_fabric``) and
+its route (``steward_routes._handle_steward_fabric``, ``GET /steward/fabric``).
 
-The fold turns a crew's append-only ledger into one lane per work item across the
+The fold turns a steward's append-only ledger into one lane per work item across the
 phase enum. Three mistakes a naive fold makes are each pinned here, and each has a
 MUTATION-VERIFIED assertion recorded in the PR write-up (break the code, watch the
 test go red, restore):
@@ -49,17 +49,17 @@ BASE = "/api/apps/issue-radar"
 # ── fold fixtures ────────────────────────────────────────────────────────────
 
 
-def _crew(root: Path, name: str = "Andromeda") -> dict:
-    return steward_store.create_crew(OWNER, REPO, {"name": name}, root)
+def _steward(root: Path, name: str = "Andromeda") -> dict:
+    return steward_store.create_steward(OWNER, REPO, {"name": name}, root)
 
 
-def _work(root: Path, crew_id: str, number: int, patch: dict) -> dict:
+def _work(root: Path, steward_id: str, number: int, patch: dict) -> dict:
     """Drive one transaction through the real write path so the ledger line carries
     the phase exactly as production writes it — no hand-built event dicts."""
     return steward_store.commit_work_progress(
         OWNER,
         REPO,
-        crew_id,
+        steward_id,
         number,
         {k: v for k, v in patch.items() if not k.startswith("_")},
         patch.get("_event_kind", "claim"),
@@ -70,9 +70,11 @@ def _work(root: Path, crew_id: str, number: int, patch: dict) -> dict:
     )
 
 
-def _step(root: Path, crew_id: str, number: int, phase: str, kind: str, text: str, **extra) -> dict:
+def _step(
+    root: Path, steward_id: str, number: int, phase: str, kind: str, text: str, **extra
+) -> dict:
     patch = {"phase": phase, "_event_kind": kind, "_event_text": text, **extra}
-    return _work(root, crew_id, number, patch)
+    return _work(root, steward_id, number, patch)
 
 
 def _fold_item(root: Path, number: int) -> dict:
@@ -87,16 +89,16 @@ class FoldTest(unittest.TestCase):
         tmp = tempfile.TemporaryDirectory()
         self.addCleanup(tmp.cleanup)
         self.root = Path(tmp.name)
-        self.crew = _crew(self.root)
-        self.cid = self.crew["id"]
+        self.steward = _steward(self.root)
+        self.cid = self.steward["id"]
 
     # ── empty ────────────────────────────────────────────────────────────────
 
     def test_empty_repo_folds_to_no_items(self):
-        # A crew exists but has taken nothing.
+        # A steward exists but has taken nothing.
         self.assertEqual(steward_store.fold_fabric(OWNER, REPO, self.root), [])
 
-    def test_no_crews_at_all_folds_to_no_items(self):
+    def test_no_stewards_at_all_folds_to_no_items(self):
         # TemporaryDirectory rather than mkdtemp + rmtree(ignore_errors=True): the
         # suppressed form hides a failure to remove the tree, so a leak survives the
         # run silently. This raises instead, which is what a cleanup fault should do.
@@ -114,7 +116,7 @@ class FoldTest(unittest.TestCase):
         item = _fold_item(self.root, 5109)
 
         self.assertEqual(item["phase"], "awaiting-merge")  # live, from the record
-        self.assertEqual(item["crew_id"], self.cid)
+        self.assertEqual(item["steward_id"], self.cid)
         self.assertEqual(item["pr_number"], 5144)
         self.assertIsNone(item["exit"])
         self.assertEqual(item["reopens"], 0)
@@ -146,7 +148,7 @@ class FoldTest(unittest.TestCase):
             ci_state={"state": "success", "passed": 61, "total": 61},
         )
         item = _fold_item(self.root, 5109)
-        # `next` is the crew's resumable INTENT and surfaces under its OWN name —
+        # `next` is the steward's resumable INTENT and surfaces under its OWN name —
         # never as the title (defect: item 4).
         self.assertEqual(item["next"], "add the Windows branch to _safe_chmod")
         # `ci_state` is deliberately NOT in the payload even though the record holds
@@ -156,7 +158,7 @@ class FoldTest(unittest.TestCase):
         self.assertNotIn("ci_state", item)
 
     def test_next_is_not_used_as_the_title(self):
-        # No cached issue/PR title exists for this number, and the crew recorded a
+        # No cached issue/PR title exists for this number, and the steward recorded a
         # `next`. The OLD code showed `next` as the title; the fold must NOT — the
         # title falls back to empty, and `next` stays under its own name.
         _step(
@@ -226,7 +228,7 @@ class FoldTest(unittest.TestCase):
 
     def test_title_join_mutation_a_number_without_a_hint_is_empty(self):
         # MUTATION-VERIFIED companion: a number the caches never saw must fold to an
-        # empty title, NOT to the crew's `next`. If the join regressed to
+        # empty title, NOT to the steward's `next`. If the join regressed to
         # `record.get("next")` this would come back non-empty.
         store.write_issues_cache(
             OWNER,
@@ -337,7 +339,7 @@ class FoldTest(unittest.TestCase):
                         {
                             "id": f"legacy-{kind}",
                             "ts": "2026-01-01T00:00:00Z",
-                            "crew_id": self.cid,
+                            "steward_id": self.cid,
                             "number": 5109,
                             "kind": kind,
                             "text": "old line",
@@ -361,7 +363,7 @@ class FoldTest(unittest.TestCase):
                     {
                         "id": "legacy-claim",
                         "ts": "2026-01-01T00:00:00Z",
-                        "crew_id": self.cid,
+                        "steward_id": self.cid,
                         "number": 5109,
                         "kind": "claim",
                         "text": "old",
@@ -378,13 +380,40 @@ class FoldTest(unittest.TestCase):
         self.assertEqual([t["phase"] for t in item["timeline"]], ["implementing"])
         self.assertEqual(item["phase"], "implementing")
 
+    # ── lines written under the legacy id key ────────────────────────────────
+
+    def test_a_ledger_under_the_legacy_id_key_folds_into_its_stewards_lane(self):
+        # Every line an earlier build appended names its steward under the legacy key,
+        # and the ledger is append-only, so nothing rewrites those lines: the fold has
+        # to read them as they are, or every lane older than the upgrade disappears
+        # from the pipeline view.
+        _step(self.root, self.cid, 5109, "claimed", "claim", "claimed it")
+        _step(self.root, self.cid, 5109, "implementing", "implement", "cut worktree")
+        current, legacy = steward_store.STEWARD_ID_KEY, steward_store.LEGACY_STEWARD_ID_KEY
+
+        def respell(record: dict) -> dict:
+            return {(legacy if k == current else k): v for k, v in record.items()}
+
+        path = steward_store.events_path(OWNER, REPO, self.root)
+        lines = [json.loads(line) for line in path.read_text().splitlines() if line]
+        path.write_text("".join(json.dumps(respell(line)) + "\n" for line in lines))
+        item_path = steward_store.work_item_path(OWNER, REPO, self.cid, 5109, self.root)
+        item_path.write_text(json.dumps(respell(json.loads(item_path.read_text()))))
+
+        item = _fold_item(self.root, 5109)
+
+        self.assertEqual(item[current], self.cid)
+        self.assertNotIn(legacy, item)
+        self.assertEqual([t["phase"] for t in item["timeline"]], ["claimed", "implementing"])
+        self.assertEqual(item["phase"], "implementing")
+
     # ── the store change itself ──────────────────────────────────────────────
 
     def test_event_line_records_phase_after_the_write(self):
         committed = _step(self.root, self.cid, 5109, "implementing", "implement", "edit")
         self.assertEqual(committed["event"]["phase"], "implementing")
         # And it is durable on the ledger line, not just in the return value.
-        events = steward_store.read_events(OWNER, REPO, self.root, crew_id=self.cid)
+        events = steward_store.read_events(OWNER, REPO, self.root, steward_id=self.cid)
         self.assertEqual(events[0]["phase"], "implementing")
 
     # ── ordering across items ────────────────────────────────────────────────
@@ -402,7 +431,7 @@ class FoldTest(unittest.TestCase):
 
 def _registered() -> dict:
     app = web.Application()
-    steward_routes.register_crew_routes(app)
+    steward_routes.register_steward_routes(app)
     return {
         (r.method, str(r.resource.canonical)[len(BASE) :]): r.handler for r in app.router.routes()
     }
@@ -428,16 +457,16 @@ class RouteTest(unittest.IsolatedAsyncioTestCase):
             self.addCleanup(patcher.stop)
 
     async def _get(self, *, provider="github", host="github.com", connected=True) -> web.Response:
-        handler = _registered()[("GET", "/crew/fabric")]
+        handler = _registered()[("GET", "/steward/fabric")]
         q = f"owner={OWNER}&repo={REPO}&provider={provider}&host={host}"
-        req = make_mocked_request("GET", f"{BASE}/crew/fabric?{q}")
+        req = make_mocked_request("GET", f"{BASE}/steward/fabric?{q}")
         with mock.patch.object(store, "is_repo_connected", return_value=connected):
             return await handler(req)  # type: ignore[operator]
 
     # registration + gates
 
     def test_route_is_registered(self):
-        self.assertIn(("GET", "/crew/fabric"), _registered())
+        self.assertIn(("GET", "/steward/fabric"), _registered())
 
     async def test_not_connected_is_404(self):
         resp = await self._get(connected=False)
@@ -459,13 +488,13 @@ class RouteTest(unittest.IsolatedAsyncioTestCase):
     # non-github provider
 
     async def test_non_github_provider_answers_200_empty(self):
-        # Even if a GitLab repo somehow had crew records on disk, the route must
-        # answer items:[] — crews are a GitHub-only feature.
-        crew = steward_store.create_crew(OWNER, REPO, {"name": "Andromeda"}, self.root)
+        # Even if a GitLab repo somehow had steward records on disk, the route must
+        # answer items:[] — stewards are a GitHub-only feature.
+        steward = steward_store.create_steward(OWNER, REPO, {"name": "Andromeda"}, self.root)
         steward_store.commit_work_progress(
             OWNER,
             REPO,
-            crew["id"],
+            steward["id"],
             5109,
             {"phase": "claimed"},
             "claim",
@@ -481,8 +510,8 @@ class RouteTest(unittest.IsolatedAsyncioTestCase):
     # populated
 
     async def test_populated_repo_returns_folded_items(self):
-        crew = steward_store.create_crew(OWNER, REPO, {"name": "Andromeda"}, self.root)
-        cid = crew["id"]
+        steward = steward_store.create_steward(OWNER, REPO, {"name": "Andromeda"}, self.root)
+        cid = steward["id"]
         for phase, kind, text in (
             ("claimed", "claim", "claimed"),
             ("implementing", "implement", "edit"),
@@ -513,7 +542,7 @@ class TitleHintDegradationTest(unittest.TestCase):
 
     The caches belong to Issue Radar and its refresh rewrites them, so a reader can
     lose the race between checking a file exists and reading it. Letting that surface
-    means `GET /crew/fabric` answers 500 because a decorative lookup failed -- while
+    means `GET /steward/fabric` answers 500 because a decorative lookup failed -- while
     the same join already degrades gracefully everywhere else, rendering a number with
     no cached title as its id alone.
     """
@@ -522,8 +551,8 @@ class TitleHintDegradationTest(unittest.TestCase):
         self._tmp = tempfile.TemporaryDirectory()
         self.addCleanup(self._tmp.cleanup)
         self.root = Path(self._tmp.name)
-        crew = steward_store.create_crew(OWNER, REPO, {"name": "Andromeda"}, self.root)
-        self.cid = crew["id"]
+        steward = steward_store.create_steward(OWNER, REPO, {"name": "Andromeda"}, self.root)
+        self.cid = steward["id"]
         _step(self.root, self.cid, 5109, "claimed", "claim", "mine")
 
     def test_an_unreadable_title_cache_still_folds_the_lane(self):
@@ -567,8 +596,8 @@ class TestStalledLaneSurvivesLedgerVolume(unittest.TestCase):
         self.root = Path(tmp.name)
 
     def test_an_old_phase_entry_survives_thousands_of_later_writes(self):
-        crew = _crew(self.root)
-        cid = crew["id"]
+        steward = _steward(self.root)
+        cid = steward["id"]
 
         # The stalled lane enters awaiting-ci and never moves again.
         _step(self.root, cid, 4242, "awaiting-ci", "ci", "waiting on checks")
@@ -594,8 +623,8 @@ class TestStalledLaneSurvivesLedgerVolume(unittest.TestCase):
         self.assertEqual(after["phase"], "awaiting-ci")
 
     def test_a_stalled_lane_is_not_buried_by_other_items_volume(self):
-        crew = _crew(self.root)
-        cid = crew["id"]
+        steward = _steward(self.root)
+        cid = steward["id"]
 
         # A SPINE phase: an off-spine one (awaiting-reply, skipped, yielded,
         # handed-back, preempted) is an exit stub and carries no timeline entry

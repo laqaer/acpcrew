@@ -10,7 +10,7 @@ let animations: Record<string, string> = { idle: IDLE }
 
 vi.mock('../apps/desk-companion/petBridge', () => ({
   petBridge: {
-    getCrewCompanionConfig: () => Promise.resolve({ activeAppearance: 'custom-pack' }),
+    getDeskCompanionConfig: () => Promise.resolve({ activeAppearance: 'custom-pack' }),
     presetsGetColorMap: () => Promise.resolve(null),
     galleryGetPackDetail: () => Promise.resolve({ animations, randomNames: [] }),
     onGalleryActiveChanged: () => () => {},

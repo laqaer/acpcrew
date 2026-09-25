@@ -574,7 +574,7 @@ else
   # The old/new comparison is on CANONICAL paths and rejects any OVERLAP of the
   # two trees, not just exact equality: JUNCTION_VENV could name the same
   # directory by a different route (a symlink, or a `..` segment such as
-  # $JUNCTION_HOME/../crew/venv), or could point INSIDE the old venv
+  # $JUNCTION_HOME/sub/../venv), or could point INSIDE the old venv
   # ($JUNCTION_HOME/venv/new) — in which case the paths differ yet `rm -rf` on
   # the old tree deletes the new installation and the ~/.local/bin/junction
   # symlink target with it. Fails CLOSED: if either path cannot be canonicalized
@@ -635,8 +635,8 @@ case ":$PATH:" in
 esac
 # Point at the actual next step, not just --help: a user who ran the one-liner
 # wants a running gateway. The persistent-service path (systemd/launchd) is
-# otherwise buried in the docs, which is the #1 remote-crew onboarding
-# complaint. `service install` is the durable path; `gateway` is the foreground
+# otherwise buried in the docs, which is the #1 onboarding complaint for a
+# remote instance. `service install` is the durable path; `gateway` is the foreground
 # one for a quick look.
 echo ""
 echo "Next steps:"

@@ -123,7 +123,7 @@ class TestNamespace:
     def test_safe_link_name_neutralizes_backslash(self):
         # Windows treats backslash as a separator; it must be flattened too or a
         # resource name could traverse out of the agents dir.
-        assert "\\" not in _safe_link_name("my-app/..\\..\\crew\\config")
+        assert "\\" not in _safe_link_name("my-app/..\\..\\.junction\\config")
 
 
 # ---------------------------------------------------------------------------

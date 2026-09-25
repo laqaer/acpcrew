@@ -1327,7 +1327,7 @@ def _put(path: str, body: dict | None = None, session_key: str | None = None) ->
     the WRITE. A caller gated on :func:`_resolve_session_key_strict` must send the
     key it verified; re-resolving through the lenient walk would let the request
     carry a different session's authority than the one the gate approved, which on
-    this path means writing another crew's work item and public ledger.
+    this path means writing another steward's work item and public ledger.
     """
     data = json.dumps(body or {}).encode()
     headers = {
@@ -1764,21 +1764,21 @@ def _format_anchor(anchor: dict) -> str:
     return f' [on: "{head}" [TRUNCATED: {omitted} chars omitted' f'{offset_info}] "{tail}"]'
 
 
-def _do_select_crew(crew: str) -> str:
-    """Orchestrator crew routing (the select_crew tool body).
+def _do_select_agent(agent: str) -> str:
+    """Orchestrator agent routing (the select_agent tool body).
 
-    Empty ``crew`` → JSON roster of *selectable* crews: those with a non-empty
-    ``triggers`` (a crew with no triggers is not a routing candidate at all),
-    excluding the default crew (the caller itself). The response also carries
+    Empty ``agent`` → JSON roster of *selectable* agents: those with a non-empty
+    ``triggers`` (an agent with no triggers is not a routing candidate at all),
+    excluding the default agent (the caller itself). The response also carries
     ``default_agent`` and explicit guidance so the model selects only on a
-    high-confidence match and otherwise falls back to the default crew. A named
-    crew → validate it exists, resolve its bindings, and return the bound
+    high-confidence match and otherwise falls back to the default agent. A named
+    agent → validate it exists, resolve its bindings, and return the bound
     {workspace, memory_store, kiro_agent, model}. An unknown name returns a JSON
     ``error`` with the available names.
     """
     cfg = JunctionConfig.load()
     default = cfg.default_agent
-    if not crew:
+    if not agent:
         roster = [
             {"name": n, "triggers": c.triggers}
             for n, c in cfg.agents.items()
@@ -1787,30 +1787,30 @@ def _do_select_crew(crew: str) -> str:
         return json.dumps(
             {
                 "default_agent": default,
-                "crews": roster,
+                "agents": roster,
                 "guidance": (
-                    "Select a crew ONLY when its triggers clearly and specifically "
-                    "match the task with high confidence. If no crew is a strong "
+                    "Select an agent ONLY when its triggers clearly and specifically "
+                    "match the task with high confidence. If no agent is a strong "
                     "match (or the list is empty), do NOT route — use the default "
-                    "crew. Crews without triggers are intentionally omitted."
+                    "agent. Agents without triggers are intentionally omitted."
                 ),
             },
             ensure_ascii=False,
         )
-    if crew not in cfg.agents:
+    if agent not in cfg.agents:
         available = ", ".join(sorted(cfg.agents)) or "(none)"
         return json.dumps(
-            {"error": f"unknown crew '{crew}'", "available": available},
+            {"error": f"unknown agent '{agent}'", "available": available},
             ensure_ascii=False,
         )
-    b = resolve_agent_bindings(cfg, crew)
+    b = resolve_agent_bindings(cfg, agent)
     # Routing-decision pointer. This is the one place a member's identity is
     # unambiguous on the delegation path: `spawn_run`'s `agent` is validated
     # against the installed TEMPLATES, so by the time a sub-agent starts the
     # member it came from can no longer be recovered (two members may share one
     # template). Recording at bind time sidesteps that.
     #
-    # It records the DECISION, not an execution — binding a crew does not oblige
+    # It records the DECISION, not an execution — binding an agent does not oblige
     # the model to delegate to it. That is the signal trigger generation wants
     # (what the router believes belongs to whom), but it means these entries are
     # intent. A `via="spawn"` execution entry is deliberately left for when the
@@ -1828,15 +1828,15 @@ def _do_select_crew(crew: str) -> str:
         _mode = str(ConversationLog().get_metadata(_sk).get("memory_mode", "") or "")
     except Exception:
         _mode = "incognito"
-    record_activity(crew, _sk, _mode, via="select_crew")
+    record_activity(agent, _sk, _mode, via="select_agent")
     return json.dumps(
         {
-            "crew": crew,
+            "agent": agent,
             "bound": {
                 "kiro_agent": b.kiro_agent,
                 "workspace": str(b.workspace_dir),
                 "memory_store": b.memory_store_name,
-                "model": cfg.agents[crew].model,
+                "model": cfg.agents[agent].model,
             },
         },
         ensure_ascii=False,
@@ -1860,7 +1860,7 @@ def _redact_json_strings(value: Any) -> Any:
     return value
 
 
-# ── Issue Radar crew ledger helpers ──
+# ── Issue Radar steward ledger helpers ──
 #
 # Two allowlisted app routes, both FULL paths in
 # ``dashboard.server._MIXED_INTERNAL_API_PATHS`` (see the comment there for why
@@ -1868,20 +1868,20 @@ def _redact_json_strings(value: Any) -> Any:
 #
 # That listing is necessary but not sufficient: it is matched
 # ``path == p or path.startswith(p + "/")`` and carries no method, so the
-# ``/crew`` entry also reaches ``/crew/pause`` and
-# ``PUT``/``DELETE /crew``. The app closes that itself —
+# ``/steward`` entry also reaches ``/steward/pause`` and
+# ``PUT``/``DELETE /steward``. The app closes that itself —
 # ``steward_routes._AGENT_REACHABLE`` refuses an internal-secret caller on every
-# crew route except the exact two below.
-_CREW_READ_PATH = "/api/apps/issue-radar/crew"
-_CREW_WORK_PATH = "/api/apps/issue-radar/crew/work"
+# steward route except the exact two below.
+_STEWARD_READ_PATH = "/api/apps/issue-radar/steward"
+_STEWARD_WORK_PATH = "/api/apps/issue-radar/steward/work"
 
 #: Progress lines returned by a read. The log is repo-wide and append-only, so an
 #: unbounded slice grows without limit and would eventually be the largest thing
-#: in a crew's context — the opposite of what a resume needs. Newest first.
-_CREW_MAX_EVENTS = 20
+#: in a steward's context — the opposite of what a resume needs. Newest first.
+_STEWARD_MAX_EVENTS = 20
 
 
-def _crew_machine_markers() -> list[tuple[str, str]]:
+def _steward_machine_markers() -> list[tuple[str, str]]:
     """Strings that identify THIS machine, longest first.
 
     Longest-first matters: the Junction home normally sits inside the user's
@@ -1909,8 +1909,8 @@ def _crew_machine_markers() -> list[tuple[str, str]]:
     return markers
 
 
-def _crew_public_text(text: str) -> str:
-    """Sanitize a crew string that becomes PUBLIC, on the way IN.
+def _steward_public_text(text: str) -> str:
+    """Sanitize a steward string that becomes PUBLIC, on the way IN.
 
     Two passes, for two different reasons:
 
@@ -1920,17 +1920,17 @@ def _crew_public_text(text: str) -> str:
        re-rendered on a card; here the same prose is ALSO rendered into a
        comment on the forge, so a credential or exfil URL quoted out of an issue
        would be published, not merely stored.
-    2. ``_crew_machine_markers`` — redaction covers credentials and exfil URLs,
+    2. ``_steward_machine_markers`` — redaction covers credentials and exfil URLs,
        NOT an absolute path or a host name, and those are exactly what must not
        leave this machine in a public comment. This pass is a backstop, not the
        control: it can only remove identifiers this process can name, so the
-       crew brief's prohibition remains the primary rule. It is deliberately NOT
+       steward brief's prohibition remains the primary rule. It is deliberately NOT
        applied to ``worktree`` / ``branch`` / ``base_sha`` — those are the one
        place an absolute path legitimately belongs, they stay local, and
        scrubbing them would break the resume they exist for.
     """
     out = redact(text)
-    for value, placeholder in _crew_machine_markers():
+    for value, placeholder in _steward_machine_markers():
         out = out.replace(value, placeholder)
         if "\\" in value:
             # Windows: the same path is written both ways in practice.
@@ -1938,49 +1938,52 @@ def _crew_public_text(text: str) -> str:
     return out
 
 
-def _crew_identity(payload: dict[str, Any]) -> tuple[str, str, str] | None:
-    """Pull ``(owner, repo, crew_id)`` out of a crew-read response.
+def _steward_identity(payload: dict[str, Any]) -> tuple[str, str, str] | None:
+    """Pull ``(owner, repo, steward_id)`` out of a steward-read response.
 
     The identity is echoed back by the READ route, which resolves it from the
     calling session's ``X-Session-Key`` — it is never taken from tool arguments.
-    That is what makes a cross-crew write impossible: a crew cannot name a repo, so
-    it cannot overwrite a same-numbered issue in another repo, and it cannot reach
-    another crew's item at all (which would also defeat the store's per-crew
-    "one editing item" invariant).
+    That is what makes a cross-steward write impossible: a steward cannot name a
+    repo, so it cannot overwrite a same-numbered issue in another repo, and it
+    cannot reach another steward's item at all (which would also defeat the
+    store's per-steward "one editing item" invariant).
 
-    Tolerant of where the route puts it — top level, on the crew record, or on a
-    work item — because all three carry it and a single hard-coded location would
-    turn a harmless shape difference into a dead write path. The top level is the
-    one that is always present: a crew with no work items yet has no other source.
+    Tolerant of where the route puts it — top level, on the steward record, or on
+    a work item — because all three carry it and a single hard-coded location
+    would turn a harmless shape difference into a dead write path. The top level
+    is the one that is always present: a steward with no work items yet has no
+    other source.
     """
-    _raw_crew = payload.get("crew")
-    crew: dict[str, Any] = _raw_crew if isinstance(_raw_crew, dict) else {}
+    _raw_steward = payload.get("steward")
+    steward: dict[str, Any] = _raw_steward if isinstance(_raw_steward, dict) else {}
     _raw_items = payload.get("items")
     items: list[Any] = _raw_items if isinstance(_raw_items, list) else []
     first = next((it for it in items if isinstance(it, dict)), {})
     owner = repo = ""
-    for source in (payload, crew, first):
+    for source in (payload, steward, first):
         owner = str(source.get("owner") or "").strip()
         repo = str(source.get("repo") or "").strip()
         if owner and repo:
             break
     if not (owner and repo):
         return None
-    crew_id = str(crew.get("id") or crew.get("crew_id") or first.get("crew_id") or "").strip()
-    if not crew_id:
+    steward_id = str(
+        steward.get("id") or steward.get("steward_id") or first.get("steward_id") or ""
+    ).strip()
+    if not steward_id:
         return None
-    return owner, repo, crew_id
+    return owner, repo, steward_id
 
 
-def _crew_ledger_view(payload: dict[str, Any]) -> dict[str, Any]:
-    """Project a crew-read response into what a resuming turn actually needs.
+def _steward_ledger_view(payload: dict[str, Any]) -> dict[str, Any]:
+    """Project a steward-read response into what a resuming turn actually needs.
 
-    Everything the route returns about the crew and its unfinished items is
+    Everything the route returns about the steward and its unfinished items is
     passed through — those fields ARE the resume state — while the repo-wide
-    event log is bounded to the newest ``_CREW_MAX_EVENTS`` lines.
+    event log is bounded to the newest ``_STEWARD_MAX_EVENTS`` lines.
 
     The two skip fields are passed through as the route bounded them and are NOT
-    re-trimmed here. ``skipped_numbers`` in particular must stay complete: a crew
+    re-trimmed here. ``skipped_numbers`` in particular must stay complete: a steward
     tests membership against it before spending a turn investigating, and a list
     trimmed at this layer would answer "not skipped" for an issue that is, which
     reintroduces the duplicated investigation the index removes.
@@ -1988,7 +1991,7 @@ def _crew_ledger_view(payload: dict[str, Any]) -> dict[str, Any]:
     _raw_events = payload.get("events")
     events: list[Any] = _raw_events if isinstance(_raw_events, list) else []
     view: dict[str, Any] = {
-        "crew": payload.get("crew") or {},
+        "steward": payload.get("steward") or {},
         "settings": payload.get("settings") or {},
         "open_items": payload.get("items") or [],
         "counts": payload.get("counts") or {},
@@ -1996,15 +1999,15 @@ def _crew_ledger_view(payload: dict[str, Any]) -> dict[str, Any]:
         "recent_skips": payload.get("recent_skips") or [],
         # ``read_events`` returns NEWEST FIRST, so the newest N is ``events[:N]``,
         # not ``events[-N:]`` — the latter took the N OLDEST while the note below
-        # told the crew they were the newest, so any crew past its first N events
-        # was handed ancient history labelled as current. The ``reversed`` is
-        # deliberate and stays: the crew reads this as a transcript of what
+        # told the steward they were the newest, so any steward past its first N
+        # events was handed ancient history labelled as current. The ``reversed``
+        # is deliberate and stays: the steward reads this as a transcript of what
         # happened, which wants chronological order.
-        "recent_events": list(reversed(events[:_CREW_MAX_EVENTS])),
+        "recent_events": list(reversed(events[:_STEWARD_MAX_EVENTS])),
     }
-    if len(events) > _CREW_MAX_EVENTS:
+    if len(events) > _STEWARD_MAX_EVENTS:
         view["recent_events_note"] = (
-            f"newest {_CREW_MAX_EVENTS} of {len(events)} — the full log is on the crew page"
+            f"newest {_STEWARD_MAX_EVENTS} of {len(events)} — the full log is on the steward page"
         )
     return view
 

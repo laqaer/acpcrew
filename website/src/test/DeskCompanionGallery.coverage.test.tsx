@@ -37,7 +37,7 @@ const mocks = vi.hoisted(() => {
     galleryDelete: vi.fn(),
     galleryExport: vi.fn(),
     gallerySaveSpritePack: vi.fn(),
-    getCrewCompanionConfig: vi.fn(),
+    getDeskCompanionConfig: vi.fn(),
     presetsGetColorMap: vi.fn(),
     petdexFetch: vi.fn(),
     updateConfig: vi.fn(),
@@ -169,7 +169,7 @@ beforeEach(() => {
     if (id === spritePack.id) return Promise.resolve(detailFor(spritePack, { idle: SVG }, { fps: 6 }))
     return Promise.resolve(detailFor(builtin, {}))
   })
-  api.getCrewCompanionConfig.mockResolvedValue({ activeAppearance: BUILTIN_ID, language: 'en' })
+  api.getDeskCompanionConfig.mockResolvedValue({ activeAppearance: BUILTIN_ID, language: 'en' })
   api.presetsGetColorMap.mockResolvedValue({})
   api.gallerySetActive.mockResolvedValue({ ok: true })
   api.galleryDelete.mockResolvedValue({ ok: true })
@@ -271,7 +271,7 @@ describe('gallery grid', () => {
   })
 
   it('falls back to the built-in as active when the config read fails', async () => {
-    api.getCrewCompanionConfig.mockRejectedValue(new Error('no config'))
+    api.getDeskCompanionConfig.mockRejectedValue(new Error('no config'))
     await mount()
     expect(cardFor('Mochi Cat')).toHaveTextContent('Active')
   })
@@ -341,7 +341,7 @@ describe('gallery broadcasts', () => {
 
   it('re-reads the config when the broadcast carries no pack id', async () => {
     await mount()
-    api.getCrewCompanionConfig.mockResolvedValue({ activeAppearance: custom.id })
+    api.getDeskCompanionConfig.mockResolvedValue({ activeAppearance: custom.id })
 
     await act(async () => { mocks.listeners.active?.({}) })
     await waitFor(() => expect(cardFor('Boba')).toHaveTextContent('Active'))
@@ -544,7 +544,7 @@ describe('deleting a pack', () => {
 
   it('repoints the active reference to the built-in BEFORE deleting the active pack', async () => {
     vi.spyOn(window, 'confirm').mockReturnValue(true)
-    api.getCrewCompanionConfig.mockResolvedValue({ activeAppearance: custom.id })
+    api.getDeskCompanionConfig.mockResolvedValue({ activeAppearance: custom.id })
     await mount()
     await openDetail('Boba')
     fireEvent.click(screen.getByRole('button', { name: 'Delete' }))
@@ -560,7 +560,7 @@ describe('deleting a pack', () => {
 
   it('aborts the delete when the pre-delete switch fails', async () => {
     vi.spyOn(window, 'confirm').mockReturnValue(true)
-    api.getCrewCompanionConfig.mockResolvedValue({ activeAppearance: custom.id })
+    api.getDeskCompanionConfig.mockResolvedValue({ activeAppearance: custom.id })
     api.gallerySetActive.mockResolvedValue({ ok: false })
     await mount()
     await openDetail('Boba')
@@ -655,7 +655,7 @@ describe('editor overlay', () => {
 
   it('returns to the grid on a successful sprite save and re-applies the active pack', async () => {
     api.galleryListPacks.mockResolvedValue([builtin, spritePack])
-    api.getCrewCompanionConfig.mockResolvedValue({ activeAppearance: spritePack.id })
+    api.getDeskCompanionConfig.mockResolvedValue({ activeAppearance: spritePack.id })
     await mount()
     await openDetail('Pixel Pal')
     fireEvent.click(screen.getByRole('button', { name: EDIT }))

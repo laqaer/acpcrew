@@ -216,9 +216,9 @@ export class AcpAdapter implements ProviderAdapter {
     // the configured default, and the mismatch would only self-correct once the
     // first turn backfilled slot.model from the live session.
     //
-    // `agentName` is a Junction agent name (a "crew"), not a kiro agent
-    // template — the per-agent default is stored per crew, and several crews can
-    // share one template.
+    // `agentName` is a Junction roster agent (a `config.agents` entry), not a
+    // kiro agent template — the default is stored per roster agent, and several
+    // agents can share one template.
     try {
       const d = await api.agentResolvedModel(agentName)
       return d?.model || ''

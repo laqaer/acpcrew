@@ -1,5 +1,5 @@
 /**
- * Screenshot harness for the Crews roster's list view, description clamp and
+ * Screenshot harness for the agent roster's list view, description clamp and
  * modal editor.
  *
  * Runs the REAL built SPA (website/dist) behind the shared in-process static
@@ -17,21 +17,21 @@ import { chromium } from 'playwright'
 import { mkdirSync } from 'node:fs'
 import { serveDist } from './lib/serve-dist.mjs'
 import { logPageProblems, stubDashboardApi } from './lib/stub-dashboard-api.mjs'
-import { crewsApi } from './lib/agents-fixtures.mjs'
+import { agentsApi } from './lib/agents-fixtures.mjs'
 
-const OUT = process.argv[2] || '../temp-screenshots/crews-list-modal'
+const OUT = process.argv[2] || '../temp-screenshots/agents-list-modal'
 const PREFIX = process.argv[3] || 'after'
 
 mkdirSync(OUT, { recursive: true })
 
-const CREWS = [
+const AGENTS = [
   {
     name: 'junction',
     kiro_agent: 'junction',
     workspace: 'default',
     memory_store: 'default',
     description:
-      'Paged-alert triage crew — owns the runbooks, keeps the escalation ladder ' +
+      'Paged-alert triage agent — owns the runbooks, keeps the escalation ladder ' +
       'warm, and files the follow-up tickets after every page so nothing falls ' +
       'through the gaps overnight.',
   },
@@ -62,13 +62,13 @@ async function main() {
   logPageProblems(page)
 
   await stubDashboardApi(page, {
-    extra: crewsApi({ crews: CREWS, defaultAgent: 'junction' }),
+    extra: agentsApi({ agents: AGENTS, defaultAgent: 'junction' }),
   })
 
   await page.goto(base + '/capabilities', { waitUntil: 'domcontentloaded' })
   // Match either DOM so a `before` run against main still finishes instead of
   // hanging for the timeout and failing — that prefix argument is the point.
-  await page.locator('#main-content [data-testid="crew-card"], #main-content tbody tr')
+  await page.locator('#main-content [data-testid="agent-card"], #main-content tbody tr')
     .first().waitFor({ state: 'visible', timeout: 15000 })
   await page.waitForTimeout(400)
 
@@ -90,7 +90,7 @@ async function main() {
     await save('list', page.locator('#main-content'))
 
     // Modal opened FROM a row — the path the row-vs-control click guard covers.
-    await page.getByRole('button', { name: 'Edit crew oncall' }).click()
+    await page.getByRole('button', { name: 'Edit agent oncall' }).click()
     await page.getByRole('dialog').waitFor({ state: 'visible', timeout: 15000 })
     await page.waitForTimeout(400)
     await save('modal-edit')
@@ -102,9 +102,9 @@ async function main() {
   }
 
   // Create mode: the one path that shows the Name field, and the shortest modal.
-  const newCrew = page.locator('[data-testid="new-crew"]')
-  if (await newCrew.count()) {
-    await newCrew.click()
+  const newAgent = page.locator('[data-testid="new-agent"]')
+  if (await newAgent.count()) {
+    await newAgent.click()
     await page.getByRole('dialog').waitFor({ state: 'visible', timeout: 15000 })
     await page.waitForTimeout(400)
     await save('modal-create')

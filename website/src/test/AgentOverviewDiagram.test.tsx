@@ -13,13 +13,13 @@ import { describe, it, expect } from 'vitest'
 import { render, screen } from '@testing-library/react'
 import { Boxes, Clock, Cpu, Database, FolderOpen, ShieldCheck, Webhook } from 'lucide-react'
 
-import CrewOverviewDiagram, { type CrewWireNode } from '../components/agent/AgentOverviewDiagram'
+import AgentOverviewDiagram, { type AgentWireNode } from '../components/agent/AgentOverviewDiagram'
 
-const INPUTS: CrewWireNode[] = [
+const INPUTS: AgentWireNode[] = [
   { key: 'schedules', icon: Clock, label: 'Schedules', value: '2' },
-  { key: 'webhook', icon: Webhook, label: 'Webhook', value: 'Not bound to a crew', ghost: true },
+  { key: 'webhook', icon: Webhook, label: 'Webhook', value: 'Not bound to an agent', ghost: true },
 ]
-const OUTPUTS: CrewWireNode[] = [
+const OUTPUTS: AgentWireNode[] = [
   { key: 'template', icon: Boxes, label: 'Agent Template', value: 'junction', mono: true },
   { key: 'workspace', icon: FolderOpen, label: 'Workspace', value: 'oncall', mono: true },
   { key: 'memory', icon: Database, label: 'Memory Store', value: 'oncall-mem', mono: true },
@@ -28,7 +28,7 @@ const OUTPUTS: CrewWireNode[] = [
 
 function renderDiagram(inputs = INPUTS, outputs = OUTPUTS) {
   const { container } = render(
-    <CrewOverviewDiagram
+    <AgentOverviewDiagram
       inputs={inputs}
       outputs={outputs}
       inputsLabel="Who wakes it"
@@ -38,12 +38,12 @@ function renderDiagram(inputs = INPUTS, outputs = OUTPUTS) {
     />,
   )
   const fan = (side: 'in' | 'out') =>
-    Array.from(container.querySelector(`[data-testid="crew-wire-fan-${side}"]`)
+    Array.from(container.querySelector(`[data-testid="agent-wire-fan-${side}"]`)
       ?.querySelectorAll('[data-connector]') ?? []) as HTMLElement[]
   return { container, inPaths: fan('in'), outPaths: fan('out') }
 }
 
-describe('crew overview diagram — connectors follow the data', () => {
+describe('agent overview diagram — connectors follow the data', () => {
   it('draws one connector per node on each side', () => {
     const { inPaths, outPaths } = renderDiagram()
     expect(inPaths).toHaveLength(INPUTS.length)
@@ -72,7 +72,7 @@ describe('crew overview diagram — connectors follow the data', () => {
     const two = renderDiagram(INPUTS, OUTPUTS.slice(0, 2))
     const four = renderDiagram(INPUTS, OUTPUTS)
     const bandOf = (c: HTMLElement) =>
-      (c.querySelector('[data-testid="crew-wire-fan-in"]') as HTMLElement).style.height
+      (c.querySelector('[data-testid="agent-wire-fan-in"]') as HTMLElement).style.height
     expect(bandOf(two.container)).not.toBe(bandOf(four.container))
   })
 
@@ -99,12 +99,12 @@ describe('crew overview diagram — connectors follow the data', () => {
 
   it('carries no inline SVG, which the icon gate blocks in a .tsx', () => {
     const { container } = renderDiagram()
-    const fans = container.querySelectorAll('[data-testid^="crew-wire-fan-"] svg')
+    const fans = container.querySelectorAll('[data-testid^="agent-wire-fan-"] svg')
     expect(fans).toHaveLength(0)
   })
 })
 
-describe('crew overview diagram — content', () => {
+describe('agent overview diagram — content', () => {
   it('labels both columns and renders the hub', () => {
     renderDiagram()
     expect(screen.getByText('Who wakes it')).toBeInTheDocument()
@@ -114,7 +114,7 @@ describe('crew overview diagram — content', () => {
 
   it('renders each node as its kind plus its current value', () => {
     renderDiagram()
-    const node = screen.getByTestId('crew-wire-workspace')
+    const node = screen.getByTestId('agent-wire-workspace')
     expect(node).toHaveTextContent('Workspace')
     expect(node).toHaveTextContent('oncall')
   })
@@ -122,7 +122,7 @@ describe('crew overview diagram — content', () => {
   it('hides the connectors from assistive tech, since the text carries the meaning', () => {
     const { container } = renderDiagram()
     for (const side of ['in', 'out']) {
-      expect(container.querySelector(`[data-testid="crew-wire-fan-${side}"]`))
+      expect(container.querySelector(`[data-testid="agent-wire-fan-${side}"]`))
         .toHaveAttribute('aria-hidden', 'true')
     }
   })

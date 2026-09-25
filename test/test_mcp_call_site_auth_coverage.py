@@ -214,7 +214,7 @@ def _resolve(
                 return scope[node.id]
         return [_UNKNOWN]
     if isinstance(node, ast.Attribute):
-        # ``mcp_core._CREW_READ_PATH`` -- resolve against mcp_core's constants.
+        # ``mcp_core._STEWARD_READ_PATH`` -- resolve against mcp_core's constants.
         return core.get(node.attr, [_UNKNOWN])
     if isinstance(node, ast.Call) and isinstance(node.func, ast.Name) and not node.args:
         # A zero-arg URL builder, pre-resolved into scope under ``name()``.
@@ -567,7 +567,7 @@ class TestMcpCallSiteAuthCoverage:
             ("/api/apps/issue-radar/investigation", "the _put helper"),
             ("/api/artifacts/{X}/comments", "f-string with an interpolation"),
             ("/api/session-tool-policy", "direct urllib Request, leading f-string"),
-            ("/api/apps/issue-radar/crew", "path held in a module-level constant"),
+            ("/api/apps/issue-radar/steward", "path held in a module-level constant"),
             ("/api/browser/command", "module constant interpolated into an f-string"),
             ("/api/computer-use/invoke", "own Request + header, outside mcp_tools"),
             ("/api/computer-use/frame", "path returned by a zero-arg URL builder"),

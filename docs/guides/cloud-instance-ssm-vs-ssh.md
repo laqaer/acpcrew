@@ -100,7 +100,7 @@ here, and opens the dashboard — all from your laptop.
    **local** forwarded port defaults to `5599` (deliberately not `5476`, so it
    won't collide with a local gateway you may run yourself); override it with
    `--local-port` on the `connect` / `tunnel` verbs, or suppress the browser with
-   `--no-browser`. Because the box is registered here as an SSM crew, the Instances
+   `--no-browser`. Because the box is registered here as an SSM instance, the Instances
    hub afterwards opens its **own** managed SSM tunnel — allocating its own local
    port, with token refresh and startup auto-reconnect — independent of that
    one-shot launch tunnel. Re-running `launch` for the same box updates its record

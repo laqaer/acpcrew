@@ -1378,7 +1378,7 @@ DEPS_CACHE_SCHEMA = 1
 #     the background), so for the route this TTL governs how often a BACKGROUND
 #     rebuild fires and a long value would be harmless;
 #   * steward_runtime._read_or_refresh_deps, the sweep that feeds SIG_DEP_UNBLOCKED.
-#     For the sweep this TTL IS the freshness horizon on which a crew waiting for
+#     For the sweep this TTL IS the freshness horizon on which a steward waiting for
 #     its blocker to merge gets woken, so raising it directly delays that wake.
 #
 # Serve-stale already removes the ~11s stall a user could hit here, so there is

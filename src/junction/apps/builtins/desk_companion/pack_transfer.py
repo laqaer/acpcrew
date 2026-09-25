@@ -53,6 +53,15 @@ FETCH_TIMEOUT_SECS = 20
 #: accept arbitrary extensions, so the allowlist is the check.
 ALLOWED_SUFFIXES = (".json", ".svg", ".png", ".webp", ".gif")
 
+# ── bundle format ───────────────────────────────────────────────────────────
+
+#: The ``kind`` an exported bundle carries, and the first thing import checks.
+PACK_BUNDLE_KIND = "desk-companion-pack"
+#: Earlier Junction builds exported bundles with this ``kind``. Import accepts it
+#: permanently: a bundle is a file the user keeps outside the data home, so there is
+#: no migration that could rewrite it, and refusing it would strand their packs.
+LEGACY_PACK_BUNDLE_KIND = "crew-companion-pack"
+
 # ── PetDex ──────────────────────────────────────────────────────────────────
 
 #: The only host this module will contact.
@@ -104,7 +113,7 @@ def _petdex_asset_url(candidate: Any) -> str | None:
         return None
     host = (parsed.hostname or "").lower()
     if host != PETDEX_HOST and not host.endswith(f".{PETDEX_HOST}"):
-        logger.warning("crew-companion: refusing off-host PetDex asset: %s", host)
+        logger.warning("desk-companion: refusing off-host PetDex asset: %s", host)
         return None
     return candidate
 
@@ -125,7 +134,7 @@ class _PinnedRedirects(urllib.request.HTTPRedirectHandler):
 
     def redirect_request(self, req, fp, code, msg, headers, newurl):  # noqa: ANN001, ANN201
         if _petdex_asset_url(newurl) is None:
-            logger.warning("crew-companion: refusing PetDex redirect to %s", newurl)
+            logger.warning("desk-companion: refusing PetDex redirect to %s", newurl)
             return None
         return super().redirect_request(req, fp, code, msg, headers, newurl)
 
@@ -140,7 +149,7 @@ def _get(url: str, *, as_json: bool) -> Any:
     Read in chunks and abort past the cap rather than trusting Content-Length.
     """
     request = urllib.request.Request(  # noqa: S310 — scheme and host pinned above
-        url, headers={"User-Agent": "Junction-CrewCompanion"}  # brand-ok: wire identifier, not prose
+        url, headers={"User-Agent": "Junction-DeskCompanion"}
     )
     # Through _OPENER, never the module-level urlopen: the default opener follows
     # redirects without re-validating them.
@@ -173,7 +182,7 @@ def fetch_petdex_pet(raw_input: Any) -> dict[str, Any]:
     try:
         manifest = _get(PETDEX_MANIFEST_URL, as_json=True)
     except (urllib.error.URLError, OSError, ValueError) as exc:
-        logger.warning("crew-companion: PetDex manifest fetch failed: %s", exc)
+        logger.warning("desk-companion: PetDex manifest fetch failed: %s", exc)
         return {"ok": False, "error": "Could not reach PetDex"}
 
     pets = manifest.get("pets") if isinstance(manifest, dict) else None
@@ -197,7 +206,7 @@ def fetch_petdex_pet(raw_input: Any) -> dict[str, Any]:
     try:
         sheet = _get(sheet_url, as_json=False)
     except (urllib.error.URLError, OSError, ValueError) as exc:
-        logger.warning("crew-companion: PetDex sprite fetch failed: %s", exc)
+        logger.warning("desk-companion: PetDex sprite fetch failed: %s", exc)
         return {"ok": False, "error": "Could not download that pet's art"}
 
     display_name = str(pet.get("displayName") or slug)
@@ -211,7 +220,7 @@ def fetch_petdex_pet(raw_input: Any) -> dict[str, Any]:
                 display_name = str(detail.get("displayName") or display_name)
                 description = str(detail.get("description") or "")
         except (urllib.error.URLError, OSError, ValueError):
-            logger.debug("crew-companion: PetDex pet.json unavailable")
+            logger.debug("desk-companion: PetDex pet.json unavailable")
 
     return {
         "ok": True,
@@ -310,7 +319,7 @@ def export_bundle(appearances: Any, pack_id: str) -> dict[str, Any] | None:
         files[source_name] = source_image
 
     return {
-        "kind": "crew-companion-pack",
+        "kind": PACK_BUNDLE_KIND,
         "version": 1,
         "id": ident,
         "manifest": {
@@ -338,7 +347,7 @@ def import_bundle(appearances: Any, payload: Any) -> dict[str, Any]:
     encoded = json.dumps(payload)
     if len(encoded.encode("utf-8")) > MAX_BUNDLE_BYTES:
         return {"ok": False, "error": "That bundle is too large"}
-    if payload.get("kind") != "crew-companion-pack":
+    if payload.get("kind") not in (PACK_BUNDLE_KIND, LEGACY_PACK_BUNDLE_KIND):
         return {"ok": False, "error": "That file is not a pack bundle"}
 
     ident = _safe_id(payload.get("id"))

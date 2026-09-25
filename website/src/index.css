@@ -1722,35 +1722,35 @@ file-tree-container{
 @container (min-width:531px){ .tb-narrow-only{display:none} }
 
 /* The identity group's own rung. The group holds the nav button (phone only) plus
-   the crew switcher -- active-crew chip, the pinned chips, then the dropdown --
-   and the dropdown TRAILS the chips, so it is the control that leaves the clip
-   box first when the group runs out of room. Losing it would leave a phone with
-   no way to switch crews at all.
+   the instance switcher -- active-instance chip, the pinned chips, then the
+   dropdown -- and the dropdown TRAILS the chips, so it is the control that leaves
+   the clip box first when the group runs out of room. Losing it would leave a
+   phone with no way to switch instances at all.
    Measured in the group's own CONTENT box, which is what a container query reads
    and is 16px narrower than its track on a phone (`px-2` on the group): nav
    button + gap + a `Local` chip + gap + dropdown = 139px, so the rung fires just
    above that. Dropping the chip NAMES buys ~43px each and keeps every chip, its
-   state icon and its unread badge on screen; each chip carries the crew name in
-   `aria-label`/`title`, so nothing becomes unreachable.
+   state icon and its unread badge on screen; each chip carries the instance name
+   in `aria-label`/`title`, so nothing becomes unreachable.
    Scoped to `.tb-left` because the chip markup is shared with the full-width
    strip bar, which is not in this group and has room for its labels.
    Deliberately NOT `display:none` on the chip row: the dropdown's aggregate
-   unread badge counts a pinned crew only when its chip is measured as cut off,
+   unread badge counts a pinned instance only when its chip is measured as cut off,
    and a display:none row measures as zero-width chips at offset zero -- read as
    "on screen", which would silently swallow their unread. */
-@container (max-width:152px){ .tb-left .tb-drop-crew-name{display:none} }
+@container (max-width:152px){ .tb-left .tb-drop-instance-name{display:none} }
 /* Terminal rung for the identity group, the counterpart of the capsule's
-   dot-only one: below this the active-crew chip goes too and the group keeps just
-   the nav button and the dropdown -- which still names the crew on screen, with a
-   radio check on its row. The threshold is the WIDEST icons-only form, not the
+   dot-only one: below this the active-instance chip goes too and the group keeps
+   just the nav button and the dropdown -- which still names the instance on
+   screen, with a radio check on its row. The threshold is the WIDEST icons-only form, not the
    narrowest: an icon-only chip is 30px bare but ~56px carrying an unread badge,
    so bounding it at the bare width would let a badge push the dropdown out at
    exactly the moment there is unread to reach. 36 + 8 + 56 + 4 + 24 = 128.
    The pinned chip row is left in the flow rather than hidden, for the
    measurement reason above: `min-width:0` lets it shrink to nothing on its own,
    and shrinking (unlike `display:none`) is what its own measurement reads as cut
-   off, so those crews' unread rolls into the aggregate badge. */
-@container (max-width:128px){ .tb-left .tb-crew-active-chip{display:none} }
+   off, so those instances' unread rolls into the aggregate badge. */
+@container (max-width:128px){ .tb-left .tb-instance-active-chip{display:none} }
 
 /* ── Topbar glass ── */
 .topbar-glass{
@@ -2380,22 +2380,22 @@ html[data-font-family="mono"] .rail-community-links{ word-spacing:-2.5px; gap:3p
    button's `text-ellipsis` on `Report issue` handles overflow gracefully;
    a dedicated rule can be added later if visual QA shows truncation matters. */
 
-/* Cut-edge rule on the pinned-crew chip row. The row is a single nowrap line with
-   overflow:hidden so the trailing dropdown stays against the last chip (see
-   InstanceTabBar.CrewChipRow), which means the chip at the boundary is cut rather
-   than dropped, and that cut needs saying.
+/* Cut-edge rule on the pinned-instance chip row. The row is a single nowrap line
+   with overflow:hidden so the trailing dropdown stays against the last chip (see
+   InstanceTabBar.InstanceChipRow), which means the chip at the boundary is cut
+   rather than dropped, and that cut needs saying.
 
    It is said with a 1px rule AT the boundary, not with an alpha fade ACROSS the
    last pixels. A chip's unread badge is its trailing element, so any cut reaches
    the badge first: a fade there does not soften an edge, it dissolves the count —
-   an 18px ramp is wider than the 16px badge, so at the rungs where the crew name
-   has already collapsed the whole glyph goes. Nothing about the count is lost to
+   an 18px ramp is wider than the 16px badge, so at the rungs where the instance
+   name has already collapsed the whole glyph goes. Nothing about the count is lost to
    the cut either way: it is already rolled into the dropdown trigger's aggregate
-   badge, whose roll-up counts exactly the crews whose chips measured as cut.
+   badge, whose roll-up counts exactly the instances whose chips measured as cut.
 
    `::after` so the rule takes no layout: the row is sized from the space the
    trigger leaves, and an in-flow 1px would feed its own clip measurement. */
-.crew-chip-row[data-cut='true']::after {
+.instance-chip-row[data-cut='true']::after {
   content: '';
   position: absolute;
   top: 2px;

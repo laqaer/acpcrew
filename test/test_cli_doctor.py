@@ -505,7 +505,7 @@ class TestPathLauncherOwnership:
         assert "different install" not in out
 
     def test_divergent_launcher_names_both_paths(self, monkeypatch, tmp_path, capsys) -> None:
-        wheel = tmp_path / "crew-venv" / "bin" / "junction"
+        wheel = tmp_path / "junction-venv" / "bin" / "junction"
         wheel.parent.mkdir(parents=True)
         wheel.write_text("")
         package = tmp_path / "opt" / "Junction" / "junction"

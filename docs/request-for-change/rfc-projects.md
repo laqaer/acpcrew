@@ -28,7 +28,7 @@ superseded-by: []
   the work items come from* and gives the agent the whole picture: sessions
   map to projects (many sessions per project) with a project view and
   one-click session creation from a project; Junction artifacts, the knowledge
-  graph, steering, skills, MCP servers, agent crew, and workflows all scope to
+  graph, steering, skills, MCP servers, agents, and workflows all scope to
   the project.
 * Source types are **pluggable**: every entry in the manifest is handled by a
   registered *source provider* behind one SPI (validate / sync / search /
@@ -59,7 +59,7 @@ Verified at `5cd92ff99`:
   project-scoped `.kiro/` work — steering and skills. It does not travel and
   names nothing beyond a filesystem location.
 * **Workspaces** (`workspaces: Record<string,{dir}>` in config) scope *memory
-  and files on one install*. Two crews sharing a workspace share memory. Nothing
+  and files on one install*. Two agents sharing a workspace share memory. Nothing
   about a workspace syncs, and the concept deliberately conflates "who I am /
   what I remember" with "what I am working on".
 * The **Knowledge Library** is per-workspace and per-install. Its pipeline
@@ -105,7 +105,7 @@ to a new *install* (a second machine, a teammate) is manual times every source.
    listing them, one-click session creation from a project, and auto-tagging
    of sessions to the project they are working.
 8. **Project-scoped surfaces**: Junction artifacts, the knowledge graph, and the
-   project's agent context (crew, skills, MCP servers, steering, workflows)
+   project's agent context (agents, skills, MCP servers, steering, workflows)
    all attach to the project, so any session on it inherits the same working
    picture.
 
@@ -195,7 +195,7 @@ context:                       # the project's agent context
   steering: [steering/*.md]    # optional, carried in the project repo
   skills: [skills/]            # optional, per-install trust required
   mcp: mcp.json                # optional MCP servers, per-install trust required
-  crew: [crew/*.json]          # agent specs for this project's crew
+  agents: [agents/*.json]      # agent specs for this project's agents
   workflows: [workflows/]      # named workflow definitions for this project
   pinned:                      # docs carried verbatim in the repo
     - docs/architecture.md
@@ -334,14 +334,14 @@ field, not an inference from the directory path:
   browsing sessions, and selecting one opens the project view. (2) The
   **new-session flow gets a project picker**: today starting a session asks
   for a directory; picking a *Project* instead pre-fills the directory from
-  the primary repo and brings the brief, crew, steering, and skills with it.
+  the primary repo and brings the brief, agents, steering, and skills with it.
   The directory-only path stays for work that has no project.
 * **Project view**: the dashboard gets a per-project view — its sessions
   (live and historical), work items, artifacts, source health, last sync.
   This is *the* answer to "what is happening on payments-platform".
 * **Create session from project**: one click on the project view opens a new
   session already attached — project dir set from the primary repo, brief
-  injected, crew/steering/skills loaded. Optionally seeded from a work item
+  injected, agents/steering/skills loaded. Optionally seeded from a work item
   ("start a session on PAY-1234") so the task arrives with its ticket.
 * **Auto-tagging**: existing and incoming sessions are tagged to a project by
   evidence — project dir inside a project clone, a mentioned work item or PR
@@ -394,7 +394,7 @@ partition keyed by the project, so graph queries, entity lookups, and semantic
 search answer *within the project* by default. The graph is derived state —
 rebuilt from recipes, never synced.
 
-### Project agent context — crew, skills, MCP, steering, workflows
+### Project agent context — agents, skills, MCP, steering, workflows
 
 `context` in the manifest carries the project's *agent configuration*, so a
 session created from the project starts with the right working setup, on every
@@ -404,8 +404,8 @@ install:
 * **skills** — project skills, per-install directory trust required.
 * **mcp** — MCP servers the project's work needs, per-install trust required
   (same gate as skills: listed-but-marked until trusted, never auto-started).
-* **crew** — agent specs for the project's crew, so "the payments crew" is
-  reproducible from the bundle.
+* **agents** — specs for the agents the project's work runs on, so "the payments
+  reviewer" is reproducible from the bundle.
 * **workflows** — named workflow definitions for recurring project processes,
   runnable from the project view or by name in-session.
 
@@ -460,10 +460,10 @@ credential-adjacent sits behind the per-install trust grant.
   1 (third-party provider packaging).
 * **P3 — project surfaces + team ergonomics.** Project artifacts (attach,
   artifacts-as-input, `links.yaml` reference mapping), auto-tagging of
-  sessions, project agent context (crew/mcp/workflows behind the trust gate),
+  sessions, project agent context (agents/mcp/workflows behind the trust gate),
   agent-proposed manifest PRs, project templates, full dashboard project page.
   *Exit criteria:* an artifact links to a work item and the link survives a
-  fresh clone on a second install; an untrusted project's mcp/crew/workflows
+  fresh clone on a second install; an untrusted project's mcp/agents/workflows
   are listed-but-inert until granted; a session started in a project clone
   gets a suggested tag.
 
@@ -482,7 +482,7 @@ An install that never creates a project sees no new behavior.
   every source resolves against the local install's own credential store.
   Sharing a project shares a map, not keys.
 * **Trust gate on executable content**: `context.skills`, `context.steering`,
-  `context.mcp`, `context.crew`, and `context.workflows` carried in a project
+  `context.mcp`, `context.agents`, and `context.workflows` carried in a project
   repo are third-party executable(-adjacent) content. They pass through the
   same per-directory trust grant as project-scoped skills (the #3551
   machinery): listed-but-marked until the user trusts the project checkout —

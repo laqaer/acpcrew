@@ -6,16 +6,12 @@
  * ordinary same-origin paths on the dashboard's own origin — no reverse proxy, no
  * second process, no CORS.
  *
- * This replaced a two-candidate probe (`/apps/crew-companion/api/...` then
- * `/api/apps/crew-companion/api/...`) that existed because the page was reaching a
- * SEPARATE macOS app on 127.0.0.1:7778 through the gateway's proxy, and that mount
- * point had moved before. A single owned route needs no fallback: if it 404s, that
- * is a routing bug to fix loudly rather than paper over — which is exactly what the
- * long-term reviewer asked for when it flagged the probe.
+ * There is exactly one mount point and no fallback probe: if a path under it
+ * 404s, that is a routing bug to fix loudly rather than paper over.
  */
 
 /** Where this app's own routes are mounted. Must match `_BASE` in routes.py. */
-export const API_BASE = '/api/apps/crew-companion'
+export const API_BASE = '/api/apps/desk-companion'
 
 export const REMINDERS_PATH = `${API_BASE}/reminders`
 export const STATS_PATH = `${API_BASE}/stats`

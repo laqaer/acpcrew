@@ -232,7 +232,7 @@ def _unreadable(monkeypatch: pytest.MonkeyPatch, *suffixes: str) -> None:
 
 @pytest.fixture(autouse=True)
 def data_root(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> Path:
-    """Redirect the app's data root, scratch root and crew home under ``tmp_path``.
+    """Redirect the app's data root, scratch root and data home under ``tmp_path``.
 
     ``store.data_dir`` is the one seam every other path helper derives from, so
     patching it reaches ``config_path``, ``ledger_path``, ``pr_queue_dir``,

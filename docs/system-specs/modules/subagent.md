@@ -442,7 +442,7 @@ Each sub-agent runs as its own Junction-owned ACP session (via
 tab (`subagent_spawn` / `subagent_chunk` / `subagent_tool` / `subagent_done`
 WS events) while the parent blocks.
 
-Native kiro-cli `subagent`/`use_subagent` crews run inside the parent's
+Native kiro-cli subagents (`subagent`/`use_subagent`) run inside the parent's
 kiro-cli process rather than as Junction-owned sessions. Junction surfaces
 those in the Activity tab too, by observing kiro-cli's sub-agent
 notifications — one card per sub-agent, with each inner tool call and its

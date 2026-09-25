@@ -167,7 +167,7 @@ describe('BrowserPanel', () => {
     // ~110 characters, wrapped over three lines by break-all, and a transcription
     // typo produces another opaque curl failure for a user who is already stuck.
     // The repo pairs every runnable command with a copy button (AboutPanel,
-    // RemoteCrewPanel); this is the same pattern on the same kind of string.
+    // RemoteInstancesPanel); this is the same pattern on the same kind of string.
     await renderPanel(state({ node_ok: false, node_version: null }))
     expect(screen.getByRole('button', { name: /Copy command/i })).toBeTruthy()
   })

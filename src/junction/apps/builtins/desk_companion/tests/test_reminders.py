@@ -1,6 +1,6 @@
 """Scheduling rules, ported case-for-case from the desktop app's own suite.
 
-Source: ``crew-companion/src/test/reminders.test.ts`` (29 cases). Twenty of them
+Source: the desktop app's ``src/test/reminders.test.ts`` (29 cases). Twenty of them
 are ported here verbatim in intent, including the exact-string assertions. The
 other nine cover ``labelFor`` / ``upNext`` — presentation that deliberately
 stayed in TypeScript (see the module docstring), so porting them here would test

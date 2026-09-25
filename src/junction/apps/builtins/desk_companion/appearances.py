@@ -40,6 +40,13 @@ DEFAULT_PACK = "default-mochi"
 #: Custom packs live one directory each, named by id, under this subdirectory.
 PACKS_DIRNAME = "appearances"
 
+#: Saved colour maps for recoloured packs, inside the app's data directory.
+COLOURS_FILENAME = "colours.json"
+#: Earlier Junction builds wrote the colour maps under this name. ``install_migration``
+#: renames it to :data:`COLOURS_FILENAME` before the app registers, so an existing
+#: data home keeps its recoloured packs.
+LEGACY_COLOURS_FILENAME = "crew-companion-colours.json"
+
 #: Per-file ceiling for pack content. Generous for art, small enough that a
 #: hand-edited manifest claiming a gigabyte cannot exhaust memory on read.
 MAX_FILE_BYTES = 8 * 1024 * 1024
@@ -102,7 +109,7 @@ class AppearanceStore:
         self._root = Path(data_dir) / PACKS_DIRNAME
         #: id -> colour map, for packs the user has recoloured.
         self._colour_maps: dict[str, dict[str, str]] = {}
-        self._colour_path = Path(data_dir) / "crew-companion-colours.json"
+        self._colour_path = Path(data_dir) / COLOURS_FILENAME
 
     # ── setup ───────────────────────────────────────────────────────────────
 
@@ -111,7 +118,7 @@ class AppearanceStore:
         try:
             self._root.mkdir(parents=True, exist_ok=True)
         except OSError as exc:
-            logger.warning("crew-companion: cannot create packs dir: %s", exc)
+            logger.warning("desk-companion: cannot create packs dir: %s", exc)
         self._recover_orphaned_backups()
         try:
             if self._colour_path.exists():
@@ -123,7 +130,7 @@ class AppearanceStore:
         except (OSError, ValueError) as exc:
             # A corrupt colour file costs the user their recolouring, not their art,
             # so carrying on with defaults beats refusing to start.
-            logger.warning("crew-companion: colour maps unreadable: %s", exc)
+            logger.warning("desk-companion: colour maps unreadable: %s", exc)
 
     def _recover_orphaned_backups(self) -> None:
         """Restore a pack stranded as ``<name>.old.<pid>`` by an interrupted save.
@@ -149,12 +156,12 @@ class AppearanceStore:
             try:
                 if target.exists():
                     shutil.rmtree(entry, ignore_errors=True)
-                    logger.info("crew-companion: removed stale pack backup %s", name)
+                    logger.info("desk-companion: removed stale pack backup %s", name)
                 else:
                     os.replace(entry, target)
-                    logger.info("crew-companion: restored pack %r from backup %s", head, name)
+                    logger.info("desk-companion: restored pack %r from backup %s", head, name)
             except OSError as exc:
-                logger.warning("crew-companion: backup recovery failed for %s: %s", name, exc)
+                logger.warning("desk-companion: backup recovery failed for %s: %s", name, exc)
 
     # ── reads ───────────────────────────────────────────────────────────────
 
@@ -180,7 +187,7 @@ class AppearanceStore:
             if meta is not None:
                 packs.append(meta.to_dict())
             else:
-                logger.warning("crew-companion: skipping unreadable pack %s", entry.name)
+                logger.warning("desk-companion: skipping unreadable pack %s", entry.name)
         return packs
 
     def pack_detail(self, pack_id: str) -> dict[str, Any] | None:
@@ -352,7 +359,7 @@ class AppearanceStore:
         # victim's artwork — deleting the alias must never delete the target.
         try:
             if is_link_or_junction(pack_dir):
-                logger.warning("crew-companion: refusing to delete linked pack: %s", ident)
+                logger.warning("desk-companion: refusing to delete linked pack: %s", ident)
                 return False
         except OSError:
             return False
@@ -366,7 +373,7 @@ class AppearanceStore:
                 return False
             shutil.rmtree(resolved)
         except OSError as exc:
-            logger.warning("crew-companion: pack delete failed: %s", exc)
+            logger.warning("desk-companion: pack delete failed: %s", exc)
             return False
         self._colour_maps.pop(ident, None)
         try:
@@ -375,7 +382,7 @@ class AppearanceStore:
             # The pack itself is already gone — a stale colour entry for a
             # nonexistent pack is harmless and gets rewritten on the next
             # successful save, so the delete still reports success.
-            logger.warning("crew-companion: colour map write failed: %s", exc)
+            logger.warning("desk-companion: colour map write failed: %s", exc)
         return True
 
     def save_pack(self, pack_id: str, manifest: Any, files: Any) -> bool:
@@ -395,7 +402,7 @@ class AppearanceStore:
         # save could report success and then be invisible in the gallery — present on
         # disk, skipped on read — which is far harder to diagnose than a refusal here.
         if not isinstance(manifest.get("meta"), dict):
-            logger.warning("crew-companion: pack manifest has no meta: %s", ident)
+            logger.warning("desk-companion: pack manifest has no meta: %s", ident)
             return False
 
         staging = self._root / f".tmp-{ident}-{os.getpid()}"
@@ -410,7 +417,7 @@ class AppearanceStore:
         # pack intact.
         manifest_text = json.dumps(manifest, indent=2)
         if len(manifest_text.encode("utf-8")) > MAX_FILE_BYTES:
-            logger.warning("crew-companion: pack manifest too large: %s", ident)
+            logger.warning("desk-companion: pack manifest too large: %s", ident)
             return False
         try:
             if staging.exists():
@@ -427,7 +434,7 @@ class AppearanceStore:
                     # that slot was destroyed by a save the user believed
                     # succeeded. All-or-nothing is the only shape that cannot
                     # lose art.
-                    logger.warning("crew-companion: unsafe pack filename: %r", name)
+                    logger.warning("desk-companion: unsafe pack filename: %r", name)
                     shutil.rmtree(staging, ignore_errors=True)
                     return False
                 if safe.casefold() in seen_casefolded:
@@ -438,7 +445,7 @@ class AppearanceStore:
                     # reported success. Same all-or-nothing rule as above: a
                     # save that would lose one file's art refuses entirely.
                     logger.warning(
-                        "crew-companion: case-colliding pack filename: %r", name
+                        "desk-companion: case-colliding pack filename: %r", name
                     )
                     shutil.rmtree(staging, ignore_errors=True)
                     return False
@@ -450,11 +457,11 @@ class AppearanceStore:
                     # and defeating the import path's inner-id normalization.
                     # Case-insensitive: macOS/Windows filesystems would collide
                     # on MANIFEST.JSON too.
-                    logger.warning("crew-companion: reserved pack filename: %r", name)
+                    logger.warning("desk-companion: reserved pack filename: %r", name)
                     shutil.rmtree(staging, ignore_errors=True)
                     return False
                 if len(content.encode("utf-8")) > MAX_FILE_BYTES:
-                    logger.warning("crew-companion: pack file too large: %s", safe)
+                    logger.warning("desk-companion: pack file too large: %s", safe)
                     shutil.rmtree(staging, ignore_errors=True)
                     return False
                 (staging / safe).write_text(content, "utf-8")
@@ -480,7 +487,7 @@ class AppearanceStore:
                 shutil.rmtree(backup, ignore_errors=True)
             return True
         except OSError as exc:
-            logger.warning("crew-companion: pack save failed: %s", exc)
+            logger.warning("desk-companion: pack save failed: %s", exc)
             try:
                 if staging.exists():
                     shutil.rmtree(staging)
@@ -509,7 +516,7 @@ class AppearanceStore:
             # fields (names, paths) through the gallery listing.
             if is_link_or_junction(path):
                 logger.warning(
-                    "crew-companion: refusing linked manifest in %s", pack_dir.name
+                    "desk-companion: refusing linked manifest in %s", pack_dir.name
                 )
                 return None
             if not path.is_file() or path.stat().st_size > MAX_FILE_BYTES:
@@ -558,11 +565,11 @@ class AppearanceStore:
             # itself, then belt-and-suspenders the resolved path back inside
             # the packs root (covers a linked intermediate directory too).
             if is_link_or_junction(path):
-                logger.warning("crew-companion: refusing linked pack file: %s", safe)
+                logger.warning("desk-companion: refusing linked pack file: %s", safe)
                 return None
             resolved = path.resolve()
             if self._root.resolve() not in resolved.parents:
-                logger.warning("crew-companion: pack file escapes root: %s", safe)
+                logger.warning("desk-companion: pack file escapes root: %s", safe)
                 return None
             if not resolved.is_file() or resolved.stat().st_size > MAX_FILE_BYTES:
                 return None

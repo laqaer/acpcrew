@@ -86,7 +86,7 @@ const { createPierrePerfLog } = require("./pierre-perf-log");
 const { identityFamily, decideGatewayAction, classifyGatewayReadiness, FAMILY_META, HEALTH_IDENTITY_PATH, READY_PATH } = require("./instance-guard");
 const { initMochi, shutdownMochi } = require("./mochi/index");
 const { borrowSessionToken } = require("./mochi-session-token");
-const { initCrewCompanion, shutdownCrewCompanion } = require("./desk-companion/index");
+const { initDeskCompanion, shutdownDeskCompanion } = require("./desk-companion/index");
 const { clampZoomFactor, stepZoomFactor } = require("./zoom");
 const { createBrowserViewManager, isUntrustedContents } = require("./browser-view");
 const {
@@ -4190,9 +4190,9 @@ app.whenReady().then(async () => {
   // Same shape and the same best-effort contract: the companion's windows follow
   // the app's enabled state, and a failure here must never block the dashboard.
   try {
-    initCrewCompanion({ backendUrl: BACKEND_URL, fetchLocalToken, glog });
+    initDeskCompanion({ backendUrl: BACKEND_URL, fetchLocalToken, glog });
   } catch (err) {
-    glog(`crew-companion: init failed — ${err && err.message}`);
+    glog(`desk-companion: init failed — ${err && err.message}`);
   }
 
   app.on("activate", () => {
@@ -4211,7 +4211,7 @@ app.on("before-quit", () => {
   // Flush the final metrics window before the gateway teardown begins.
   try { if (desktopMetricsRecorder) desktopMetricsRecorder.stop(); } catch { /* best effort */ }
   shutdownMochi();
-  try { shutdownCrewCompanion(); } catch { /* best effort */ }
+  try { shutdownDeskCompanion(); } catch { /* best effort */ }
   stopGateway();
 });
 

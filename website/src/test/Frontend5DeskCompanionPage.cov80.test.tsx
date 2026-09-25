@@ -1,5 +1,5 @@
 /**
- * `CrewCompanionPage` — the builtin dashboard page, driven through its real
+ * `DeskCompanionPage` — the builtin dashboard page, driven through its real
  * request surface.
  *
  * A browser page cannot reach the companion's own 127.0.0.1 server, so every
@@ -26,7 +26,7 @@ vi.mock('../apps/desk-companion/api', () => ({
   apiPost: (path: string, body?: unknown) => apiPost(path, body),
 }))
 
-const CrewCompanionPage = (await import('../apps/desk-companion/DeskCompanionPage')).default
+const DeskCompanionPage = (await import('../apps/desk-companion/DeskCompanionPage')).default
 
 function reminders(over: Partial<RemindersPayload> = {}): RemindersPayload {
   return {
@@ -87,7 +87,7 @@ afterEach(() => {
 
 describe('desk-companion/DeskCompanionPage — reads', () => {
   it('renders the live controls once both endpoints answer', async () => {
-    render(<CrewCompanionPage />)
+    render(<DeskCompanionPage />)
     await waitFor(() => expect(screen.getAllByRole('switch').length).toBe(2))
     expect(apiGet).toHaveBeenCalledWith(REMINDERS_PATH)
     expect(apiGet).toHaveBeenCalledWith(STATS_PATH)
@@ -99,21 +99,21 @@ describe('desk-companion/DeskCompanionPage — reads', () => {
     // Keying "offline" off reminders alone would render "isn't running" over a
     // live companion whose stats path merely drifted.
     routes({ rem: new Error('zz-reminders-down') })
-    render(<CrewCompanionPage />)
+    render(<DeskCompanionPage />)
     await waitFor(() => expect(screen.getAllByRole('switch').length).toBe(2))
     expect(document.querySelector('.cc-offline')).toBeNull()
   })
 
   it('treats a malformed payload as unreachable', async () => {
     routes({ rem: { reminders: 'not-an-array' }, mem: {} })
-    render(<CrewCompanionPage />)
+    render(<DeskCompanionPage />)
     await waitFor(() => expect(document.querySelector('.cc-offline')).not.toBeNull())
   })
 
   it('shows the not-running state and the cached keepsake when both are down', async () => {
     localStorage.setItem('cc:lastStats', JSON.stringify(stats))
     routes({ rem: new Error('zz-down'), mem: new Error('zz-down') })
-    render(<CrewCompanionPage />)
+    render(<DeskCompanionPage />)
     await waitFor(() => expect(document.querySelector('.cc-offline')).not.toBeNull())
     // The controls are gone, but Memories persists from the cache.
     expect(screen.queryAllByRole('switch').length).toBe(0)
@@ -123,13 +123,13 @@ describe('desk-companion/DeskCompanionPage — reads', () => {
   it('survives an unreadable cache with no keepsake at all', async () => {
     localStorage.setItem('cc:lastStats', '{ not json')
     routes({ rem: new Error('zz-down'), mem: new Error('zz-down') })
-    render(<CrewCompanionPage />)
+    render(<DeskCompanionPage />)
     await waitFor(() => expect(document.querySelector('.cc-offline')).not.toBeNull())
     expect(document.body.textContent).not.toContain('zzpet')
   })
 
   it('caches the last good stats for the next visit', async () => {
-    render(<CrewCompanionPage />)
+    render(<DeskCompanionPage />)
     await waitFor(() => expect(localStorage.getItem('cc:lastStats')).not.toBeNull())
     expect(JSON.parse(String(localStorage.getItem('cc:lastStats'))).petName).toBe('zzpet')
   })
@@ -137,7 +137,7 @@ describe('desk-companion/DeskCompanionPage — reads', () => {
 
 describe('desk-companion/DeskCompanionPage — writes', () => {
   it('moves the switch immediately and clears an earlier failure on success', async () => {
-    render(<CrewCompanionPage />)
+    render(<DeskCompanionPage />)
     await waitFor(() => expect(screen.getAllByRole('switch').length).toBe(2))
     const [breaks] = screen.getAllByRole('switch')
     expect(breaks.getAttribute('aria-checked')).toBe('true')
@@ -151,7 +151,7 @@ describe('desk-companion/DeskCompanionPage — writes', () => {
   })
 
   it('announces a failed config write and re-reads the truth', async () => {
-    render(<CrewCompanionPage />)
+    render(<DeskCompanionPage />)
     await waitFor(() => expect(screen.getAllByRole('switch').length).toBe(2))
     apiPost.mockRejectedValue(new Error('zz-config-broke'))
     const before = apiGet.mock.calls.length
@@ -161,7 +161,7 @@ describe('desk-companion/DeskCompanionPage — writes', () => {
   })
 
   it('adds a reminder and clears the draft only once it landed', async () => {
-    render(<CrewCompanionPage />)
+    render(<DeskCompanionPage />)
     await waitFor(() => expect(screen.getAllByRole('switch').length).toBe(2))
     const input = document.querySelector('.cc-add-input') as HTMLInputElement
     fireEvent.change(input, { target: { value: 'zzz in 10 minutes' } })
@@ -174,7 +174,7 @@ describe('desk-companion/DeskCompanionPage — writes', () => {
   })
 
   it('keeps the draft and says why when the add fails', async () => {
-    render(<CrewCompanionPage />)
+    render(<DeskCompanionPage />)
     await waitFor(() => expect(screen.getAllByRole('switch').length).toBe(2))
     apiPost.mockRejectedValue(new Error('zz-add-broke'))
     const input = document.querySelector('.cc-add-input') as HTMLInputElement
@@ -185,7 +185,7 @@ describe('desk-companion/DeskCompanionPage — writes', () => {
   })
 
   it('skips a recurring reminder, and announces a failed skip', async () => {
-    render(<CrewCompanionPage />)
+    render(<DeskCompanionPage />)
     await waitFor(() => expect(document.querySelector('.cc-icon-btn.is-remove')).not.toBeNull())
     const skip = Array.from(document.querySelectorAll('.cc-icon-btn')).find(
       (b) => !b.classList.contains('is-remove'),
@@ -200,7 +200,7 @@ describe('desk-companion/DeskCompanionPage — writes', () => {
   })
 
   it('removes the row at once, and puts it back by re-reading when the write fails', async () => {
-    render(<CrewCompanionPage />)
+    render(<DeskCompanionPage />)
     // `.cc-row` is shared with the Memories rows, so count the reminder-only
     // remove control instead.
     const rows = () => document.querySelectorAll('.cc-icon-btn.is-remove').length
@@ -218,7 +218,7 @@ describe('desk-companion/DeskCompanionPage — writes', () => {
 describe('desk-companion/DeskCompanionPage — bringing the companion back', () => {
   async function offlinePage() {
     routes({ rem: new Error('zz-down'), mem: new Error('zz-down') })
-    render(<CrewCompanionPage />)
+    render(<DeskCompanionPage />)
     await waitFor(() => expect(document.querySelector('.cc-cta')).not.toBeNull())
     return document.querySelector('.cc-cta') as HTMLButtonElement
   }
@@ -227,7 +227,7 @@ describe('desk-companion/DeskCompanionPage — bringing the companion back', () 
     const cta = await offlinePage()
     fireEvent.click(cta)
     await waitFor(() =>
-      expect(apiPost).toHaveBeenCalledWith('/api/apps/crew-companion/window', { target: 'panel' }),
+      expect(apiPost).toHaveBeenCalledWith('/api/apps/desk-companion/window', { target: 'panel' }),
     )
     expect(notice()).toBe('')
   })
@@ -237,7 +237,7 @@ describe('desk-companion/DeskCompanionPage — bringing the companion back', () 
     // The first open fails (app switched off), enable succeeds, the retry lands.
     let opens = 0
     apiPost.mockImplementation((path: string) => {
-      if (path === '/api/apps/crew-companion/window') {
+      if (path === '/api/apps/desk-companion/window') {
         opens += 1
         return opens === 1 ? Promise.reject(new Error('zz-disabled')) : Promise.resolve({})
       }
@@ -245,14 +245,14 @@ describe('desk-companion/DeskCompanionPage — bringing the companion back', () 
     })
     fireEvent.click(cta)
     await waitFor(() => expect(opens).toBe(2))
-    expect(apiPost).toHaveBeenCalledWith('/api/apps/crew-companion/enable', {})
+    expect(apiPost).toHaveBeenCalledWith('/api/apps/desk-companion/enable', {})
     expect(notice()).toBe('')
   })
 
   it('reports the real reason when even enabling fails', async () => {
     const cta = await offlinePage()
     apiPost.mockImplementation((path: string) =>
-      path === '/api/apps/crew-companion/enable'
+      path === '/api/apps/desk-companion/enable'
         ? Promise.reject(new Error('zz-enable-broke'))
         : Promise.reject(new Error('zz-open-broke')),
     )

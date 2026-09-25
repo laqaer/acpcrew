@@ -1266,10 +1266,10 @@ async def api_crons(request: web.Request) -> web.Response:
             "created_ts": j.created_ts or None,
             "last_status": j.last_status,
             "agent": redact_credentials(redact_exfiltration_urls(j.agent_id or "")[0])[0] or None,
-            # The crews a sequence job actually wakes. Serialized because
+            # The agents a sequence job actually wakes. Serialized because
             # `agent_sequence` takes PRECEDENCE over `agent_id` at run time, so a
             # consumer reading only `agent` would attribute such a job to the
-            # wrong crew (an empty `agent_id` reads as "the default crew").
+            # wrong agent (an empty `agent_id` reads as "the default agent").
             "agent_sequence": [
                 redact_credentials(redact_exfiltration_urls(a or "")[0])[0]
                 for a in (j.agent_sequence or [])

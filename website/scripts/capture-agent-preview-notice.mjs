@@ -1,5 +1,5 @@
 /**
- * Screenshot harness for the crew-bindings isolation preview notice.
+ * Screenshot harness for the agent-bindings isolation preview notice.
  *
  * Runs the REAL built SPA (website/dist) behind the shared in-process static
  * server and answers every /api/** call from fixtures via Playwright route
@@ -19,14 +19,14 @@ import { chromium } from 'playwright'
 import { mkdirSync } from 'node:fs'
 import { serveDist } from './lib/serve-dist.mjs'
 import { logPageProblems, stubDashboardApi } from './lib/stub-dashboard-api.mjs'
-import { crewsApi } from './lib/agents-fixtures.mjs'
+import { agentsApi } from './lib/agents-fixtures.mjs'
 
-const OUT = process.argv[2] || '../.github/screenshots/crew-preview-notice'
+const OUT = process.argv[2] || '../.github/screenshots/agent-preview-notice'
 const PREFIX = process.argv[3] || 'after'
 
 mkdirSync(OUT, { recursive: true })
 
-const CREWS = [
+const AGENTS = [
   { name: 'junction', kiro_agent: 'junction', workspace: 'default', memory_store: 'default' },
   { name: 'oncall', kiro_agent: 'oncall', workspace: 'oncall', memory_store: 'default' },
   { name: 'research', kiro_agent: 'junction', workspace: 'research', memory_store: 'research' },
@@ -42,11 +42,11 @@ async function main() {
   const page = await context.newPage()
   logPageProblems(page)
 
-  await stubDashboardApi(page, { extra: crewsApi({ crews: CREWS, defaultAgent: 'junction' }) })
+  await stubDashboardApi(page, { extra: agentsApi({ agents: AGENTS, defaultAgent: 'junction' }) })
 
   await page.goto(base + '/capabilities', { waitUntil: 'domcontentloaded' })
   const main$ = page.locator('#main-content')
-  await main$.locator('[data-testid="crew-card"], tbody tr')
+  await main$.locator('[data-testid="agent-card"], tbody tr')
     .first().waitFor({ state: 'visible', timeout: 15000 })
   await page.waitForTimeout(400) // let the roster settle before the shot
 
@@ -66,18 +66,18 @@ async function main() {
     await page.waitForTimeout(300)
     await save('list')
     await main$.getByRole('button', { name: 'Cards' }).click()
-    await main$.locator('[data-testid="crew-card"]').first().waitFor({ state: 'visible' })
+    await main$.locator('[data-testid="agent-card"]').first().waitFor({ state: 'visible' })
   }
 
   // Editor sheet with the Workspace tip expanded. Guarded so a `before` run
   // against main, which has neither the sheet nor the tip, still finishes.
-  const firstCard = main$.locator('[data-testid="crew-card"]').first()
+  const firstCard = main$.locator('[data-testid="agent-card"]').first()
   if (await firstCard.count()) {
     await firstCard.click()
     const sheet = page.getByRole('dialog')
     await sheet.waitFor({ state: 'visible', timeout: 15000 })
     await page.waitForTimeout(400) // the sheet slides in over 240ms
-    const tips = sheet.locator('button[title*="Isolated memory per crew"]')
+    const tips = sheet.locator('button[title*="Isolated memory per agent"]')
     if (await tips.count()) {
       await tips.first().click()
       await page.waitForTimeout(200)
@@ -93,13 +93,13 @@ async function main() {
   const stock = await context.newPage()
   logPageProblems(stock)
   await stubDashboardApi(stock, {
-    extra: crewsApi({
-      crews: [{ name: 'junction', kiro_agent: 'junction', workspace: 'default', memory_store: 'default' }],
+    extra: agentsApi({
+      agents: [{ name: 'junction', kiro_agent: 'junction', workspace: 'default', memory_store: 'default' }],
       defaultAgent: 'junction',
     }),
   })
   await stock.goto(base + '/capabilities', { waitUntil: 'domcontentloaded' })
-  const stockCard = stock.locator('#main-content [data-testid="crew-card"]').first()
+  const stockCard = stock.locator('#main-content [data-testid="agent-card"]').first()
   // waitFor BEFORE count(): a locator that has not rendered yet counts 0, so
   // counting first would silently skip the shot on a slower boot.
   await stockCard.waitFor({ state: 'visible', timeout: 15000 })

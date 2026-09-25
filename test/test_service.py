@@ -2278,7 +2278,7 @@ class TestAppArmorProfileRendering:
         # And no interpreter path anywhere in the RULES (comments may explain why).
         body = text.split("{", 1)[1]
         assert "python" not in body
-        assert "crew-venv" not in body
+        assert "-venv" not in body
 
     def test_grants_only_userns(self):
         from junction.service import apparmor as aa
@@ -3751,7 +3751,7 @@ class TestHeadlessApiKeyWarning:
         plain = common.headless_auth_warning({self.API_KEY: self.SECRET})
         assert "JUNCTION_HOME" not in plain
         with_home = common.headless_auth_warning(
-            {self.API_KEY: self.SECRET, "JUNCTION_HOME": "/srv/crew"}
+            {self.API_KEY: self.SECRET, "JUNCTION_HOME": "/srv/junction"}
         )
         assert "JUNCTION_HOME" in with_home
 

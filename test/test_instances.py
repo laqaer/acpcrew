@@ -2251,7 +2251,7 @@ class TestHandlers:
         one of those leaves a live tunnel forwarding the OLD port to the OLD host
         under the new label. The edit must tear it down, and must keep
         ``was_connected`` — that flag records an explicit user disconnect, which an
-        edit is not, and clearing it would drop the crew out of the switcher."""
+        edit is not, and clearing it would drop the instance out of the switcher."""
         from junction.dashboard import handlers_instances as handlers
 
         _enable(tmp_path, monkeypatch)
@@ -2292,7 +2292,7 @@ class TestHandlers:
         # only for a tunnel that connected before the record changed — and this
         # manager reports none live afterwards, so nothing more to tear down. The
         # teardown is a reconfiguration, so it must not claim to be a user
-        # disconnect (that flag is what keeps the crew in the switcher).
+        # disconnect (that flag is what keeps the instance in the switcher).
         assert mgr.disconnected == [("cd-1", True)], (
             "the stale tunnel was left running, or the teardown claimed to be a "
             "user disconnect"
@@ -2332,7 +2332,7 @@ class TestHandlers:
     ):
         """A rejected save must not cost the user their connection: the proposed
         record is validated before the teardown, so a typo answers 400 with the
-        crew still connected."""
+        instance still connected."""
         from junction.dashboard import handlers_instances as handlers
 
         _enable(tmp_path, monkeypatch)
@@ -2373,7 +2373,7 @@ class TestHandlers:
     ):
         """``disconnect()`` clears the persisted intent whether or not it tracked
         a live tunnel, and reports False in that case. Restoring only on a True
-        return would drop the crew out of the switcher."""
+        return would drop the instance out of the switcher."""
         from junction.dashboard import handlers_instances as handlers
 
         _enable(tmp_path, monkeypatch)
@@ -2408,7 +2408,7 @@ class TestHandlers:
         assert r.status == 200
         inst = reg.get("cd-1")
         assert inst is not None and inst.remote_port == 7999
-        assert inst.was_connected is True, "the crew lost its switcher entry"
+        assert inst.was_connected is True, "the instance lost its switcher entry"
 
     def test_update_tears_the_tunnel_down_exactly_once(
         self, tmp_path, monkeypatch
@@ -2460,7 +2460,7 @@ class TestHandlers:
         # Only the pre-edit teardown ran; the sweep spared the newer tunnel.
         assert mgr.disconnect_calls == 1
 
-    def test_update_does_not_revive_a_crew_disconnected_mid_edit(
+    def test_update_does_not_revive_an_instance_disconnected_mid_edit(
         self, tmp_path, monkeypatch
     ):
         """An explicit Disconnect landing while a transport edit is in flight must
@@ -2505,7 +2505,7 @@ class TestHandlers:
         assert r.status == 200 and _body(r)["remote_port"] == 7999
         inst = reg.get("cd-1")
         assert inst is not None
-        assert inst.was_connected is False, "the edit revived a crew the user disconnected"
+        assert inst.was_connected is False, "the edit revived an instance the user disconnected"
         # The response must report the same thing, so the dashboard does not
         # reconnect off a stale view.
         assert _body(r)["was_connected"] is False

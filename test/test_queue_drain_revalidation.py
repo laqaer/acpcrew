@@ -87,7 +87,7 @@ def test_human_typed_enqueue_stamps_admission_snapshot(tmp_path):
         "linked": False,
         "mirrored": False,
         "mirror_identity": "",
-        "crew": False,
+        "multitask": False,
         "ephemeral": False,
         "app": False,
         "unattended": False,

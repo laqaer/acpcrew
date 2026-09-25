@@ -2090,6 +2090,62 @@ class TestBuiltinDoesNotClobberUserInstall:
         assert not _builtin_owns_install(theirs)
 
 
+class TestRenamedBuiltinInstallIsAdopted:
+    """Registration adopts an install made under a renamed builtin's earlier id.
+
+    The companion registers as ``APP_NAME`` and ships ``defaultEnabled: false``, so
+    a registration that did not first move ``apps/<LEGACY_APP_NAME>/`` would create
+    an empty, disabled install and strand the user's data beside it as an orphan.
+    """
+
+    def test_enabled_state_and_data_survive_registration(self, app_home, monkeypatch):
+        from junction.apps import manager
+        from junction.apps.builtins.desk_companion.backend.routes import (
+            APP_NAME,
+            LEGACY_APP_NAME,
+        )
+        from junction.apps.builtins.desk_companion.store import (
+            LEGACY_REMINDERS_FILENAME,
+            REMINDERS_FILENAME,
+        )
+        from junction.apps.discovery import discover_builtin_apps
+
+        shipped = [a for a in discover_builtin_apps() if a["name"] == APP_NAME]
+        assert len(shipped) == 1 and shipped[0]["defaultEnabled"] is False
+
+        legacy = manager.app_dir(LEGACY_APP_NAME)
+        (legacy / "data").mkdir(parents=True)
+        (legacy / "data" / LEGACY_REMINDERS_FILENAME).write_text('{"kept": true}', "utf-8")
+        _write_installed(
+            LEGACY_APP_NAME,
+            InstalledApp(
+                name=LEGACY_APP_NAME,
+                version="0.9.0",
+                displayName="Companion",
+                enabled=True,
+                installedAt="2026-01-02T03:04:05Z",
+                source="builtin",
+                origin="builtin",
+                lifecycle="locked",
+            ),
+        )
+
+        monkeypatch.setattr(manager, "_BUILTIN_APPS", [])
+        monkeypatch.setattr(manager, "discover_builtin_apps", lambda *a, **k: shipped)
+        monkeypatch.setattr(manager, "_edition_builtin_apps", lambda: [])
+        manager.register_builtin_apps()
+
+        assert not legacy.exists()
+        meta = _read_installed(APP_NAME)
+        assert meta is not None
+        assert meta.name == APP_NAME
+        assert meta.enabled is True, "the user's enabled choice was replaced by the default"
+        assert meta.version == shipped[0]["version"]
+        data = manager.app_dir(APP_NAME) / "data"
+        assert (data / REMINDERS_FILENAME).read_text("utf-8") == '{"kept": true}'
+        assert LEGACY_APP_NAME not in manager.detect_orphaned_builtins(force_refresh=True)
+
+
 class TestMalformedMcpUrlIsSkippedNotFatal:
     """A malformed mcpServers URL must be SKIPPED, never raise.
 
@@ -2167,7 +2223,7 @@ class TestMalformedMcpUrlIsSkippedNotFatal:
         from junction.apps.manager import resolve_mcp_backend_url
 
         assert (
-            resolve_mcp_backend_url({"crew-companion": {"url": "http://127.0.0.1:7778/mcp"}})
+            resolve_mcp_backend_url({"desk-companion": {"url": "http://127.0.0.1:7778/mcp"}})
             == "http://127.0.0.1:7778"
         )
 

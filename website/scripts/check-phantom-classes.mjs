@@ -6,7 +6,7 @@
  * anywhere: `tailwindcss` simply does not emit the class, the element renders
  * with no color, and nothing — not the build, not the type checker, not eslint —
  * says a word. `STATE_DOT.connected = 'bg-success'` in InstancesPanel shipped
- * like that: the palette declares `ok`, not `success`, so the "Connected" crew
+ * like that: the palette declares `ok`, not `success`, so the "Connected" instance
  * had no status dot at all while the states that happened to use real tokens
  * (`bg-muted`, `bg-danger`) kept theirs. The bug reads as a coloring quirk,
  * which is why it survived review.

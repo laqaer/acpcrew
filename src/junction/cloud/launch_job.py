@@ -311,7 +311,7 @@ class LaunchJobStore:
         # Retry a transient read failure. A concurrent save() replaces this file via
         # os.replace; on Windows a read that collides with the in-progress replace
         # raises a sharing violation (an OSError), and without this list() would then
-        # silently DROP an in-flight job — e.g. listing crews while a launch worker is
+        # silently DROP an in-flight job — e.g. listing instances while a launch worker is
         # persisting its progress. POSIX replace is atomic and reads never error, so
         # this loop only ever fires on Windows. Bounded, then give up.
         raw = None
@@ -361,7 +361,7 @@ class LaunchJobStore:
         progress card that can never advance, and a cancel would find no thread
         to signal. Marking those jobs failed on load is what keeps the persisted
         state honest — the stack itself may well have finished in AWS, so the
-        message points at the crew list rather than claiming nothing happened.
+        message points at the instance list rather than claiming nothing happened.
 
         Call once per process, after the store is constructed. Returns the ids
         reaped, for logging.
@@ -376,7 +376,7 @@ class LaunchJobStore:
             job.status = FAILED
             job.error = (
                 "Interrupted — Junction restarted while this setup was running. "
-                "The EC2 stack may still exist; check your crews before retrying."
+                "The EC2 stack may still exist; check your instances before retrying."
             )
             job.signin = None
             self.save(job)
@@ -426,10 +426,10 @@ def _rollback_cancelled_stack(
     """Delete the stack a cancelled launch had already created.
 
     Cancellation is only observed *between* steps, and the instance is not added to
-    the crew registry until the final step. So a cancel during provisioning — or
+    the instance registry until the final step. So a cancel during provisioning — or
     during the sign-in wait, which is the likeliest moment for a human to give up —
-    would otherwise leave a running, billing instance that never appears in the crew
-    list: invisible to the very dashboard that offered the Cancel button, and
+    would otherwise leave a running, billing instance that never appears in the
+    instance list: invisible to the very dashboard that offered the Cancel button, and
     removable only from the CLI or the AWS console.
 
     Ack, then confirm. The cancelled state is persisted BEFORE the delete is awaited
@@ -448,7 +448,7 @@ def _rollback_cancelled_stack(
     except Exception as exc:  # noqa: BLE001 - reported on the job, never propagated
         job.error = (
             f"Cancelled, but the EC2 stack {job.tag} could not be removed "
-            f"automatically ({str(exc)[:200]}). Delete it from your crews — or with "
+            f"automatically ({str(exc)[:200]}). Delete it from your instances — or with "
             "the CLI — so it stops billing."
         )
         logger.warning("Could not roll back stack %s after cancellation: %s", job.tag, exc)
@@ -458,7 +458,7 @@ def _rollback_cancelled_stack(
         return
     job.error = (
         f"Cancelled, and the delete of EC2 stack {job.tag} was requested but did NOT "
-        "confirm (it may be DELETE_FAILED). Check your crews — it may still be running "
+        "confirm (it may be DELETE_FAILED). Check your instances — it may still be running "
         "and billing."
     )
     logger.warning("Rollback of %s did not confirm deletion", job.tag)
@@ -475,7 +475,7 @@ def _rollback_failed_provision(
     but the instance is running and was never registered, so it bills invisibly,
     exactly like a cancelled launch would. Roll it back, mirroring
     :func:`_rollback_cancelled_stack`. The caller scopes this to a STEP_PROVISION
-    failure only: a later-step failure means the crew IS created (register even
+    failure only: a later-step failure means the remote Junction IS created (register even
     names it for manual recovery), so it must not be torn down here.
 
     Best-effort and never raises; it augments the recorded failure message rather
@@ -488,7 +488,7 @@ def _rollback_failed_provision(
     except Exception as exc:  # noqa: BLE001 - reported on the job, never propagated
         job.error = (
             f"{base} The EC2 stack {job.tag} could not be removed automatically "
-            f"({str(exc)[:150]}). Delete it from your crews — or with the CLI — so it "
+            f"({str(exc)[:150]}). Delete it from your instances — or with the CLI — so it "
             "stops billing."
         )
         logger.warning("Could not roll back stack %s after provision failure: %s", job.tag, exc)
@@ -498,7 +498,8 @@ def _rollback_failed_provision(
         return
     job.error = (
         f"{base} The delete of EC2 stack {job.tag} was requested but did NOT confirm "
-        "(it may be DELETE_FAILED). Check your crews — it may still be running and billing."
+        "(it may be DELETE_FAILED). Check your instances — it may still be running and "
+        "billing."
     )
     logger.warning("Rollback of %s after provision failure did not confirm", job.tag)
 
@@ -609,7 +610,7 @@ def run_launch(
             except Exception:  # pragma: no cover - best effort
                 logger.info("sign-in handle close failed (non-fatal)", exc_info=True)
 
-        # 4) Register in the Instances hub so it appears under "Your crews"
+        # 4) Register in the Instances hub so it appears under "Your instances"
         _check_cancel()
         s = _activate(STEP_CONNECT)
         engine.register(
@@ -645,9 +646,10 @@ def run_launch(
         # A failure DURING provisioning can still have created the CloudFormation
         # stack (deploy creates it, then blocks — a transient post-create error
         # raises with the instance already running), leaving a billing stack that was
-        # never registered and so never appears in the crew list. Roll it back, like
+        # never registered and so never appears in the instance list. Roll it back, like
         # the cancel path. Scoped to a STEP_PROVISION failure: a later-step failure
-        # means the crew IS created (register names it for recovery), so it stays.
+        # means the remote Junction IS created (register names it for recovery), so it
+        # stays.
         if job.step(STEP_PROVISION).state == STEP_FAILED and job.tag:
             _rollback_failed_provision(job, store, engine)
         store.save(job)

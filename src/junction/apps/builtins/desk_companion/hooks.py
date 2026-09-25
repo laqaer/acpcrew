@@ -42,7 +42,7 @@ def get_appearances() -> AppearanceStore:
     is one less ordering dependency.
     """
     if _appearances is None:
-        raise RuntimeError("crew-companion: appearance store not initialised")
+        raise RuntimeError("desk-companion: appearance store not initialised")
     return _appearances
 
 
@@ -102,13 +102,13 @@ async def on_startup(ctx: Any) -> None:
         # No payload: this is a doorbell, not the delivery. The overlay drains
         # /pending itself, which keeps ONE ordering authority (the cursor) instead of
         # a pushed copy that could arrive out of order or duplicate what it polls.
-        bus.publish("crew-companion:fire")
+        bus.publish("desk-companion:fire")
 
     store = CompanionStore(data_dir, on_fire=announce_fire)
     await asyncio.to_thread(store.load)
     store.start()
     _store = store
-    logger.info("crew-companion: runtime started (data dir %s)", data_dir)
+    logger.info("desk-companion: runtime started (data dir %s)", data_dir)
 
 
 async def on_shutdown(ctx: Any) -> None:  # noqa: ARG001 — ctx unused, kept for the ABI
@@ -120,7 +120,7 @@ async def on_shutdown(ctx: Any) -> None:  # noqa: ARG001 — ctx unused, kept fo
     """
     if _store is not None:
         await asyncio.to_thread(_store.stop)
-        logger.info("crew-companion: runtime stopped")
+        logger.info("desk-companion: runtime stopped")
 
 
 def _reset_for_tests() -> None:

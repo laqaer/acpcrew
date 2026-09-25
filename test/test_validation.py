@@ -388,7 +388,7 @@ class TestValidateToolArgs:
         # A Windows absolute script path (drive letter + backslashes) must pass
         # the shape check — the old POSIX-only class rejected every path
         # Explorer / a file picker produces.
-        win_path = "C:\\Users\\me\\.kiro\\crew\\crons\\job.py:run"
+        win_path = "C:\\Users\\me\\.junction\\crons\\job.py:run"
         result = validate_tool_args(
             {"name": "win", "script": win_path, "every": 300},
             CRON_ADD_SCHEMA,
@@ -420,7 +420,7 @@ class TestValidateToolArgs:
         # "First Last" is the DEFAULT Windows account-name shape, and
         # config_dir() is rooted at %USERPROFILE%, so rejecting spaces made a
         # script cron impossible for a typical Windows user.
-        spaced = "C:\\Users\\John Smith\\.kiro\\crew\\crons\\job.py:run"
+        spaced = "C:\\Users\\John Smith\\.junction\\crons\\job.py:run"
         result = validate_tool_args(
             {"name": "s", "script": spaced, "every": 300}, CRON_ADD_SCHEMA
         )

@@ -237,7 +237,7 @@ export const SpriteImporter: React.FC<Props> = ({ existingPack, onDone, onCancel
   return (
     <div style={S.container}>
       <PackInfoHeader
-        title={existingPack ? i18nT('apps.crewCompanion.sprite.editTitle') : i18nT('apps.crewCompanion.sprite.title')}
+        title={existingPack ? i18nT('apps.deskCompanion.sprite.editTitle') : i18nT('apps.deskCompanion.sprite.title')}
         name={name} author={author} description={description} flipX={flipX}
         onNameChange={setName} onAuthorChange={setAuthor} onDescriptionChange={setDescription} onFlipXChange={setFlipX}
         tt={i18nT}
@@ -249,17 +249,17 @@ export const SpriteImporter: React.FC<Props> = ({ existingPack, onDone, onCancel
           <button onClick={handleSelectFile} style={{
             padding: '6px 14px', borderRadius: 6, fontSize: 12, cursor: 'pointer',
             border: '1px solid var(--border)', background: 'var(--cc-input-bg)', color: 'var(--text)',
-          }}><FolderOpen className="lucide-inline" aria-hidden="true" />{' '}{imgSrc ? i18nT('apps.crewCompanion.sprite.changeFile') : i18nT('apps.crewCompanion.sprite.selectFile')}</button>
-          <NumberField label={i18nT('apps.crewCompanion.sprite.frameWidth')} value={frameW} min={8} max={512} onChange={setFrameW} />
-          <NumberField label={i18nT('apps.crewCompanion.sprite.frameHeight')} value={frameH} min={8} max={512} onChange={setFrameH} />
+          }}><FolderOpen className="lucide-inline" aria-hidden="true" />{' '}{imgSrc ? i18nT('apps.deskCompanion.sprite.changeFile') : i18nT('apps.deskCompanion.sprite.selectFile')}</button>
+          <NumberField label={i18nT('apps.deskCompanion.sprite.frameWidth')} value={frameW} min={8} max={512} onChange={setFrameW} />
+          <NumberField label={i18nT('apps.deskCompanion.sprite.frameHeight')} value={frameH} min={8} max={512} onChange={setFrameH} />
           <NumberField label="FPS" value={fps} min={1} max={60} onChange={setFps} />
-          <NumberField label={i18nT('apps.crewCompanion.sprite.offsetY')} value={offsetY} onChange={setOffsetY} />
+          <NumberField label={i18nT('apps.deskCompanion.sprite.offsetY')} value={offsetY} onChange={setOffsetY} />
         </div>
 
         {/* Source image preview with grid overlay */}
         {imgSrc && (
           <div style={S.section}>
-            <div style={S.sectionLabel}>{i18nT('apps.crewCompanion.sprite.previewDims', { w: imgW, h: imgH, cols: Math.floor(imgW / (frameW || 1)), rows: Math.floor(imgH / (frameH || 1)) })}</div>
+            <div style={S.sectionLabel}>{i18nT('apps.deskCompanion.sprite.previewDims', { w: imgW, h: imgH, cols: Math.floor(imgW / (frameW || 1)), rows: Math.floor(imgH / (frameH || 1)) })}</div>
             <div style={{ background: 'var(--cc-input-bg)', borderRadius: 8, padding: 8, overflow: 'auto', maxHeight: 250, position: 'relative' }}>
               <div style={{ position: 'relative', display: 'inline-block' }}>
                 <img src={imgSrc} alt="" style={{ imageRendering: 'pixelated', display: 'block', maxWidth: 'none', minWidth: 400 }} />
@@ -280,8 +280,8 @@ export const SpriteImporter: React.FC<Props> = ({ existingPack, onDone, onCancel
             {/* Not a category — this is the SOURCE material: each row of the sheet
                 sliced into a loop you can then assign to a slot below. "Rows" named
                 the mechanism rather than the thing. */}
-            <div style={S.sectionLabel}>{i18nT('apps.crewCompanion.sprite.rows')} ({rows.length})</div>
-            <div style={{ fontSize: 10, color: 'var(--text-muted)', marginBottom: 6, marginTop: -4 }}>{i18nT('apps.crewCompanion.sprite.assignHint')}</div>
+            <div style={S.sectionLabel}>{i18nT('apps.deskCompanion.sprite.rows')} ({rows.length})</div>
+            <div style={{ fontSize: 10, color: 'var(--text-muted)', marginBottom: 6, marginTop: -4 }}>{i18nT('apps.deskCompanion.sprite.assignHint')}</div>
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(100px, 1fr))', gap: 8 }}>
               {rows.map(row => (
                 <div key={row.index} style={{
@@ -291,7 +291,7 @@ export const SpriteImporter: React.FC<Props> = ({ existingPack, onDone, onCancel
                   <div style={{ width: 80, height: 80, display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'hidden', transform: flipX ? 'scaleX(-1)' : 'none' }}>
                     <SpriteRenderer src={row.dataUri} frameWidth={frameW} frameHeight={frameH} fps={fps} />
                   </div>
-                  <span style={{ fontSize: 11, color: 'var(--text)', fontWeight: 600 }}>{i18nT('apps.crewCompanion.sprite.row', { n: row.index + 1 })}</span>
+                  <span style={{ fontSize: 11, color: 'var(--text)', fontWeight: 600 }}>{i18nT('apps.deskCompanion.sprite.row', { n: row.index + 1 })}</span>
                   <span style={{ fontSize: 10, color: 'var(--text-faint)' }}>{row.frameCount}f</span>
                 </div>
               ))}
@@ -302,7 +302,7 @@ export const SpriteImporter: React.FC<Props> = ({ existingPack, onDone, onCancel
         {/* State assignments */}
         {rows.length > 0 && (
           <div style={S.section}>
-            <div style={S.sectionLabel}>{i18nT('apps.crewCompanion.editor.requiredStates')}</div>
+            <div style={S.sectionLabel}>{i18nT('apps.deskCompanion.editor.requiredStates')}</div>
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(100px, 1fr))', gap: 8 }}>
               {REQUIRED_STATES.map(s => {
                 const rowIdx = assignments[s]
@@ -319,7 +319,7 @@ export const SpriteImporter: React.FC<Props> = ({ existingPack, onDone, onCancel
                     <span style={{ fontSize: 11, fontWeight: 600, color: 'var(--text)' }}>{s} *</span>
                     <SimpleSelect
                       options={rows.map(r => String(r.index))}
-                      optionLabels={rows.map(r => i18nT('apps.crewCompanion.sprite.row', { n: r.index + 1 }))}
+                      optionLabels={rows.map(r => i18nT('apps.deskCompanion.sprite.row', { n: r.index + 1 }))}
                       value={rowIdx == null ? '' : String(rowIdx)}
                       onChange={v => setAssignments(prev => ({ ...prev, [s]: v === '' ? null : Number(v) }))}
                       clearLabel="—"
@@ -335,7 +335,7 @@ export const SpriteImporter: React.FC<Props> = ({ existingPack, onDone, onCancel
                 (shared/appearanceTypes). This grid used to list every OPTIONAL_STATE,
                 including legacy ones, so importing a sheet offered slots the editor
                 didn't and vice versa. */}
-            <div style={{ ...S.sectionLabel, marginTop: 12 }}>{i18nT('apps.crewCompanion.state.groupStatus')} <span style={{ fontSize: 10, color: 'var(--text-faint)' }}>(optional)</span></div>
+            <div style={{ ...S.sectionLabel, marginTop: 12 }}>{i18nT('apps.deskCompanion.state.groupStatus')} <span style={{ fontSize: 10, color: 'var(--text-faint)' }}>(optional)</span></div>
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(100px, 1fr))', gap: 8 }}>
               {[...STATUS_STATES].map(s => {
                 const rowIdx = assignments[s]
@@ -352,7 +352,7 @@ export const SpriteImporter: React.FC<Props> = ({ existingPack, onDone, onCancel
                     <span style={{ fontSize: 11, color: 'var(--text-muted)' }}>{s}</span>
                     <SimpleSelect
                       options={rows.map(r => String(r.index))}
-                      optionLabels={rows.map(r => i18nT('apps.crewCompanion.sprite.row', { n: r.index + 1 }))}
+                      optionLabels={rows.map(r => i18nT('apps.deskCompanion.sprite.row', { n: r.index + 1 }))}
                       value={rowIdx == null ? '' : String(rowIdx)}
                       onChange={v => setAssignments(prev => ({ ...prev, [s]: v === '' ? null : Number(v) }))}
                       clearLabel="—"
@@ -367,7 +367,7 @@ export const SpriteImporter: React.FC<Props> = ({ existingPack, onDone, onCancel
             {/* Random — the same single slot the create editor offers ("Wander").
                 The five mood slots that used to sit here aren't offered on creation,
                 so an imported sheet could carry art the editor could never produce. */}
-            <div style={{ ...S.sectionLabel, marginTop: 12 }}>{i18nT('apps.crewCompanion.state.groupBreathing')} <span style={{ fontSize: 10, color: 'var(--text-faint)' }}>(optional)</span></div>
+            <div style={{ ...S.sectionLabel, marginTop: 12 }}>{i18nT('apps.deskCompanion.state.groupBreathing')} <span style={{ fontSize: 10, color: 'var(--text-faint)' }}>(optional)</span></div>
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(100px, 1fr))', gap: 8 }}>
               {[...BREATHING_STATES].map(s => {
                 const rowIdx = assignments[s]
@@ -384,7 +384,7 @@ export const SpriteImporter: React.FC<Props> = ({ existingPack, onDone, onCancel
                     <span style={{ fontSize: 11, color: 'var(--text-muted)' }}>{s}</span>
                     <SimpleSelect
                       options={rows.map(r => String(r.index))}
-                      optionLabels={rows.map(r => i18nT('apps.crewCompanion.sprite.row', { n: r.index + 1 }))}
+                      optionLabels={rows.map(r => i18nT('apps.deskCompanion.sprite.row', { n: r.index + 1 }))}
                       value={rowIdx == null ? '' : String(rowIdx)}
                       onChange={v => setAssignments(prev => ({ ...prev, [s]: v === '' ? null : Number(v) }))}
                       clearLabel="—"
@@ -396,7 +396,7 @@ export const SpriteImporter: React.FC<Props> = ({ existingPack, onDone, onCancel
                 )
               })}
             </div>
-            <div style={{ ...S.sectionLabel, marginTop: 12 }}>{i18nT('apps.crewCompanion.state.groupRandom')} <span style={{ fontSize: 10, color: 'var(--text-faint)' }}>(optional)</span></div>
+            <div style={{ ...S.sectionLabel, marginTop: 12 }}>{i18nT('apps.deskCompanion.state.groupRandom')} <span style={{ fontSize: 10, color: 'var(--text-faint)' }}>(optional)</span></div>
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(100px, 1fr))', gap: 8 }}>
               {[...RANDOM_STATES].map(s => {
                 const rowIdx = assignments[s]
@@ -413,7 +413,7 @@ export const SpriteImporter: React.FC<Props> = ({ existingPack, onDone, onCancel
                     <span style={{ fontSize: 11, color: 'var(--text-muted)' }}>{s}</span>
                     <SimpleSelect
                       options={rows.map(r => String(r.index))}
-                      optionLabels={rows.map(r => i18nT('apps.crewCompanion.sprite.row', { n: r.index + 1 }))}
+                      optionLabels={rows.map(r => i18nT('apps.deskCompanion.sprite.row', { n: r.index + 1 }))}
                       value={rowIdx == null ? '' : String(rowIdx)}
                       onChange={v => setAssignments(prev => ({ ...prev, [s]: v === '' ? null : Number(v) }))}
                       clearLabel="—"

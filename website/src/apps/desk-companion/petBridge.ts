@@ -49,7 +49,7 @@ type Preload = {
 }
 
 function preload(): Preload | undefined {
-  return (window as unknown as { crewCompanion?: Preload }).crewCompanion
+  return (window as unknown as { deskCompanion?: Preload }).deskCompanion
 }
 
 /** The detail payload, named so call sites need no indexed-access type. */
@@ -139,7 +139,7 @@ export interface PetBridge {
   walkDone?: () => void
 
   // ── Appearance packs ──────────────────────────────────────────────────────
-  getCrewCompanionConfig?: () => Promise<{ activeAppearance?: string; [k: string]: unknown } | null>
+  getDeskCompanionConfig?: () => Promise<{ activeAppearance?: string; [k: string]: unknown } | null>
   galleryListPacks?: () => Promise<PackMeta[]>
   galleryGetPackDetail?: (packId: string) => Promise<PackDetail | null>
   gallerySetActive?: (packId: string) => Promise<GalleryResult>
@@ -304,7 +304,7 @@ function pickArtFile(): Promise<File | null> {
  * "both entry points do the same thing" shortcut) ran a pack IMPORT with
  * side effects, returned a shape with no art fields, and the resulting
  * blank slot could pass `canSave` and overwrite an existing pack without
- * its art. Same class as the setCrewCompanionConfig/updateConfig mix-up:
+ * its art. Same class as the setDeskCompanionConfig/updateConfig mix-up:
  * a nearby method is not the named method.
  */
 async function importSlotFile(): Promise<
@@ -478,7 +478,7 @@ export const petBridge: PetBridge = {
   onHide: undefined,
   walkDone: undefined,
 
-  async getCrewCompanionConfig() {
+  async getDeskCompanionConfig() {
     return getJson<Record<string, unknown>>(REMINDERS_PATH)
   },
 
@@ -549,7 +549,7 @@ export const petBridge: PetBridge = {
     if (sheet) files['source.png'] = sheet
 
     if (Object.keys(states).length === 0 && Object.keys(moods).length === 0) {
-      return { ok: false, error: i18nT('apps.crewCompanion.gallery.noArt') }
+      return { ok: false, error: i18nT('apps.deskCompanion.gallery.noArt') }
     }
 
     const result = await postForJson<GalleryResult>(APPEARANCE_SAVE_PATH, {
@@ -578,7 +578,7 @@ export const petBridge: PetBridge = {
       files,
     })
     if (result?.ok) for (const cb of listeners.packs) cb()
-    return result ?? { ok: false, error: i18nT('apps.crewCompanion.gallery.saveFailed') }
+    return result ?? { ok: false, error: i18nT('apps.deskCompanion.gallery.saveFailed') }
   },
 
   async petdexFetch(input: string) {
@@ -877,7 +877,7 @@ export const petBridge: PetBridge = {
       // equivalent is disabling it: the overlay goes, the reminders stay, and the
       // user can bring it back from the Apps page. Quitting Junction itself would
       // close the dashboard too, which is not what "dismiss the companion" means.
-      void fetch('/api/apps/crew-companion/disable', {
+      void fetch('/api/apps/desk-companion/disable', {
         method: 'POST',
         credentials: 'same-origin',
         headers: { 'Content-Type': 'application/json' },
@@ -931,7 +931,7 @@ export const galleryApi = petBridge as Required<
     | 'galleryReadPackFile'
     | 'importSpriteFile'
     | 'updateConfig'
-    | 'getCrewCompanionConfig'
+    | 'getDeskCompanionConfig'
     | 'openExternal'
     | 'closeGallery'
     | 'onGalleryPacksChanged'

@@ -12,20 +12,20 @@ import { describe, it, expect } from 'vitest'
 
 import { exampleFor } from '../pages/webhooks/requestExamples'
 
-const URL_ = 'https://crew.example.com/api/hooks/agent'
+const URL_ = 'https://junction.example.com/api/hooks/agent'
 
 describe('webhook request examples carry an accepted Origin', () => {
   it('sends the gateway origin on the bearer-only form', () => {
     const snippet = exampleFor('bearer', URL_, 'sess-1', 'hello', 300)
-    expect(snippet).toContain("-H 'Origin: https://crew.example.com'")
+    expect(snippet).toContain("-H 'Origin: https://junction.example.com'")
     // The origin is the scheme://host only — never the full endpoint path,
     // which is not a valid Origin and would not match the allowed set.
-    expect(snippet).not.toContain('Origin: https://crew.example.com/api')
+    expect(snippet).not.toContain('Origin: https://junction.example.com/api')
   })
 
   it('sends the gateway origin on the signed form too', () => {
     const snippet = exampleFor('signed', URL_, 'sess-1', 'hello', 300)
-    expect(snippet).toContain("-H 'Origin: https://crew.example.com'")
+    expect(snippet).toContain("-H 'Origin: https://junction.example.com'")
   })
 
   it('keeps a placeholder origin when the endpoint URL is not known yet', () => {

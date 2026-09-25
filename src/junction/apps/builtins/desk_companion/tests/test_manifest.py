@@ -63,7 +63,7 @@ def test_manifest_validates_with_no_errors() -> None:
 
 def test_identity() -> None:
     m = _manifest()
-    assert m.name == "crew-companion"
+    assert m.name == "desk-companion"
     assert m.version == "1.0.0"
     assert m.displayName == "Companion"
     assert m.author == "junction"
@@ -71,7 +71,7 @@ def test_identity() -> None:
 
 def test_discovered_as_builtin() -> None:
     names = {a["name"] for a in discover_builtin_apps()}
-    assert "crew-companion" in names
+    assert "desk-companion" in names
 
 
 def test_default_enabled_is_boolean_false() -> None:
@@ -89,7 +89,7 @@ def test_route_is_single_top_level_segment() -> None:
     # A nested route (more than one path segment) silently redirects to /chat,
     # so the page must live at a single top-level segment.
     route = _raw()["ui"]["pages"][0]["route"]
-    assert route == "/crew-companion"
+    assert route == "/desk-companion"
     assert _ROUTE_RE.match(route), f"route {route!r} is not a single segment"
 
 
@@ -101,8 +101,8 @@ def test_permissions_api_scopes_own_backend() -> None:
     required a second process.
     """
     api = _raw().get("permissions", {}).get("api", [])
-    assert "/api/apps/crew-companion" in api
-    assert "/api/apps/crew-companion/*" in api
+    assert "/api/apps/desk-companion" in api
+    assert "/api/apps/desk-companion/*" in api
 
 
 def test_asset_urls_under_app_assets_and_files_exist() -> None:
@@ -148,8 +148,8 @@ def test_no_absolute_user_path_in_builtin_dir() -> None:
 def test_declares_no_separate_process_backend() -> None:
     """The inverse of the assertion this replaced, and the point of the migration.
 
-    This manifest used to declare ``mcpServers.crew-companion.url =
-    http://127.0.0.1:7778/mcp`` — a SEPARATE macOS app the gateway proxied to.
+    This manifest used to declare an ``mcpServers`` entry whose ``url`` was
+    ``http://127.0.0.1:7778/mcp`` — a SEPARATE macOS app the gateway proxied to.
     That single field is what made the whole class of defects reachable: the
     ``.app_secret`` the proxy signs with, the malformed-port crash that could
     stop gateway startup, and the hole where a never-enabled app still had an

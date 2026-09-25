@@ -227,7 +227,7 @@ async function gap() {
 const PAGES = [
   {
     route: 'capabilities',
-    tabs: ['crews', 'templates', 'mcp', 'skills', 'steering', 'hooks', 'prompts'],
+    tabs: ['agents', 'templates', 'mcp', 'skills', 'steering', 'hooks', 'prompts'],
   },
   {
     route: 'developer',

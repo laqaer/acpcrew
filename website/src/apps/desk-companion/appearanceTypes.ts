@@ -1,5 +1,5 @@
 /**
- * CrewCompanion - Appearance Pack type definitions
+ * Companion - Appearance Pack type definitions
  *
  * Defines the data model for appearance packs, including pack metadata,
  * animation mappings, manifest structure, and related utility types.

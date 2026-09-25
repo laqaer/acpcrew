@@ -17,6 +17,7 @@ import pytest
 from junction.apps.builtins.desk_companion.reminders import parse_iso, to_iso
 from junction.apps.builtins.desk_companion.store import (
     MAX_PENDING,
+    REMINDERS_FILENAME,
     CompanionStore,
 )
 
@@ -300,13 +301,13 @@ class TestPersistence:
         assert b.stats_payload()["stats"]["breathingSessions"] == 1
 
     def test_a_corrupt_store_loads_empty_rather_than_raising(self, tmp_path):
-        (tmp_path / "crew-companion-reminders.json").write_text("{not json", "utf-8")
+        (tmp_path / REMINDERS_FILENAME).write_text("{not json", "utf-8")
         s = CompanionStore(tmp_path, now=Clock())
         s.load()  # must not raise
         assert s.snapshot()["reminders"] == []
 
     def test_an_oversized_store_is_ignored(self, tmp_path):
-        path = tmp_path / "crew-companion-reminders.json"
+        path = tmp_path / REMINDERS_FILENAME
         path.write_text(json.dumps({"reminders": [], "pad": "x" * 2_100_000}), "utf-8")
         s = CompanionStore(tmp_path, now=Clock())
         s.load()
@@ -316,7 +317,7 @@ class TestPersistence:
         s = CompanionStore(tmp_path, now=Clock())
         s.load()
         s.add("x", to_iso(Clock().now))
-        path = tmp_path / "crew-companion-reminders.json"
+        path = tmp_path / REMINDERS_FILENAME
         # POSIX enforces this with chmod 0o600. Windows has no equivalent bit --
         # files report 0o666 there and access is governed by the DACL -- so the
         # POSIX-bit assertion is only meaningful off Windows. Same split as
@@ -519,10 +520,10 @@ class TestPendingSurvivesRestart:
         clock.advance(minutes=2)
         s.tick()
         # Corrupt one pending entry on disk; load() must shrug it off.
-        raw = json.loads((tmp_path / "crew-companion-reminders.json").read_text("utf-8"))
+        raw = json.loads((tmp_path / REMINDERS_FILENAME).read_text("utf-8"))
         raw["pending"].append("not-a-fire")
         raw["pending"].append({"seq": "NaN"})
-        (tmp_path / "crew-companion-reminders.json").write_text(json.dumps(raw), "utf-8")
+        (tmp_path / REMINDERS_FILENAME).write_text(json.dumps(raw), "utf-8")
 
         reopened = CompanionStore(tmp_path, rand=lambda: 0.0, now=clock)
         reopened.load()

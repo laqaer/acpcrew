@@ -5608,8 +5608,8 @@ class TestBareTokenProtectedLeaves:
             for cmd in (
                 f"echo forged > ./{leaf}",
                 f"tee ./{leaf}",
-                f"cp /tmp/f.json crew/{leaf}",
-                f"echo forged > ../crew/{leaf}",
+                f"cp /tmp/f.json sub/{leaf}",
+                f"echo forged > ../sub/{leaf}",
             ):
                 assert is_sensitive_bash_command(cmd) is not None, cmd
 
@@ -5620,7 +5620,7 @@ class TestBareTokenProtectedLeaves:
             for cmd in (
                 f"echo forged > .\\{leaf}",
                 f'copy /Y evil.json ".\\{leaf}"',
-                f"echo forged > crew\\{leaf}",
+                f"echo forged > sub\\{leaf}",
                 f"python -c \"open(r'.\\{leaf}','w')\"",
             ):
                 assert is_sensitive_bash_command(cmd) is not None, cmd

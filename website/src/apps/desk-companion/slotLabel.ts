@@ -2,7 +2,7 @@
  * A slot's display name.
  *
  * The keys live in a FILE-SCOPE map indexed inside the `i18nT(...)` call, rather
- * than being assembled as `` `apps.crewCompanion.state.${slot}` ``. The template
+ * than being assembled as `` `apps.deskCompanion.state.${slot}` ``. The template
  * form reads better but is invisible to the tooling: the key appears nowhere in
  * the source, so `deadKeys.test.ts` reports every state string as unreferenced
  * and `check-i18n-keys.mjs` cannot verify the entry exists. It also made this
@@ -15,25 +15,25 @@
  * A pack may declare a slot this build never enters, so an unknown id is normal
  * and returns the raw slot name. Mapping first means the fallback is a plain
  * lookup miss; the previous version had to detect i18next echoing the key back,
- * because a missing string renders as `apps.crewCompanion.state.walking` on
+ * because a missing string renders as `apps.deskCompanion.state.walking` on
  * screen rather than as an empty value.
  */
 import { i18nT } from '../../i18n/t'
 
 /** Slot id → catalog key, for the states this build ships. */
 const STATE_LABEL_KEY = {
-  approval_pending: 'apps.crewCompanion.state.approval_pending',
-  done: 'apps.crewCompanion.state.done',
-  error: 'apps.crewCompanion.state.error',
-  hiding: 'apps.crewCompanion.state.hiding',
-  idle: 'apps.crewCompanion.state.idle',
-  listening: 'apps.crewCompanion.state.listening',
-  offline: 'apps.crewCompanion.state.offline',
-  peekThinking: 'apps.crewCompanion.state.peekThinking',
-  peeking: 'apps.crewCompanion.state.peeking',
-  thinking: 'apps.crewCompanion.state.thinking',
-  walking: 'apps.crewCompanion.state.walking',
-  working: 'apps.crewCompanion.state.working',
+  approval_pending: 'apps.deskCompanion.state.approval_pending',
+  done: 'apps.deskCompanion.state.done',
+  error: 'apps.deskCompanion.state.error',
+  hiding: 'apps.deskCompanion.state.hiding',
+  idle: 'apps.deskCompanion.state.idle',
+  listening: 'apps.deskCompanion.state.listening',
+  offline: 'apps.deskCompanion.state.offline',
+  peekThinking: 'apps.deskCompanion.state.peekThinking',
+  peeking: 'apps.deskCompanion.state.peeking',
+  thinking: 'apps.deskCompanion.state.thinking',
+  walking: 'apps.deskCompanion.state.walking',
+  working: 'apps.deskCompanion.state.working',
 } as const
 
 export function slotLabel(slot: string): string {

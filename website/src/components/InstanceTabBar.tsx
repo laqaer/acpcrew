@@ -2,20 +2,20 @@
  * InstanceTabBar — a thin, full-width strip at the very top of the dashboard
  * that switches between the local dashboard and connected remote instances.
  *
- * The switcher is a single dropdown by default: the number of crews a user
+ * The switcher is a single dropdown by default: the number of instances a user
  * configures is unbounded, and a horizontal strip forced them to shrink the
  * window or scroll sideways to reach the last one, so the collapsed trigger
- * costs constant width no matter how many crews exist. A many-crew user can
- * PIN it open (see the Switcher pin) to trade that constant width for an
- * always-visible chip row, so switching costs no dropdown click.
+ * costs constant width no matter how many instances exist. A user with many
+ * instances can PIN it open (see the Switcher pin) to trade that constant width
+ * for an always-visible chip row, so switching costs no dropdown click.
  *
  * Unread counts survive that collapse in two places, because a count hidden
  * behind a closed menu would be invisible: the trigger carries an AGGREGATE
- * badge for every crew that is not on screen, and each menu row carries its
+ * badge for every instance that is not on screen, and each menu row carries its
  * own. The bar appears ONLY when at least one remote instance is connected or
- * remembered, so the common single-crew experience is unchanged. Everything
+ * remembered, so the common local-only experience is unchanged. Everything
  * *below* the bar is the switchable "window" — the Local dashboard, or a remote
- * crew's embedded dashboard (see InstancesViewport). The bar intentionally
+ * instance's embedded dashboard (see InstancesViewport). The bar intentionally
  * carries no product brand of its own; each pane shows its own brand, so
  * switching never doubles the icon/title.
  *
@@ -45,7 +45,7 @@ import {
 import { i18nT } from '../i18n/t'
 import { fmtDuration as fmtDurationParts, fmtUnit, fmtNumber } from '../i18n/format'
 /**
- * Crews that get a switcher entry: sticky connect intent (`was_connected`,
+ * Instances that get a switcher entry: sticky connect intent (`was_connected`,
  * cleared only on an explicit disconnect) OR currently connected OR warm.
  * Exported as the single source of truth so App.tsx can decide whether the bar
  * is visible WITHOUT duplicating the rule — the bar's visibility drives the
@@ -71,13 +71,13 @@ const REFRESH_AT_ELAPSED_FRAC = 0.8
 const BADGE_MAX = 99
 
 // The radio group needs a non-empty value for the Local destination, whose id is
-// null; no crew id can collide with it (ids match ^[a-z0-9][a-z0-9-]{0,62}$).
+// null; no instance id can collide with it (ids match ^[a-z0-9][a-z0-9-]{0,62}$).
 const LOCAL_VALUE = '__local__'
 
-// Persisted preference: when set, the switcher renders every crew as an
+// Persisted preference: when set, the switcher renders every instance as an
 // always-visible chip row instead of collapsing behind the dropdown. Power
-// users with many crews opt in so switching costs no extra click and each
-// crew's live state is visible at a glance. Off by default — the compact
+// users with many instances opt in so switching costs no extra click and each
+// instance's live state is visible at a glance. Off by default — the compact
 // dropdown stays the norm.
 //
 // Backed by a module-level store (not usePersistedBool) because several bars in
@@ -88,58 +88,34 @@ const LOCAL_VALUE = '__local__'
 // This module store cannot cross into a remote pane's embedded bar — that runs
 // in a separate cross-origin iframe realm with its own localStorage — so the
 // embedded bar does NOT read this store. Instead the parent relays the pin into
-// each pane via the `pinnedCrews` field of `mc-host-model`, and an embedded
-// pin toggle posts `mc-set-crew-pin` back up; the pin set is thus one shared
+// each pane via the `pinnedInstances` field of `mc-host-model`, and an embedded
+// pin toggle posts `mc-set-instance-pin` back up; the pin set is thus one shared
 // value across every pane (local header + all remote panes), not per-pane.
-const PINNED_PREF_KEY = 'mc-crew-switcher-pinned'
-
-/** The expand-everything switch this preference replaces. */
-const LEGACY_EXPANDED_PREF_KEY = 'mc-crew-switcher-expanded'
+const PINNED_PREF_KEY = 'mc-instance-switcher-pinned'
 
 /**
- * Resolve the pin set from raw stored values, migrating the legacy
- * expand-everything switch.
- *
- * A user who had pinned the switcher open wanted chips, so migrating them to an
- * EMPTY set would silently collapse the header back to a bare dropdown and read
- * as the feature having been removed. Local is the one destination guaranteed to
- * exist (no crew has to be configured for it), so it is the honest floor: they
- * keep a chip row, and pin the crews they want beside it.
+ * Parse the stored pin set. Anything other than a JSON array reads as "nothing
+ * pinned", and non-string entries are dropped: a hand-corrupted value must never
+ * throw during module init, and a non-string entry cannot name a destination.
  *
  * Pure, and exported, because the module store below reads storage exactly once
  * at import — a test cannot re-trigger that, so the decision has to be reachable
  * without it.
  */
-export function resolvePinnedPref(stored: string | null, legacyExpanded: string | null): string[] {
-  if (stored !== null) {
-    try {
-      const parsed: unknown = JSON.parse(stored)
-      if (!Array.isArray(parsed)) return []
-      return parsed.filter((id): id is string => typeof id === 'string')
-    } catch {
-      // A hand-corrupted value reads as "nothing pinned", never a crash.
-      return []
-    }
+export function resolvePinnedPref(stored: string | null): string[] {
+  if (stored === null) return []
+  try {
+    const parsed: unknown = JSON.parse(stored)
+    if (!Array.isArray(parsed)) return []
+    return parsed.filter((id): id is string => typeof id === 'string')
+  } catch {
+    return []
   }
-  if (legacyExpanded !== null) return legacyExpanded === '1' ? [LOCAL_VALUE] : []
-  return []
 }
 
 function readPinned(): Set<string> {
   try {
-    const stored = localStorage.getItem(PINNED_PREF_KEY)
-    const legacy = localStorage.getItem(LEGACY_EXPANDED_PREF_KEY)
-    const ids = resolvePinnedPref(stored, legacy)
-    // Land the migration so it runs once — but only DROP the legacy key after the
-    // replacement is durable. Under a full quota the write fails, and removing
-    // first would lose the preference outright with nothing to migrate from on
-    // the next load; leaving the legacy key means the migration simply retries.
-    if (stored === null && legacy !== null) {
-      if (safeSetItem(PINNED_PREF_KEY, JSON.stringify(ids))) {
-        localStorage.removeItem(LEGACY_EXPANDED_PREF_KEY)
-      }
-    }
-    return new Set(ids)
+    return new Set(resolvePinnedPref(localStorage.getItem(PINNED_PREF_KEY)))
   } catch {
     // Private mode or disabled storage: an unpinned switcher is the safe
     // fallback, never a throw during module init.
@@ -156,17 +132,17 @@ const pinnedListeners = new Set<() => void>()
  * identity per write is load-bearing: `useSyncExternalStore` compares snapshots
  * by reference, so mutating in place would not re-render.
  */
-export function setCrewPins(ids: Iterable<string>) {
+export function setInstancePins(ids: Iterable<string>) {
   pinnedState = new Set(ids)
   safeSetItem(PINNED_PREF_KEY, JSON.stringify([...pinnedState]))
   pinnedListeners.forEach(l => l())
 }
 
-/** Pin or unpin one crew (`LOCAL_VALUE` for the local dashboard). */
-export function toggleCrewPin(id: string) {
+/** Pin or unpin one instance (`LOCAL_VALUE` for the local dashboard). */
+export function toggleInstancePin(id: string) {
   const next = new Set(pinnedState)
   if (!next.delete(id)) next.add(id)
-  setCrewPins(next)
+  setInstancePins(next)
 }
 
 function subscribePinned(cb: () => void) {
@@ -177,16 +153,16 @@ function subscribePinned(cb: () => void) {
 }
 
 /** Reactive read of the pin set + a toggler that broadcasts to every bar. */
-export function useCrewPins(): [Set<string>, (id: string) => void] {
+export function useInstancePins(): [Set<string>, (id: string) => void] {
   const pinned = useSyncExternalStore(subscribePinned, () => pinnedState, () => pinnedState)
-  return [pinned, toggleCrewPin]
+  return [pinned, toggleInstancePin]
 }
 
 // Persisted preference: keep the switcher's chip row in a FIXED order instead of
-// pulling the crew on screen to the leading slot. Off by default — the active
-// crew leads, which reads well for an occasional switcher but reshuffles the row
+// pulling the instance on screen to the leading slot. Off by default — the active
+// instance leads, which reads well for an occasional switcher but reshuffles the row
 // on every switch, which a frequent switcher finds disorienting. When on, pinned
-// crews hold their configured order and the active one is only highlighted in
+// instances hold their configured order and the active one is only highlighted in
 // place, so the row never moves under the user.
 //
 // A module-level store (not usePersistedBool) for the SAME reason the pin set is
@@ -197,7 +173,7 @@ export function useCrewPins(): [Set<string>, (id: string) => void] {
 // embedded bar — that runs in a separate cross-origin iframe realm with its own
 // localStorage — so the embedded bar reads its own value there; the top-level
 // dashboard header is the surface this preference governs.
-const STABLE_ORDER_PREF_KEY = 'mc-crew-switcher-stable-order'
+const STABLE_ORDER_PREF_KEY = 'mc-instance-switcher-stable-order'
 
 function readStableOrder(): boolean {
   try {
@@ -228,7 +204,7 @@ function subscribeStableOrder(cb: () => void) {
 }
 
 /** Reactive read of the stable-order preference + a toggler that broadcasts. */
-export function useCrewSwitcherStableOrder(): [boolean, () => void] {
+export function useInstanceSwitcherStableOrder(): [boolean, () => void] {
   const on = useSyncExternalStore(
     subscribeStableOrder,
     () => stableOrderState,
@@ -265,7 +241,7 @@ function stateLabel(state?: string): string {
   if (state === 'connected') return i18nT('components.instanceTabBar.connected')
   if (state === 'connecting') return i18nT('components.instanceTabBar.connecting')
   if (state === 'error') return i18nT('components.instanceTabBar.tunnel_error')
-  // A stopped tunnel is not the same as one that was never opened: the crew's
+  // A stopped tunnel is not the same as one that was never opened: the instance's
   // own machine may be running while the forward is down.
   if (state === 'stopped') return i18nT('components.instanceTabBar.stopped')
   return i18nT('components.instanceTabBar.disconnected')
@@ -310,7 +286,7 @@ function UnreadBadge({
 }: {
   count: number
   label?: string
-  /** The trigger's roll-up of OTHER crews, styled apart from a per-row count so
+  /** The trigger's roll-up of OTHER instances, styled apart from a per-row count so
    *  it does not read as the pane named beside it. */
   aggregate?: boolean
 }) {
@@ -337,9 +313,9 @@ function UnreadBadge({
 export interface SwitcherEntry {
   id: string | null
   name: string
-  /** Secondary line: the SSH host the crew is reached through. */
+  /** Secondary line: the SSH host the instance is reached through. */
   detail: string
-  /** Hover text naming the crew, its host, and its live tunnel state. */
+  /** Hover text naming the instance, its host, and its live tunnel state. */
   title: string
   state?: string
   connecting?: boolean
@@ -363,11 +339,11 @@ function SwitcherRow({
 }) {
   const isLocal = entry.id === null
   const id = entry.id ?? LOCAL_VALUE
-  // `noRoom` has to be sayable: a pinned crew with no visible chip otherwise
+  // `noRoom` has to be sayable: a pinned instance with no visible chip otherwise
   // looks like the pin silently failed, and the glyph does not encode it.
   const pinTitle = pinned
-    ? i18nT('components.instanceTabBar.unpin_crew', { name: entry.name })
-    : i18nT('components.instanceTabBar.pin_crew', { name: entry.name })
+    ? i18nT('components.instanceTabBar.unpin_instance', { name: entry.name })
+    : i18nT('components.instanceTabBar.pin_instance', { name: entry.name })
   const pinLabel =
     pinned && noRoom
       ? `${pinTitle} — ${i18nT('components.instanceTabBar.pinned_no_room')}`
@@ -377,7 +353,7 @@ function SwitcherRow({
     // never a control nested inside the row: a menuitemradio may not contain
     // another interactive element (invalid ARIA, and the menu's arrow-key focus
     // cannot reach it). Two stops per row is the cost, and it keeps each pin
-    // beside the crew it pins instead of in a second list of the same crews.
+    // beside the instance it pins instead of in a second list of the same instances.
     <div className="flex items-center">
       <DropdownMenuRadioItem
         value={id}
@@ -397,7 +373,7 @@ function SwitcherRow({
         )}
         <span className="flex flex-col min-w-0 flex-1">
           <span className="truncate">{entry.name}</span>
-          {/* A crew whose ssh alias IS its name would otherwise render the same
+          {/* An instance whose ssh alias IS its name would otherwise render the same
               word twice, which reads as a bug rather than as extra detail. */}
           {entry.detail && entry.detail !== entry.name ? (
             <span className="truncate text-[12px] text-muted">{entry.detail}</span>
@@ -410,7 +386,7 @@ function SwitcherRow({
           />
         ) : null}
         {/* Visible, not sr-only. The dot is the only other carrier of state, and
-            colour alone cannot distinguish a connected crew from a failed one for
+            colour alone cannot distinguish a connected instance from a failed one for
             a colourblind user — who would otherwise have to hover every row to
             find the one that errored. One label serves both audiences, so the
             word a screen reader announces is the word on screen. */}
@@ -424,7 +400,7 @@ function SwitcherRow({
         className="shrink-0 px-1.5 justify-center"
         role="menuitemcheckbox"
         aria-checked={pinned}
-        data-testid={`crew-pin-${id}`}
+        data-testid={`instance-pin-${id}`}
         title={pinLabel}
         aria-label={pinLabel}
         // Toggle from `onSelect`, the one activation handler Radix fires exactly
@@ -433,8 +409,8 @@ function SwitcherRow({
         // `onClick` also dropped pointer clicks: the whole entries list re-renders
         // on every pin change (the glyph flips), so the item pressed could be
         // replaced between pointerdown and click and never receive the event.
-        // preventDefault keeps the menu open so a second crew can be pinned
-        // without reopening it, and stops the click from switching crews.
+        // preventDefault keeps the menu open so a second instance can be pinned
+        // without reopening it, and stops the click from switching instances.
         onSelect={(e: Event) => {
           e.preventDefault()
           onTogglePin()
@@ -444,7 +420,7 @@ function SwitcherRow({
             unfilled muted outline = not pinned. The resting glyph carries no
             opacity, because it is the only affordance the feature has and
             `--muted` composited below full strength drops under the 3:1 contrast
-            floor a UI control has to clear. A pinned crew whose header chip got
+            floor a UI control has to clear. A pinned instance whose header chip got
             clipped stays filled for the same reason inverted: fading accent to
             mark it would read as the unpinned outline and invite an accidental
             unpin, and `--accent` differs per theme so no single opacity is
@@ -495,7 +471,7 @@ function SwitcherMenu({
 }) {
   const [open, setOpen] = useState(false)
   // Unread the user cannot see: everything that is neither the active pane nor a
-  // chip currently on screen. A pinned crew whose chip got cut off counts, since
+  // chip currently on screen. A pinned instance whose chip got cut off counts, since
   // its badge went with it.
   const elsewhere = entries.reduce((sum, e) => {
     const id = e.id ?? LOCAL_VALUE
@@ -504,8 +480,8 @@ function SwitcherMenu({
   }, 0)
   const label =
     elsewhere > 0
-      ? i18nT('components.instanceTabBar.switch_crew_unread', { n: elsewhere })
-      : i18nT('components.instanceTabBar.switch_crew')
+      ? i18nT('components.instanceTabBar.switch_instance_unread', { n: elsewhere })
+      : i18nT('components.instanceTabBar.switch_instance')
   return (
     <DropdownMenu open={open} onOpenChange={setOpen}>
       <DropdownMenuTrigger asChild>
@@ -537,7 +513,7 @@ function SwitcherMenu({
         <DropdownMenuRadioGroup value={activeId ?? LOCAL_VALUE}>
           {entries.map((entry, i) => (
             <Fragment key={entry.id ?? LOCAL_VALUE}>
-              {/* Local is the user's own machine, not a crew: a rule separates it
+              {/* Local is the user's own machine, not an instance: a rule separates it
                   from the remote list so the two never read as one flat set. */}
               {i === 1 ? <DropdownMenuSeparator /> : null}
               <SwitcherRow
@@ -550,11 +526,11 @@ function SwitcherMenu({
             </Fragment>
           ))}
         </DropdownMenuRadioGroup>
-        {/* A row-order preference, not a destination: it sits below the crew list
-            behind a separator so it never reads as one more crew to switch to.
+        {/* A row-order preference, not a destination: it sits below the instance list
+            behind a separator so it never reads as one more instance to switch to.
             `onSelect`'s preventDefault keeps the menu open — the user sees the
             checkmark flip and can keep adjusting pins in the same session, the
-            same discipline the per-crew pin toggle uses. In an embedded pane the
+            same discipline the per-instance pin toggle uses. In an embedded pane the
             toggle relays up to the parent (mc-set-stable-order), so it is shown
             there too. */}
         {showStableOrderToggle ? (
@@ -563,7 +539,7 @@ function SwitcherMenu({
             <DropdownMenuItem
               role="menuitemcheckbox"
               aria-checked={stableOrder}
-              data-testid="crew-stable-order-toggle"
+              data-testid="instance-stable-order-toggle"
               className="gap-2 text-[13px]"
               title={i18nT('components.instanceTabBar.keep_tab_order_fixed')}
               aria-label={i18nT('components.instanceTabBar.keep_tab_order_fixed')}
@@ -588,13 +564,13 @@ function SwitcherMenu({
 }
 
 /**
- * One crew as an always-visible chip, used by the expanded switcher. Same
+ * One instance as an always-visible chip, used by the expanded switcher. Same
  * icon/state/unread vocabulary as a menu row, but a plain button: the expanded
  * row is not a menu, so it carries no `menuitemradio` semantics — `aria-current`
  * names the pane on screen instead. State reaches non-sighted and colourblind
  * users the same way the menu rows carry it: `aria-label` folds the tunnel
  * state into the accessible name, and a non-ok state shows its word (not colour
- * alone), so the errored crew is findable without hovering every chip.
+ * alone), so the errored instance is findable without hovering every chip.
  */
 function SwitcherChip({
   entry,
@@ -606,12 +582,12 @@ function SwitcherChip({
   entry: SwitcherEntry
   active: boolean
   onSelect: () => void
-  /** Extra classes for the caller's own layout hooks (see `tb-crew-active-chip`). */
+  /** Extra classes for the caller's own layout hooks (see `tb-instance-active-chip`). */
   className?: string
   /**
    * Let the chip give up NAME width when its row is short of room, instead of
    * holding its full width and letting the row cut whichever chip lands on the
-   * boundary. Only the pinned row passes this: the crew ON SCREEN keeps its full
+   * boundary. Only the pinned row passes this: the instance ON SCREEN keeps its full
    * name, because it is the one label that says where you are.
    *
    * The shortage lands on the name because that is the only part of a chip with
@@ -630,7 +606,7 @@ function SwitcherChip({
    * `min-w-[16px]` (16) = 54px. Keep them in sync with the classes below;
    * `capture-instance-chip-shrink.mjs` asserts the declared floor against the measured
    * one, so a drift cannot pass silently. A chip carrying a state WORD is never
-   * shrinkable (see `CrewChipRow`), because that word's width is not fixed and
+   * shrinkable (see `InstanceChipRow`), because that word's width is not fixed and
    * would break the arithmetic.
    */
   shrinkable?: boolean
@@ -667,7 +643,7 @@ function SwitcherChip({
           aria-hidden
         />
       )}
-      {/* `tb-drop-crew-name` is the topbar identity group's collapse hook: inside
+      {/* `tb-drop-instance-name` is the topbar identity group's collapse hook: inside
           `.tb-left` a container rung hides the name so the chip goes icon-only
           rather than pushing the trailing dropdown out of the clip box on a phone.
           The name stays in `aria-label`/`title`, so the chip keeps its accessible
@@ -678,7 +654,7 @@ function SwitcherChip({
           a flex item an automatic minimum size of zero, so the name is the part
           that gives way, ellipsised rather than clipped. The 5ch floor lives on the
           chip, not here, so there is one source of truth for it. */}
-      <span className="tb-drop-crew-name truncate max-w-[140px]">{entry.name}</span>
+      <span className="tb-drop-instance-name truncate max-w-[140px]">{entry.name}</span>
       {entry.unread > 0 ? (
         <UnreadBadge
           count={entry.unread}
@@ -731,7 +707,7 @@ export function clippedChipIds(
  * Which pinned chips the row had to cut off, by id.
  *
  * Measuring is what makes that state SAYABLE in the dropdown — without it, a
- * pinned crew with no visible chip reads as a pin that silently failed.
+ * pinned instance with no visible chip reads as a pin that silently failed.
  *
  * `offsetLeft` is sound here only because the row carries `position: relative`,
  * which makes it the chips' offsetParent and puts both in the same coordinate
@@ -775,7 +751,7 @@ function useClippedChipIds(
 }
 
 /**
- * The pinned crews, as always-visible chips between the active crew and the
+ * The pinned instances, as always-visible chips between the active instance and the
  * dropdown.
  *
  * One nowrap line that ADAPTS TO ITS OWN TRACK rather than spending the shortage
@@ -800,7 +776,7 @@ function useClippedChipIds(
  * the unread badge is a chip's trailing element and is therefore the first thing
  * any cut reaches — a fade there dissolves the one glyph the chip exists to show.
  * `data-cut` drives a 1px rule at the boundary (index.css), and the count itself
- * survives twice over: the cut crew's unread is already rolled into the dropdown
+ * survives twice over: the cut instance's unread is already rolled into the dropdown
  * trigger's aggregate badge, and its dropdown pin announces the cut in its own
  * accessible name (`pinned_no_room`).
  *
@@ -809,7 +785,7 @@ function useClippedChipIds(
  * `overflow:hidden`, so the track already prevents it from reaching the centered
  * search column.
  */
-function CrewChipRow({
+function InstanceChipRow({
   chips,
   activeId,
   onSelect,
@@ -829,7 +805,7 @@ function CrewChipRow({
   return (
     <div
       ref={rowRef}
-      data-testid="crew-chip-row"
+      data-testid="instance-chip-row"
       // Reflects the measurement, so the boundary rule paints only when a chip is
       // really cut. Safe to feed back: the rule is an absolutely-positioned
       // pseudo-element, so it takes no layout and cannot change what got clipped.
@@ -837,7 +813,7 @@ function CrewChipRow({
       // `relative` is load-bearing, not cosmetic: it makes this element the chips'
       // offsetParent so useClippedChipIds can compare their offsetLeft against
       // this row's own clientWidth.
-      className="crew-chip-row relative flex flex-nowrap items-center gap-1 min-w-0 overflow-hidden"
+      className="instance-chip-row relative flex flex-nowrap items-center gap-1 min-w-0 overflow-hidden"
     >
       {chips.map(entry => (
         <SwitcherChip
@@ -857,11 +833,11 @@ function CrewChipRow({
 }
 
 /**
- * The switcher surface both bars mount: the crew on screen, then a chip for each
- * crew the user pinned, then the dropdown holding everything else.
+ * The switcher surface both bars mount: the instance on screen, then a chip for each
+ * instance the user pinned, then the dropdown holding everything else.
  *
  * The dropdown TRAILS the chips so it stays adjacent to the last one and reads as
- * "and the rest" — see `CrewChipRow` for why that placement forces a clipped row
+ * "and the rest" — see `InstanceChipRow` for why that placement forces a clipped row
  * rather than a wrapped one.
  */
 function Switcher({
@@ -902,10 +878,10 @@ function Switcher({
    *  host safety net in the resolution above; it no longer hides the toggle. */
   embedded?: boolean
 }) {
-  const [storePinned, storeTogglePin] = useCrewPins()
+  const [storePinned, storeTogglePin] = useInstancePins()
   const pinned = pinnedProp ?? storePinned
   const togglePin = onTogglePinProp ?? storeTogglePin
-  const [storeStableOrder, storeToggleStableOrder] = useCrewSwitcherStableOrder()
+  const [storeStableOrder, storeToggleStableOrder] = useInstanceSwitcherStableOrder()
   // The stable-order preference is parent-owned. An embedded pane receives it as
   // a prop relayed through `mc-host-model` (and toggles it back up via
   // `mc-set-stable-order`), so it no longer reads its own cross-origin store; a
@@ -921,15 +897,15 @@ function Switcher({
   const [clippedPinned, setClippedPinned] = useState<Set<string>>(() => new Set())
   const active = entries.find(e => (e.id ?? null) === activeId) ?? entries[0]
   // Two orderings for the always-visible chips:
-  //  • Default: the crew on screen LEADS the row and is never also a pinned chip
+  //  • Default: the instance on screen LEADS the row and is never also a pinned chip
   //    — two copies of one name would spend the track's width saying the same
   //    thing twice. Reads well for an occasional switcher, but reshuffles the row
   //    on every switch.
-  //  • Stable order (opt-in): pinned crews hold their configured order and the
+  //  • Stable order (opt-in): pinned instances hold their configured order and the
   //    active one is only highlighted in place, so a frequent switcher's row
-  //    never moves under them. The active crew is still pulled out to lead when
+  //    never moves under them. The active instance is still pulled out to lead when
   //    it is NOT itself a pinned chip, so it stays reachable without opening the
-  //    dropdown — for a user who pins every crew that branch never fires and the
+  //    dropdown — for a user who pins every instance that branch never fires and the
   //    row is fully fixed.
   const chips = useMemo(
     () =>
@@ -947,11 +923,11 @@ function Switcher({
           entry={active}
           active
           onSelect={() => onSelect(active.id)}
-          className="tb-crew-active-chip"
+          className="tb-instance-active-chip"
         />
       ) : null}
       {chips.length > 0 ? (
-        <CrewChipRow
+        <InstanceChipRow
           chips={chips}
           activeId={activeId}
           onSelect={onSelect}
@@ -990,7 +966,7 @@ function EmbeddedInstanceTabBar({ variant }: { variant: 'strip' | 'inline' }) {
   // toggle up and lets the parent re-broadcast the model back down.
   const onTogglePin = useCallback((id: string) => {
     // nosemgrep: javascript.browser.security.wildcard-postmessage-configuration.wildcard-postmessage-configuration
-    window.parent?.postMessage({ type: 'mc-set-crew-pin', v: 1, id }, '*')
+    window.parent?.postMessage({ type: 'mc-set-instance-pin', v: 1, id }, '*')
   }, [])
   // The stable-order preference also lives on the parent (one shared value across
   // every pane). This pane cannot write the parent's store from its own iframe
@@ -1024,7 +1000,7 @@ function EmbeddedInstanceTabBar({ variant }: { variant: 'strip' | 'inline' }) {
     ]
   }, [host])
   // The relayed model carries a plain array (postMessage cannot carry a Set).
-  const pinnedFromHost = useMemo(() => new Set(host?.pinnedCrews ?? []), [host?.pinnedCrews])
+  const pinnedFromHost = useMemo(() => new Set(host?.pinnedInstances ?? []), [host?.pinnedInstances])
   if (!host || host.tabs.length === 0) return null
   return (
     <div
@@ -1064,10 +1040,10 @@ export default function InstanceTabBar({
   // Memoize so the `[] ` fallback doesn't produce a fresh array identity on every
   // render, which would otherwise churn the `onSelectInstance` useCallback deps.
   const instances = useMemo(() => instancesQuery.data?.instances ?? [], [instancesQuery.data?.instances])
-  // An entry exists for every crew the user *intends* to be connected — i.e.
+  // An entry exists for every instance the user *intends* to be connected — i.e.
   // `was_connected` (sticky intent, cleared only on an explicit disconnect) or
   // one that is currently warm/live. Live `status.state` only drives the
-  // per-entry visual state, NOT whether the entry exists, so a crew survives a
+  // per-entry visual state, NOT whether the entry exists, so an instance survives a
   // gateway restart or a failed auto-reconnect (rendered with an error dot)
   // instead of vanishing and forcing the user back to Settings → Remote Instances.
   const tabInstances = useMemo(() => visibleInstanceTabs(instances, warm), [instances, warm])
@@ -1090,7 +1066,7 @@ export default function InstanceTabBar({
       },
       ...tabInstances.map(inst => {
         const st = inst.status?.state
-        // An SSM crew has no ssh_host: it is reached through its managed-instance
+        // An SSM instance has no ssh_host: it is reached through its managed-instance
         // target, so that is what names the machine on its row.
         const target = inst.connection_method === 'ssm' ? inst.ssm_target : inst.ssh_host
         return {

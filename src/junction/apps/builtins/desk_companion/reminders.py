@@ -6,7 +6,7 @@ Ported behaviour-first from the Companion desktop app's
 *intentionally* changed: several behaviours below look like quirks and are
 deliberate, and each one is called out where it lives. The original module's own
 tests (``src/test/reminders.test.ts``, 29 cases) are ported alongside as
-``test_crew_companion_reminders.py`` so the port is pinned rather than asserted.
+``tests/test_reminders.py`` so the port is pinned rather than asserted.
 
 A deliberately small model: one interval, one time. Six fields and a time
 comparison is the whole of it.

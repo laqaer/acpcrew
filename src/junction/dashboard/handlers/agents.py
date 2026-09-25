@@ -1285,9 +1285,9 @@ async def api_agent_detail(request: web.Request) -> web.Response:
                     ):
                         return web.json_response({"error": "cannot delete junction"}, status=400)
                     # The dashboard withholds delete for a template that is the
-                    # kiro-cli fallback or is bound to a crew, but a client-side
+                    # kiro-cli fallback or is bound to an agent, but a client-side
                     # check cannot be race-free: its view of the config is a
-                    # cached snapshot, so a crew bound (or the fallback moved)
+                    # cached snapshot, so an agent bound (or the fallback moved)
                     # between render and click still reaches this handler. Only
                     # a check that reads config UNDER THE SAME LOCK the writers
                     # take makes the invariant hold, so this is the authority
@@ -1333,9 +1333,9 @@ async def api_agent_detail(request: web.Request) -> web.Response:
                                 status=409,
                             )
                         bound = sorted(
-                            crew
-                            for crew, crew_cfg in cfg.agents.items()
-                            if crew_cfg.kiro_agent in aliases
+                            agent
+                            for agent, agent_cfg in cfg.agents.items()
+                            if agent_cfg.kiro_agent in aliases
                         )
                         if bound:
                             return web.json_response(
@@ -1755,7 +1755,7 @@ async def api_junction_agent_resolved_model(request: web.Request) -> web.Respons
 
 
 def _model_pin_rejected(model: str, request: web.Request, provider: str) -> str | None:
-    """Reason a crew's model pin is unusable, or ``None`` to allow it.
+    """Reason an agent's model pin is unusable, or ``None`` to allow it.
 
     An agent's ``model`` is read by kiro-cli when the child starts, so a pin the
     account cannot serve kills every session and subagent using that agent
@@ -1772,7 +1772,7 @@ def _model_pin_rejected(model: str, request: web.Request, provider: str) -> str 
     A known wrong-flavour registry spelling is reported before entitlement: a
     live advertised set would otherwise replace the actionable ACP-id mapping
     with a generic "not available" error. All other values delegate to the
-    per-role validator so the crew form, the role pins and the session-init
+    per-role validator so the agent form, the role pins and the session-init
     withhold apply one predicate. ``""``/``"auto"`` mean inherit and always
     pass; an unknown advertised set means entitlement is unknowable, and the
     validator accepts rather than accusing on no evidence.
@@ -1826,18 +1826,18 @@ async def api_junction_agents_create(request: web.Request) -> web.Response:
     if not name:
         return web.json_response({"error": "Agent name is required"}, status=400)
     # The template pointer must be EXPLICIT. It used to default to "junction",
-    # which made every crew created without naming a template an alias for the
+    # which made every agent created without naming a template an alias for the
     # DEFAULT agent: dispatch flattens an alias to its `kiro_agent`
-    # (config.loader.resolve_agent_bindings), so the crew was offered in the chat
+    # (config.loader.resolve_agent_bindings), so the agent was offered in the chat
     # picker and then the default answered — the "picker reverts to default"
-    # report behind #1684. "junction" is still a perfectly valid CHOICE here (a
-    # crew booting the built-in agent against its own workspace/memory store is
-    # the common case); only the silent default is refused.
+    # report behind #1684. "junction" is still a perfectly valid CHOICE here (an
+    # agent booting the built-in template against its own workspace/memory store
+    # is the common case); only the silent default is refused.
     kiro_agent = str(body.get("kiro_agent") or "").strip()
     if not kiro_agent:
         return web.json_response(
             {
-                "error": "kiro_agent is required — name the agent this crew boots "
+                "error": "kiro_agent is required — name the template this agent boots "
                 "from (pass 'junction' for the built-in agent)",
                 "code": "kiro_agent_required",
             },
@@ -1866,14 +1866,14 @@ async def api_junction_agents_create(request: web.Request) -> web.Response:
     )
     template_missing = kiro_agent not in known_agents
     # Unknown-but-accepted: an edition may resolve a row this listing cannot see,
-    # so refusing here would break a legitimate crew. WARN instead — the same
+    # so refusing here would break a legitimate agent. WARN instead — the same
     # posture, and for the same reason, as the sync path's EXECUTABLE INVARIANT
-    # check — so a crew that will fail at spawn leaves a trace rather than
+    # check — so an agent that will fail at spawn leaves a trace rather than
     # failing silently later.
     if template_missing:
         logger.warning(
-            "creating crew %r against template %r, which is not in the installed "
-            "agent listing — if it is not ACP-resolvable the crew will fail at spawn",
+            "creating agent %r against template %r, which is not in the installed "
+            "agent listing — if it is not ACP-resolvable the agent will fail at spawn",
             name,
             kiro_agent,
         )

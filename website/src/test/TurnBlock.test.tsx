@@ -365,17 +365,9 @@ describe('TurnBlock — mid-turn hand-back ([OPTIONS:]) visibility', () => {
     expect(container.querySelector('[data-testid="item-3"]')).not.toBeNull()
   })
 
-  it('keeps crew-mode answers out of the collapse pane', () => {
-    // Crew Mode inverts this component's core assumption: every forwarded
-    // completion is the FINAL answer for a different topic, so "last assistant
-    // message is the conclusion" would bury real answers behind the toggle.
-    // Marked via the persisted `crew-reply` class so it survives a reload.
-    const items: TurnItem[] = [
-      { kind: 'single', msg: { role: 'assistant', content: 'Got it — working on that.', cls: 'msg msg-a', ts: '1' }, idx: 0 },
-      { kind: 'single', msg: { role: 'assistant', content: "Here's what's in flight: three topics running right now.", cls: 'msg msg-a crew-reply', ts: '2' }, idx: 1 },
-      { kind: 'single', msg: { role: 'assistant', content: '↩ re: "check why the stable feed returns 403"\n\nRoot cause: the origin rejects the stale signing key.', cls: 'msg msg-a crew-reply', ts: '3' }, idx: 2 },
-      { kind: 'single', msg: { role: 'assistant', content: '↩ re: "explain the TTL sweep"\n\nIt runs every 6h and compacts afterwards.', cls: 'msg msg-a crew-reply', ts: '4' }, idx: 3 },
-    ]
+  /** Render `items` collapsed and report whether item `i` sits inside the
+   *  collapsible (overflow-clipped) pane. */
+  const renderCollapsed = (items: TurnItem[]) => {
     const { container } = render(
       <TurnBlock
         turn={makeTurn(items)}
@@ -383,31 +375,72 @@ describe('TurnBlock — mid-turn hand-back ([OPTIONS:]) visibility', () => {
         collapseAll={true}
       />
     )
-    // All three answers render OUTSIDE the collapsible pane...
-    for (const i of [1, 2, 3]) {
+    return (i: number) => {
       const el = container.querySelector(`[data-testid="item-${i}"]`)
       expect(el).not.toBeNull()
-      expect(el?.closest('[style*="overflow"]')).toBeNull()
+      return el?.closest('[style*="overflow"]') !== null
     }
+  }
+
+  it('keeps multitask-mode answers out of the collapse pane', () => {
+    // Multitask Mode inverts this component's core assumption: every forwarded
+    // completion is the FINAL answer for a different topic, so "last assistant
+    // message is the conclusion" would bury real answers behind the toggle.
+    // Marked via the persisted `multitask-reply` class so it survives a reload.
+    const collapsed = renderCollapsed([
+      { kind: 'single', msg: { role: 'assistant', content: 'Got it — working on that.', cls: 'msg msg-a', ts: '1' }, idx: 0 },
+      { kind: 'single', msg: { role: 'assistant', content: "Here's what's in flight: three topics running right now.", cls: 'msg msg-a multitask-reply', ts: '2' }, idx: 1 },
+      { kind: 'single', msg: { role: 'assistant', content: '↩ re: "check why the stable feed returns 403"\n\nRoot cause: the origin rejects the stale signing key.', cls: 'msg msg-a multitask-reply', ts: '3' }, idx: 2 },
+      { kind: 'single', msg: { role: 'assistant', content: '↩ re: "explain the TTL sweep"\n\nIt runs every 6h and compacts afterwards.', cls: 'msg msg-a multitask-reply', ts: '4' }, idx: 3 },
+    ])
+    // All three answers render OUTSIDE the collapsible pane...
+    for (const i of [1, 2, 3]) expect(collapsed(i)).toBe(false)
     // ...while the templated ack is still free to fold away.
-    expect(container.querySelector('[data-testid="item-0"]')?.closest('[style*="overflow"]')).not.toBeNull()
+    expect(collapsed(0)).toBe(true)
   })
 
-  it('does not treat a stray class containing "crew-reply" as a marker', () => {
+  it('treats meta.multitask_reply as the marker when the class was not persisted', () => {
+    // The periodic slot flush keeps `meta` for every role but `cls` only for
+    // system rows, so after a reload the meta flag is the only marker left.
+    // A plain message closes the turn, so the marked rows are NOT the trailing
+    // conclusion and only the marker can keep them out of the pane.
+    const collapsed = renderCollapsed([
+      { kind: 'single', msg: { role: 'assistant', content: 'Got it — working on that.', ts: '1' }, idx: 0 },
+      { kind: 'single', msg: { role: 'assistant', content: '↩ re: "rotate the key"\n\nRotated; the old one is revoked.', meta: { multitask_reply: true }, ts: '2' }, idx: 1 },
+      { kind: 'single', msg: { role: 'assistant', content: '↩ re: "explain the TTL sweep"\n\nIt runs every 6h and compacts afterwards.', meta: { multitask_reply: true }, ts: '3' }, idx: 2 },
+      { kind: 'single', msg: { role: 'assistant', content: 'Both topics are done; nothing else is running.', ts: '4' }, idx: 3 },
+    ])
+    expect(collapsed(1)).toBe(false)
+    expect(collapsed(2)).toBe(false)
+    expect(collapsed(0)).toBe(true)
+  })
+
+  it('still surfaces answers that earlier Junction builds marked with the legacy spelling', () => {
+    // Earlier Junction builds marked these answers with `crew-reply` in `cls`
+    // and `crew_reply` in `meta`. Stored transcripts are never rewritten, so an
+    // upgrade must not fold one of those answers into "Worked through N steps".
+    const collapsed = renderCollapsed([
+      { kind: 'single', msg: { role: 'assistant', content: 'Got it — working on that.', cls: 'msg msg-a', ts: '1' }, idx: 0 },
+      { kind: 'single', msg: { role: 'assistant', content: '↩ re: "check why the stable feed returns 403"\n\nRoot cause: the origin rejects the stale signing key.', cls: 'msg msg-a crew-reply', ts: '2' }, idx: 1 },
+      { kind: 'single', msg: { role: 'assistant', content: '↩ re: "explain the TTL sweep"\n\nIt runs every 6h and compacts afterwards.', meta: { crew_reply: true }, ts: '3' }, idx: 2 },
+      { kind: 'single', msg: { role: 'assistant', content: 'Both topics are done; nothing else is running.', cls: 'msg msg-a', ts: '4' }, idx: 3 },
+    ])
+    expect(collapsed(1)).toBe(false)
+    expect(collapsed(2)).toBe(false)
+    expect(collapsed(0)).toBe(true)
+  })
+
+  it('does not treat a stray class containing a reply marker as a marker', () => {
     // Substring safety: the match is on a whole class token, so a class like
-    // "not-crew-reply-thing" must not smuggle a message past the collapse.
-    const items: TurnItem[] = [
-      { kind: 'single', msg: { role: 'assistant', content: 'intermediate reasoning that should stay hidden', cls: 'msg msg-a not-crew-replyish', ts: '1' }, idx: 0 },
-      { kind: 'single', msg: { role: 'assistant', content: 'the actual conclusion of this turn, long enough to count.', cls: 'msg msg-a', ts: '2' }, idx: 1 },
-    ]
-    const { container } = render(
-      <TurnBlock
-        turn={makeTurn(items)}
-        renderItem={(it, i) => <div data-testid={`item-${i}`}>{it.kind === 'single' ? it.msg.content : 'group'}</div>}
-        collapseAll={true}
-      />
-    )
-    expect(container.querySelector('[data-testid="item-0"]')?.closest('[style*="overflow"]')).not.toBeNull()
+    // "not-multitask-reply-thing" must not smuggle a message past the collapse,
+    // and neither may one wrapping the legacy spelling.
+    for (const cls of ['msg msg-a not-multitask-replyish', 'msg msg-a not-crew-replyish']) {
+      const collapsed = renderCollapsed([
+        { kind: 'single', msg: { role: 'assistant', content: 'intermediate reasoning that should stay hidden', cls, ts: '1' }, idx: 0 },
+        { kind: 'single', msg: { role: 'assistant', content: 'the actual conclusion of this turn, long enough to count.', cls: 'msg msg-a', ts: '2' }, idx: 1 },
+      ])
+      expect(collapsed(0)).toBe(true)
+    }
   })
 
   it('the "Worked through N steps" count excludes the now-visible hand-back', () => {

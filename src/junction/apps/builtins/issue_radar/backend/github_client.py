@@ -765,12 +765,12 @@ def _normalize_timeline_event(ev: dict) -> dict | None:
     if etype == "commented":
         return {
             "kind": "comment",
-            # ``id`` and ``updated_at`` are load-bearing for the crew claim
-            # protocol, not decoration. A crew keeps ONE comment as its public
+            # ``id`` and ``updated_at`` are load-bearing for the steward claim
+            # protocol, not decoration. A steward keeps ONE comment as its public
             # claim ledger and rewrites it (``update_issue_comment``), so without
             # ``id`` it cannot address its own comment to PATCH it — and
             # ``created_at`` on an EDITED comment is still the ORIGINAL post time,
-            # so a crew heartbeating every 20 minutes would read as days stale and
+            # so a steward heartbeating every 20 minutes would read as days stale and
             # lose a claim it is actively working. Both are on the timeline's
             # ``commented`` event already, so this costs nothing.
             "id": ev.get("id"),
@@ -2845,10 +2845,10 @@ def create_pull_request(
 
     REST, not ``gh pr create``, and that is the point. The CLI takes the title as
     ``--title <text>`` and needs the body in a file — both of which put
-    model-authored prose on an argv (or on disk) at the moment a crew opens its PR.
+    model-authored prose on an argv (or on disk) at the moment a steward opens its PR.
     Going through :func:`_run_gh_write` sends title AND body as JSON on stdin, so
     neither can be reinterpreted as a flag or an option value; it also inherits the
-    403/401 → :class:`GhPermissionError` mapping, so a crew without push access gets
+    403/401 → :class:`GhPermissionError` mapping, so a steward without push access gets
     a permission error instead of an opaque exit code.
     (``auto_improvement``'s ``pr_recipe.draft()`` is the CLI-based ancestor of this
     call; it is deliberately NOT reused — it also pushes the branch, writes a durable
@@ -3051,7 +3051,7 @@ def update_issue_comment(
     repo-scoped and flat (``issues/comments/{id}``, no ``/issues/{n}/`` segment),
     which is also why this one call serves a comment on an issue and on a PR alike.
 
-    This exists for the crew claim ledger: a crew keeps ONE comment as its public
+    This exists for the steward claim ledger: a steward keeps ONE comment as its public
     record and rewrites it as work progresses, rather than appending a comment per
     heartbeat. Editing is what makes a 20-minute heartbeat acceptable — GitHub
     sends no notification for an edit, so a live claim does not spam every
@@ -3070,7 +3070,7 @@ def update_issue_comment(
     if not text:
         # An empty edit is not a no-op — it would BLANK the claim ledger, leaving
         # the comment in place with nothing in it for either a human or the next
-        # crew to read.
+        # steward to read.
         raise GhCliError("a comment edit needs a body")
     data = _run_gh_write(
         "PATCH",
@@ -3370,19 +3370,19 @@ def rerun_workflow_run(
     return {"run_id": int(run_id), "rerun": True, "failed_only": bool(failed_only)}
 
 
-# ── crew claim protocol (reading a claim back off the issue) ──────────────────
+# ── steward claim protocol (reading a claim back off the issue) ───────────────
 #
-# A crew's claim on an issue lives in a COMMENT, not in a label and not only in
+# A steward's claim on an issue lives in a COMMENT, not in a label and not only in
 # Junction's own store: the comment is the authority, so the claim survives a
 # gateway restart, is visible to a human reading the issue on GitHub, and is
-# readable by a crew running in a different process. The `crew:` labels are a
+# readable by a steward running in a different process. The `steward:` labels are a
 # cheap index over it, never the source of truth.
 #
 # The machine-readable half is an HTML comment at the end of that body:
 #
-#   <!-- junction-crew id=c_7f3a phase=implementing pr=2271 updated=2026-08-08T20:44:12Z -->
+#   <!-- junction-steward id=c_7f3a phase=implementing pr=2271 updated=2026-08-08T20:44:12Z -->
 #
-# HTML so GitHub renders nothing, and parsed instead of the prose so a crew can
+# HTML so GitHub renders nothing, and parsed instead of the prose so a steward can
 # rewrite its progress notes freely without breaking the protocol.
 #
 # Everything below is PURE — it takes rows already normalized by
@@ -3390,16 +3390,32 @@ def rerun_workflow_run(
 # the store because the rows are this module's shape and the marker's dependency on
 # a comment's ``id``/``updated_at`` is this module's contract.
 
-# The marker itself. ``\s+`` after the name is what keeps the brief sentinel
-# ``<!-- junction-crew-brief v1 -->`` from matching: the next character there is a
-# hyphen, not whitespace. Lazy ``[^>]*?`` stops at the marker's own ``-->`` and
-# cannot run on into later prose.
-_CREW_CLAIM_MARKER_RE = re.compile(r"<!--\s*junction-crew\s+([^>]*?)\s*-->")
+#: The name a claim marker starts with: ``<!-- junction-steward v=1 id=... -->``.
+STEWARD_CLAIM_MARKER_NAME = "junction-steward"
+
+#: Earlier Junction builds wrote claim markers under this name, with the same fields.
+#: They stay on issues after an upgrade — this install's and every other install's,
+#: since the forge is shared and not every install upgrades at once — so
+#: :func:`find_steward_claim` reads them as claims. A claim it could not see would
+#: read as an unclaimed issue, and two stewards would end up working it.
+LEGACY_STEWARD_CLAIM_MARKER_NAMES: tuple[str, ...] = ("junction-crew",)
+
+# The marker itself, under its current name or a legacy one. ``\s+`` after the name is
+# what keeps the brief sentinel ``<!-- junction-steward-brief v1 -->`` (and its legacy
+# spelling) from matching: the next character there is a hyphen, not whitespace. Lazy
+# ``[^>]*?`` stops at the marker's own ``-->`` and cannot run on into later prose.
+_STEWARD_CLAIM_MARKER_RE = re.compile(
+    r"<!--\s*(?:"
+    + "|".join(
+        re.escape(name) for name in (STEWARD_CLAIM_MARKER_NAME, *LEGACY_STEWARD_CLAIM_MARKER_NAMES)
+    )
+    + r")\s+([^>]*?)\s*-->"
+)
 
 # ``key=value`` pairs inside the marker; values are whitespace-delimited. Unknown
 # keys are simply not read, so the marker can grow a field without this parser (or
-# an older crew reading a newer marker) breaking.
-_CREW_CLAIM_FIELD_RE = re.compile(r"([A-Za-z][A-Za-z0-9_-]*)=(\S+)")
+# an older steward reading a newer marker) breaking.
+_STEWARD_CLAIM_FIELD_RE = re.compile(r"([A-Za-z][A-Za-z0-9_-]*)=(\S+)")
 
 # The ONLY accepted timestamp shape: ISO-8601 UTC with a trailing ``Z``.
 #
@@ -3411,58 +3427,62 @@ _CREW_CLAIM_FIELD_RE = re.compile(r"([A-Za-z][A-Za-z0-9_-]*)=(\S+)")
 # of reading as stale. Refusing it up front makes "unparseable" mean "not fresh",
 # which is the safe direction: a claim that cannot prove it is alive must not be
 # treated as alive.
-_CREW_CLAIM_ISO_Z_RE = re.compile(r"^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d+)?Z$")
+_STEWARD_CLAIM_ISO_Z_RE = re.compile(r"^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d+)?Z$")
 
 
-def _parse_crew_marker(body: str) -> dict | None:
-    """The crew payload parsed out of ONE comment body, or ``None`` if it has none.
+def _parse_steward_marker(body: str) -> dict | None:
+    """The steward payload parsed out of ONE comment body, or ``None`` if it has none.
 
-    Returns ``{crew_id, phase, pr, updated}``. ``pr`` is an int or ``None``;
+    A marker under a legacy name (:data:`LEGACY_STEWARD_CLAIM_MARKER_NAMES`) parses
+    exactly like a current one; the fields never changed, only the name did.
+
+    Returns ``{steward_id, phase, pr, updated}``. ``pr`` is an int or ``None``;
     ``updated`` is the validated ISO-8601-``Z`` string or ``None`` (see
-    :data:`_CREW_CLAIM_ISO_Z_RE` — a malformed stamp is unparseable, NOT fresh).
+    :data:`_STEWARD_CLAIM_ISO_Z_RE` — a malformed stamp is unparseable, NOT fresh).
 
     The FIRST marker in a body wins. A body carrying two is malformed either way,
     and first-wins at least makes which one is honoured deterministic rather than
     dependent on how the prose was assembled.
     """
-    match = _CREW_CLAIM_MARKER_RE.search(body or "")
+    match = _STEWARD_CLAIM_MARKER_RE.search(body or "")
     if match is None:
         return None
-    fields = dict(_CREW_CLAIM_FIELD_RE.findall(match.group(1)))
+    fields = dict(_STEWARD_CLAIM_FIELD_RE.findall(match.group(1)))
     pr = fields.get("pr") or ""
     updated = fields.get("updated") or ""
     return {
         # A marker with no ``id`` names nobody, so it can never be MATCHED against a
-        # crew id — but it is still reported (as ``""``) rather than dropped: it is
-        # evidence that some crew claimed this issue, and losing that evidence is
-        # how two crews end up working the same issue. Losing throughput to an
+        # steward id — but it is still reported (as ``""``) rather than dropped: it is
+        # evidence that some steward claimed this issue, and losing that evidence is
+        # how two stewards end up working the same issue. Losing throughput to an
         # over-cautious skip is the cheaper failure.
-        "crew_id": fields.get("id") or "",
+        "steward_id": fields.get("id") or "",
         "phase": fields.get("phase") or "",
         "pr": int(pr) if pr.isdigit() else None,
-        "updated": updated if _CREW_CLAIM_ISO_Z_RE.match(updated) else None,
+        "updated": updated if _STEWARD_CLAIM_ISO_Z_RE.match(updated) else None,
     }
 
 
-def find_crew_claim(timeline_rows: list[dict], crew_id: str = "") -> list[dict]:
-    """Crew claims found in a normalized issue timeline, oldest comment id FIRST.
+def find_steward_claim(timeline_rows: list[dict], steward_id: str = "") -> list[dict]:
+    """Steward claims found in a normalized issue timeline, oldest comment id FIRST.
 
     Takes the output of :func:`list_issue_timeline` and returns one
-    ``{comment_id, crew_id, phase, pr, updated, actor, created_at}`` entry per
-    comment carrying a crew marker. A row with no marker is skipped, and so is any
-    row that is not a ``comment``: a ``review_comment`` lives at a DIFFERENT
-    endpoint (``pulls/comments/{id}``), so treating one as a claim would hand
-    :func:`update_issue_comment` an id it cannot address.
+    ``{comment_id, steward_id, phase, pr, updated, actor, created_at}`` entry per
+    comment carrying a steward marker, under its current name or a legacy one. A row
+    with no marker is skipped, and so is any row that is not a ``comment``: a
+    ``review_comment`` lives at a DIFFERENT endpoint (``pulls/comments/{id}``), so
+    treating one as a claim would hand :func:`update_issue_comment` an id it cannot
+    address.
 
-    ``crew_id`` filters to one crew's own claims — the "where is MY comment so I can
-    PATCH it" read. A list is returned either way, so callers never branch on the
+    ``steward_id`` filters to one steward's own claims — the "where is MY comment so I
+    can PATCH it" read. A list is returned either way, so callers never branch on the
     return type; a single-claim caller takes ``[0]``. It is a list and not a single
-    entry because a duplicated post (a retried comment) is a real state a crew must
+    entry because a duplicated post (a retried comment) is a real state a steward must
     be able to SEE rather than have silently collapsed. The default ``""`` means
     unfiltered, so it never matches the id-less markers described below.
 
     **Ordering is part of the protocol, not presentation.** Collisions are resolved
-    by "smallest comment id wins" — the crew that got there first keeps the claim and
+    by "smallest comment id wins" — the steward that got there first keeps the claim and
     the other yields — so ascending comment id makes the winner ``[0]``. An entry
     whose comment id is unknown sorts LAST: it cannot demonstrate it was first, so it
     must not be able to win a collision, while still being visible as a claim.
@@ -3471,7 +3491,7 @@ def find_crew_claim(timeline_rows: list[dict], crew_id: str = "") -> list[dict]:
     for row in timeline_rows or []:
         if not isinstance(row, dict) or row.get("kind") != "comment":
             continue
-        parsed = _parse_crew_marker(row.get("body") or "")
+        parsed = _parse_steward_marker(row.get("body") or "")
         if parsed is None:
             continue
         raw_id = row.get("id")
@@ -3487,8 +3507,8 @@ def find_crew_claim(timeline_rows: list[dict], crew_id: str = "") -> list[dict]:
                 "created_at": row.get("created_at"),
             }
         )
-    if crew_id:
-        out = [e for e in out if e["crew_id"] == crew_id]
+    if steward_id:
+        out = [e for e in out if e["steward_id"] == steward_id]
     # Two-part key: known ids ascending, unknown ids after them (stable, so their
     # timeline order is preserved). See the ordering note in the docstring.
     out.sort(key=lambda e: (e["comment_id"] is None, e["comment_id"] or 0))

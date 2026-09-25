@@ -489,7 +489,7 @@ export default function SchedulePage() {
             the list's own toolbar — next to three action buttons it read as
             three more of them. `collapse={false}`: this lives in the header's
             flex row whose width it contributes to, so the responsive
-            measurement would be circular (same reason the Crews page passes
+            measurement would be circular (same reason the Agents page passes
             it). */}
         {/* `subtitle` is ONE key, never a sentence assembled from two: the i18n
             render gate's `fragment/multi-unit` rule fires on a visible text run
@@ -1099,7 +1099,7 @@ type CronScriptSource = { source: string; file: string; function: string; trunca
  * Job detail / create view, rendered as a shadcn (Radix) dialog.
  *
  * Was a resizable side panel pinned to the right of the job list. The dialog
- * form factor follows the same migration the Crews page already made
+ * form factor follows the same migration the Agents page already made
  * (`JunctionAgentsPage`): one modal surface, focus trap, Escape-to-dismiss and
  * overlay behaviour owned by Radix instead of a hand-rolled backdrop.
  *
@@ -1216,7 +1216,7 @@ function JobDetailDialog({ job, prefill, prefillWrites, agents, defaultAgent, on
         </div>
       </DialogFooter>
       {/* Nested confirm. `z-[110]` clears the parent dialog's z-[101] — the same
-          stacking the Crews page uses for its create-dialog-over-detail case. */}
+          stacking the Agents page uses for its create-dialog-over-detail case. */}
       {job && (
         <Dialog open={confirmDelete} onOpenChange={next => { if (!next && !deleting) setConfirmDelete(false) }}>
           <DialogContent maxWidth={360} className="z-[110]">

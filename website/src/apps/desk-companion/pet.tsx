@@ -94,7 +94,7 @@ const COMMAND_FRESH_MS = 15_000
  */
 declare global {
   interface Window {
-    crewCompanion?: {
+    deskCompanion?: {
       /** Granted only while the panel is open; see pet-preload.js. */
       setFocusable(focusable: boolean): void
       /** Open the panel window beside the companion, in screen coordinates. */
@@ -260,7 +260,7 @@ function Companion() {
   const motionEnabledRef = useRef(true)
   motionEnabledRef.current = isDefaultPack || !hasCustomRandomPool
   useEffect(() => {
-    const release = () => window.crewCompanion?.panelHold?.(false)
+    const release = () => window.deskCompanion?.panelHold?.(false)
     // Window-level: a drag usually ends with the pointer well away from the companion.
     window.addEventListener('mouseup', release)
     return () => window.removeEventListener('mouseup', release)
@@ -276,8 +276,8 @@ function Companion() {
    */
   const galleryOpenRef = useRef(false)
   useEffect(() => {
-    const offOpen = window.crewCompanion?.onGalleryOpened?.(() => { galleryOpenRef.current = true })
-    const offClose = window.crewCompanion?.onGalleryClosed?.(() => { galleryOpenRef.current = false })
+    const offOpen = window.deskCompanion?.onGalleryOpened?.(() => { galleryOpenRef.current = true })
+    const offClose = window.deskCompanion?.onGalleryClosed?.(() => { galleryOpenRef.current = false })
     return () => { offOpen?.(); offClose?.() }
   }, [])
 
@@ -286,7 +286,7 @@ function Companion() {
   useEffect(() => {
     let alive = true
     const read = () => {
-      void petBridge.getCrewCompanionConfig?.().then(async (c) => {
+      void petBridge.getDeskCompanionConfig?.().then(async (c) => {
         if (!alive) return
         // Session alerts ride along on the config read this effect already does, and
         // re-reads on `config:updated` with it, so toggling the switch in the panel
@@ -401,7 +401,7 @@ function Companion() {
     // Screen coordinates: the overlay covers its whole display, so its client
     // coordinates ARE screen coordinates offset by the display origin, which the
     // main process resolves from the point it is given.
-    window.crewCompanion?.panelOpen?.({
+    window.deskCompanion?.panelOpen?.({
       x: Math.round(window.screenX + pos.x),
       y: Math.round(window.screenY + pos.y),
       width: PET_PX,
@@ -410,7 +410,7 @@ function Companion() {
     // The overlay is deliberately non-focusable so it never steals focus from the
     // user's work — but the reminder input needs the keyboard, so focus is granted
     // only while the panel is open and withdrawn the moment it closes.
-    window.crewCompanion?.setFocusable(true)
+    window.deskCompanion?.setFocusable(true)
   }, [pos.x, pos.y])
 
   /**
@@ -432,16 +432,16 @@ function Companion() {
    * always-on-top window that can take focus and swallow clicks meant for other apps.
    */
   useEffect(() => {
-    return window.crewCompanion?.onPanelClosed?.(() => {
+    return window.deskCompanion?.onPanelClosed?.(() => {
       setPanelOpen(false)
-      window.crewCompanion?.setFocusable(false)
+      window.deskCompanion?.setFocusable(false)
     })
   }, [])
 
   const closePanel = useCallback(() => {
     setPanelOpen(false)
-    window.crewCompanion?.panelClose?.()
-    window.crewCompanion?.setFocusable(false)
+    window.deskCompanion?.panelClose?.()
+    window.deskCompanion?.setFocusable(false)
   }, [])
 
 
@@ -569,9 +569,9 @@ function Companion() {
       const named = title.trim()
       const text = failed
         ? (named
-          ? i18nT('apps.crewCompanion.notif.stoppedNamed', { name: named })
-          : i18nT('apps.crewCompanion.notif.taskStopped'))
-        : (named || i18nT('apps.crewCompanion.notif.finishedTask'))
+          ? i18nT('apps.deskCompanion.notif.stoppedNamed', { name: named })
+          : i18nT('apps.deskCompanion.notif.taskStopped'))
+        : (named || i18nT('apps.deskCompanion.notif.finishedTask'))
       const now = Date.now()
       const held = slotRef.current
       if (held?.sticky && now - held.at < STICKY_HOLD_MS) return
@@ -621,7 +621,7 @@ function Companion() {
      */
     onApproval: ({ title }) => {
       const kind: NotifKind = 'approval'
-      const label = i18nT('apps.crewCompanion.state.approval_pending')
+      const label = i18nT('apps.deskCompanion.state.approval_pending')
       const named = title.trim()
       // "kicker\nbody": Bubble treats a short first line as an upper-case label above
       // the body, so this reads as "APPROVAL PENDING" over the session's own words.
@@ -707,7 +707,7 @@ function Companion() {
           const ts = Date.parse(f.at)
           if (Number.isFinite(ts) && Date.now() - ts > COMMAND_FRESH_MS) continue
           if (f.text === 'panel') openPanelRef.current()
-          else if (f.text === 'gallery') window.crewCompanion?.galleryOpen?.()
+          else if (f.text === 'gallery') window.deskCompanion?.galleryOpen?.()
         }
 
         /*
@@ -1048,7 +1048,7 @@ function Companion() {
            * after the panel had already gone. Grabbing the companion is not "clicking
            * elsewhere", so the hold starts here and is released on mouseup.
            */
-          window.crewCompanion?.panelHold?.(true)
+          window.deskCompanion?.panelHold?.(true)
           if (isWalking) cancelWalk()
           onMouseDown(e)
         }}
@@ -1095,7 +1095,7 @@ function Companion() {
         }}
         role="button"
         tabIndex={0}
-        aria-label={i18nT('apps.crewCompanion.panel.breathe.title')}
+        aria-label={i18nT('apps.deskCompanion.panel.breathe.title')}
         onClick={(e) => {
           // Only a genuine tap counts. A drag also fires a click on release, so
           // compare against where the press started — past CLICK_SLOP it was a drag

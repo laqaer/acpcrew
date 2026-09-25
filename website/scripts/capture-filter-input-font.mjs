@@ -86,7 +86,7 @@ const MODELS = [
 ]
 
 const AGENTS = [
-  { name: 'default', kiro_agent: 'junction', description: 'Default crew agent' },
+  { name: 'default', kiro_agent: 'junction', description: 'Default agent' },
   { name: 'reviewer', kiro_agent: 'junction', description: 'Reads a diff and reports findings' },
   { name: 'researcher', kiro_agent: 'junction', description: 'Gathers evidence before a decision' },
   { name: 'translator', kiro_agent: 'junction', description: 'Keeps the locale catalogs in parity' },

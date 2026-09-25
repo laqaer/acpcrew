@@ -1,14 +1,14 @@
 /**
- * The "what wakes this crew" section of the crew editor.
+ * The "what wakes this agent" section of the agent editor.
  *
  * Distinct from the Routing section's `triggers` field directly above it: that
- * field decides when the orchestrator PICKS this crew for a task a human already
+ * field decides when the orchestrator PICKS this agent for a task a human already
  * started, while everything listed here starts a turn with no human present.
  * Users conflate the two, so the section carries a one-line disambiguator.
  *
- * Only clock triggers are listed. Webhook tokens carry their own crew binding
- * and are the webhook pane's answer (CrewWebhookSection), not a second row kind
- * here; a dashboard nudge loop is keyed by slot, not by crew, so listing it
+ * Only clock triggers are listed. Webhook tokens carry their own agent binding
+ * and are the webhook pane's answer (AgentWebhookSection), not a second row kind
+ * here; a dashboard nudge loop is keyed by slot, not by agent, so listing it
  * would still be inventing an attribution the backend cannot answer.
  */
 import { useCallback } from 'react'
@@ -21,7 +21,7 @@ import { timeAgo } from '../utils/timeAgo'
 import { fmtRelative } from '../i18n/format'
 import type { CronJob } from '../types'
 import { useCronActions } from '../hooks/useCronActions'
-import { wakesCrew, crewWakeQueryKey } from './agent/wakesAgent'
+import { wakesAgent, agentWakeQueryKey } from './agent/wakesAgent'
 
 import { i18nT } from '../i18n/t'
 
@@ -32,9 +32,9 @@ function WakeRow({ job, onChanged }: { job: CronJob; onChanged: () => void }) {
   const last = job.last_run_ts ? timeAgo(job.last_run_ts) : null
   const next = job.enabled && job.next_run_ts ? fmtRelative(job.next_run_ts) : null
   const pauseLabel = job.enabled
-    ? i18nT('components.crewWakeSection.pause_named', { name: job.name })
-    : i18nT('components.crewWakeSection.resume_named', { name: job.name })
-  const runLabel = i18nT('components.crewWakeSection.run_named_now', { name: job.name })
+    ? i18nT('components.agentWakeSection.pause_named', { name: job.name })
+    : i18nT('components.agentWakeSection.resume_named', { name: job.name })
+  const runLabel = i18nT('components.agentWakeSection.run_named_now', { name: job.name })
   // A paused job cannot be run, matching the Schedule page. Its own copy says
   // why, so the disabled control is not silent about the reason.
   const runTitle = job.enabled ? runLabel : i18nT('pages.schedulePage.resume_to_run')
@@ -50,7 +50,7 @@ function WakeRow({ job, onChanged }: { job: CronJob; onChanged: () => void }) {
         <div className="flex w-full items-center gap-2 sm:contents">
           <Badge variant="muted" className="shrink-0 font-mono">
             <Clock className="lucide-inline" aria-hidden="true" />
-            {i18nT('components.crewWakeSection.schedule')}
+            {i18nT('components.agentWakeSection.schedule')}
           </Badge>
           <div className="min-w-0 flex-1">
             <div className="truncate text-[12.5px] text-text-strong">{job.name}</div>
@@ -67,10 +67,10 @@ function WakeRow({ job, onChanged }: { job: CronJob; onChanged: () => void }) {
           </span>
           <Badge variant={isRunning ? 'aim' : job.enabled ? 'ok' : 'muted'} className="shrink-0">
             {isRunning
-              ? i18nT('components.crewWakeSection.running')
+              ? i18nT('components.agentWakeSection.running')
               : job.enabled
-                ? i18nT('components.crewWakeSection.active')
-                : i18nT('components.crewWakeSection.paused')}
+                ? i18nT('components.agentWakeSection.active')
+                : i18nT('components.agentWakeSection.paused')}
           </Badge>
           <div className="flex shrink-0 gap-1">
             <IconButton
@@ -100,17 +100,17 @@ function WakeRow({ job, onChanged }: { job: CronJob; onChanged: () => void }) {
   )
 }
 
-export default function CrewWakeSection({ crew, isDefaultCrew }: { crew: string; isDefaultCrew: boolean }) {
+export default function AgentWakeSection({ agent, isDefaultAgent }: { agent: string; isDefaultAgent: boolean }) {
   const navigate = useNavigate()
   const { data, isLoading, isError, refetch } = useQuery({
-    queryKey: crewWakeQueryKey(crew),
+    queryKey: agentWakeQueryKey(agent),
     queryFn: () => api.crons(),
   })
-  const jobs: CronJob[] = (data?.jobs || []).filter((j: CronJob) => wakesCrew(j, crew, isDefaultCrew))
+  const jobs: CronJob[] = (data?.jobs || []).filter((j: CronJob) => wakesAgent(j, agent, isDefaultAgent))
   const onChanged = useCallback(() => { void refetch() }, [refetch])
 
   // A failed fetch leaves `jobs` empty, which would otherwise render the
-  // affirmative "nothing wakes this crew" — a false statement about the crew
+  // affirmative "nothing wakes this agent" — a false statement about the agent
   // rather than a report about the request. Absence of an answer and an answer
   // of "none" are different things and must not render the same.
   const body = isLoading
@@ -119,28 +119,28 @@ export default function CrewWakeSection({ crew, isDefaultCrew }: { crew: string;
       ? (
         <div className="flex items-center gap-2 rounded-md border border-warn-subtle bg-warn-subtle px-3 py-2.5 text-[11.5px] leading-relaxed text-muted" role="alert">
           <TriangleAlert className="lucide-inline shrink-0" aria-hidden="true" />
-          {i18nT('components.crewWakeSection.could_not_load_this_crew_s_schedules_so_what_wak')}
+          {i18nT('components.agentWakeSection.could_not_load_this_agent_s_schedules_so_what_wak')}
         </div>
       )
       : jobs.length === 0
         ? (
           <div className="flex items-center gap-2 rounded-md border border-border bg-bg-accent px-3 py-2.5 text-[11.5px] leading-relaxed text-muted">
             <AlarmClockOff className="lucide-inline shrink-0" aria-hidden="true" />
-            {i18nT('components.crewWakeSection.no_schedules_run_this_crew_automatically')}
+            {i18nT('components.agentWakeSection.no_schedules_run_this_agent_automatically')}
           </div>
         )
         : <div>{jobs.map(j => <WakeRow key={j.id} job={j} onChanged={onChanged} />)}</div>
 
   return (
-    <section className="flex flex-col gap-3" data-testid="crew-wake-section">
+    <section className="flex flex-col gap-3" data-testid="agent-wake-section">
       <div className="flex items-center gap-2">
-        <h3 className="text-[12px] font-semibold uppercase tracking-wider text-muted">{i18nT('components.crewWakeSection.what_wakes_this_crew')}</h3>
+        <h3 className="text-[12px] font-semibold uppercase tracking-wider text-muted">{i18nT('components.agentWakeSection.what_wakes_this_agent')}</h3>
         <Btn className="ml-auto" onClick={() => navigate('/schedule')}>
           <ExternalLink className="lucide-inline" aria-hidden="true" />
-          {i18nT('components.crewWakeSection.open_schedule')}
+          {i18nT('components.agentWakeSection.open_schedule')}
         </Btn>
       </div>
-      <p className="m-0 text-[11.5px] leading-relaxed text-muted">{i18nT('components.crewWakeSection.schedules_that_run_this_crew_without_you_asking')}</p>
+      <p className="m-0 text-[11.5px] leading-relaxed text-muted">{i18nT('components.agentWakeSection.schedules_that_run_this_agent_without_you_asking')}</p>
       {body}
     </section>
   )

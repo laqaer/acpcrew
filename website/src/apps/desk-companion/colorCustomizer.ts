@@ -1,5 +1,5 @@
 /**
- * CrewCompanion - SVG Color Customizer
+ * Companion - SVG Color Customizer
  *
  * Pure functions for SVG color extraction, replacement, and ColorMap management.
  * No Electron or DOM dependencies — safe for both main and renderer processes.

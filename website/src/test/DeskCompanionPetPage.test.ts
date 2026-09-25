@@ -42,7 +42,7 @@ describe('the companion window page', () => {
     // to the user when it misses. This is the regression that shipped once already.
     expect(SOURCE).toContain('nudgeTextFor(')
     expect(SOURCE).not.toMatch(/i18nT\(`/)
-    expect(SOURCE).not.toContain('apps.crewCompanion.${')
+    expect(SOURCE).not.toContain('apps.deskCompanion.${')
   })
 
   it('keeps the overlay click-through by reporting hitboxes, not toggling on hover', () => {

@@ -17,14 +17,14 @@ const SHELL = [
 
 describe('parseBrandingConfig', () => {
   it('accepts the documented keys', () => {
-    expect(parseBrandingConfig('{"title": "Acme Crew", "themeColor": "#0055aa"}')).toEqual({
-      title: 'Acme Crew',
+    expect(parseBrandingConfig('{"title": "Acme Assist", "themeColor": "#0055aa"}')).toEqual({
+      title: 'Acme Assist',
       themeColor: '#0055aa',
     })
   })
 
   it('accepts a partial config', () => {
-    expect(parseBrandingConfig('{"title": "Acme Crew"}')).toEqual({ title: 'Acme Crew' })
+    expect(parseBrandingConfig('{"title": "Acme Assist"}')).toEqual({ title: 'Acme Assist' })
   })
 
   it('accepts an empty object — both keys are optional', () => {
@@ -53,14 +53,14 @@ describe('parseBrandingConfig', () => {
 
 describe('applyBrandingToHtml', () => {
   it('patches the title text', () => {
-    const out = applyBrandingToHtml(SHELL, { title: 'Acme Crew' })
-    expect(out).toContain('<title>Acme Crew</title>')
+    const out = applyBrandingToHtml(SHELL, { title: 'Acme Assist' })
+    expect(out).toContain('<title>Acme Assist</title>')
     expect(out).not.toContain('<title>Junction</title>')
   })
 
   it('preserves attributes on a future <title> tag', () => {
-    const out = applyBrandingToHtml('<title lang="en">Junction</title>', { title: 'Acme Crew' })
-    expect(out).toBe('<title lang="en">Acme Crew</title>')
+    const out = applyBrandingToHtml('<title lang="en">Junction</title>', { title: 'Acme Assist' })
+    expect(out).toBe('<title lang="en">Acme Assist</title>')
   })
 
   it('patches the theme-color content', () => {
@@ -93,7 +93,7 @@ describe('applyBrandingToHtml', () => {
   })
 
   it('leaves untouched fields alone', () => {
-    const out = applyBrandingToHtml(SHELL, { title: 'Acme Crew' })
+    const out = applyBrandingToHtml(SHELL, { title: 'Acme Assist' })
     expect(out).toContain('content="#0d0f12"')
   })
 

@@ -78,14 +78,14 @@ const IDLE_SVG = [
 const SOURCES = ['#F9A85F', '#FCD9B3', '#522210', '#123456']
 
 /** Labels, read the way the component reads them. */
-const BODY_FUR = i18nT('apps.crewCompanion.color.bodyFur')
-const TUMMY = i18nT('apps.crewCompanion.color.tummyPaws')
-const OUTLINES = i18nT('apps.crewCompanion.color.outlines')
-const RESET = i18nT('apps.crewCompanion.color.reset')
-const SAVE_PRESET = i18nT('apps.crewCompanion.color.savePreset')
-const CANCEL = i18nT('apps.crewCompanion.gallery.cancel')
-const DELETE = i18nT('apps.crewCompanion.color.delete')
-const NAME_PLACEHOLDER = i18nT('apps.crewCompanion.color.promptName')
+const BODY_FUR = i18nT('apps.deskCompanion.color.bodyFur')
+const TUMMY = i18nT('apps.deskCompanion.color.tummyPaws')
+const OUTLINES = i18nT('apps.deskCompanion.color.outlines')
+const RESET = i18nT('apps.deskCompanion.color.reset')
+const SAVE_PRESET = i18nT('apps.deskCompanion.color.savePreset')
+const CANCEL = i18nT('apps.deskCompanion.gallery.cancel')
+const DELETE = i18nT('apps.deskCompanion.color.delete')
+const NAME_PLACEHOLDER = i18nT('apps.deskCompanion.color.promptName')
 
 /** A built-in card's display name is its i18n key resolved. */
 function builtInLabel(id: string): string {
@@ -178,15 +178,15 @@ describe('ColorCustomizerPanel — what is on screen after mount', () => {
   it('renders both sections, every built-in preset and one editor per source colour', async () => {
     const container = await renderPanel()
 
-    expect(screen.getByText(i18nT('apps.crewCompanion.color.presets'))).toBeTruthy()
-    expect(screen.getByText(i18nT('apps.crewCompanion.color.manual'))).toBeTruthy()
+    expect(screen.getByText(i18nT('apps.deskCompanion.color.presets'))).toBeTruthy()
+    expect(screen.getByText(i18nT('apps.deskCompanion.color.manual'))).toBeTruthy()
     for (const preset of BUILT_IN_CAT_PRESETS) {
       expect(screen.getByAltText(i18nT(preset.name))).toBeTruthy()
     }
 
     // The combined cell is the whole-art preview, not a per-part editor.
     expect(screen.getByAltText('final')).toBeTruthy()
-    expect(screen.getByText(i18nT('apps.crewCompanion.color.currentEffect'))).toBeTruthy()
+    expect(screen.getByText(i18nT('apps.deskCompanion.color.currentEffect'))).toBeTruthy()
 
     // Three labelled parts plus the colour with no label, which shows its hex.
     expect(screen.getByAltText(BODY_FUR)).toBeTruthy()

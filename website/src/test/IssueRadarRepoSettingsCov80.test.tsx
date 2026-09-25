@@ -6,7 +6,7 @@ import type { RepoRef } from '../apps/issue-radar/api'
 
 /**
  * Companion to IssueRadarRepoSettingsNav.test.tsx, which covers the autosave /
- * conflict-rebase machinery and the crew-protocol scope key. This file covers the
+ * conflict-rebase machinery and the steward-protocol scope key. This file covers the
  * rest of the page: the per-repo refresh, the disconnect flow, the live triage
  * counts, the label role editing, the member roster and the failure banners.
  */
@@ -17,8 +17,8 @@ const api = {
   issues: vi.fn(),
   members: vi.fn(),
   disconnect: vi.fn(),
-  getCrewSettings: vi.fn(),
-  putCrewSettings: vi.fn(),
+  getStewardSettings: vi.fn(),
+  putStewardSettings: vi.fn(),
 }
 class SettingsConflictError extends Error {
   current: Record<string, unknown>
@@ -96,10 +96,10 @@ beforeEach(() => {
       { login: 'zzq-odd-login', role: 'zzq-unmapped-role' },
     ],
   })
-  api.getCrewSettings.mockResolvedValue({
+  api.getStewardSettings.mockResolvedValue({
     settings: {
       schema: 1, claim_ttl_hours: 48,
-      needs_human_label: 'zzq-needs-human', commit_trailer: 'Crew: {name}',
+      needs_human_label: 'zzq-needs-human', commit_trailer: 'Steward: {name}',
     },
   })
   api.putSettings.mockImplementation(async (_ref: unknown, next: Record<string, unknown>) =>

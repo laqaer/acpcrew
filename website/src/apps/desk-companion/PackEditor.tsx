@@ -1,5 +1,5 @@
 /**
- * CrewCompanion - Pack Editor
+ * Companion - Pack Editor
  *
  * WYSIWYG editor for creating and editing custom SVG/Lottie appearance packs.
  */
@@ -294,13 +294,13 @@ function SlotPopover({ slotKey, slots, filled, anchorRect, onSelectFile, onUseSa
         onClick={() => { onSelectFile(); onClose() }}
       >
         <FolderOpen className="lucide-inline" aria-hidden="true" />{' '}
-        {i18nT('apps.crewCompanion.editor.selectFile')}
+        {i18nT('apps.deskCompanion.editor.selectFile')}
       </button>
 
       {filledOthers.length > 0 && (
         <>
           <div style={S.popoverDivider} />
-          <div style={S.popoverSub}>{i18nT('apps.crewCompanion.editor.useSameAs')}</div>
+          <div style={S.popoverSub}>{i18nT('apps.deskCompanion.editor.useSameAs')}</div>
           {filledOthers.map((k) => (
             <button
               key={k}
@@ -324,7 +324,7 @@ function SlotPopover({ slotKey, slots, filled, anchorRect, onSelectFile, onUseSa
             onMouseLeave={(e) => { (e.target as HTMLElement).style.background = 'transparent' }}
             onClick={() => { onClear(); onClose() }}
           >
-            {i18nT('apps.crewCompanion.editor.clear')}
+            {i18nT('apps.deskCompanion.editor.clear')}
           </button>
         </>
       )}
@@ -411,7 +411,7 @@ export const PackEditor: React.FC<PackEditorProps> = ({ existingPack, onSave, on
           description: existingPack.description ?? '', flipX: false, slots: filled, extras: loadedExtras,
         })
       } catch (err) {
-        setError(errorText(err) || i18nT('apps.crewCompanion.editor.loadDataFailed'))
+        setError(errorText(err) || i18nT('apps.deskCompanion.editor.loadDataFailed'))
       }
     })()
     return () => { cancelled = true }
@@ -442,7 +442,7 @@ export const PackEditor: React.FC<PackEditorProps> = ({ existingPack, onSave, on
         return
       }
       if (result.ok === false) {
-        setError(result.error || i18nT('apps.crewCompanion.editor.invalidFile'))
+        setError(result.error || i18nT('apps.deskCompanion.editor.invalidFile'))
         setLoadingSlot(null)
         return
       }
@@ -456,7 +456,7 @@ export const PackEditor: React.FC<PackEditorProps> = ({ existingPack, onSave, on
         [key]: { content, filename, format },
       }))
     } catch (err) {
-      setError(errorText(err) || i18nT('apps.crewCompanion.editor.importFileFailed'))
+      setError(errorText(err) || i18nT('apps.deskCompanion.editor.importFileFailed'))
     }
     setLoadingSlot(null)
   }, [])
@@ -510,7 +510,7 @@ export const PackEditor: React.FC<PackEditorProps> = ({ existingPack, onSave, on
         const slot = slots[x.id]
         if (!nm || !slot?.content) continue
         if (nm in randomData) {
-          setError(i18nT('apps.crewCompanion.editor.duplicateExtraName', { name: nm }))
+          setError(i18nT('apps.deskCompanion.editor.duplicateExtraName', { name: nm }))
           setSaving(false)
           return
         }
@@ -519,7 +519,7 @@ export const PackEditor: React.FC<PackEditorProps> = ({ existingPack, onSave, on
           // the detail payload keys animations by slot name, so a random
           // "idle" and the state "idle" collide — the save permanently
           // replaced the state's artwork with the clip's.
-          setError(i18nT('apps.crewCompanion.editor.reservedExtraName', { name: nm }))
+          setError(i18nT('apps.deskCompanion.editor.reservedExtraName', { name: nm }))
           setSaving(false)
           return
         }
@@ -540,7 +540,7 @@ export const PackEditor: React.FC<PackEditorProps> = ({ existingPack, onSave, on
           // so new packs hit the `''` branch and every save failed with "needs a name".
           id: asNew || !existingPack ? crypto.randomUUID() : existingPack.id,
           name: name.trim(),
-          author: author.trim() || i18nT('apps.crewCompanion.editor.unknownAuthor'),
+          author: author.trim() || i18nT('apps.deskCompanion.editor.unknownAuthor'),
           description: description.trim(),
           format,
         },
@@ -551,7 +551,7 @@ export const PackEditor: React.FC<PackEditorProps> = ({ existingPack, onSave, on
 
       const result = await api.gallerySavePack(packData)
       if (result && result.ok === false) {
-        setError(result.error || i18nT('apps.crewCompanion.editor.saveFailed'))
+        setError(result.error || i18nT('apps.deskCompanion.editor.saveFailed'))
         setSaving(false)
         return
       }
@@ -559,7 +559,7 @@ export const PackEditor: React.FC<PackEditorProps> = ({ existingPack, onSave, on
       const savedMeta = (result?.value ?? result) as PackMeta
       onSave(savedMeta)
     } catch (err) {
-      setError(errorText(err) || i18nT('apps.crewCompanion.editor.saveFailed'))
+      setError(errorText(err) || i18nT('apps.deskCompanion.editor.saveFailed'))
     }
     setSaving(false)
   }, [canSave, saving, slots, name, author, description, existingPack, onSave, extras])
@@ -578,14 +578,14 @@ export const PackEditor: React.FC<PackEditorProps> = ({ existingPack, onSave, on
         <button
           style={S.backBtn}
           onClick={onCancel}
-          title={i18nT('apps.crewCompanion.editor.back')}
-          aria-label={i18nT('apps.crewCompanion.editor.back')}
+          title={i18nT('apps.deskCompanion.editor.back')}
+          aria-label={i18nT('apps.deskCompanion.editor.back')}
         >
-          <ArrowLeft size={12} className="lucide-inline" aria-hidden="true" />{' '}{i18nT('apps.crewCompanion.editor.back')}
+          <ArrowLeft size={12} className="lucide-inline" aria-hidden="true" />{' '}{i18nT('apps.deskCompanion.editor.back')}
         </button>
       </div>
       <PackInfoHeader
-        title={existingPack ? i18nT('apps.crewCompanion.editor.editTitle') : i18nT('apps.crewCompanion.editor.createTitle')}
+        title={existingPack ? i18nT('apps.deskCompanion.editor.editTitle') : i18nT('apps.deskCompanion.editor.createTitle')}
         name={name} author={author} description={description} flipX={flipX}
         onNameChange={setName} onAuthorChange={setAuthor} onDescriptionChange={setDescription} onFlipXChange={setFlipX}
         tt={i18nT}
@@ -599,14 +599,14 @@ export const PackEditor: React.FC<PackEditorProps> = ({ existingPack, onSave, on
             <button
               onClick={() => setError(null)}
               style={{ float: 'right', background: 'none', border: 'none', color: 'var(--danger)', cursor: 'pointer', fontSize: 14 }}
-              aria-label={i18nT('apps.crewCompanion.panel.close')}
+              aria-label={i18nT('apps.deskCompanion.panel.close')}
             ><X size={14} aria-hidden="true" /></button>
           </div>
         )}
 
         {/* Required states */}
-        <div style={S.sectionLabel}>{i18nT('apps.crewCompanion.editor.requiredStates')}</div>
-        <div style={{ fontSize: 10, color: 'var(--text-muted)', marginBottom: 6, marginTop: -4 }}>{i18nT('apps.crewCompanion.editor.sizeHint')}</div>
+        <div style={S.sectionLabel}>{i18nT('apps.deskCompanion.editor.requiredStates')}</div>
+        <div style={{ fontSize: 10, color: 'var(--text-muted)', marginBottom: 6, marginTop: -4 }}>{i18nT('apps.deskCompanion.editor.sizeHint')}</div>
         <div style={S.grid}>
           {STATE_KEYS.map((key) => (
             <div
@@ -628,8 +628,8 @@ export const PackEditor: React.FC<PackEditorProps> = ({ existingPack, onSave, on
         </div>
 
         {/* Status — reactive to what the agent is doing */}
-        <div style={S.sectionLabel}>{i18nT('apps.crewCompanion.state.groupStatus')} <span style={S.optionalTag}>{i18nT('apps.crewCompanion.editor.optional')}</span></div>
-        <div style={{ fontSize: 10, color: 'var(--text-muted)', marginBottom: 6, marginTop: -4 }}>{i18nT('apps.crewCompanion.editor.statusHint')}</div>
+        <div style={S.sectionLabel}>{i18nT('apps.deskCompanion.state.groupStatus')} <span style={S.optionalTag}>{i18nT('apps.deskCompanion.editor.optional')}</span></div>
+        <div style={{ fontSize: 10, color: 'var(--text-muted)', marginBottom: 6, marginTop: -4 }}>{i18nT('apps.deskCompanion.editor.statusHint')}</div>
         <div style={S.grid}>
           {STATUS_DISPLAY.map((key) => (
             <div
@@ -646,15 +646,15 @@ export const PackEditor: React.FC<PackEditorProps> = ({ existingPack, onSave, on
                 <SlotThumbnail data={slots[key]} />
               )}
               <div style={S.slotLabel}>
-                {slotLabel(key)} <span style={S.optionalTag}>{i18nT('apps.crewCompanion.editor.optional')}</span>
+                {slotLabel(key)} <span style={S.optionalTag}>{i18nT('apps.deskCompanion.editor.optional')}</span>
               </div>
             </div>
           ))}
         </div>
 
         {/* Breathing — one drawing per phase of the guided exercise */}
-        <div style={S.sectionLabel}>{i18nT('apps.crewCompanion.state.groupBreathing')} <span style={S.optionalTag}>{i18nT('apps.crewCompanion.editor.optional')}</span></div>
-        <div style={{ fontSize: 10, color: 'var(--text-muted)', marginBottom: 6, marginTop: -4 }}>{i18nT('apps.crewCompanion.editor.breathingHint')}</div>
+        <div style={S.sectionLabel}>{i18nT('apps.deskCompanion.state.groupBreathing')} <span style={S.optionalTag}>{i18nT('apps.deskCompanion.editor.optional')}</span></div>
+        <div style={{ fontSize: 10, color: 'var(--text-muted)', marginBottom: 6, marginTop: -4 }}>{i18nT('apps.deskCompanion.editor.breathingHint')}</div>
         <div style={S.grid}>
           {BREATHING_DISPLAY.map((key) => (
             <div
@@ -671,15 +671,15 @@ export const PackEditor: React.FC<PackEditorProps> = ({ existingPack, onSave, on
                 <SlotThumbnail data={slots[key]} />
               )}
               <div style={S.slotLabel}>
-                {slotLabel(key) || key} <span style={S.optionalTag}>{i18nT('apps.crewCompanion.editor.optional')}</span>
+                {slotLabel(key) || key} <span style={S.optionalTag}>{i18nT('apps.deskCompanion.editor.optional')}</span>
               </div>
             </div>
           ))}
         </div>
 
         {/* Random — spontaneous behaviours (walking + moods + your own clips) */}
-        <div style={S.sectionLabel}>{i18nT('apps.crewCompanion.state.groupRandom')} <span style={S.optionalTag}>{i18nT('apps.crewCompanion.editor.optional')}</span></div>
-        <div style={{ fontSize: 10, color: 'var(--text-muted)', marginBottom: 6, marginTop: -4 }}>{i18nT('apps.crewCompanion.editor.hint8152')}</div>
+        <div style={S.sectionLabel}>{i18nT('apps.deskCompanion.state.groupRandom')} <span style={S.optionalTag}>{i18nT('apps.deskCompanion.editor.optional')}</span></div>
+        <div style={{ fontSize: 10, color: 'var(--text-muted)', marginBottom: 6, marginTop: -4 }}>{i18nT('apps.deskCompanion.editor.hint8152')}</div>
         <div style={S.grid}>
           {RANDOM_FIXED.map((key) => (
             <div
@@ -696,7 +696,7 @@ export const PackEditor: React.FC<PackEditorProps> = ({ existingPack, onSave, on
                 <SlotThumbnail data={slots[key]} />
               )}
               <div style={S.slotLabel}>
-                {slotLabel(key)} <span style={S.optionalTag}>{i18nT('apps.crewCompanion.editor.optional')}</span>
+                {slotLabel(key)} <span style={S.optionalTag}>{i18nT('apps.deskCompanion.editor.optional')}</span>
               </div>
             </div>
           ))}
@@ -704,8 +704,8 @@ export const PackEditor: React.FC<PackEditorProps> = ({ existingPack, onSave, on
             <div key={x.id} style={{ ...S.slot(!!slots[x.id]), position: 'relative' }}>
               <button
                 onClick={(e) => { e.stopPropagation(); removeExtra(x.id) }}
-                aria-label={i18nT('apps.crewCompanion.editor.remove')}
-                title={i18nT('apps.crewCompanion.editor.remove')}
+                aria-label={i18nT('apps.deskCompanion.editor.remove')}
+                title={i18nT('apps.deskCompanion.editor.remove')}
                 style={{ position: 'absolute', top: 2, right: 4, background: 'none', border: 'none', color: 'var(--text-muted)', cursor: 'pointer', fontSize: 12, lineHeight: 1, padding: 0, zIndex: 1 }}
               ><X size={12} aria-hidden="true" /></button>
               <div role="button" tabIndex={0} onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); handleSlotClick(x.id, e) } }} onClick={(e) => handleSlotClick(x.id, e)} style={{ cursor: 'pointer' }}>
@@ -722,7 +722,7 @@ export const PackEditor: React.FC<PackEditorProps> = ({ existingPack, onSave, on
                 onChange={(e) => renameExtra(x.id, e.target.value)}
                 onClick={(e) => e.stopPropagation()}
                 placeholder="name"
-                aria-label={i18nT('apps.crewCompanion.editor.name')}
+                aria-label={i18nT('apps.deskCompanion.editor.name')}
                 style={{ width: '100%', boxSizing: 'border-box', marginTop: 4, background: 'var(--cc-input-bg)', border: '1px solid var(--border)', borderRadius: 4, color: 'var(--text)', fontSize: 10, padding: '2px 4px', textAlign: 'center', outline: 'none' }}
               />
             </div>
@@ -733,7 +733,7 @@ export const PackEditor: React.FC<PackEditorProps> = ({ existingPack, onSave, on
             style={{ ...S.slot(false), cursor: 'pointer', display: 'flex', flexDirection: 'column', justifyContent: 'center', alignItems: 'center' }}
           >
             <Plus size={20} aria-hidden="true" style={{ color: 'var(--text-muted)' }} />
-            <div style={S.slotLabel}>{i18nT('apps.crewCompanion.editor.addClip')}</div>
+            <div style={S.slotLabel}>{i18nT('apps.deskCompanion.editor.addClip')}</div>
           </div>
         </div>
       </div>

@@ -16,8 +16,8 @@ Focus areas, all confirmed uncovered before this file existed:
 * the ``spawn_status`` / ``learn_add`` / ``learn_list`` / ``learn_remove`` /
   ``task_run`` / ``ops_mission_control_api`` tool bodies,
 * small helpers: ``_redact_json_strings``, ``_autonudge_binding_key``,
-  ``_casefold_match_span``'s expanding-fold fallbacks, ``_crew_machine_markers``,
-  ``_crew_public_text`` and ``_crew_identity``.
+  ``_casefold_match_span``'s expanding-fold fallbacks, ``_steward_machine_markers``,
+  ``_steward_public_text`` and ``_steward_identity``.
 
 Every HTTP call is mocked at mcp_core's own ``_get`` / ``_post`` / ``_delete``
 seams; nothing here touches the network, a gateway, a subprocess, the sandbox,
@@ -40,15 +40,15 @@ from junction.mcp_core import (
     _autonudge_binding_key,
     _call_tool_inner,
     _casefold_match_span,
-    _crew_identity,
-    _crew_machine_markers,
-    _crew_public_text,
     _deny_channel_agent_messaging,
     _get_ppid,
     _governance_app,
     _ppid_via_libproc,
     _redact_json_strings,
     _resolve_artifact_folder_id,
+    _steward_identity,
+    _steward_machine_markers,
+    _steward_public_text,
     _vet_channel_governance,
     _vet_memory_writes_governance,
     _vet_messaging_governance,
@@ -478,65 +478,67 @@ class TestResolveArtifactFolderId:
             assert fid == "" and err == "folder not found: designs/nope"
 
 
-class TestCrewMachineMarkers:
+class TestStewardMachineMarkers:
     def test_a_root_temp_dir_is_never_used_as_a_marker(self) -> None:
         # A marker of "/" would rewrite every slash in a public comment.
         with patch.object(mcp_core, "tempfile", SimpleNamespace(gettempdir=lambda: "/")):
-            values = [value for value, _ in _crew_machine_markers()]
+            values = [value for value, _ in _steward_machine_markers()]
         assert "/" not in values
 
     def test_markers_are_longest_first(self) -> None:
-        markers = _crew_machine_markers()
+        markers = _steward_machine_markers()
         lengths = [len(value) for value, _ in markers]
         assert lengths == sorted(lengths, reverse=True)
 
     def test_a_short_hostname_is_not_scrubbed(self) -> None:
         with patch.object(mcp_core.socket, "gethostname", return_value="dev"):
-            assert "dev" not in [value for value, _ in _crew_machine_markers()]
+            assert "dev" not in [value for value, _ in _steward_machine_markers()]
 
     def test_a_distinctive_hostname_is_scrubbed(self) -> None:
         with patch.object(mcp_core.socket, "gethostname", return_value="dev-dsk-example-2b"):
-            assert ("dev-dsk-example-2b", "<host>") in _crew_machine_markers()
+            assert ("dev-dsk-example-2b", "<host>") in _steward_machine_markers()
 
     def test_an_unavailable_hostname_is_tolerated(self) -> None:
         with patch.object(mcp_core.socket, "gethostname", side_effect=OSError("no dns")):
-            assert all(placeholder != "<host>" for _, placeholder in _crew_machine_markers())
+            assert all(placeholder != "<host>" for _, placeholder in _steward_machine_markers())
 
 
-class TestCrewPublicText:
+class TestStewardPublicText:
     def test_a_windows_marker_is_scrubbed_in_both_slash_forms(self) -> None:
         markers = [("C:\\Users\\alice", "<home>")]
-        with patch.object(mcp_core, "_crew_machine_markers", return_value=markers):
+        with patch.object(mcp_core, "_steward_machine_markers", return_value=markers):
             with patch.object(mcp_core, "redact", lambda s: s):
-                out = _crew_public_text("saw C:\\Users\\alice and C:/Users/alice")
+                out = _steward_public_text("saw C:\\Users\\alice and C:/Users/alice")
         assert out == "saw <home> and <home>"
         assert "alice" not in out
 
     def test_a_posix_marker_is_scrubbed_once(self) -> None:
-        with patch.object(mcp_core, "_crew_machine_markers", return_value=[("/home/bob", "<home>")]):
+        markers = [("/home/bob", "<home>")]
+        with patch.object(mcp_core, "_steward_machine_markers", return_value=markers):
             with patch.object(mcp_core, "redact", lambda s: s):
-                assert _crew_public_text("cwd=/home/bob/x") == "cwd=<home>/x"
+                assert _steward_public_text("cwd=/home/bob/x") == "cwd=<home>/x"
 
 
-class TestCrewIdentity:
+class TestStewardIdentity:
     def test_identity_is_taken_from_the_top_level_when_present(self) -> None:
-        payload = {"owner": "o", "repo": "r", "crew": {"id": "c1"}}
-        assert _crew_identity(payload) == ("o", "r", "c1")
+        payload = {"owner": "o", "repo": "r", "steward": {"id": "c1"}}
+        assert _steward_identity(payload) == ("o", "r", "c1")
 
-    def test_identity_falls_back_to_the_crew_record_then_a_work_item(self) -> None:
-        assert _crew_identity({"crew": {"owner": "o", "repo": "r", "id": "c2"}}) == ("o", "r", "c2")
+    def test_identity_falls_back_to_the_steward_record_then_a_work_item(self) -> None:
+        record = {"steward": {"owner": "o", "repo": "r", "id": "c2"}}
+        assert _steward_identity(record) == ("o", "r", "c2")
         payload = {
-            "crew": {},
-            "items": ["not-a-dict", {"owner": "o", "repo": "r", "crew_id": "c3"}],
+            "steward": {},
+            "items": ["not-a-dict", {"owner": "o", "repo": "r", "steward_id": "c3"}],
         }
-        assert _crew_identity(payload) == ("o", "r", "c3")
+        assert _steward_identity(payload) == ("o", "r", "c3")
 
-    def test_missing_owner_repo_or_crew_id_yields_none(self) -> None:
-        assert _crew_identity({"crew": {"id": "c1"}}) is None
-        # owner/repo present but no crew id anywhere: a write cannot be addressed.
-        assert _crew_identity({"owner": "o", "repo": "r", "crew": {}, "items": []}) is None
+    def test_missing_owner_repo_or_steward_id_yields_none(self) -> None:
+        assert _steward_identity({"steward": {"id": "c1"}}) is None
+        # owner/repo present but no steward id anywhere: a write cannot be addressed.
+        assert _steward_identity({"owner": "o", "repo": "r", "steward": {}, "items": []}) is None
         # Malformed shapes must not raise.
-        assert _crew_identity({"crew": "nope", "items": "nope"}) is None
+        assert _steward_identity({"steward": "nope", "items": "nope"}) is None
 
 
 # ── the ``wait`` tool ───────────────────────────────────────────────────

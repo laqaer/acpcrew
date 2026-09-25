@@ -103,7 +103,7 @@ records the model that actually served the turn (both `set_model` paths sync
 ## Non-goals
 
 - Post-token / mid-stream model swap (the one-shot CONTINUE recovery is untouched).
-- Per-crew / per-cron / per-role chains (v1 is global).
+- Per-agent / per-cron / per-role chains (v1 is global).
 - A dedicated per-turn model field on the ACP wire.
 - kiro-cli changes.
 

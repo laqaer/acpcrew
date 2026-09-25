@@ -936,7 +936,27 @@ async def api_chat_slot_pin(request: web.Request) -> web.Response:
     return web.json_response({"ok": True, "pinned": slot.pinned})
 
 
-_VALID_MODES = ("", "orchestrator", "crew")
+#: The slot mode of a Multitask Mode session: topics run in parallel
+#: sub-sessions behind a durable queue (``junction.multitask_chat``).
+SLOT_MODE_MULTITASK = "multitask"
+#: Earlier Junction builds wrote the multitask slot mode as ``"crew"`` in a
+#: transcript's metadata line; it is read so an existing data home keeps its
+#: multitask tabs, and the queues behind them, after an upgrade.
+LEGACY_SLOT_MODE_MULTITASK = "crew"
+
+
+def normalize_slot_mode(mode: str) -> str:
+    """The current spelling of a slot mode read back from disk.
+
+    Applied wherever a persisted mode becomes a live ``slot.mode``, so every
+    comparison downstream sees one spelling and the next save writes it.
+    """
+    if mode == LEGACY_SLOT_MODE_MULTITASK:
+        return SLOT_MODE_MULTITASK
+    return mode
+
+
+_VALID_MODES = ("", "orchestrator", SLOT_MODE_MULTITASK)
 
 
 async def api_chat_slot_mode(request: web.Request) -> web.Response:
@@ -951,7 +971,7 @@ async def api_chat_slot_mode(request: web.Request) -> web.Response:
     # and api_chat_slot_create apply, and it matters HERE because the mode
     # decides which execution model a session runs under: an app holding
     # `/api/chat` could otherwise list a foreign slot and PATCH it into (or out
-    # of) crew mode, changing a session it does not own. One code for both
+    # of) multitask mode, changing a session it does not own. One code for both
     # reasons on purpose — a distinct code per reason would turn this 404 into an
     # existence oracle for slots the caller may not know about.
     request_app = request.get("app", "")
@@ -978,23 +998,23 @@ async def api_chat_slot_mode(request: web.Request) -> web.Response:
     mode = body.get("mode", "")
     if mode not in _VALID_MODES:
         return web.json_response({"error": "invalid mode"}, status=400)
-    # Crew keeps its durable queue in a directory named after the slot, and a
-    # key that folds to nothing but dots has no such directory (see
-    # `CrewStore`). That refusal would otherwise land on the first crew MESSAGE
-    # — an unhandled 500 on a tab the switch had already reported as crew, and
-    # on every message after it. Refuse the switch instead, while it is still a
-    # request with an answer.
+    # Multitask Mode keeps its durable queue in a directory named after the slot,
+    # and a key that folds to nothing but dots has no such directory (see
+    # `MultitaskStore`). That refusal would otherwise land on the first multitask
+    # MESSAGE — an unhandled 500 on a tab the switch had already reported as
+    # multitask, and on every message after it. Refuse the switch instead, while
+    # it is still a request with an answer.
     # Deferred import: this module is reachable from the gateway's boot path
-    # (gateway -> junction.dashboard -> chat_folders), and crew is a
-    # dashboard-only subsystem, so importing it at module scope made
-    # `--no-dashboard` pay for it before the API was ready to serve. Inside a
+    # (gateway -> junction.dashboard -> chat_folders), and Multitask Mode is a
+    # dashboard-only subsystem, so importing it at module scope would make
+    # `--no-dashboard` pay for it before the API is ready to serve. Inside a
     # mode-switch handler the cost is a sys.modules hit.
-    from junction.multitask_chat import CrewOrchestrator, is_crew_capable_slot_key
+    from junction.multitask_chat import MultitaskManager, is_multitask_capable_slot_key
 
-    if mode == "crew" and not is_crew_capable_slot_key(slot.key):
+    if mode == SLOT_MODE_MULTITASK and not is_multitask_capable_slot_key(slot.key):
         return web.json_response(
-            {"error": "this session name cannot run crew mode",
-             "code": "crew_unsupported_slot"},
+            {"error": "this session name cannot run multitask mode",
+             "code": "multitask_unsupported_slot"},
             status=400,
         )
     # Work in SUBAGENTS keeps `slot.running` false the whole time, so that flag
@@ -1003,9 +1023,10 @@ async def api_chat_slot_mode(request: web.Request) -> web.Response:
     # symmetric:
     #  * ANY direction — a plain-chat subagent may be running on this slot right
     #    now, and its completion follows the default `_run_chat` path, so
-    #    ENTERING crew mode has to be refused for that too, not just leaving it.
-    #    (Gating the whole check on `slot.mode == "crew"` missed exactly this.)
-    #  * LEAVING crew — the orchestrator may still hold crew topics or a live
+    #    ENTERING multitask mode has to be refused for that too, not just
+    #    leaving it. Gating the whole check on the slot already being in
+    #    multitask mode would miss exactly this.
+    #  * LEAVING multitask mode — the manager may still hold topics or a live
     #    queue, which only it can answer for.
     busy = False
     subs = getattr(state, "subagents", None)
@@ -1019,14 +1040,14 @@ async def api_chat_slot_mode(request: web.Request) -> web.Response:
             busy = bool(subs.has_pending_work_for(effective_session_key(slot)))
         except Exception:
             busy = True       # fail closed: refuse rather than risk the flip
-    if not busy and slot.mode == "crew":
+    if not busy and slot.mode == SLOT_MODE_MULTITASK:
         # isinstance, not `is not None` — matching gateway.py's own check on this
         # attribute. A stand-in object passes an identity check and then answers
         # `has_live_work` with something truthy, refusing a switch that is fine.
-        crew = getattr(state, "crew", None)
-        if isinstance(crew, CrewOrchestrator):
+        multitask = getattr(state, "multitask", None)
+        if isinstance(multitask, MultitaskManager):
             try:
-                busy = bool(await crew.has_live_work(name))
+                busy = bool(await multitask.has_live_work(name))
             except Exception:
                 busy = True
     if slot.running or busy:

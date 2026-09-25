@@ -2333,12 +2333,12 @@ class AcpClient:
         self,
         session_key: str,
         channel_id: str | None = None,
-        crew_agent: str = "",
+        canonical_agent: str = "",
         watchdog: object | None = None,
     ) -> None:
         """Re-key this client for a different session (used by warm pool).
 
-        ``crew_agent`` and ``watchdog`` exist only for signature parity with
+        ``canonical_agent`` and ``watchdog`` exist only for signature parity with
         AcpSessionProvider.rekey (session.py calls provider.client.rekey
         uniformly): this client's dispatch loop carries no per-agent watchdog
         snapshot, so both are accepted and deliberately not stored."""

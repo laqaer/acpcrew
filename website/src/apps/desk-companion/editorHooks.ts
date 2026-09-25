@@ -12,7 +12,7 @@ export function useLang() {
   const [lang, setLang] = useState('en')
   // Use useState initializer to avoid re-fetching
   useState(() => {
-    api?.getCrewCompanionConfig?.().then((c: Record<string, unknown> | null) => { if (c?.language) setLang(c.language as string) })
+    api?.getDeskCompanionConfig?.().then((c: Record<string, unknown> | null) => { if (c?.language) setLang(c.language as string) })
   })
   return { i18nT, lang }
 }

@@ -8,7 +8,7 @@ Focus areas (the largest previously-uncovered blocks):
 * the loopback HTTP verb helpers (``_get`` / ``_patch`` / ``_put`` /
   ``_delete``) plus ``_http_error_body`` error decoding + redaction,
 * the chat-history snippet helpers and ``_format_anchor``,
-* ``_do_select_crew`` roster / unknown-crew / bound-crew paths,
+* ``_do_select_agent`` roster / unknown-agent / bound-agent paths,
 * the ``spawn_*`` argument-validation and error-propagation branches,
 * the whole ``workflow_*`` tool family (malformed / failed / transport
   responses included).
@@ -36,7 +36,7 @@ from junction.mcp_core import (
     _call_tool,
     _casefold_match_span,
     _compress_snapshot_to_outline,
-    _do_select_crew,
+    _do_select_agent,
     _extract_history_snippet,
     _format_anchor,
     _history_is_incognito,
@@ -381,23 +381,23 @@ class TestFormatAnchor:
         assert out.count("b" * 100) == 1
 
 
-# ── select_crew ───────────────────────────────────────────────────────────
+# ── select_agent ──────────────────────────────────────────────────────────
 
 
-def _crew_config(agents: dict[str, Any], default: str) -> SimpleNamespace:
+def _agent_config(agents: dict[str, Any], default: str) -> SimpleNamespace:
     return SimpleNamespace(agents=agents, default_agent=default)
 
 
-class TestDoSelectCrew:
+class TestDoSelectAgent:
     def _patch_cfg(self, monkeypatch: pytest.MonkeyPatch, cfg: SimpleNamespace) -> None:
         monkeypatch.setattr(
             mcp_core, "JunctionConfig", SimpleNamespace(load=staticmethod(lambda: cfg))
         )
 
-    def test_empty_crew_returns_roster_of_triggered_non_default_crews(
+    def test_empty_agent_returns_roster_of_triggered_non_default_agents(
         self, monkeypatch: pytest.MonkeyPatch
     ):
-        cfg = _crew_config(
+        cfg = _agent_config(
             {
                 "main": SimpleNamespace(triggers="anything", model="auto"),
                 "docs": SimpleNamespace(triggers="write docs", model="auto"),
@@ -406,28 +406,28 @@ class TestDoSelectCrew:
             "main",
         )
         self._patch_cfg(monkeypatch, cfg)
-        out = json.loads(_do_select_crew(""))
+        out = json.loads(_do_select_agent(""))
         assert out["default_agent"] == "main"
-        assert [c["name"] for c in out["crews"]] == ["docs"]
+        assert [c["name"] for c in out["agents"]] == ["docs"]
         assert "high confidence" in out["guidance"]
 
-    def test_unknown_crew_returns_error_with_available_names(
+    def test_unknown_agent_returns_error_with_available_names(
         self, monkeypatch: pytest.MonkeyPatch
     ):
-        cfg = _crew_config({"main": SimpleNamespace(triggers="", model="auto")}, "main")
+        cfg = _agent_config({"main": SimpleNamespace(triggers="", model="auto")}, "main")
         self._patch_cfg(monkeypatch, cfg)
-        out = json.loads(_do_select_crew("ghost"))
-        assert out["error"] == "unknown crew 'ghost'"
+        out = json.loads(_do_select_agent("ghost"))
+        assert out["error"] == "unknown agent 'ghost'"
         assert out["available"] == "main"
 
-    def test_unknown_crew_with_no_agents_reports_none(self, monkeypatch: pytest.MonkeyPatch):
-        self._patch_cfg(monkeypatch, _crew_config({}, ""))
-        assert json.loads(_do_select_crew("ghost"))["available"] == "(none)"
+    def test_unknown_agent_with_no_agents_reports_none(self, monkeypatch: pytest.MonkeyPatch):
+        self._patch_cfg(monkeypatch, _agent_config({}, ""))
+        assert json.loads(_do_select_agent("ghost"))["available"] == "(none)"
 
-    def test_named_crew_returns_resolved_bindings(
+    def test_named_agent_returns_resolved_bindings(
         self, monkeypatch: pytest.MonkeyPatch, tmp_path
     ):
-        cfg = _crew_config({"docs": SimpleNamespace(triggers="d", model="opus")}, "main")
+        cfg = _agent_config({"docs": SimpleNamespace(triggers="d", model="opus")}, "main")
         self._patch_cfg(monkeypatch, cfg)
         monkeypatch.setattr(
             mcp_core,
@@ -436,8 +436,8 @@ class TestDoSelectCrew:
                 kiro_agent="ka", workspace_dir=tmp_path / "ws", memory_store_name="ms"
             ),
         )
-        out = json.loads(_do_select_crew("docs"))
-        assert out["crew"] == "docs"
+        out = json.loads(_do_select_agent("docs"))
+        assert out["agent"] == "docs"
         assert out["bound"] == {
             "kiro_agent": "ka",
             "workspace": str(tmp_path / "ws"),
@@ -445,17 +445,17 @@ class TestDoSelectCrew:
             "model": "opus",
         }
 
-    def test_select_crew_tool_routes_through_do_select_crew(
+    def test_select_agent_tool_routes_through_do_select_agent(
         self, monkeypatch: pytest.MonkeyPatch
     ):
-        monkeypatch.setattr(mcp_core, "_do_select_crew", lambda crew: f"crew={crew!r}")
-        assert _call_tool("select_crew", {"crew": "docs"}) == "crew='docs'"
+        monkeypatch.setattr(mcp_core, "_do_select_agent", lambda agent: f"agent={agent!r}")
+        assert _call_tool("select_agent", {"agent": "docs"}) == "agent='docs'"
 
-    def test_select_crew_tool_defaults_to_empty_roster_request(
+    def test_select_agent_tool_defaults_to_empty_roster_request(
         self, monkeypatch: pytest.MonkeyPatch
     ):
-        monkeypatch.setattr(mcp_core, "_do_select_crew", lambda crew: f"crew={crew!r}")
-        assert _call_tool("select_crew", {}) == "crew=''"
+        monkeypatch.setattr(mcp_core, "_do_select_agent", lambda agent: f"agent={agent!r}")
+        assert _call_tool("select_agent", {}) == "agent=''"
 
 
 # ── spawn_* argument validation + error propagation ───────────────────────

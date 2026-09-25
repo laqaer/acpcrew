@@ -703,7 +703,7 @@ rename that forgets the registration fails the build rather than silently droppi
 the protection.
 
 **Retention: credentials outlive an uninstall, deliberately — and it is disclosed.**
-The file sits at the crew-home ROOT, which is what puts it on the sensitive-path floor.
+The file sits at the data-home ROOT, which is what puts it on the sensitive-path floor.
 The consequence is that `uninstall_app` (which removes `apps/<name>/`) cannot reach it,
 so a PagerDuty/Datadog token survives uninstall. Moving it under the app dir would hand
 the agent its own credentials; silently wiping tokens would break the legitimate
@@ -1166,7 +1166,7 @@ interim revision had `migrate_from_config_if_needed`: on first read, if no keyst
 existed, it lifted `mode`/`autonomy_rules`/the destination keys out of `config.json` onto the
 fenced floor "to spare a pre-fence install a shadowed copy". That migration WAS the hole it
 claimed to close. `config.json` is on no sensitive-path list (`_SENSITIVE_HOME_DIRS` has no
-`apps` entry; `_WRITE_PROTECTED_HOME_PATHS` covers only the crew-home-root `config.json`), so an
+`apps` entry; `_WRITE_PROTECTED_HOME_PATHS` covers only the data-home-root `config.json`), so an
 auto-approved agent shell can write `{"mode":"act","autonomy_rules":[{"source":"pagerduty",
 "mode":"act","resource_glob":"*"}]}` there. The next `app_mode()`/`load_rules()` — reached from
 `authorize_action` on every `POST /incident/action` — promoted those values onto the keystone
@@ -1452,7 +1452,7 @@ schedule IS the rotation, so ignoring it means every instance claims every alarm
 double-claim the file exists to prevent. The defect was PLACEMENT, not logic, so the voting
 algebra is untouched.
 
-One trap worth recording: the bash matcher builds `<home>/<crew-prefix>/<entry>`, so the entry
+One trap worth recording: the bash matcher builds `<home>/<data-home-prefix>/<entry>`, so the entry
 must carry its `apps/.../data/` subpath. Registering a bare `rotation.yaml` matched **nothing**
 while reading exactly like a finished fix — the tool gate blocked writes and the shell path
 stayed wide open. A test pins the entry's shape, not just the behaviour.

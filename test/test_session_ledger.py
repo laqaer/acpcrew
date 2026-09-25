@@ -520,7 +520,7 @@ async def test_remove_slot_for_history_key_purges_ledger():
 
     state = MagicMock()
     state._slots = {}
-    state.crew = None
+    state.multitask = None
     state.remove_chat_pins_for_slots = AsyncMock()
     await _remove_slot_for_history_key(state, history_key)
     assert not sl.has_ledger(ledger_key)
@@ -540,7 +540,7 @@ async def test_delete_with_folded_spelling_reaps_exact_channel_key_ledger():
 
     state = MagicMock()
     state._slots = {}
-    state.crew = None
+    state.multitask = None
     state.remove_chat_pins_for_slots = AsyncMock()
     # The funnel is handed only the folded spelling (what the transcript
     # filename layer uses); the raw colon-structured key is not among the

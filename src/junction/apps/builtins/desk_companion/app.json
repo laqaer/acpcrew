@@ -1,5 +1,5 @@
 {
-  "name": "crew-companion",
+  "name": "desk-companion",
   "version": "1.0.0",
   "displayName": "Companion",
   "description": "A desktop companion for Junction that helps you pace your day: it nudges you to take breaks, holds the reminders you set in plain language, and runs a short breathing exercise when you need to reset. It also lets you know when a session finishes, fails, or needs your OK.",
@@ -26,7 +26,7 @@
   "ui": {
     "pages": [
       {
-        "route": "/crew-companion",
+        "route": "/desk-companion",
         "label": "Companion",
         "icon": "PawPrint"
       }
@@ -34,14 +34,14 @@
   },
   "permissions": {
     "api": [
-      "/api/apps/crew-companion",
-      "/api/apps/crew-companion/*"
+      "/api/apps/desk-companion",
+      "/api/apps/desk-companion/*"
     ],
     "storage": true,
     "cron": false,
     "network": true,
     "events": [
-      "crew-companion:fire"
+      "desk-companion:fire"
     ]
   },
   "tags": [

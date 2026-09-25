@@ -41,9 +41,9 @@ const PASSTHROUGH_LITERALS = new Set([
   'apps.opsMissionControl.settingsPanel.find_it_at_the_bottom_of_the_channel_s_detail_di',
   'apps.opsMissionControl.settingsPanel.get_a_notification_when_something_changes_that_n',
   'apps.opsMissionControl.settingsPanel.mirror_incidents_to_a_channel_as_a_live_board_on',
-  'pages.settings.remoteCrewPanel.doesnt_manage',
-  'pages.settings.remoteCrewPanel.profile_name_only',
-  'pages.settings.remoteCrewPanel.unverified_cloud_note',
+  'pages.settings.remoteInstancesPanel.doesnt_manage',
+  'pages.settings.remoteInstancesPanel.profile_name_only',
+  'pages.settings.remoteInstancesPanel.unverified_cloud_note',
 ])
 
 /**
