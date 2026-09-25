@@ -140,9 +140,7 @@ class TestBeaconStatusEndpoint:
         assert body["overlay_override"] is False
 
     @pytest.mark.asyncio
-    async def test_overlay_without_the_key_is_not_flagged(
-        self, _neutral_env, monkeypatch
-    ) -> None:
+    async def test_overlay_without_the_key_is_not_flagged(self, _neutral_env, monkeypatch) -> None:
         """An overlay that sets other telemetry fields does not pin this one."""
         import json as _json
 

@@ -496,7 +496,6 @@ test/test_autonudge_stop_auth.py
 test/test_background_approval_routing.py
 test/test_bang_command_catchall.py
 test/test_beacon.py
-test/test_beacon_status_endpoint.py
 test/test_bench_adapter_longmemeval.py
 test/test_bench_cli.py
 test/test_bench_corpus.py
@@ -576,7 +575,6 @@ test/test_cloud_handlers.py
 test/test_cloud_launch_job.py
 test/test_collection_status_endpoint.py
 test/test_completion_result_read_off_loop.py
-test/test_computer_use_apps.py
 test/test_computer_use_overlay.py
 test/test_computer_use_skylight.py
 test/test_computer_use_snapshot_macos.py
@@ -1096,7 +1094,6 @@ test/test_side_steer_queue.py
 test/test_skill_browser.py
 test/test_skill_dedupe.py
 test/test_skill_discover.py
-test/test_skill_home_paths.py
 test/test_skill_index_app_symlinks.py
 test/test_skill_paths_and_mcp_sync.py
 test/test_skill_pending.py
