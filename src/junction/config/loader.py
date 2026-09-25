@@ -1532,9 +1532,10 @@ class AgentConfig:
         metadata=_meta(
             "ACP Backend",
             "Which ACP agent to drive. Default 'auto' picks the first installed "
-            "runtime (cursor, claude, codex, kimi, dsh, goose, grok, pi, droid). "
-            "'kiro' or '' selects kiro-cli. Spec-family values: cursor, claude, "
-            "codex, dsh, pi, kimi, goose, grok, droid. 'kas' is kiro-agent.",
+            "runtime (cursor, claude, codex, kimi, dsh, goose, grok, opencode, pi, "
+            "droid). 'kiro' or '' selects kiro-cli. Spec-family values: cursor, "
+            "claude, codex, dsh, pi, kimi, goose, grok, droid, opencode. 'kas' is "
+            "kiro-agent.",
             enum=[
                 "auto",
                 "",
@@ -1549,6 +1550,7 @@ class AgentConfig:
                 "goose",
                 "grok",
                 "droid",
+                "opencode",
             ],
         ),
     )
