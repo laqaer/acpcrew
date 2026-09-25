@@ -5,6 +5,9 @@ from __future__ import annotations
 import argparse
 import io
 import json
+import socket
+from collections.abc import Iterator
+from dataclasses import dataclass
 from pathlib import Path
 
 import pytest
@@ -12,7 +15,50 @@ import pytest
 from junction.acp.types import ACP_BACKEND_AUTO, ACP_BACKEND_CURSOR
 from junction.cli_doctor import _doctor, _doctor_planes
 from junction.constants import CLI_BIN, PRODUCT_NAME
+from junction.model_router import probe
 from junction.planes import api_planes, harness_inventory, run_planes_command, snapshot_planes
+
+
+@dataclass(frozen=True)
+class PlanePorts:
+    router: int
+    gateway: int
+
+
+def _bind_refusing_port() -> socket.socket:
+    """Hold a loopback port without listening on it.
+
+    A connect to a bound, non-listening TCP port is refused, and while this
+    socket stays open no other listener can take the port, so the probe's
+    answer depends only on the test.
+    """
+    sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+    try:
+        sock.bind((probe.LOOPBACK_HOST, 0))
+    except OSError:
+        sock.close()
+        raise
+    return sock
+
+
+@pytest.fixture(autouse=True)
+def plane_ports(monkeypatch: pytest.MonkeyPatch) -> Iterator[PlanePorts]:
+    """Point every model-plane probe at ports this test owns and nobody answers.
+
+    Several surfaces here (doctor, the compose banner, ``/api/planes``) probe
+    with no explicit port, which resolves to the default loopback ports. Those
+    are host state: a real ``junction up``, or an embedded catalog listener an
+    earlier test on the same worker left running, turns "down" into "built-in
+    catalog" and the verdict into a function of test order. The port env
+    overrides the probe already honours take the host out of the answer.
+    """
+    with _bind_refusing_port() as router, _bind_refusing_port() as gateway:
+        ports = PlanePorts(router.getsockname()[1], gateway.getsockname()[1])
+        for name in probe._ROUTER_PORT_ENV:
+            monkeypatch.setenv(name, str(ports.router))
+        for name in probe._GATEWAY_PORT_ENV:
+            monkeypatch.setenv(name, str(ports.gateway))
+        yield ports
 
 
 def test_harness_inventory_marks_kiro_optional() -> None:
@@ -25,9 +71,12 @@ def test_harness_inventory_marks_kiro_optional() -> None:
     assert ACP_BACKEND_CURSOR in labels
 
 
-def test_snapshot_degrades_when_nothing_is_installed() -> None:
+def test_snapshot_degrades_when_nothing_is_installed(plane_ports: PlanePorts) -> None:
     snap = snapshot_planes(
-        which=lambda _name: None, home=Path("/tmp"), router_port=9, gateway_port=9
+        which=lambda _name: None,
+        home=Path("/tmp"),
+        router_port=plane_ports.router,
+        gateway_port=plane_ports.gateway,
     )
     assert snap["product"] == PRODUCT_NAME
     assert snap["cli"] == CLI_BIN
@@ -43,8 +92,10 @@ def test_snapshot_degrades_when_nothing_is_installed() -> None:
     assert roles["execution"] == "standard"
 
 
-def test_cli_planes_prints_human_copy_by_default(capsys: pytest.CaptureFixture[str]) -> None:
-    args = argparse.Namespace(router_port=9, as_json=False)
+def test_cli_planes_prints_human_copy_by_default(
+    capsys: pytest.CaptureFixture[str], plane_ports: PlanePorts
+) -> None:
+    args = argparse.Namespace(router_port=plane_ports.router, as_json=False)
     run_planes_command(args)
     out = capsys.readouterr().out
     assert "Junction planes" in out
@@ -56,8 +107,10 @@ def test_cli_planes_prints_human_copy_by_default(capsys: pytest.CaptureFixture[s
         json.loads(last)
 
 
-def test_cli_planes_json_flag_is_machine_only(capsys: pytest.CaptureFixture[str]) -> None:
-    args = argparse.Namespace(router_port=9, as_json=True)
+def test_cli_planes_json_flag_is_machine_only(
+    capsys: pytest.CaptureFixture[str], plane_ports: PlanePorts
+) -> None:
+    args = argparse.Namespace(router_port=plane_ports.router, as_json=True)
     run_planes_command(args)
     out = capsys.readouterr().out
     assert "Junction planes" not in out
@@ -103,11 +156,14 @@ async def test_api_planes_always_200() -> None:
     assert "kiro_cli" not in payload["harness"]
 
 
-def test_human_planes_format_is_shared() -> None:
+def test_human_planes_format_is_shared(plane_ports: PlanePorts) -> None:
     from junction.planes import format_human_planes
 
     snap = snapshot_planes(
-        which=lambda _name: None, home=Path("/tmp"), router_port=9, gateway_port=9
+        which=lambda _name: None,
+        home=Path("/tmp"),
+        router_port=plane_ports.router,
+        gateway_port=plane_ports.gateway,
     )
     text = format_human_planes(snap, heading="Planes")
     assert text.startswith("Planes\n")

@@ -4540,6 +4540,27 @@ class TestProjectDirFile:
 class TestSeedDispatch:
     """Tests for --seed dispatch before gateway startup (coverlay: cli.py L624-627)."""
 
+    @pytest.fixture(autouse=True)
+    def _no_model_plane_listener(self, monkeypatch):
+        """Keep ``gateway`` dispatch off the host's model-plane port.
+
+        ``main()`` starts the embedded catalog listener before it reaches the
+        patched gateway loop. The real one binds the default router port on
+        loopback from a daemon thread that nothing in these tests stops, so it
+        would answer every later model-plane probe on the worker. Seeding does
+        not need it, so the start is replaced with one that binds nothing, and
+        the process-wide listener must be exactly as each test found it.
+        """
+        from junction.model_router import embedded
+
+        before = embedded._server
+        start = MagicMock(
+            return_value=embedded.EmbeddedBind(embedded.LOOPBACK_HOST, 0, owned=False)
+        )
+        monkeypatch.setattr(embedded, "ensure_embedded_router", start)
+        yield
+        assert embedded._server is before, "gateway dispatch started the model-plane listener"
+
     def test_seed_calls_seed_cmd(self, monkeypatch):
         """When --seed is provided, seed_cmd should be called before gateway."""
         monkeypatch.setattr(sys, "argv", ["junction", "gateway", "--seed", "demo"])
