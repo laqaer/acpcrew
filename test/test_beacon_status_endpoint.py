@@ -39,8 +39,15 @@ def _neutral_env(tmp_path, monkeypatch):
     make every ``would_send`` false for that reason instead of the one under test.
     """
     monkeypatch.setenv("JUNCTION_HOME", str(tmp_path))
+    # Junction ships no collector, so the positive path needs an operator-set one.
     (tmp_path / "config.json").write_text(
-        json.dumps({"dashboard": {"privacy_acked": True}}), encoding="utf-8"
+        json.dumps(
+            {
+                "dashboard": {"privacy_acked": True},
+                "telemetry": {"beacon_endpoint": "https://collector.example"},
+            }
+        ),
+        encoding="utf-8",
     )
     monkeypatch.setattr(beacon, "config_dir", lambda: tmp_path)
     monkeypatch.setattr(beacon, "is_default_home", lambda: True)
@@ -65,6 +72,19 @@ class TestBeaconStatusEndpoint:
         assert body["reason"] == "ready"
         assert body["env_override"] is False
         assert body["env_var"] == beacon.DISABLE_ENV
+
+    @pytest.mark.asyncio
+    async def test_default_config_reports_no_endpoint(self, _neutral_env) -> None:
+        """With no collector configured, the panel says why nothing is sent."""
+        (_neutral_env / "config.json").write_text(
+            json.dumps({"dashboard": {"privacy_acked": True}}), encoding="utf-8"
+        )
+        async with TestClient(TestServer(_make_app())) as c:
+            body = await _get(c)
+        assert body["enabled"] is True
+        assert body["would_send"] is False
+        assert body["reason_code"] == "no_endpoint"
+        assert body["endpoint_configured"] is False
 
     @pytest.mark.asyncio
     async def test_env_override_is_flagged(self, _neutral_env, monkeypatch) -> None:

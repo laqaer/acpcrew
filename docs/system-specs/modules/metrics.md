@@ -1419,115 +1419,33 @@ absent/corrupt — so the id regenerates rather than merely not crashing. The
 `/dev/zero` and FIFO tests use a real thread timeout, because the failure mode is
 "never returns", which a plain assertion cannot catch.
 
-### Server side (account 116101834266, us-west-2)
+### Server side: no collector ships
 
-Zero application code — the access log **is** the data product:
+Junction ships **without** a beacon collector. `telemetry.beacon_endpoint`
+defaults to empty, and `beacon.send()` returns before building a request when
+the endpoint is empty, so a default install never sends a heartbeat anywhere,
+whatever `telemetry.beacon_enabled` says. `junction telemetry status` reports
+this as `no_endpoint`.
+
+An operator who wants the heartbeat points `telemetry.beacon_endpoint` at an
+HTTPS collector they run. The wire contract is the one `beacon_url()` builds:
 
 ```
-client ─GET /b/1/<id>?v&py&dist&first_seen─> CloudFront E1YM983XX3ASBM
-                                     │ CloudFront Function returns 204 at the edge
-                                     ▼
-        standard logging v2 → s3://junction-beacon-logs (PERMANENT, tiered)
-                                     ▼
-              Athena junction_analytics.beacon_logs (partition projection)
-                                     ▼
-        junction-beacon-aggregator Lambda (daily 00:20 UTC) writes BOTH:
-                    ├── CloudWatch Junction/Product  → dashboard (~15-month view)
-                    └── junction_analytics.beacon_daily → PERMANENT record
+GET <endpoint>/b/<BEACON_SCHEMA>/<install-id>?v=<release>&py=<minor>&dist=<channel>&first_seen=<0|1>
 ```
 
-**Metrics published.** `DailyActiveInstances`, `BeaconPings`, `NewInstallations`,
-`ActiveByVersion`, `ActiveByPython`, `ActiveByDistribution`, and `ActiveByCountry`.
-`ActiveByChannel` / `ActiveByOS` / `ActiveByArch` were removed with their source
-fields; their historical CloudWatch points and rollup rows are left in place (the
-data is real for the days it covers — deleting it would be rewriting history to
-match a current schema).
+A 2xx response marks the day as sent; a network error or a non-2xx status
+leaves it unmarked, so the client tries again later. The cheapest correct
+collector therefore answers `204` and keeps the request line in an access log. Two properties keep the heartbeat as anonymous server-side as it is
+on the wire, and a collector should preserve both:
 
-**`country` is retained, and is the one field the client does not send.** It is
-derived at the CloudFront edge and is coarse (a 2-letter code); the IP it comes
-from is never written to storage, since the log delivery does not select `c-ip` at
-all. Dropping it would mean removing `c-country` from the delivery's
-`recordFields`, which shifts every column in the TSV — the Glue table's six columns
-are positional, so new log lines would silently misparse (the `status = '204'`
-filter would match nothing) until the table was migrated. Keeping the least
-identifying field in the set was the better trade than a schema migration on a live
-pipeline.
+- **Do not store the client IP.** Log only the path, the query and the time;
+  derive anything coarser (for example a country code) at the edge and drop the
+  address before the log is written.
+- **Keep the raw log as the record.** The five fields are the whole payload, so
+  an access log is already the complete dataset; any rollup is derived from it
+  and must be rebuildable from it.
 
-### Retention: S3/Athena is permanent, CloudWatch is a 15-month view
-
-**CloudWatch cannot be the durable store.** Metric data is retained for at most
-**15 months** and expires on a **rolling** basis (1-min → 15 days, 5-min → 63
-days, 1-hour → 455 days), and that ceiling is not configurable. So the dashboard
-is inherently a ~15-month window, by AWS design rather than by our choice.
-
-The permanent record is therefore two things in S3:
-
-- **Raw logs** — `s3://junction-beacon-logs`. The lifecycle policy has **no
-  `Expiration` on any rule**; objects only *transition* (Standard → Standard-IA
-  at 90d → Glacier Instant Retrieval at 365d) to cut cost. Glacier **Flexible
-  Retrieval / Deep Archive are deliberately avoided** — they require an async
-  restore before a read, which would silently break the long-range Athena
-  queries this design exists to support. Versioning is on; only *noncurrent*
-  versions are pruned (365d).
-- **Daily rollup** — `junction_analytics.beacon_daily` (Parquet, stays in
-  Standard forever). One small row per `(day, metric, dimension, value)`. This
-  is what makes "permanent" *useful*: raw logs grow linearly forever, so a
-  multi-year dashboard query would scan every line ever written, while the
-  rollup keeps such queries fast and cheap.
-
-`_persist_rollup()` is **idempotent** — it deletes the target day's rows before
-inserting, so a backfill or a retry after a partial failure cannot double-count.
-It runs **last** in the handler, after the CloudWatch puts, because CloudWatch is
-best-effort presentation while the rollup is the durable store: a rollup failure
-must surface as a Lambda invocation error (visible on the dashboard's error
-widget) rather than being masked by an otherwise-successful metric write.
-
-**Destructive-rewrite guard (do not remove).** That same idempotent delete makes
-an empty query result *destructive*: it rewrites a day to nothing. A `if not
-facts` check is **not** sufficient, because `DailyActiveInstances`, `BeaconPings`
-and `NewInstallations` are appended **unconditionally** — as zeros — so an empty
-day still reaches the delete with three all-zero rows.
-
-This is not hypothetical: on **2026-07-31** the scheduled 00:20 UTC run queried
-`day=30`, a partition whose logs did not exist (the feature shipped at 02:36 UTC
-that morning, and the first delivered log object was `2026-07-31-04`). The run
-reported `SUCCEEDED` with no error, published zeros, and **wiped the rollup to
-zero rows** — the durable record was destroyed by a "successful" invocation. The
-guard now skips the rewrite unless at least one fact is non-zero (an all-zero day
-carries no information, so skipping is lossless), and an empty partition logs an
-explicit `WARNING` naming the partition, because a silent success was what made
-the failure hard to see.
-
-**Object Lock is deliberately NOT enabled.** It would make the logs literally
-undeletable, which sounds like "permanent" but is the wrong trade for a
-privacy-sensitive dataset: it would also remove our own ability to purge after an
-operator mistake, a schema error, or a future deletion obligation. The goal is
-"retained indefinitely by policy", not "physically impossible to delete".
-
-**The aggregator cannot delete the permanent record.** Its IAM policy grants
-`s3:PutObject`/`s3:DeleteObject` on `junction-beacon-logs/rollup/*` **only** —
-raw-log access is read-only, so the component that consumes the history has no
-permission to destroy it.
-
-**No client IP is ever stored.** The log delivery's `recordFields` selects only
-`date`, `time`, `cs-uri-stem`, `cs-uri-query`, `c-country`, `sc-status` —
-`c-ip`, `x-forwarded-for`, User-Agent and Cookie are simply not delivered.
-Verified against a real delivered log file. This is why the design uses a
-Lambda-free CDN log path rather than CDN logging with default fields, and it is
-what makes the "no IP" claim structural rather than a promise.
-
-**Aggregator timestamp rule (load-bearing):** metrics are stamped at the
-**end** of the target day, clamped to `now - 1min`. CloudWatch accepts
-timestamps up to two weeks old but points **24h+ old can take 48 hours** to
-become queryable, while <3h old are near-immediate. Stamping midnight-of-
-yesterday from an 02:30 run put every point in the 48-hour bucket and the
-dashboard rendered **empty** despite the data being accepted; the clamp is
-needed because a same-day backfill's 23:59 is in the future and
-`PutMetricData` rejects >2h ahead. Both failure modes were hit in development.
-
-**Model CDN.** `embeddings.py::_DEFAULT_MODEL_URL` points at
-`junction-models` (distribution E2UX23B48LKM6V, OAC-only bucket access). The
-`_GGUF_SHA256` pin remains the sole integrity gate, so a tampered CDN object can
-only fail verification. Because `_ensure_downloaded()` returns early when
-`model_ready()`, a CDN request is a **first-install** signal, not a DAU signal —
-the dashboard shows it as "downloads", deliberately separate from DAI.
+The embedding-model download (`embeddings.py::_DEFAULT_MODEL_URL`) is a
+separate network touchpoint with no telemetry role here. Its integrity gate is
+the `_GGUF_SHA256` pin, whatever host serves the bytes.
