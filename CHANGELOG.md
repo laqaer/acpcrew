@@ -54,7 +54,7 @@ turns into a place to edit code, not just discuss it.
 - **Search every instance at once** — Session search spans all connected gateways and interleaves local and remote results.
 - **Search by PR or issue number** — A query like `4411`, `/pull/4411`, or `owner/repo#4411` all find the same session.
 - **Scroll back through history** — Reaching the top of a long transcript loads older turns instead of stopping.
-- **Organize how you like** — Filter by tag, assign any custom hex colour, pin crews as chips, and jump past the ninth session with keyboard letters shown on each row.
+- **Organize how you like** — Filter by tag, assign any custom hex colour, pin instances as chips, and jump past the ninth session with keyboard letters shown on each row.
 - **Apps can file their own work** — An app can create, rename, and reparent chat folders it owns; deleting a folder stays yours alone.
 - **Reload without losing the thread** — A Reload action relaunches the agent process in place so newly added MCP servers and config take effect while the conversation survives.
 - **Hand work between sessions** — An opt-in dashboard MCP set lets one session message, stop, and read another to pass work along with its context, deny-by-default and gateway-key authorized.
@@ -70,11 +70,11 @@ turns into a place to edit code, not just discuss it.
 - **Pin your organization's own registry** — A deployment can pin its own app registry and mark it owner-trusted, so its apps clone with credentials from a private forge.
 - **Design Tweak** — Point at a local web project, right-click an element in the preview, describe the change, and it lands in a per-project chat session.
 - **A Kanban task board** — A one-sentence intent becomes a runnable card that executes in a linked dashboard chat session, and columns can derive from live session state so cards move as the agent's state changes.
-- **Auto-Triage Pipeline** — A built-in app showing every crew work item's phase and how long it has been stuck.
+- **Auto-Triage Pipeline** — A built-in app showing every steward work item's phase and how long it has been stuck.
 - **Issue Radar grows** — Azure DevOps repositories and work items join GitHub and GitLab, with dependency edges, an unblocked-dependency signal, and a Focus Tree graph. Investigations now lead with a plain explanation of the issue before the verdict, written in your dashboard language.
 - **External registries appear when the catalog is online** — The store lists apps from registries beyond the bundled catalog.
 - **Each app has its own icon** — Channels, Dev Fleet, and Workflows drop the generic placeholder.
-- **Crew Mode is labelled experimental** — The create menu says so rather than presenting it as settled.
+- **Multitask Mode is labelled experimental** — The create menu says so rather than presenting it as settled.
 
 ### MCP servers stop guessing
 
@@ -152,7 +152,7 @@ first-class builds, and you can talk to it by holding a key.
 
 ### Run several threads at once
 
-- **Crew Mode** — Send the next message without waiting for the last one. Topics
+- **Multitask Mode** — Send the next message without waiting for the last one. Topics
   are dispatched to parallel sub-sessions and answers arrive independently, so
   one chat advances several pieces of work at the same time.
 - **Session summaries** — A side-panel tab says what each thread of a session was
@@ -198,8 +198,8 @@ first-class builds, and you can talk to it by holding a key.
 - **A redesigned session list** — Tighter rows with a colour bar, a status gutter
   and a meta line, so session state is scannable; folders can be dragged onto
   each other to nest them in board view.
-- **Crew members keep an activity log** — Each member of a crew gets its own
-  space with a persistent log of what it has been doing.
+- **Agents keep an activity log** — Each agent gets its own space with a
+  persistent log of what it has been doing.
 - **Link previews, and previews that explain themselves** — URL unfurls now work
   in your own messages as well as the agent's, and previewing the dashboard's own
   address explains the loop instead of rendering a blank frame.
@@ -221,9 +221,10 @@ first-class builds, and you can talk to it by holding a key.
 - **Personal Shopper** — Researches real stores on your behalf and recommends
   something only when buying actually helps. It diagnoses the problem first, and
   never touches a cart.
-- **Issue Radar Crews** — Put autonomous workers on claimed issues. Each crew
-  takes an issue into its own worktree, posts progress to a public claim ledger,
-  and pushes a pull request: hands-free from triage to code review.
+- **Issue Radar Stewards** — Put autonomous workers on claimed issues. Each
+  steward takes an issue into its own worktree, posts progress to a public
+  claim ledger, and pushes a pull request: hands-free from triage to code
+  review.
 - **A curated App Store** — Discover renders editorial spotlights, themed
   collections, and category rails with curator artwork, not one flat list.
 - **Meetings keeps the transcript** — Stored and shown beside the agent's notes,
@@ -247,7 +248,7 @@ first-class builds, and you can talk to it by holding a key.
   and Nightly from About, and the gateway restarts in place after an update.
 - **Publish it on your tailnet** — `junction tailnet up` puts the dashboard on
   your Tailscale network, reachable from your other devices.
-- **Launch a cloud crew from the dashboard** — Remote EC2 provisioning, device
+- **Launch a cloud instance from the dashboard** — Remote EC2 provisioning, device
   sign-in included, as a restartable job rather than a CLI session you must not
   close, and `--subnet` pins it into a private subnet.
 - **One title bar on GNOME** — On desktops that draw their own decorations the
@@ -446,7 +447,7 @@ weeks in the open.
   a spec, then hand it to the agent to implement.
 - **Ops Mission Control** — an autonomous ops first responder with an incident
   board and a knowledge ledger of fix patterns.
-- **Crew Companion** — a desk companion that reflects what your agent is doing.
+- **Companion** — a desk companion that reflects what your agent is doing.
 - **Auto-Improvement** — measurement-first self-improvement that proposes,
   lands, and verifies its own changes GitHub-natively.
 - **Meetings** — transcribes a live meeting, keeps structured notes and diagrams
