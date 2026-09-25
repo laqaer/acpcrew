@@ -57,9 +57,17 @@ Hearth was the runner-up (home/memory) and lost because it is silent on routing.
 
 - User-facing overlay this cut: README, `site/`, CLI, dashboard
   `DEFAULT_PRODUCT_NAME` / `bot_name`, brand gate.
-- The brand gate (`scripts/check_brand_name.py`) rejects the upstream
-  product's name on newly added lines. Junction is accepted. The optional
-  kiro-cli harness keeps its own spellings (`kiro-cli`, `~/.kiro`).
+- The brand gate (`scripts/check_brand_name.py`) treats the upstream
+  identity as retired. On newly added lines it rejects the upstream
+  product's name glued or joined by one separator (including Unicode
+  dashes, `%20` and regex spellings), in prose and identifiers alike;
+  its data home, whether spelled as one path or built from split string
+  literals; its hosts; its bundle id; its GitHub org; and its mascot. The
+  root `NOTICE` (the Apache-2.0 attribution) is the only exempt file.
+  Junction is accepted. The optional kiro-cli harness keeps its own
+  spellings: `kiro-cli`, `~/.kiro` with its own directories, and
+  citations of kiro-cli's own repository under the shared org are not
+  flagged, and neither is the word "crew" on its own.
 - Hardcoded catalog descriptions stay a follow-up issue.
 - Chartroom remains an internal nod only, not a public name.
 

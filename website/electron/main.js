@@ -3366,7 +3366,7 @@ function renameCurrentWindow() {
     .check-row label { margin:0; font-size:12px; }
   </style></head><body>
     <label>Window name</label>
-    <input id="n" value="${esc(currentTitle.replace(/^Kiro ?Crew /g, ''))}" autofocus>
+    <input id="n" value="${esc(currentTitle.replace(/^Junction /, ''))}" autofocus>
     <div class="row"><button class="ok" onclick="go()">Rename</button>
     <button class="cancel" onclick="window.close()">Cancel</button></div>
     <div class="check-row"><input type="checkbox" id="d"><label for="d">Set as default name for :${port} windows</label></div>

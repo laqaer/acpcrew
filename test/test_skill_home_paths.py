@@ -31,7 +31,10 @@ SKILL_SUFFIXES = {".md", ".sh", ".py"}
 
 CURRENT_HOME_POSIX = "~/.junction"
 
-RETIRED_HOME = re.compile(r"\.kiro" + "crew" + r"|\.kiro[/\\]crew")
+# The retired name, held in variables so this file never spells the path it guards.
+_KIRO = "kiro"
+_CREW = "crew"
+RETIRED_HOME = re.compile(rf"\.{_KIRO}{_CREW}|\.{_KIRO}[/\\]{_CREW}")
 
 
 def _skill_files() -> list[Path]:
@@ -79,9 +82,9 @@ def test_retired_pattern_leaves_the_harness_home_alone() -> None:
     """``~/.kiro`` is kiro-cli's own home; only its ``crew`` child is retired."""
     assert not RETIRED_HOME.search("cat ~/.kiro/settings/cli.json")
     assert not RETIRED_HOME.search("~/.kiro/agents/default.json")
-    assert RETIRED_HOME.search("SECRET=$(cat ~/.kiro/" + "crew/.local_secret)")
-    assert RETIRED_HOME.search("%USERPROFILE%\\.kiro\\crew\\crons")
-    assert RETIRED_HOME.search("~/.kiro" + "crew-pods")
+    assert RETIRED_HOME.search(f"SECRET=$(cat ~/.{_KIRO}/{_CREW}/.local_secret)")
+    assert RETIRED_HOME.search(f"%USERPROFILE%\\.{_KIRO}\\{_CREW}\\crons")
+    assert RETIRED_HOME.search(f"~/.{_KIRO}{_CREW}-pods")
 
 
 # The system prompts, the MCP tool-schema descriptions and the review rules also

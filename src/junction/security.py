@@ -2575,7 +2575,7 @@ _SELF_IMPORT_RE = re.compile(r"\bjunction\b")
 
 #: Dynamic-execution primitives that let an inline Python payload REACH the CLI without the
 #: package name ever appearing as a literal token: string-concatenated imports
-#: (``__import__('kiro'+'_crew')``), name-computed imports (``importlib.import_module(...)``),
+#: (``__import__('junc'+'tion')``), name-computed imports (``importlib.import_module(...)``),
 #: and second-stage decode/eval (``exec(base64.b64decode(...))``). ``_SELF_IMPORT_RE`` cannot
 #: see through any of these, so a payload combining an inline-program interpreter with one of
 #: them is treated as opaque and DENIED — the same fail-closed reading as a literal import,

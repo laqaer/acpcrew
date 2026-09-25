@@ -16,7 +16,8 @@ _REPO_ROOT = Path(__file__).resolve().parents[1]
 _UPSTREAM_PROSE = "Kiro" + " Crew"
 _UPSTREAM_CONCAT = "Kiro" + "Crew"
 _UPSTREAM_CLI = "kiro" + "crew"
-_UPSTREAM_SLUG = "kirodotdev/" + _UPSTREAM_CONCAT
+_UPSTREAM_ORG = "kiro" + "dotdev"
+_UPSTREAM_SLUG = f"{_UPSTREAM_ORG}/{_UPSTREAM_CONCAT}"
 _UPSTREAM_DOWNLOAD_HOST = "download." + "crew" + ".kiro.dev"
 
 

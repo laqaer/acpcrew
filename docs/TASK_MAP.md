@@ -25,7 +25,7 @@ This cut: [#26](https://github.com/laqaer/junction/pull/26) (ship program, draft
 | M3 domain | Human confirms a quoted domain, pays, attaches DNS to `junction-site` | Vercel registrar | Blocked on spend | [#27](https://github.com/laqaer/junction/issues/27) |
 | Catalog i18n | Remaining dashboard catalog literals to `{{productName}}` | `website/` locales | Follow-up | [#28](https://github.com/laqaer/junction/issues/28) |
 | Automations | Cursor Automations for scout / implement / review; mint `agent-os/*` labels | Cursor dashboard | Human-gated | [#29](https://github.com/laqaer/junction/issues/29) |
-| Adversarial remainder | Orchestration apply site; brand-gate teaching text | routing + `check_brand_name.py` | Follow-up | [#30](https://github.com/laqaer/junction/issues/30) |
+| Adversarial remainder | Orchestration apply site. The brand gate's teaching text is rewritten: it reports the retired upstream identity (name, data home, hosts, bundle id, org, mascot) in prose and identifiers alike, exempts only the root `NOTICE`, leaves kiro-cli's own spellings alone, and names Junction's replacement for each finding | routing + `check_brand_name.py` | Follow-up (apply site); brand gate done | [#30](https://github.com/laqaer/junction/issues/30) |
 | Maintain | Scout → implement → review → human merge; adversarial passes; catalog refresh | ADR 0006 | Ongoing | [#29](https://github.com/laqaer/junction/issues/29) |
 
 ## Out of this cut

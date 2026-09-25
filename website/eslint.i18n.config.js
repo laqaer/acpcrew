@@ -716,12 +716,10 @@ export default [
               // which excluded most English prose and hid five of six strings in a
               // six-string probe file.
               '^[^A-Za-z]*$',
-              // The product brand. The display name is `Junction`; the
-              // previous two-word spelling remains DNT for catalog strings
-              // that still interpolate or mention it. Anchored to the whole
-              // value, so a sentence merely *containing* the brand is still
-              // reported — only the bare name is exempt.
-              '^(Kiro ?Crew|Junction)$',
+              // The product brand, `Junction`. Anchored to the whole value, so
+              // a sentence merely *containing* the brand is still reported —
+              // only the bare name is exempt.
+              '^Junction$',
               // The messaging-channel product brands. Same class as the product
               // brand above and covered by the do-not-translate glossary: "Slack"
               // is "Slack" in every locale, and a localized spelling would name a

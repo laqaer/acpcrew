@@ -156,9 +156,6 @@ CODE_SUFFIXES: frozenset[str] = frozenset(
 _EXTERNAL_REPO_MARKERS: tuple[str, ...] = (
     "JunctionPublishCDK",
     "electron.git",
-    # The app catalog's publisher. Its distribution contract is documented in
-    # that repo, and the client cites it to explain the base URL it fetches.
-    "KiroCrewApps",
 )
 
 # ── Code-coupled documentation filenames ───────────────────────────────────────

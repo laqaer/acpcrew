@@ -343,7 +343,6 @@ class TestAdoptIsDeniedFromBash:
             "cd /tmp && junction cron  adopt abc123 --session-of chat-3",
             "JUNCTION_HOME=/tmp junction cron adopt abc123 --session-of chat-3",
             # The module spelling, which is how the CLI is invoked from a venv.
-            # `kiro.?crew` covers it because `.` matches the underscore.
             "python3 -m junction cron adopt abc123 --release",
             # Interposed top-level flags. The CLI really accepts these before a
             # subcommand (`--verbose`/`-v` is a repeatable count and `--no-jail`

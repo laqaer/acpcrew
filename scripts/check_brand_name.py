@@ -1,49 +1,79 @@
 #!/usr/bin/env python3
-"""check_brand_name.py — gate concatenated upstream brand tokens on lines a change adds.
+"""check_brand_name.py — gate the retired upstream identity on lines a change adds.
 
-This fork's product prose name is **Junction**. The gate below still exists
-so mixed-case concatenations of the upstream two-word name cannot land in
-new prose. Identifiers — the GitHub repo slug, the ``kirocrew`` CLI, the
-``kiro_crew`` Python package, ``KIROCREW_*`` environment variables, and the
-desktop installer artifacts — keep the spelling their system gave them.
-Only the **prose** rendering of the upstream two-word name is gated.
+Junction started as a fork, and the upstream product's identity is **retired**,
+not misspelled: no system in this tree still owns any of its spellings. The CLI,
+the Python package, the environment prefix, the data home, the download and
+update hosts, the bundle id, the repository slug and the mascot all moved to
+Junction's own (``junction``, ``JUNCTION_*``, ``~/.junction``,
+``getjunction.dev``, ``dev.junction.desktop``, ``laqaer/junction``, the
+J-and-switch mark). So every rendering of the old identity is residue, in prose
+and in identifiers alike, and this gate reports each one:
 
-Junction is accepted and is not a misspelling.
+* the upstream two-word product name in any case, with its words glued or
+  joined by one joiner: whitespace, ``_``, ``-``, ``.``, ``+``, ``/``, ``\\``
+  (escaped or not), a Unicode dash or zero-width character, ``%20``,
+  ``&nbsp;``, or a regex spelling of any of those (see ``_JOINER``). That one
+  family spans the prose name, the CLI and package spellings, the environment
+  prefix, and the retired data home beside kiro-cli's directory;
+* the retired data home INSIDE kiro-cli's directory, both as one path literal
+  (either separator, escaped or not) and as code builds it: the directory and
+  the second word as two string literals joined by a path operator, a comma, a
+  ``+`` or ``joinpath``, or around an ``os.sep`` / ``path.sep`` interpolation;
+* hosts under the retired product domain (its ``download.``, ``updates.`` and
+  ``apps.`` subdomains all carry it);
+* the retired Apple bundle id;
+* the upstream GitHub organisation, except where it cites kiro-cli's own public
+  repository (see ``_KIRO_CLI_REPO``). Every other use -- a slug with any other
+  repository, the container namespace, the ``-labs`` registry, an owner check
+  -- is flagged, and a slug naming the retired product also reports the name;
+* the upstream ghost mascot's component name.
+
+What the gate leaves alone is kiro-cli, the harness Junction drives: its own
+home ``~/.kiro`` and kiro-cli's own directories in it (``~/.kiro/settings``,
+``~/.kiro/agents``), ``kiro-cli``, ``Kiro CLI``, ``ACP_BACKEND_KIRO``, the
+``kiro.dev`` documentation site, and citations of kiro-cli's own repository
+under the organisation above. The generic word ``crew`` on its own is not the
+upstream identity either, and neither are the two words when clause
+punctuation (``. ``, ``, ``, ``? ``) separates them.
+
+## The one exemption
+
+``NOTICE`` at the repository root. Apache-2.0 section 4(d) requires a
+derivative work to keep the attribution notices of the work it derives from,
+so that file must name the upstream product. It is exempt by path and by
+nothing else: there is no inline suppression marker, because the retired
+identity has no other legitimate home and a marker would let residue opt itself
+back in.
 
 ## Why diff-scoped and not whole-tree
 
-The tree carries thousands of prose ``KiroCrew``s that predate the convention.
-A whole-tree gate would fail every PR until a single enormous rename lands, and
-would charge that failure to whoever pushed next. So the enforcing check reads
-only the lines the change *adds* (``BRAND_BASE_REF``), which is complete for
-regression: a line can only reach ``main`` through a diff that added it. The
-whole-tree number is still printed, as a non-failing report, so the backlog
-stays visible without ever being anyone's build break.
+The enforcing check reads only the lines the change *adds* (``BRAND_BASE_REF``),
+which is complete for regression: a line can only reach ``main`` through a diff
+that added it. Residue that predates the rename never becomes the build break
+of whoever pushed next; the whole-tree count is printed instead, as a
+non-failing report, so it stays visible until it is gone.
 
 ## Usage
 
     # enforce on what this branch adds (exit 1 on any violation)
     BRAND_BASE_REF=origin/main python3 scripts/check_brand_name.py
 
-    # report the whole-tree backlog, enforce nothing (exit 0)
+    # report the whole-tree residue, enforce nothing (exit 0)
     python3 scripts/check_brand_name.py
 
-    # scan explicit files, ignoring git entirely
+    # scan explicit files, ignoring git entirely (exit 1 on any violation)
     python3 scripts/check_brand_name.py README.md docs/foo.md
 
-    # self-test: plant one probe per rule family, assert each is caught
+    # self-test: plant one probe per rule family, assert each verdict
     python3 scripts/check_brand_name.py --test
 
-## Escape hatch
-
-A line that must carry the concatenated spelling for a reason the rules below do
-not model can opt out with a ``brand-ok`` marker in a trailing comment. Use it
-sparingly: it is unscoped and silences the whole line.
+This file and its tests assemble every retired spelling from fragments, so both
+are scanned like any other file and neither carries the identity they hunt.
 """
 
 from __future__ import annotations
 
-import bisect
 import math
 import os
 import re
@@ -65,142 +95,146 @@ _PERF_ATTEMPTS = 5
 _PERF_MIN_BASE_SECS = 0.020
 
 # Baseline workloads, tried in order until one produces a measurable baseline.
-# A single fixed size cannot serve both ends of the hardware range: 20k costs a
-# fast machine ~19-21ms, which straddles the floor above, so the ratio went
-# UNJUDGED on a large fraction of runs -- the check reported `ok` while testing
-# nothing. Growing the workload buys a measurable baseline instead of abandoning
-# the check.
+# A single fixed size cannot serve both ends of the hardware range: on a fast
+# machine the smallest one lands near the floor above, and a baseline under the
+# floor leaves the ratio unjudged -- a check that reports `ok` while testing
+# nothing. Growing the workload buys a measurable baseline instead.
 #
 # Escalating is close to free because a REGRESSED scan never reaches it: its
-# baseline is ~25x the linear one, so it clears the floor at the first size and
-# is judged there. Only linear scans -- the fast case -- ever pay for a larger
-# size, and a slow runner clears the floor at 20k and pays nothing at all.
+# baseline is many times the linear one, so it clears the floor at the first
+# size and is judged there. Only linear scans -- the fast case -- ever pay for a
+# larger size, and a slow runner clears the floor at the first size.
 _PERF_BASE_SIZES = (20_000, 50_000, 120_000)
 
 # ---------------------------------------------------------------------------
-# What counts as a misspelling
+# The retired identity
 # ---------------------------------------------------------------------------
 
-# The concatenated forms. A capital letter inside the token is what makes it a
-# rendering of the *brand* rather than of an identifier: `kirocrew` all-lower is
-# the CLI command and `KIROCREW` all-upper is the env-var prefix, and neither is
-# ever prose, so neither appears here. `(?<![A-Za-z0-9_])` / `(?![A-Za-z0-9_])`
-# keep `KiroCrewApps` and `MyKiroCrewShim` out: those are single identifiers.
-CONCATENATED = re.compile(
-    r"(?<![A-Za-z0-9_])(?:KiroCrew|Kirocrew|kiroCrew|KiroCREW)(?![A-Za-z0-9_])"
-)
+# Fragments. Every retired literal is assembled from these at import time, so
+# this file never spells one out and the gate can scan itself.
+_KIRO = "kiro"
+_CREW = "crew"
+_GHOST = "ghost"
+_DEV = "dev"
 
-# Spaced but uncapitalised. What keeps the `~/.kiro/crew` data directory and the
-# `kiro-crew-security-support` alias out is the literal **space** — neither can
-# match this pattern at all. The leading class narrows something else: a spaced
-# form that follows `.`, `/`, `\` or `-`, which is a fragment of some longer
-# token rather than the two-word brand.
-UNCAPITALISED = re.compile(r"(?<![A-Za-z0-9_./\\-])kiro crew(?![A-Za-z0-9_])")
-
-CORRECT = "Kiro Crew"
-
-# ---------------------------------------------------------------------------
-# Structural exemptions — places the concatenated spelling is the true name
-# ---------------------------------------------------------------------------
-
-# Shipped artifact filenames: KiroCrew.dmg, KiroCrew.exe, KiroCrew.app ...
-# The list is closed on purpose. `KiroCrew.` followed by anything else — most
-# importantly by end-of-sentence — stays a violation.
+# What may join the two words of a retired name: nothing, or ONE joiner, which is
+# one of
 #
-# These three are applied with `.match(line, pos)`, which anchors at ``pos``, so
-# none of them carries a `^`: slicing the line to give each one its own string
-# would copy the whole tail once per match.
-ARTIFACT_EXT = re.compile(
-    r"\.(?:exe|dmg|app|lnk|zip|AppImage|deb|rpm|pkg|msi|ico|icns|iconset"
-    r"|plist|entitlements|desktop|service|blockmap|nupkg|tar|gz|sha256)"
-    r"(?![A-Za-z0-9])"
+# * one or two whitespace characters (a space, a tab, a no-break space, a
+#   doubled space);
+# * one or two of ``_ + / -``, a Unicode hyphen or dash, a soft hyphen, or a
+#   zero-width character. None of these is whitespace, so none can end a
+#   sentence;
+# * a single ``.``, never followed by anything else. A dot followed by a space
+#   is a sentence boundary: a sentence that ends on the harness's name, followed
+#   by one that opens with the generic word, names kiro-cli and then a crew, not
+#   the retired product;
+# * one or two backslashes, optionally followed by a space, a dot or ``s`` (a
+#   Windows path, the same path escaped inside a string literal, a
+#   shell-escaped space, a regex-escaped dot or whitespace class);
+# * ``%20`` (a URL-encoded space), ``&nbsp;`` (an HTML one), or a short regex
+#   character class such as ``[ -]``;
+#
+# optionally followed by a regex ``?`` or ``*``, so a pattern written to match
+# the name (the name with `` ?`` between its words) is reported as the name too.
+# Punctuation that separates clauses (``,``, ``;``, ``!``, ``?`` followed by a
+# space) is not a joiner, so two words that merely sit next to each other in
+# prose are never joined into the name.
+#
+# Every part is bounded, and that matters for linearity as much as for
+# precision: every alternative in RETIRED below has a fixed maximum length, so
+# each start position costs constant work and a scan is linear in the line
+# whatever the line holds.
+_JOINER = (
+    r"(?:\s{1,2}"
+    r"|[_+/\-\u2010-\u2015\u00ad\u200b-\u200d\u2060\ufeff]{1,2}"
+    r"|\."
+    r"|\\{1,2}[ .s]?"
+    r"|%20|&nbsp;"
+    r"|\[[\s_.\-\\]{1,4}\])"
+)
+_SEPARATOR = rf"(?:{_JOINER}[?*]?)?"
+
+# A quote that opens or closes a string literal in Python, JavaScript or shell.
+_QUOTE = "[\"'`]"
+
+# The retired data home as code usually BUILDS it rather than spelling it: the
+# kiro-cli directory and the second word as two string literals joined by a path
+# operator, an argument comma, a ``+``, or ``joinpath(`` -- optionally closing a
+# ``Path(...)`` call first -- or as one literal around a ``{os.sep}`` /
+# ``${path.sep}`` interpolation. Whitespace runs are bounded like everything else.
+_HOME_SPLIT = (
+    rf"[/\\]{{0,2}}{_QUOTE}\)?\s{{0,2}}(?:[,/+]|\.joinpath\()\s{{0,2}}"
+    rf"[rfb]{{0,2}}{_QUOTE}[/\\]{{0,2}}{_CREW}"
+    rf"|\$?\{{(?:os|path)\.sep\}}{_CREW}"
 )
 
-# Release-artifact suffixes: KiroCrew-x86_64.AppImage, KiroCrew-notarized-...,
-# KiroCrew-Nightly. Deliberately a closed list rather than "hyphen means
-# artifact", so prose like `KiroCrew-specific` is still reported.
-ARTIFACT_SUFFIX = re.compile(
-    r"-(?:x86_64|aarch64|arm64|amd64|x64|universal|notarized|unnotarized"
-    r"|[Nn]ightly|[Ss]etup|[Pp]ortable|mac|darwin|linux|win(?:dows)?"
-    r"|\d+\.\d+)(?![A-Za-z0-9])"
+# The retired literals, each built from the fragments above.
+_HOST = f"{_CREW}.{_KIRO}.{_DEV}"
+_BUNDLE_ID = ".".join(("com", "amazon", _KIRO, _CREW))
+_ORG = f"{_KIRO}dot{_DEV}"
+
+# The upstream organisation also owns kiro-cli's own public repository, whose
+# name is the bare first word. kiro-cli is the harness Junction drives, so a
+# citation of THAT repository -- as a slug (``<org>/<Kiro>``, ``<org>/<Kiro>#123``,
+# ``github.com/<org>/<Kiro>/issues``) or as an owner/repo pair (``owner: '<org>',
+# repo: '<Kiro>'``, ``"<org>", "<Kiro>"``) -- is kiro-cli's identity, not the
+# retired one. The first word must end there (``\b``), so a slug naming the
+# retired product (the two words glued) still reports the organisation, and any
+# other use of the organisation -- a container namespace, its ``-labs``
+# registry, an owner check in CI, a slug with any other repository -- is still
+# flagged.
+_KIRO_CLI_REPO = (
+    rf"(?:/|{_QUOTE}?\s{{0,2}},\s{{0,2}}"
+    rf"(?:{_QUOTE}?repo(?:sitory)?{_QUOTE}?\s{{0,2}}[:=]\s{{0,2}})?{_QUOTE})"
+    rf"{_KIRO}\b"
 )
 
-# The channel-qualified product name, which is a **space**-separated OS
-# identifier: ``PRODUCT_NAMES`` in ``cli_desktop.py`` spells the macOS log
-# directory ``~/Library/Logs/KiroCrew Nightly`` and the Windows config directory
-# the same way, and electron's ``instance-guard.js`` keeps ``appName`` distinct
-# from its ``displayName`` for exactly this reason. Prose and identifier are the
-# same characters here, so no rule can separate them — the identifier wins,
-# because renaming it would move a user's logs and config out from under them.
-CHANNEL_SUFFIX = re.compile(r" (?:[Nn]ightly|[Ii]nsider|[Ss]table)(?![A-Za-z0-9])")
-
-# Where a URL can begin. The `(?<![A-Za-z0-9.-])` lookbehind is what keeps this
-# linear, and not just correct: a host can only START where the preceding character
-# is not itself a host character, so a long run of them offers exactly one starting
-# position instead of one per character. Without it, `finditer` would re-walk the
-# run from every offset and a single long token would cost O(len²).
-URL_START = re.compile(
-    r"https?://|git@|ssh://|(?<![A-Za-z0-9.-])[A-Za-z0-9][A-Za-z0-9.-]*" r"\.(?:com|dev|io|org)/"
+# One alternation, so each span is reported once under the rule that names it
+# best. `finditer` takes the leftmost match, which is what orders the rules: the
+# bundle id and the data-home path both START before the two-word name they
+# contain, so they win over it, and the host starts with the second word, so the
+# name rule can never claim it. Case never matters: a retired identifier is
+# retired in every case, environment prefix included.
+RETIRED = re.compile(
+    "|".join(
+        (
+            f"(?P<bundle>{re.escape(_BUNDLE_ID)})",
+            f"(?P<host>{re.escape(_HOST)})",
+            f"(?P<org>{_ORG}(?!{_KIRO_CLI_REPO}))",
+            rf"(?P<home>\.{_KIRO}(?:[/\\]{{1,2}}{_CREW}|{_HOME_SPLIT}))",
+            f"(?P<mascot>{_KIRO}{_SEPARATOR}{_GHOST})",
+            f"(?P<brand>{_KIRO}{_SEPARATOR}{_CREW})",
+        )
+    ),
+    re.IGNORECASE,
 )
 
-# Characters that end a URL. Markup and punctuation around a link are not part of
-# it, so `<a href="https://example.com/">KiroCrew` must not read as "inside a URL"
-# — the brand there is visible prose.
-URL_TERMINATOR = re.compile(r"[\"'<>()\[\]`,;\s]")
+# What each rule's residue becomes. Printed beside every finding, so a
+# contributor sees the Junction spelling without opening this file.
+REPLACEMENTS: dict[str, str] = {
+    "brand": "Junction (prose), junction / JUNCTION_* (identifiers), ~/.junction (data home)",
+    "home": "~/.junction (or $JUNCTION_HOME)",
+    "host": "getjunction.dev (download., updates., apps.)",
+    "bundle": "dev.junction.desktop",
+    "org": "laqaer/junction",
+    "mascot": "the Junction mark, generated from assets/brand/build.py",
+}
 
+# ---------------------------------------------------------------------------
+# Scope
+# ---------------------------------------------------------------------------
 
-def hyphen_interior(line: str, start: int) -> bool:
-    """Is the brand at ``start`` inside a hyphenated identifier?
+# The only text the retired identity may appear in: the Apache-2.0 section 4(d)
+# attribution, at the repository root. Matched against the repo-relative path
+# exactly, so a NOTICE anywhere else is scanned like any other file.
+EXEMPT_PATHS = ("NOTICE",)
 
-    The ``X-KiroCrew-Proxy`` header is the case that matters. Only the hyphen
-    itself is required: demanding a word character before it as well would let
-    this rule carry an untestable branch, since the tree holds no ``-KiroCrew``
-    preceded by anything other than a word character. Prose is unaffected either
-    way — ``KiroCrew-owned`` has a *space* before the brand, not a hyphen.
-
-    Takes a position rather than the text before it, because slicing the line to
-    produce that text costs O(length) once per match.
-    """
-    return start > 0 and line[start - 1] == "-"
-
-
-def url_spans(line: str) -> list[tuple[int, int]]:
-    """Half-open ranges the line's URLs cover, in one left-to-right pass.
-
-    Computed per LINE, never per match. Asking "is this position inside a URL?"
-    by rescanning the text before each match costs O(matches x length), which a
-    line carrying many brand tokens turns into seconds of CPU.
-
-    A URL runs from its start to the first character that cannot be part of one.
-    Markup and punctuation therefore end it, which is what keeps
-    ``<a href="https://example.com/">KiroCrew`` out of the span: the brand there
-    is visible prose, not part of the link.
-    """
-    spans: list[tuple[int, int]] = []
-    for m in URL_START.finditer(line):
-        start = m.start()
-        if spans and start < spans[-1][1]:
-            continue  # already inside the URL we are holding
-        stop = URL_TERMINATOR.search(line, m.end())
-        spans.append((start, stop.start() if stop else len(line)))
-    return spans
-
-
-def covered(spans: list[tuple[int, int]], starts: list[int], pos: int) -> bool:
-    """Is ``pos`` inside one of these non-overlapping, sorted spans?
-
-    Binary search rather than a linear scan, so a line with many spans and many
-    matches does not degrade into a quadratic pairing of the two.
-    """
-    i = bisect.bisect_right(starts, pos) - 1
-    return i >= 0 and pos < spans[i][1]
-
-
-SUPPRESSION = re.compile(r"brand-ok")
-
-# Binary-ish and vendored trees the gate has no business reading. Everything
-# else in the repo is in scope — including the shipped locale catalogs, whose
-# translated values render the brand to users.
+# Trees that hold no text this repository authors: git's own store, installed
+# dependencies, build output, screenshots, and the vendored tree (which AGENTS.md
+# excludes from every linter, and whose native libraries carry suffixes -- `.0`,
+# `.dylib` -- no extension list will ever fully enumerate). These are not
+# exemptions from the identity rule; they are bytes the gate cannot read as text.
 SKIP_DIRS = (
     ".git/",
     "node_modules/",
@@ -208,8 +242,6 @@ SKIP_DIRS = (
     "website/node_modules/",
     "site/node_modules/",
     "temp-screenshots/",
-    # AGENTS.md excludes _vendor/ from every linter, and it holds native libraries
-    # whose suffixes (`.0`, `.dylib`) no extension list will ever fully enumerate.
     "src/junction/_vendor/",
 )
 SKIP_SUFFIXES = (
@@ -232,32 +264,6 @@ SKIP_SUFFIXES = (
     ".zip",
     ".gz",
 )
-SKIP_PATHS = (
-    "package-lock.json",
-    "website/package-lock.json",
-    "THIRD-PARTY-NOTICES.md",
-    "NOTICE",
-    # Every brand-shaped string in here is the packaged `.app` basename, and JSON
-    # has no comments, so the per-line escape hatch cannot reach it.
-    "website/electron/package.json",
-    # This gate's own rule text and probes spell every forbidden form out.
-    "scripts/check_brand_name.py",
-    "test/test_brand_name_gate.py",
-)
-
-# Generated artifacts. Counted by the whole-tree report, never enforced.
-#
-# The locale catalogs are machine-translated and carry ~85 joined spellings each;
-# `tips_catalog.json` is derived from `src/junction/docs/*.md`. Both are JSON, so
-# neither offers a line the `brand-ok` comment could sit on, and both re-emit their
-# lines wholesale when regenerated or re-indented — which would fail a PR on text its
-# author neither wrote nor can correct where the error points. Their sources stay
-# enforced (`en.json`, `en.manual.json`, and the docs), so coverage is unchanged and
-# a fix there is what reaches the artifact.
-GENERATED_PATHS = (
-    re.compile(r"^website/src/i18n/locales/(?!en\.json$|en\.manual\.json$)[\w-]+\.json$"),
-    re.compile(r"^src/junction/data/tips_catalog\.json$"),
-)
 
 
 @dataclass(frozen=True)
@@ -266,71 +272,43 @@ class Violation:
     line_no: int
     token: str
     text: str
+    kind: str = "brand"
 
     def render(self) -> str:
-        head = f"{self.path}:{self.line_no}: {self.token!r} -> {CORRECT!r}"
+        replacement = REPLACEMENTS.get(self.kind, REPLACEMENTS["brand"])
+        head = f"{self.path}:{self.line_no}: {self.token!r} -> {replacement}"
         return f"{head}\n    {self.text.strip()[:160]}"
 
 
-# ---------------------------------------------------------------------------
-# Markdown code context
-# ---------------------------------------------------------------------------
+def repo_relative(path: str) -> str:
+    """``path`` as a forward-slashed path relative to the repository root.
 
-
-def fenced_lines(lines: list[str]) -> set[int]:
-    """1-based line numbers inside a fenced code block.
-
-    Shell snippets are the single largest source of legitimate concatenated
-    spellings in the docs (``cd KiroCrew``, ``git clone .../KiroCrew.git``), and
-    they are all inside fences. Tracking fence state needs the whole file, which
-    is why the scanner reads full blobs and filters to added lines afterwards
-    rather than scanning a diff hunk directly.
-
-    Width and character both matter. A fence closes only on a run of the SAME
-    character at least as long as the one that opened it, and carrying no info
-    string — which is what lets a four-backtick block quote a three-backtick
-    example without the inner run ending the outer block and exposing its
-    contents as prose.
+    Explicit arguments may be absolute. A path on another Windows drive has no
+    relative form, and cannot be the root ``NOTICE`` either, so it comes back
+    unchanged.
     """
-    inside: set[int] = set()
-    fence: tuple[str, int] | None = None
-    for i, raw in enumerate(lines, start=1):
-        stripped = raw.lstrip()
-        m = re.match(r"^(`{3,}|~{3,})", stripped)
-        if m:
-            run = m.group(1)
-            char, width = run[0], len(run)
-            if fence is None:
-                fence = (char, width)
-                inside.add(i)
-                continue
-            if char == fence[0] and width >= fence[1] and not stripped[width:].strip():
-                inside.add(i)
-                fence = None
-                continue
-        if fence is not None:
-            inside.add(i)
-    return inside
+    if os.path.isabs(path):
+        try:
+            path = os.path.relpath(path, REPO_ROOT)
+        except ValueError:
+            return path
+    return os.path.normpath(path).replace(os.sep, "/")
 
 
-def inline_code_spans(line: str) -> list[tuple[int, int]]:
-    """Half-open [start, end) ranges covered by backtick spans.
+def exempt(path: str) -> bool:
+    """Is this the one file the retired identity may appear in?"""
+    return repo_relative(path) in EXEMPT_PATHS
 
-    Pairs adjacent runs of equal length in one left-to-right pass. Searching
-    forward for each run's partner instead would rescan the tail of the line once
-    per run, which is quadratic on a line carrying many backticks.
-    """
-    runs = [(m.start(), m.end() - m.start()) for m in re.finditer(r"`+", line)]
-    spans: list[tuple[int, int]] = []
-    i = 0
-    while i < len(runs):
-        start, width = runs[i]
-        partner = next((j for j in range(i + 1, len(runs)) if runs[j][1] == width), None)
-        if partner is None:
-            break
-        spans.append((start, runs[partner][0] + width))
-        i = partner + 1
-    return spans
+
+def in_scope(path: str) -> bool:
+    """Is this repo-relative path text the gate reads?"""
+    if exempt(path):
+        return False
+    if any(path.startswith(d) for d in SKIP_DIRS):
+        return False
+    if path.endswith(SKIP_SUFFIXES):
+        return False
+    return True
 
 
 # ---------------------------------------------------------------------------
@@ -338,42 +316,17 @@ def inline_code_spans(line: str) -> list[tuple[int, int]]:
 # ---------------------------------------------------------------------------
 
 
-def scan_line(path: str, line_no: int, line: str, *, in_code: bool) -> Iterator[Violation]:
-    if in_code or SUPPRESSION.search(line):
-        return
-    is_markdown = path.endswith((".md", ".mdx"))
-    # Both of these are per-LINE. Deriving either inside the match loop would
-    # rescan the same text once per brand token, which is the quadratic shape a
-    # line carrying thousands of them exploits.
-    code_spans = inline_code_spans(line) if is_markdown else []
-    url_ranges = url_spans(line)
-    code_starts = [s for s, _ in code_spans]
-    url_starts = [s for s, _ in url_ranges]
+def scan_line(path: str, line_no: int, line: str) -> Iterator[Violation]:
+    """Every retired spelling on one line, in order.
 
-    for m in CONCATENATED.finditer(line):
-        start, end = m.span()
-        if covered(code_spans, code_starts, start):
-            continue
-        # Index into the line; never slice it. `line[:start]` copies the prefix
-        # once per match, which is what made a line of many brand names quadratic.
-        if start > 0 and line[start - 1] in "/\\":
-            continue  # path segment or repo slug
-        if end < len(line) and line[end] in "/\\":
-            continue  # path segment, other side
-        if hyphen_interior(line, start):
-            continue  # X-KiroCrew-Proxy and friends
-        if covered(url_ranges, url_starts, start):
-            continue  # inside a URL
-        if ARTIFACT_EXT.match(line, end) or ARTIFACT_SUFFIX.match(line, end):
-            continue  # release artifact filename
-        if CHANNEL_SUFFIX.match(line, end):
-            continue  # channel-qualified OS identifier
-        yield Violation(path, line_no, m.group(), line)
-
-    for m in UNCAPITALISED.finditer(line):
-        if covered(code_spans, code_starts, m.start()):
-            continue
-        yield Violation(path, line_no, m.group(), line)
+    No context narrows a finding: code fences, inline code, URLs and identifiers
+    are all scanned, because the identity is retired in every one of them. Each
+    violation keeps a reference to the line rather than a slice of it, so a line
+    carrying many findings costs time linear in its length.
+    """
+    for m in RETIRED.finditer(line):
+        kind = m.lastgroup or "brand"
+        yield Violation(path, line_no, m.group(), line, kind)
 
 
 def read_lines(path: str) -> list[str] | None:
@@ -392,12 +345,11 @@ def read_lines(path: str) -> list[str] | None:
 
 
 def scan_lines(path: str, lines: list[str], only_lines: set[int] | None = None) -> list[Violation]:
-    code_lines = fenced_lines(lines) if path.endswith((".md", ".mdx")) else set()
     found: list[Violation] = []
     for line_no, line in enumerate(lines, start=1):
         if only_lines is not None and line_no not in only_lines:
             continue
-        found.extend(scan_line(path, line_no, line, in_code=line_no in code_lines))
+        found.extend(scan_line(path, line_no, line))
     return found
 
 
@@ -405,34 +357,14 @@ def scan_file(path: str, only_lines: set[int] | None = None) -> list[Violation]:
     """Scan one file, optionally restricted to a set of 1-based line numbers.
 
     Unreadable files report nothing. That is right for the whole-tree *report*,
-    which walks everything git tracks; the enforcing path must not use this, and
-    calls :func:`read_lines` itself so it can fail closed instead.
+    which walks everything git tracks; the enforcing paths must not use this for
+    a verdict on readability, and call :func:`read_lines` themselves so they can
+    fail closed instead.
     """
     lines = read_lines(path)
     if lines is None:
         return []
     return scan_lines(path, lines, only_lines)
-
-
-def in_scope(path: str) -> bool:
-    """Is this path readable text the report should count?"""
-    if path in SKIP_PATHS:
-        return False
-    if any(path.startswith(d) for d in SKIP_DIRS):
-        return False
-    if path.endswith(SKIP_SUFFIXES):
-        return False
-    return True
-
-
-def enforced(path: str) -> bool:
-    """Is this path one a change can be held responsible for?
-
-    Narrower than :func:`in_scope` by exactly the generated artifacts, so the report
-    keeps showing the whole backlog while the gate only blocks on text an author
-    actually wrote.
-    """
-    return in_scope(path) and not any(p.match(path) for p in GENERATED_PATHS)
 
 
 # ---------------------------------------------------------------------------
@@ -493,7 +425,7 @@ def changed_paths(frm: str) -> list[str]:
             f"present. Fetch it before running, or unset BRAND_BASE_REF to report "
             f"whole-tree counts without enforcing.\n{exc.stderr}"
         )
-    return [p for p in out.split("\0") if p and enforced(p)]
+    return [p for p in out.split("\0") if p and in_scope(p)]
 
 
 def added_lines(frm: str, path: str) -> set[int]:
@@ -531,135 +463,133 @@ def added_lines(frm: str, path: str) -> set[int]:
 # Self-test
 # ---------------------------------------------------------------------------
 
-PROBES: tuple[tuple[str, str, bool], ...] = (
-    ("prose", "Run KiroCrew on your laptop.", True),
-    ("possessive", "This is KiroCrew's own sandbox.", True),
-    ("sentence-end", "shipped with KiroCrew.", True),
-    ("uncapitalised", "Install kiro crew first.", True),
-    ("cli-command", "Run `kirocrew serve` to start it.", False),
-    ("env-var", 'os.environ["KIROCREW_HOME"]', False),
-    ("module", "from kiro_crew.config import loader", False),
-    ("repo-slug", "https://github.com/kirodotdev/KiroCrew/issues", False),
-    ("wrapped-slug", "see [docs](https://github.com/kirodotdev/KiroCrew/issues)", False),
-    ("url-query", "https://example.com/d?app=KiroCrew&v=2", False),
-    ("markup-after-url", '<a href="https://example.com/">KiroCrew</a>', True),
-    ("url-then-prose", "https://example.com/x is where KiroCrew lives", True),
-    # One-sided on purpose, all four. A probe with a separator on BOTH sides of the
-    # brand is satisfied by either check alone, so it cannot tell which one broke.
-    ("path-before", "built from ~/src/KiroCrew last night", False),
-    ("path-after", "KiroCrew/website holds the frontend", False),
-    ("windows-path-before", r"installed to C:\Program Files\KiroCrew", False),
-    ("windows-path-after", r"launches KiroCrew\resources\app.asar", False),
-    ("glued-identifier", "resolve KiroCrewApps from the registry", False),
-    ("artifact-ext", "signs KiroCrew.exe and Update.exe", False),
-    ("artifact-suffix", "publishes KiroCrew-x86_64.AppImage", False),
-    ("channel-identifier", 'home / "Library" / "Logs" / "KiroCrew Nightly"', False),
-    ("http-header", 'assert "X-KiroCrew-Proxy" in headers', False),
-    ("hyphen-prose", "every KiroCrew-owned file", True),
-    ("data-dir", "state lives under ~/.kiro/crew/workspace", False),
-    ("suppressed", "correct = 'KiroCrew'  # brand-ok: dictionary fixture", False),
+# Probe spellings, assembled from the fragments like everything else here.
+_KIRO_CAP = _KIRO.capitalize()
+_CREW_CAP = _CREW.capitalize()
+_NAME = _KIRO_CAP + _CREW_CAP
+_NAME_SPACED = f"{_KIRO_CAP} {_CREW_CAP}"
+_MASCOT = _KIRO_CAP + _GHOST.capitalize()
+
+# (label, line, expected kinds in order). An empty tuple means "must not flag".
+PROBES: tuple[tuple[str, str, tuple[str, ...]], ...] = (
+    ("prose-joined", f"Run {_NAME} on your laptop.", ("brand",)),
+    ("prose-spaced", f"{_NAME_SPACED} keeps working while you sleep.", ("brand",)),
+    ("prose-lower", f"install {_NAME_SPACED.lower()} first", ("brand",)),
+    ("en-dash", f"the {_KIRO_CAP}\u2013{_CREW_CAP} desktop app", ("brand",)),
+    ("zero-width", f"{_KIRO}\u200b{_CREW} hides a joiner", ("brand",)),
+    ("url-encoded", f"https://example.com/?q={_KIRO_CAP}%20{_CREW_CAP}", ("brand",)),
+    ("regex-optional", f"title.replace(/^{_KIRO_CAP} ?{_CREW_CAP} /g, '')", ("brand",)),
+    ("regex-class", f"re.compile(r'{_KIRO}[ -]?{_CREW}')", ("brand",)),
+    ("shell-escaped", f"open /Applications/{_KIRO_CAP}\\ {_CREW_CAP}.app", ("brand",)),
+    ("cli", f"run `{_KIRO}{_CREW} serve` to start it", ("brand",)),
+    ("package", f"from {_KIRO}_{_CREW}.config import loader", ("brand",)),
+    ("hyphenated", f"mailto:{_KIRO}-{_CREW}-support@example.com", ("brand",)),
+    ("env-var", f'os.environ["{(_KIRO + _CREW).upper()}_HOME"]', ("brand",)),
+    ("glued-identifier", f"resolve {_NAME}Apps from the registry", ("brand",)),
+    ("artifact", f"signs {_NAME}.exe and {_NAME}-x86_64.AppImage", ("brand", "brand")),
+    ("home-posix", f"state lives under ~/.{_KIRO}/{_CREW}/workspace", ("home",)),
+    ("home-windows", f"C:\\Users\\me\\.{_KIRO}\\{_CREW}\\gateway.sock", ("home",)),
+    ("home-escaped", f'"C:\\\\Users\\\\me\\\\.{_KIRO}\\\\{_CREW}"', ("home",)),
+    ("home-joined", f"migrated from ~/.{_KIRO}{_CREW}", ("brand",)),
+    ("home-path-operator", f'Path.home() / ".{_KIRO}" / "{_CREW}"', ("home",)),
+    ("home-join-args", f'os.path.join(home, ".{_KIRO}", "{_CREW}")', ("home",)),
+    ("home-tuple", f'parts = (".{_KIRO}", "{_CREW}")', ("home",)),
+    ("home-closed-call", f'Path(".{_KIRO}") / "{_CREW}-auth-staging"', ("home",)),
+    ("home-os-sep", f'f".{_KIRO}{{os.sep}}{_CREW}"', ("home",)),
+    ("host", f"curl -fsSL https://download.{_HOST}/cli.sh | sh", ("host",)),
+    ("bundle-id", f"codesign --identifier {_BUNDLE_ID}", ("bundle",)),
+    ("slug", f"https://github.com/{_ORG}/{_NAME}/issues", ("org", "brand")),
+    ("org", f"ghcr.io/{_ORG}/junction:latest", ("org",)),
+    ("org-labs", f"registry: '{_ORG}-labs'", ("org",)),
+    ("org-other-repo", f"{{ owner: '{_ORG}', repo: 'junction' }}", ("org",)),
+    ("mascot", f'import {_MASCOT} from "./{_MASCOT}"', ("mascot", "mascot")),
+    ("no-marker", f"x = '{_NAME}'  # brand-ok", ("brand",)),
+    ("kiro-home", "kiro-cli reads ~/.kiro/settings/cli.json and ~/.kiro/agents/", ()),
+    ("kiro-home-built", 'Path.home() / ".kiro" / "settings" / "cli.json"', ()),
+    ("kiro-cli", "install kiro-cli, the Kiro CLI, as ACP_BACKEND_KIRO", ()),
+    ("kiro-docs", "see https://kiro.dev/docs/cli for the harness", ()),
+    ("kiro-cli-repo", f"upstream fix requested in {_ORG}/{_KIRO_CAP}#10970", ()),
+    ("kiro-cli-repo-url", f"https://github.com/{_ORG}/{_KIRO_CAP}/issues/11", ()),
+    ("kiro-cli-repo-pair", f"{{ owner: '{_ORG}', repo: '{_KIRO_CAP}' }}", ()),
+    ("crew-alone", "a remote crew runs the crew_companion app (STAGE_CREW_LEAF)", ()),
+    ("apart", "kiro-cli drives the agent crew", ()),
+    ("sentence-boundary", f"The harness is {_KIRO_CAP}. {_CREW_CAP} agents pick it up.", ()),
+    ("clause-comma", f"{_KIRO_CAP}, {_CREW} and more", ()),
+    ("clause-question", f"Is it {_KIRO}? {_CREW_CAP} members decide.", ()),
+    ("junction", "Junction routes agents; run `junction gateway`", ()),
 )
 
 
 def self_test() -> int:
     failures = 0
-    for label, line, should_flag in PROBES:
-        hits = list(scan_line("probe.py", 1, line, in_code=False))
-        flagged = bool(hits)
-        if flagged != should_flag:
-            verb = "was not flagged" if should_flag else f"was flagged ({hits[0].token!r})"
-            print(f"  FAIL {label}: {verb} — {line}")
+    for label, line, want in PROBES:
+        got = tuple(v.kind for v in scan_line("probe.py", 1, line))
+        if got != want:
+            print(f"  FAIL {label}: expected {list(want)}, got {list(got)} — {line}")
             failures += 1
         else:
             print(f"  ok   {label}")
 
-    # Fenced code in markdown is exempt; the prose around it is not.
-    doc = ["Run KiroCrew.", "```bash", "cd KiroCrew", "```", "KiroCrew is done."]
-    fenced = fenced_lines(doc)
-    if fenced != {2, 3, 4}:
-        print(f"  FAIL fence-tracking: expected {{2, 3, 4}}, got {fenced}")
+    # The root NOTICE is the one exemption, and only at the root.
+    scope = (in_scope("NOTICE"), in_scope("docs/NOTICE"), in_scope("NOTICE.md"))
+    if scope != (False, True, True):
+        print(f"  FAIL notice-exemption: in_scope(NOTICE, docs/NOTICE, NOTICE.md) = {scope}")
         failures += 1
     else:
-        print("  ok   fence-tracking")
+        print("  ok   notice-exemption")
 
-    md_hits = [
-        v.line_no
-        for i, line in enumerate(doc, start=1)
-        for v in scan_line("doc.md", i, line, in_code=i in fenced)
-    ]
-    if md_hits != [1, 5]:
-        print(f"  FAIL fence-exemption: expected prose lines [1, 5], got {md_hits}")
-        failures += 1
-    else:
-        print("  ok   fence-exemption")
-
-    inline = list(scan_line("doc.md", 1, "clone `KiroCrew` then run KiroCrew.", in_code=False))
-    if len(inline) != 1:
-        print(f"  FAIL inline-code: expected 1 hit outside the span, got {len(inline)}")
-        failures += 1
-    else:
-        print("  ok   inline-code")
-
-    # A generated file can carry one very long line. Every check on the path to a
-    # verdict has to stay linear in its length, or the job times out on input a
-    # contributor cannot see is pathological.
-    #
-    # Two shapes, because they reach different checks. A filler separated from the
-    # brand by a space leaves `token_prefix` empty, so it exercises CONCATENATED,
-    # UNCAPITALISED and the backtick scan but never `inside_url`. Only a filler
-    # GLUED to the brand hands `URL_START` the whole prefix, which is the one
-    # place an unbounded host quantifier would go quadratic.
+    # A generated file can carry one very long line. The scan has to stay linear
+    # in its length, or the job times out on input a contributor cannot see is
+    # pathological. Each filler is a run of near-misses for one of the rules, so
+    # a pattern that grew an unbounded quantifier re-walks the run from every
+    # offset.
     start = time.monotonic()
-    for filler, glue in ((".", " "), ("a-", " "), ("x.com", " "), ("`", " "), ("a.", "")):
-        long_line = filler * (200_000 // len(filler)) + glue + "KiroCrew"
-        if not list(scan_line("big.md", 1, long_line, in_code=False)):
-            print(f"  FAIL linearity: missed the brand after a {filler!r} run")
+    fillers = (
+        (".", " "),
+        ("a-", " "),
+        ("x.com", " "),
+        (f"{_KIRO} ", " "),
+        (f"{_KIRO}-cli ", ""),
+        (f"~/.{_KIRO}/", " "),
+        (f'.{_KIRO}" / "', " "),
+        (f"{_KIRO}%20", " "),
+        (f"{_KIRO}\\\\", " "),
+        (f"{_KIRO}[ -]", " "),
+        (f"{_ORG}/{_KIRO_CAP} ", " "),
+        ("`", " "),
+    )
+    for filler, glue in fillers:
+        long_line = filler * (200_000 // len(filler)) + glue + _NAME
+        if [v.token for v in scan_line("big.md", 1, long_line)] != [_NAME]:
+            print(f"  FAIL linearity: missed the name after a {filler!r} run")
             failures += 1
     elapsed = time.monotonic() - start
     if elapsed > 2.0:
-        print(f"  FAIL linearity: 5 x 200k-char lines took {elapsed:.1f}s (expected < 2s)")
+        print(
+            f"  FAIL linearity: {len(fillers)} x 200k-char lines took {elapsed:.1f}s "
+            "(expected < 2s)"
+        )
         failures += 1
     else:
-        print(f"  ok   linearity ({elapsed:.2f}s for 5 x 200k chars)")
+        print(f"  ok   linearity ({elapsed:.2f}s for {len(fillers)} x 200k chars)")
 
-    # The uncapitalised rule has its own inline-code exemption, on a separate
-    # branch from the concatenated one above.
-    if list(scan_line("doc.md", 1, "run `kiro crew` from a shell", in_code=False)):
-        print("  FAIL inline-code-lower: a spaced form inside a code span was flagged")
-        failures += 1
-    else:
-        print("  ok   inline-code-lower")
-
-    # Many brand names in ONE whitespace-free run. This is the shape that goes
+    # Many findings in ONE whitespace-free run. This is the shape that goes
     # quadratic the moment any per-match step slices the line or rescans its
     # prefix. The assertion is on the GROWTH RATIO, not a wall-clock budget: an
     # absolute threshold generous enough for a loaded CI runner is also generous
     # enough to let a quadratic implementation pass at this size.
     #
-    # Measuring a ratio puts the whole burden on the timer, and the original
-    # form (one `time.monotonic()` sample per size) had two independent ways to
-    # report a regression that was not there. It was the single largest source
-    # of Windows CI flakes:
-    #
-    # * WRONG CLOCK. `time.monotonic()` is `GetTickCount64()` on Windows, a
-    #   ~15.625ms tick. The base scan costs ~60ms there, so a sample was only
-    #   ~4 ticks wide and quantisation ALONE moved the ratio ~25%. Every
-    #   observed failure reported times that were exact multiples of 15.625ms
-    #   (0.047/0.062/0.109 -> 0.156/0.188/0.203).
-    # * WALL CLOCK AT ALL. Four xdist workers on a 4-vCPU runner means the
-    #   timed region gets descheduled, and the LONGER scan absorbs more
-    #   preemption than the shorter one -- which inflates the ratio
-    #   systematically rather than symmetrically. Taking the best of several
-    #   wall-clock samples does NOT fix this (measured: it made linear scans
-    #   breach 3.0x MORE often, because the shorter scan cleans up better).
-    #
-    # So measure CPU time, which simply does not advance while the thread is
-    # off-CPU, and pair each baseline with its own doubled sample so the two
-    # halves of a ratio always come from the same conditions. Measured under 2x
-    # CPU oversubscription: a linear scan stays at most 2.02x (never breaching)
-    # while a deliberately quadratic one never drops below 3.88x, so this keeps
-    # every bit of the check's teeth. `process_time` is also coarse on Windows,
-    # so the floor below still applies.
+    # Measuring a ratio puts the whole burden on the timer, so it measures CPU
+    # time, which does not advance while the thread is off-CPU. Wall clock does
+    # not work: `time.monotonic()` is `GetTickCount64()` on Windows, a ~15.625ms
+    # tick that quantises a short sample by a large fraction of itself, and when
+    # xdist workers oversubscribe the runner the LONGER scan absorbs more
+    # preemption than the shorter one, which inflates the ratio systematically.
+    # Pairing each baseline with its own doubled sample keeps the two halves of a
+    # ratio from the same conditions. Under 2x CPU oversubscription a linear scan
+    # stays at most ~2x while a quadratic one never drops below ~3.9x, so the 3.0x
+    # bound keeps the check's teeth. `process_time` is also coarse on Windows, so
+    # the floor still applies.
     def ratio_of(base: int) -> tuple[float, float, int, int]:
         """Best (least noisy) doubled/base CPU-time ratio over several attempts."""
         best = math.inf
@@ -668,7 +598,7 @@ def self_test() -> int:
 
         def once(count: int) -> tuple[float, int]:
             began = time.process_time()
-            hits = len(list(scan_line("big.md", 1, "!KiroCrew" * count, in_code=False)))
+            hits = len(list(scan_line("big.md", 1, f"!{_NAME}" * count)))
             return time.process_time() - began, hits
 
         for _ in range(_PERF_ATTEMPTS):
@@ -695,7 +625,7 @@ def self_test() -> int:
 
     if (base_found, doubled_found) != (base_count, base_count * 2):
         print(
-            f"  FAIL repeated-brands: found {base_found}/{doubled_found}, "
+            f"  FAIL repeated-names: found {base_found}/{doubled_found}, "
             f"want {base_count}/{base_count * 2}"
         )
         failures += 1
@@ -705,32 +635,21 @@ def self_test() -> int:
         # be hiding a regression -- report the fact rather than dividing noise by
         # noise.
         print(
-            f"  ok   repeated-brands (baseline {base_time * 1000:.1f}ms at {base_count} "
-            f"brands still below the {_PERF_MIN_BASE_SECS * 1000:.0f}ms measurement "
+            f"  ok   repeated-names (baseline {base_time * 1000:.1f}ms at {base_count} "
+            f"names still below the {_PERF_MIN_BASE_SECS * 1000:.0f}ms measurement "
             f"floor; ratio not judged)"
         )
     elif ratio > 3.0:
         print(
-            f"  FAIL repeated-brands: doubling the input cost {ratio:.1f}x CPU time "
+            f"  FAIL repeated-names: doubling the input cost {ratio:.1f}x CPU time "
             f"(best of {_PERF_ATTEMPTS}, baseline {base_time:.3f}s at {base_count} "
-            f"brands); linear is ~2x, so a per-match scan of the line has come back"
+            f"names); linear is ~2x, so a per-match scan of the line has come back"
         )
         failures += 1
     else:
         print(
-            f"  ok   repeated-brands (doubling cost {ratio:.1f}x at {base_count} "
-            f"brands, linear)"
+            f"  ok   repeated-names (doubling cost {ratio:.1f}x at {base_count} " f"names, linear)"
         )
-
-    # A wider fence is not closed by a narrower run inside it, so a doc can quote
-    # a fenced example without exposing its contents as prose.
-    nested = ["````markdown", "```bash", "cd KiroCrew", "```", "````", "Then run KiroCrew."]
-    nested_fenced = fenced_lines(nested)
-    if nested_fenced != {1, 2, 3, 4, 5}:
-        print(f"  FAIL fence-width: expected {{1..5}} inside, got {nested_fenced}")
-        failures += 1
-    else:
-        print("  ok   fence-width")
 
     print("self-test passed" if not failures else f"self-test FAILED ({failures})")
     return 1 if failures else 0
@@ -744,27 +663,33 @@ def self_test() -> int:
 def report(violations: Iterable[Violation], *, enforcing: bool, base: str | None) -> int:
     violations = list(violations)
     if not violations:
-        scope = f"lines added since {base}" if enforcing else "whole tree"
-        print(f"brand gate: no misspellings of {CORRECT!r} in the {scope} ✓")
+        if not enforcing:
+            scope = "whole tree"
+        elif base:
+            scope = f"lines added since {base}"
+        else:
+            scope = "files given"
+        print(f"brand gate: no retired upstream identity in the {scope} ✓")
         return 0
 
     if enforcing:
         print(
-            f"::error::brand gate: {len(violations)} line(s) added by this change "
-            f"spell the product name wrong. It is {CORRECT!r} — two words, capital K."
+            f"::error::brand gate: {len(violations)} retired upstream identity "
+            f"spelling(s) on lines this change adds. The upstream product's name, "
+            f"data homes, hosts, bundle id, organisation and mascot are retired in "
+            f"every spelling and every context; use Junction's own instead."
         )
     else:
         print(
-            f"::notice::brand gate report: {len(violations)} pre-existing line(s) "
-            f"spell the product name something other than {CORRECT!r}. Not enforced "
-            f"here; only lines a change adds are gated."
+            f"::notice::brand gate report: {len(violations)} pre-existing retired "
+            f"upstream identity spelling(s). Not enforced here; only lines a change "
+            f"adds are gated."
         )
     # The listing is path-sorted, so a silently-truncated report shows only the
-    # alphabetically-first paths — '.github/' and '.kiro/' alone exceed the report
-    # budget, which is how a backlog of UI-visible strings under 'src/' and
-    # 'website/' stayed invisible for a whole rename. Always disclose the cut, and
-    # on the report path precede the listing with a per-directory tally so the
-    # shape of the backlog survives truncation.
+    # alphabetically-first paths, and a backlog under 'src/' and 'website/' can
+    # hide behind '.github/' alone. Always disclose the cut, and on the report
+    # path precede the listing with a per-directory tally so the shape of the
+    # backlog survives truncation.
     shown = 200 if enforcing else 40
     if not enforcing and len(violations) > shown:
         tally: dict[str, int] = {}
@@ -782,14 +707,12 @@ def report(violations: Iterable[Violation], *, enforcing: bool, base: str | None
         print(f"... and {len(violations) - shown} more")
     if enforcing:
         print(
-            "\nIdentifiers keep their own spelling and are already exempt: the "
-            "kirodotdev/KiroCrew slug, KiroCrew.dmg-style artifacts, the KiroCrew Nightly "
-            "channel, KIROCREW_* env vars, the kirocrew CLI, kiro_crew imports, and "
-            "fenced/inline code in markdown. For anything else that genuinely needs the "
-            "joined form, add a 'brand-ok' comment on the line."
-            "\n\nOne case wants a reword rather than a substitution: a hyphenated compound. "
-            "'KiroCrew-owned' does not become 'Kiro Crew-owned' — hyphenating an open "
-            "two-word name reads wrong. Write 'owned by Kiro Crew' instead."
+            "\nThere is no inline suppression. The only exempt file is the root NOTICE, "
+            "whose Apache-2.0 attribution must name the upstream product. kiro-cli's own "
+            "spellings (~/.kiro and its settings/ and agents/ directories, kiro-cli, "
+            "Kiro CLI, kiro.dev, and citations of kiro-cli's own repository) and the word "
+            "'crew' on its own are not the retired identity and are not flagged. To name "
+            "the retired identity in a test or a gate, build it from fragments."
         )
     return 1 if enforcing else 0
 
@@ -814,8 +737,8 @@ def enforce_diff(base: str) -> int:
         # quietly stops gating, so refuse to pass instead of skipping.
         print(
             "::error::brand gate: cannot read these changed files as UTF-8 text, so "
-            "the product name in them was never checked. Either make them decodable "
-            "or add their suffix to SKIP_SUFFIXES in scripts/check_brand_name.py:"
+            "the retired upstream identity in them was never checked. Either make them "
+            "decodable or add their suffix to SKIP_SUFFIXES in scripts/check_brand_name.py:"
         )
         for path in unreadable:
             print(f"  {path}")
@@ -847,17 +770,19 @@ def main(argv: list[str]) -> int:
     if explicit:
         # Same fail-closed rule as enforce_diff: a path that yields no lines has
         # not been checked, so reporting it clean is a false green. Without this,
-        # a typo'd or moved path prints the success line and exits 0.
-        unreadable = [p for p in explicit if read_lines(p) is None]
+        # a typo'd or moved path prints the success line and exits 0. The root
+        # NOTICE is still exempt when named directly.
+        scanned = [p for p in explicit if not exempt(p)]
+        unreadable = [p for p in scanned if read_lines(p) is None]
         if unreadable:
             print(
                 "::error::brand gate: cannot read these paths as UTF-8 text, so the "
-                "product name in them was never checked:"
+                "retired upstream identity in them was never checked:"
             )
             for path in unreadable:
                 print(f"  {path}")
             return 1
-        found = [v for p in explicit for v in scan_file(p)]
+        found = [v for p in scanned for v in scan_file(p)]
         return report(found, enforcing=True, base=None)
 
     base = os.environ.get("BRAND_BASE_REF", "").strip()
