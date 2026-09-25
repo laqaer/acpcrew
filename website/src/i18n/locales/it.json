@@ -1151,7 +1151,7 @@
         "manage": "Gestisci",
         "moreAvatarsOn": "Altri avatar su",
         "noArt": "Quel compagno non aveva grafica utilizzabile",
-        "nowYourPet": "{{name}} è ora il tuo companion",
+        "nowYourPet": "{{name}} è ora il tuo compagno",
         "petNotFound": "Impossibile trovare quel compagno",
         "petdexIntro": "Incolla un link o un nome da {{link}} — una galleria gratuita di pet creati dalla community. Aprila, scegline uno che ti piace e copia il suo link.",
         "petdexLinkLabel": "petdex.dev",
@@ -1209,7 +1209,7 @@
       },
       "menu": {
         "change_avatar": "Cambia avatar",
-        "quit": "Disattiva companion"
+        "quit": "Disattiva Compagno"
       },
       "notif": {
         "finishedTask": "Attività completata",
@@ -2320,7 +2320,7 @@
           "filter_all": "Tutti",
           "filter_paused": "In pausa",
           "filter_working": "Al lavoro",
-          "filtered_empty_sub": "Scegli un altro filtro per vedere il resto dell’organico.",
+          "filtered_empty_sub": "Scegli un altro filtro per vedere il resto degli incaricati.",
           "filtered_empty_title": "Nessun incaricato corrisponde a questo filtro",
           "group_steward": "Incaricato",
           "new_steward": "Nuovo incaricato",
@@ -2676,12 +2676,13 @@
         "clear_filters": "Cancella filtri",
         "resize_list": "Ridimensiona l'elenco",
         "resize_sidebar": "Ridimensiona la barra laterale",
-        "select_a": "Seleziona un",
         "selected_change_hidden_by_filters": "L’elemento {{subject}} selezionato è nascosto dai filtri attivi.",
         "selected_issue_hidden_by_filters": "La issue selezionata è nascosta dai filtri attivi.",
-        "to_see_its_details": "per vederne i dettagli.",
         "select_an_issue_to_see_its_details": "Seleziona una issue per vederne i dettagli.",
-        "select_a_work_item_to_see_its_details": "Seleziona un elemento di lavoro per vederne i dettagli."
+        "select_a_work_item_to_see_its_details": "Seleziona un elemento di lavoro per vederne i dettagli.",
+        "select_a_pull_request_to_see_its_details": "Seleziona una pull request per vederne i dettagli.",
+        "select_a_merge_request_to_see_its_details": "Seleziona una merge request per vederne i dettagli.",
+        "select_a_steward_to_see_its_details": "Seleziona un incaricato per vederne i dettagli."
       }
     },
     "mdNotebook": {
@@ -5767,7 +5768,7 @@
       "pane_failed_to_load": "Caricamento del pannello non riuscito",
       "retry": "Riprova",
       "the_tunnel_looks_connected_but_the_remote_dashbo": "Il tunnel sembra connesso ma la dashboard remota non si è mai caricata. Potrebbe essere\n                  in fase di riavvio — riprova oppure cambia scheda qui sopra.",
-      "this_tab_stays_until_you_disconnect_the_instance": "Questa scheda resta finché non disconnetti l'istanza in Impostazioni → Istanze."
+      "this_tab_stays_until_you_disconnect_the_instance": "Questa scheda resta finché non disconnetti l’istanza in Impostazioni → Istanze remote."
     },
     "issuePanel": {
       "add_to_chat": "Aggiungi alla chat",
@@ -5955,7 +5956,7 @@
       "try_again": "Riprova",
       "waiting": "In attesa",
       "we_could_not_check_kiro_cli": "Non è stato possibile controllare Kiro CLI.",
-      "product_is_almost_ready": "{{productName}} is almost ready."
+      "product_is_almost_ready": "{{productName}} è quasi pronto."
     },
     "linkPreview": {
       "copied": "Copiato",

@@ -1173,7 +1173,7 @@
         "title": "Compañero"
       },
       "manifest": {
-        "description": "Un acompañante de escritorio para Junction que te ayuda a marcar el ritmo de tu día: te recuerda tomar descansos, guarda los recordatorios que creas en lenguaje natural y hace un ejercicio corto de respiración cuando necesitas despejarte. También te avisa cuando una sesión termina, falla o necesita tu aprobación.",
+        "description": "Un compañero de escritorio para Junction que te ayuda a marcar el ritmo de tu día: te recuerda tomar descansos, guarda los recordatorios que creas en lenguaje natural y hace un ejercicio corto de respiración cuando necesitas despejarte. También te avisa cuando una sesión termina, falla o necesita tu aprobación.",
         "display_name": "Compañero",
         "highlight_1": "Avisos suaves para descansar — agua, estirarse, mirar a lo lejos — en el intervalo que elijas",
         "highlight_2": "Recordatorios que creas en lenguaje natural, como \"toma agua en 20 minutos\"",
@@ -1220,7 +1220,7 @@
       },
       "offline": {
         "body": "Ábrelo para cambiar los recordatorios de descanso y programar recordatorios: esos viven dentro del compañero en tu Mac.",
-        "couldnt_open": "No se pudo abrir el acompañante — {{error}}",
+        "couldnt_open": "No se pudo abrir el compañero — {{error}}",
         "couldnt_turn_off": "No se pudo apagar el compañero — {{error}}",
         "open": "Abrir Compañero",
         "title": "Compañero no se está ejecutando"
@@ -2309,7 +2309,7 @@
             "submit_edit": "Guardar cambios",
             "title_create": "Nuevo encargado",
             "title_edit": "Editar encargado",
-            "unattended_hint": "Confianza por slot, restablecida en cada ciclo. Desactivado significa que escala en lugar de quedarse esperando en un aviso de aprobación.",
+            "unattended_hint": "Si está desactivado, las aprobaciones se escalan a ti.",
             "unattended_label": "Ejecutar sin supervisión",
             "worktree_hint": "Un worktree por incidencia, ~1,3 GB cada uno.",
             "worktree_label": "Raíz de los worktrees",
@@ -2676,12 +2676,13 @@
         "clear_filters": "Borrar filtros",
         "resize_list": "Redimensionar la lista",
         "resize_sidebar": "Redimensionar la barra lateral",
-        "select_a": "Selecciona un",
         "selected_change_hidden_by_filters": "El elemento {{subject}} seleccionado está oculto por los filtros activos.",
         "selected_issue_hidden_by_filters": "La incidencia seleccionada está oculta por los filtros activos.",
-        "to_see_its_details": "para ver sus detalles.",
         "select_an_issue_to_see_its_details": "Selecciona una incidencia para ver sus detalles.",
-        "select_a_work_item_to_see_its_details": "Selecciona un elemento de trabajo para ver sus detalles."
+        "select_a_work_item_to_see_its_details": "Selecciona un elemento de trabajo para ver sus detalles.",
+        "select_a_pull_request_to_see_its_details": "Selecciona una pull request para ver sus detalles.",
+        "select_a_merge_request_to_see_its_details": "Selecciona una merge request para ver sus detalles.",
+        "select_a_steward_to_see_its_details": "Selecciona un encargado para ver sus detalles."
       }
     },
     "mdNotebook": {
@@ -5767,7 +5768,7 @@
       "pane_failed_to_load": "No se pudo cargar el panel",
       "retry": "Reintentar",
       "the_tunnel_looks_connected_but_the_remote_dashbo": "El túnel parece conectado, pero el panel remoto no llegó a cargarse. Puede que se esté\n                  reiniciando: reinténtalo o cambia de pestaña arriba.",
-      "this_tab_stays_until_you_disconnect_the_instance": "Esta pestaña permanece hasta que desconectes la instancia en Configuración → Instancias."
+      "this_tab_stays_until_you_disconnect_the_instance": "Esta pestaña permanece hasta que desconectes la instancia en Configuración → Instancias remotas."
     },
     "issuePanel": {
       "add_to_chat": "Añadir al chat",
@@ -5955,7 +5956,7 @@
       "try_again": "Reintentar",
       "waiting": "Esperando",
       "we_could_not_check_kiro_cli": "No pudimos comprobar Kiro CLI.",
-      "product_is_almost_ready": "{{productName}} is almost ready."
+      "product_is_almost_ready": "{{productName}} está casi listo."
     },
     "linkPreview": {
       "copied": "Copiado",

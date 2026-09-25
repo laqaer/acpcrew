@@ -247,7 +247,7 @@ export default function Workspace() {
                 : (
                   <div className="h-full flex flex-col items-center justify-center text-muted gap-2">
                     <GitPullRequest size={26} strokeWidth={1.5} className="opacity-50" />
-                    <div className="text-[13px]">{i18nT('apps.issueRadar.workspace.select_a')} {terms.changeRequestTitle} {i18nT('apps.issueRadar.workspace.to_see_its_details')}</div>
+                    <div className="text-[13px]">{i18nT(terms.changeRequestEmptyDetailKey)}</div>
                   </div>
                 )}
             </div>
@@ -290,17 +290,17 @@ export default function Workspace() {
                 // the same way everywhere in this app.
                 <div className="h-full flex flex-col items-center justify-center text-muted gap-2">
                   <Users size={26} strokeWidth={1.5} className="opacity-50" />
-                  {/* Assembled the same way the PR pane assembles its own
-                      placeholder, so the two read identically and the noun comes
-                      from the stewards catalog rather than being spelled here. */}
-                  <div className="text-[13px]">{i18nT('apps.issueRadar.workspace.select_a')} {i18nT('apps.issueRadar.views.stewards.group_steward')} {i18nT('apps.issueRadar.workspace.to_see_its_details')}</div>
+                  {/* One whole-sentence key, like the issue and PR placeholders: a
+                      noun spliced between two fragments cannot agree with its
+                      article or take the word order another language needs. */}
+                  <div className="text-[13px]">{i18nT('apps.issueRadar.workspace.select_a_steward_to_see_its_details')}</div>
                 </div>
               )}
             </div>
           </main>
 
           {/* The create/edit dialog is mounted HERE rather than inside either
-              column, because both raise it: the roster's "New Steward" creates, and
+              column, because both raise it: the roster's "New steward" creates, and
               the steward page's Edit opens the same form on a record. One owner also
               means one open dialog — two mounts would let a create and an edit
               sheet stack. Rendered only in this main view, so it cannot be opened

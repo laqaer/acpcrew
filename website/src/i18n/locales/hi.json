@@ -2471,7 +2471,7 @@
             "submit_edit": "बदलाव सेव करो",
             "title_create": "नया स्टीवर्ड",
             "title_edit": "स्टीवर्ड संपादित करो",
-            "unattended_hint": "प्रति-स्लॉट भरोसा, हर चक्र में फिर से लगाया जाता है। बंद रहने पर यह मंज़ूरी के प्रॉम्प्ट पर बैठने के बजाय एस्केलेट करता है।",
+            "unattended_hint": "बंद रहने पर मंज़ूरी के अनुरोध तुम्हारे पास भेजे जाते हैं।",
             "unattended_label": "बिना निगरानी चलाओ",
             "worktree_hint": "हर इशू के लिए एक वर्कट्री, हर एक ~1.3 GB।",
             "worktree_label": "वर्कट्री रूट",
@@ -2620,12 +2620,13 @@
         "clear_filters": "फ़िल्टर साफ़ करें",
         "resize_list": "सूची का आकार बदलें",
         "resize_sidebar": "साइडबार का आकार बदलें",
-        "select_a": "एक",
         "selected_change_hidden_by_filters": "चयनित {{subject}} सक्रिय फ़िल्टर द्वारा छिपा हुआ है।",
         "selected_issue_hidden_by_filters": "चयनित इश्यू सक्रिय फ़िल्टर द्वारा छिपा हुआ है।",
-        "to_see_its_details": "चुनें ताकि उसका विवरण दिखे।",
         "select_an_issue_to_see_its_details": "विवरण देखने के लिए एक इश्यू चुनें।",
-        "select_a_work_item_to_see_its_details": "विवरण देखने के लिए कोई वर्क आइटम चुनो।"
+        "select_a_work_item_to_see_its_details": "विवरण देखने के लिए कोई वर्क आइटम चुनो।",
+        "select_a_pull_request_to_see_its_details": "विवरण देखने के लिए कोई पुल रिक्वेस्ट चुनो।",
+        "select_a_merge_request_to_see_its_details": "विवरण देखने के लिए कोई मर्ज रिक्वेस्ट चुनो।",
+        "select_a_steward_to_see_its_details": "विवरण देखने के लिए कोई स्टीवर्ड चुनो।"
       }
     },
     "mdNotebook": {
@@ -5671,7 +5672,7 @@
       "pane_failed_to_load": "पेन लोड नहीं हो सका",
       "retry": "फिर से प्रयास करें",
       "the_tunnel_looks_connected_but_the_remote_dashbo": "टनल कनेक्टेड लग रहा है लेकिन रिमोट डैशबोर्ड कभी लोड नहीं हुआ। यह\n                  रीस्टार्ट हो रहा हो सकता है — फिर कोशिश करें, या ऊपर टैब बदलें।",
-      "this_tab_stays_until_you_disconnect_the_instance": "यह टैब तब तक बना रहता है जब तक आप सेटिंग्स → इंस्टेंस में इंस्टेंस को डिस्कनेक्ट नहीं करते।"
+      "this_tab_stays_until_you_disconnect_the_instance": "यह टैब तब तक बना रहता है जब तक तुम सेटिंग्स → रिमोट इंस्टेंस में इंस्टेंस को डिस्कनेक्ट नहीं करते।"
     },
     "issuePanel": {
       "add_to_chat": "चैट में जोड़ो",

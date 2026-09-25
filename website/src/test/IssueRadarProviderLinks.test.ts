@@ -109,6 +109,17 @@ describe('providerTerms', () => {
   it('treats a legacy record as GitHub', () => {
     expect(providerTerms(LEGACY).providerName).toBe('GitHub')
   })
+
+  it('gives the change-request pane one whole-sentence empty state per noun', () => {
+    // A `Select a` + noun + `to see its details` splice cannot agree with its
+    // article in most languages, so each noun owns a full sentence key.
+    expect(providerTerms(GL).changeRequestEmptyDetailKey)
+      .toBe('apps.issueRadar.workspace.select_a_merge_request_to_see_its_details')
+    expect(providerTerms(GH).changeRequestEmptyDetailKey)
+      .toBe('apps.issueRadar.workspace.select_a_pull_request_to_see_its_details')
+    expect(providerTerms({ provider: 'azure' }).changeRequestEmptyDetailKey)
+      .toBe('apps.issueRadar.workspace.select_a_pull_request_to_see_its_details')
+  })
 })
 
 describe('provider CLI commands for agent prompts', () => {

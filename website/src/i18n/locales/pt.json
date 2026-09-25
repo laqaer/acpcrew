@@ -2213,7 +2213,7 @@
           "number": "Número",
           "steward_sort_status": "Status",
           "steward_sort_name": "Nome",
-          "steward_sort_created": "Criada"
+          "steward_sort_created": "Criação"
         },
         "links": {
           "read_only_here_apply_in_provider": "Somente leitura aqui — repositórios do {{provider}} não podem ser alterados no {{productName}}; aplique a alteração no {{provider}}",
@@ -2309,7 +2309,7 @@
             "submit_edit": "Salvar alterações",
             "title_create": "Novo encarregado",
             "title_edit": "Editar encarregado",
-            "unattended_hint": "Confiança por slot, restabelecida a cada ciclo. Desligado significa que ele escalona em vez de ficar parado em um pedido de aprovação.",
+            "unattended_hint": "Desligado significa que as aprovações são encaminhadas para você.",
             "unattended_label": "Executar sem supervisão",
             "worktree_hint": "Uma worktree por issue, ~1,3 GB cada.",
             "worktree_label": "Raiz das worktrees",
@@ -2676,12 +2676,13 @@
         "clear_filters": "Limpar filtros",
         "resize_list": "Redimensionar lista",
         "resize_sidebar": "Redimensionar barra lateral",
-        "select_a": "Selecione um",
         "selected_change_hidden_by_filters": "O item {{subject}} selecionado está oculto pelos filtros ativos.",
         "selected_issue_hidden_by_filters": "A issue selecionada está oculta pelos filtros ativos.",
-        "to_see_its_details": "para ver os detalhes.",
         "select_an_issue_to_see_its_details": "Selecione uma issue para ver os detalhes.",
-        "select_a_work_item_to_see_its_details": "Selecione um item de trabalho para ver os detalhes."
+        "select_a_work_item_to_see_its_details": "Selecione um item de trabalho para ver os detalhes.",
+        "select_a_pull_request_to_see_its_details": "Selecione uma pull request para ver os detalhes.",
+        "select_a_merge_request_to_see_its_details": "Selecione um merge request para ver os detalhes.",
+        "select_a_steward_to_see_its_details": "Selecione um encarregado para ver os detalhes."
       }
     },
     "mdNotebook": {
@@ -5767,7 +5768,7 @@
       "pane_failed_to_load": "Falha ao carregar o painel",
       "retry": "Tentar novamente",
       "the_tunnel_looks_connected_but_the_remote_dashbo": "O túnel parece conectado, mas o painel remoto nunca carregou. Ele pode estar\n                  reiniciando — tente novamente ou troque de aba acima.",
-      "this_tab_stays_until_you_disconnect_the_instance": "Esta aba permanece até você desconectar a instância em Configurações → Instâncias."
+      "this_tab_stays_until_you_disconnect_the_instance": "Esta aba permanece até você desconectar a instância em Configurações → Instâncias remotas."
     },
     "issuePanel": {
       "add_to_chat": "Adicionar ao chat",
@@ -5955,7 +5956,7 @@
       "try_again": "Tentar novamente",
       "waiting": "Aguardando",
       "we_could_not_check_kiro_cli": "Não foi possível verificar o Kiro CLI.",
-      "product_is_almost_ready": "{{productName}} is almost ready."
+      "product_is_almost_ready": "O {{productName}} está quase pronto."
     },
     "linkPreview": {
       "copied": "Copiado",

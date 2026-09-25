@@ -118,6 +118,13 @@ export interface ProviderTerms {
    * a `Select a {{item}}` frame produces. This also keeps GitHub's and GitLab's
    * sentence byte-identical to what they had before Azure DevOps existed. */
   emptyDetailKey: string
+  /** Catalog KEY for the pull-request pane's empty state — "Select a pull
+   * request to see its details." / "Select a merge request …".
+   *
+   * A whole sentence per provider for the same reason as `emptyDetailKey`: the
+   * article, gender and word order agree with the noun, which a `Select a`
+   * + noun + `to see its details` splice cannot do in most languages. */
+  changeRequestEmptyDetailKey: string
   /** Catalog KEY for "Issues" / "Work Items" — a heading, a search placeholder,
    * or an empty state.
    *
@@ -368,6 +375,7 @@ export function providerTerms(ref?: Pick<RepoRef, 'provider'>): ProviderTerms {
         changeRequestShort: 'MR',
         sigil: '!',
         emptyDetailKey: 'apps.issueRadar.workspace.select_an_issue_to_see_its_details',
+        changeRequestEmptyDetailKey: 'apps.issueRadar.workspace.select_a_merge_request_to_see_its_details',
         trackedItemCountKey: 'apps.issueRadar.components.issueList.issue',
         trackedItemPluralTitleKey: 'apps.issueRadar.lib.links.tracked_items_issues',
         providerName: 'GitLab',
@@ -381,6 +389,7 @@ export function providerTerms(ref?: Pick<RepoRef, 'provider'>): ProviderTerms {
         changeRequestShort: 'PR',
         sigil: '#',
         emptyDetailKey: 'apps.issueRadar.workspace.select_an_issue_to_see_its_details',
+        changeRequestEmptyDetailKey: 'apps.issueRadar.workspace.select_a_pull_request_to_see_its_details',
         trackedItemCountKey: 'apps.issueRadar.components.issueList.issue',
         trackedItemPluralTitleKey: 'apps.issueRadar.lib.links.tracked_items_issues',
         providerName: 'GitHub',

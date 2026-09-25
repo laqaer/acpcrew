@@ -303,7 +303,10 @@
         "selected_issue_hidden_by_filters": "The selected issue is hidden by the active filters.",
         "selected_change_hidden_by_filters": "The selected {{subject}} is hidden by the active filters.",
         "clear_filters": "Clear filters",
-        "select_a_work_item_to_see_its_details": "Select a work item to see its details."
+        "select_a_work_item_to_see_its_details": "Select a work item to see its details.",
+        "select_a_pull_request_to_see_its_details": "Select a pull request to see its details.",
+        "select_a_merge_request_to_see_its_details": "Select a merge request to see its details.",
+        "select_a_steward_to_see_its_details": "Select a steward to see its details."
       },
       "components": {
         "agentSessionButton": {
@@ -861,7 +864,7 @@
         "createTitle": "Create New Pack",
         "descPlaceholder": "e.g. A cute orange cat, a pixel robot, a fluffy bunny...",
         "description": "Character Description",
-        "editTitle": "️ Edit Pack",
+        "editTitle": "Edit Pack",
         "flipX": "Flip Horizontal",
         "hint8152": "Played now and then on their own. Add anything you like — a wander, a mood, a wave.",
         "importFileFailed": "Could not import that file",
@@ -900,7 +903,7 @@
         "delete": "Delete",
         "deleteConfirm": "Delete appearance pack “{{name}}”? This cannot be undone.",
         "deleteFailed": "Delete failed",
-        "edit": "️ Edit",
+        "edit": "Edit",
         "export": "Export",
         "exportFailed": "Export failed",
         "exportSuccess": "Exported successfully",

@@ -373,7 +373,7 @@
         "configuration_1": "Connecte un dépôt dans Issue Radar et laisse le registre de ses intendants collecter les événements de phase, puis active cette app et sélectionne ce dépôt dans le sélecteur."
       },
       "pipeline": {
-        "subtitle": "Une voie par élément de travail d’intendant, sur toutes les phases : voyez dans quelle phase se trouve chaque élément et où les éléments s’accumulent.",
+        "subtitle": "Une voie par élément de travail d’intendant, sur toutes les phases : vois dans quelle phase se trouve chaque élément et où les éléments s’accumulent.",
         "refresh": "Actualiser le pipeline",
         "aria_diagram": "Pipeline des intendants : une voie horizontale par élément de travail à travers les colonnes de phase",
         "and_counting": "{{dwell}} et ça continue",
@@ -397,13 +397,13 @@
         "summary_longest_wait_in": "En attente dans {{phase}}",
         "summary_longest_wait_none": "rien en attente",
         "empty_title": "Aucune activité d’intendant pour l’instant",
-        "empty_body": "Ce pipeline dessine une voie par élément de travail d’un intendant à mesure qu’il traverse les phases. Rien n’a encore tourné : créez un intendant et donnez-lui du travail, et ses voies apparaîtront ici.",
+        "empty_body": "Ce pipeline dessine une voie par élément de travail d’un intendant à mesure qu’il traverse les phases. Rien n’a encore tourné : crée un intendant et donne-lui du travail, et ses voies apparaîtront ici.",
         "empty_row_1": "Chaque voie va de gauche à droite à travers les colonnes de phase, de sélectionné à résolu.",
         "empty_row_2": "La couleur indique l’état d’un coup d’œil : un intendant qui édite, qui attend une vérification ou qui a terminé.",
         "empty_row_3": "Les libellés de durée montrent combien de temps un élément est resté dans chaque phase, pour repérer un élément bloqué.",
-        "empty_footer": "Configurez des intendants dans Issue Radar pour lancer le pipeline.",
+        "empty_footer": "Configure des intendants dans Issue Radar pour lancer le pipeline.",
         "no_repo_title": "Aucun dépôt connecté",
-        "no_repo_body": "Le pipeline dessine une voie par élément de travail d’intendant pour un dépôt connecté. Aucun dépôt n’est encore connecté — connectez-en un pour voir ici les éléments de travail de ses intendants.",
+        "no_repo_body": "Le pipeline dessine une voie par élément de travail d’intendant pour un dépôt connecté. Aucun dépôt n’est encore connecté — connectes-en un pour voir ici les éléments de travail de ses intendants.",
         "repo_picker_label": "Changer de dépôt",
         "repo_picker_prefix": "Dépôt",
         "legend_editing": "Édition",
@@ -2290,7 +2290,7 @@
             "claim_ttl_hint": "Ne compte que dans les phases prise en charge / investigation / implémentation. Une pull request en attente n’expire jamais.",
             "claim_ttl_label": "TTL de prise en charge",
             "claim_ttl_min": "Saisissez au moins 1 heure.",
-            "needs_human_hint": "Appliquée quand un intendant a besoin d’une décision que vous seul pouvez prendre.",
+            "needs_human_hint": "Appliquée quand un intendant a besoin d’une décision que toi seul peux prendre.",
             "needs_human_label": "Étiquette de décision humaine",
             "needs_human_required": "Saisissez un nom d’étiquette.",
             "protocol_repo_wide": "Ces réglages valent pour tout le dépôt, pas par intendant : si deux intendants négocient avec des TTL différents, celui au TTL le plus court finit par voler le travail en cours de l’autre.",
@@ -2353,18 +2353,18 @@
             "submit_edit": "Enregistrer les modifications",
             "title_create": "Nouvel intendant",
             "title_edit": "Modifier l’intendant",
-            "unattended_hint": "Si l’option est désactivée, les demandes d’approbation vous sont remontées.",
+            "unattended_hint": "Si l’option est désactivée, les demandes d’approbation te sont remontées.",
             "unattended_label": "Exécuter sans surveillance",
             "worktree_hint": "Un worktree par ticket, environ 1,3 Go chacun.",
             "worktree_label": "Racine des worktrees",
             "worktree_placeholder": "~/worktrees"
           },
-          "empty_sub": "Un intendant prend en charge un ticket, implémente un correctif, ouvre une pull request et la suit jusqu’au vert — puis vous consulte quand il ne peut pas décider seul.",
+          "empty_sub": "Un intendant prend en charge un ticket, implémente un correctif, ouvre une pull request et la suit jusqu’au vert — puis te consulte quand il ne peut pas décider seul.",
           "empty_title": "Aucun intendant sur ce dépôt",
           "filter_all": "Tous",
           "filter_paused": "En pause",
           "filter_working": "Au travail",
-          "filtered_empty_sub": "Choisissez un autre filtre pour voir le reste de l’effectif.",
+          "filtered_empty_sub": "Choisis un autre filtre pour voir le reste des intendants.",
           "filtered_empty_title": "Aucun intendant ne correspond à ce filtre",
           "group_steward": "Intendant",
           "new_steward": "Nouvel intendant",
@@ -2720,12 +2720,13 @@
         "clear_filters": "Effacer les filtres",
         "resize_list": "Redimensionner la liste",
         "resize_sidebar": "Redimensionner la barre latérale",
-        "select_a": "Sélectionnez un",
         "selected_change_hidden_by_filters": "L’élément {{subject}} sélectionné est masqué par les filtres actifs.",
         "selected_issue_hidden_by_filters": "Le ticket sélectionné est masqué par les filtres actifs.",
-        "to_see_its_details": "pour voir ses détails.",
         "select_an_issue_to_see_its_details": "Sélectionnez un ticket pour voir ses détails.",
-        "select_a_work_item_to_see_its_details": "Sélectionnez un élément de travail pour voir ses détails."
+        "select_a_work_item_to_see_its_details": "Sélectionnez un élément de travail pour voir ses détails.",
+        "select_a_pull_request_to_see_its_details": "Sélectionne une pull request pour voir ses détails.",
+        "select_a_merge_request_to_see_its_details": "Sélectionne une merge request pour voir ses détails.",
+        "select_a_steward_to_see_its_details": "Sélectionne un intendant pour voir ses détails."
       }
     },
     "mdNotebook": {
@@ -4793,7 +4794,7 @@
       "run_named_now": "Exécuter {{name}} maintenant",
       "running": "en cours",
       "schedule": "planification",
-      "schedules_that_run_this_agent_without_you_asking": "Planifications qui exécutent cet agent sans que vous le demandiez. Distinct de Triggers ci-dessus, qui décide seulement quand l’orchestrateur choisit cet agent.",
+      "schedules_that_run_this_agent_without_you_asking": "Planifications qui exécutent cet agent sans que tu le demandes. Distinct de Triggers ci-dessus, qui décide seulement quand l’orchestrateur choisit cet agent.",
       "what_wakes_this_agent": "Ce qui réveille cet agent"
     },
     "kiroAccountModal": {
@@ -5767,7 +5768,7 @@
       "pane_failed_to_load": "Échec du chargement du volet",
       "retry": "Réessayer",
       "the_tunnel_looks_connected_but_the_remote_dashbo": "Le tunnel semble connecté, mais le tableau de bord distant ne s'est jamais chargé. Il est peut-être\n                  en cours de redémarrage — réessayez ou changez d'onglet ci-dessus.",
-      "this_tab_stays_until_you_disconnect_the_instance": "Cet onglet reste affiché jusqu'à ce que vous déconnectiez l'instance dans Paramètres → Instances."
+      "this_tab_stays_until_you_disconnect_the_instance": "Cet onglet reste affiché jusqu’à ce que tu déconnectes l’instance dans Paramètres → Instances distantes."
     },
     "issuePanel": {
       "add_to_chat": "Ajouter au chat",
@@ -5955,7 +5956,7 @@
       "try_again": "Réessayer",
       "waiting": "En attente",
       "we_could_not_check_kiro_cli": "Nous n'avons pas pu vérifier Kiro CLI.",
-      "product_is_almost_ready": "{{productName}} is almost ready."
+      "product_is_almost_ready": "{{productName}} est presque prêt."
     },
     "linkPreview": {
       "copied": "Copié",

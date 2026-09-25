@@ -679,7 +679,7 @@ describe('StewardEditor — accessible name', () => {
   })
 
   it('names the edit dialog after the steward being edited', async () => {
-    // The visible title is just "Edit Steward"; the accessible name has to say which.
+    // The visible title is just "Edit steward"; the accessible name has to say which.
     renderEditor(STEWARD)
     expect(
       await screen.findByRole('dialog', {
