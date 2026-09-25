@@ -24,6 +24,7 @@ from junction.dashboard.chat_utils import (
     _redact_meta_for_role,
     _sync_dashboard_slots,
     effective_session_key,
+    normalize_slot_mode,
     slot_history_key,
     slot_transcript_key,
 )
@@ -573,7 +574,7 @@ def _rehydrate_slot_from_history(
         if meta.get("project"):
             slot.project = meta["project"]
         if meta.get("mode"):
-            slot.mode = meta["mode"]
+            slot.mode = normalize_slot_mode(meta["mode"])
         if meta.get("folder_id"):
             slot.folder_id = meta["folder_id"]
         if meta.get("channel_folder_filed"):
@@ -940,7 +941,7 @@ def _restore_recent_sessions_steps(
         if meta.get("project"):
             slot.project = meta["project"]
         if meta.get("mode"):
-            slot.mode = meta["mode"]
+            slot.mode = normalize_slot_mode(meta["mode"])
         if meta.get("folder_id"):
             slot.folder_id = meta["folder_id"]
         if meta.get("channel_folder_filed"):

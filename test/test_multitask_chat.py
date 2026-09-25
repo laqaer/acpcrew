@@ -2521,6 +2521,51 @@ class TestModePlumbing:
         for mode in ("", "orchestrator", SLOT_MODE_MULTITASK, "design-critique"):
             assert normalize_slot_mode(mode) == mode
 
+    @staticmethod
+    def _legacy_mode_transcript(tmp_path, slot_name: str):
+        from chat_test_helpers import _make_state
+
+        from junction.dashboard.chat_folders import LEGACY_SLOT_MODE_MULTITASK
+
+        state = _make_state(tmp_path / "sessions")
+        key = f"dashboard:{slot_name}"
+        state.conversation_log.append(key, "user", "run these in parallel")
+        state.conversation_log.update_metadata(
+            key, {"mode": LEGACY_SLOT_MODE_MULTITASK, "tab_id": "aaaabbbbcccc"}
+        )
+        return state
+
+    def test_a_legacy_mode_transcript_rehydrates_in_multitask_mode(self, tmp_path) -> None:
+        """Rehydration (cron delivery, channel mirrors) normalises the mode too.
+
+        A tab left on the legacy spelling drops off the chat page, runs turns
+        outside its queue, and escapes the session-control multitask refusal,
+        so History resume is not the only path that must translate it.
+        """
+        from junction.dashboard.chat_folders import SLOT_MODE_MULTITASK
+        from junction.dashboard.chat_persistence import _rehydrate_slot_from_history
+
+        state = self._legacy_mode_transcript(tmp_path, "mt-legacy")
+
+        slot = _rehydrate_slot_from_history(state, "mt-legacy")
+
+        assert slot is not None
+        assert slot.mode == SLOT_MODE_MULTITASK
+
+    def test_a_legacy_mode_transcript_restores_in_multitask_mode_at_startup(
+        self, tmp_path
+    ) -> None:
+        from junction.dashboard.chat_folders import SLOT_MODE_MULTITASK
+        from junction.dashboard.chat_persistence import restore_recent_sessions
+
+        state = self._legacy_mode_transcript(tmp_path, "mt-startup")
+
+        restore_recent_sessions(state, window_minutes=0)
+
+        slot = state._slots.get("mt-startup")
+        assert slot is not None
+        assert slot.mode == SLOT_MODE_MULTITASK
+
 
 # ── adversarial-review regression fixes ──
 

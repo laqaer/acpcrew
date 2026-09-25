@@ -13,7 +13,12 @@ from typing import Any
 from aiohttp import web
 
 from junction.dashboard.chat_persistence import save_slot_off_loop
-from junction.dashboard.chat_utils import effective_session_key
+from junction.dashboard.chat_utils import (  # noqa: F401 - re-exported mode vocabulary
+    LEGACY_SLOT_MODE_MULTITASK,
+    SLOT_MODE_MULTITASK,
+    effective_session_key,
+    normalize_slot_mode,
+)
 from junction.dashboard.create_rate_limit import FOLDER_CREATE, allow_create
 from junction.dashboard.state import DashboardState
 from junction.dashboard.token_auth import caller_names_a_missing_slot, derive_caller_app
@@ -934,26 +939,6 @@ async def api_chat_slot_pin(request: web.Request) -> web.Response:
         outcome="allowed", source="dashboard", resources=name,
     )
     return web.json_response({"ok": True, "pinned": slot.pinned})
-
-
-#: The slot mode of a Multitask Mode session: topics run in parallel
-#: sub-sessions behind a durable queue (``junction.multitask_chat``).
-SLOT_MODE_MULTITASK = "multitask"
-#: Earlier Junction builds wrote the multitask slot mode as ``"crew"`` in a
-#: transcript's metadata line; it is read so an existing data home keeps its
-#: multitask tabs, and the queues behind them, after an upgrade.
-LEGACY_SLOT_MODE_MULTITASK = "crew"
-
-
-def normalize_slot_mode(mode: str) -> str:
-    """The current spelling of a slot mode read back from disk.
-
-    Applied wherever a persisted mode becomes a live ``slot.mode``, so every
-    comparison downstream sees one spelling and the next save writes it.
-    """
-    if mode == LEGACY_SLOT_MODE_MULTITASK:
-        return SLOT_MODE_MULTITASK
-    return mode
 
 
 _VALID_MODES = ("", "orchestrator", SLOT_MODE_MULTITASK)
