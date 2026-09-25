@@ -231,7 +231,7 @@ async def api_chat(request: web.Request) -> web.StreamResponse:
         # normalized key cannot host a crew store must not become a crew slot
         # (its first crew message would 500). Dropped rather than refused —
         # auto-create is a convenience path, not the crew entry point.
-        from junction.crew_chat import is_crew_capable_slot_key
+        from junction.multitask_chat import is_crew_capable_slot_key
 
         if not is_crew_capable_slot_key(_normalize_slot_key(slot_name)):
             requested_mode = ""
@@ -1849,7 +1849,7 @@ async def api_chat_slot_create(request: web.Request) -> web.Response:
                 # Deferred: this module is imported when the dashboard package is,
                 # which the gateway does on its boot path, and crew is a
                 # dashboard-only subsystem. Only a crew request pays for it.
-                from junction.crew_chat import is_crew_capable_slot_key
+                from junction.multitask_chat import is_crew_capable_slot_key
             if (
                 _mode == "crew"
                 and name

@@ -989,7 +989,7 @@ async def api_chat_slot_mode(request: web.Request) -> web.Response:
     # dashboard-only subsystem, so importing it at module scope made
     # `--no-dashboard` pay for it before the API was ready to serve. Inside a
     # mode-switch handler the cost is a sys.modules hit.
-    from junction.crew_chat import CrewOrchestrator, is_crew_capable_slot_key
+    from junction.multitask_chat import CrewOrchestrator, is_crew_capable_slot_key
 
     if mode == "crew" and not is_crew_capable_slot_key(slot.key):
         return web.json_response(

@@ -24,10 +24,10 @@ const bridge = {
   onDragUpdate: vi.fn(),
   onDragEnded: vi.fn(),
 }
-vi.mock('../apps/crew-companion/petBridge', () => ({ petBridge: bridge }))
+vi.mock('../apps/desk-companion/petBridge', () => ({ petBridge: bridge }))
 
-const { useDrag } = await import('../apps/crew-companion/useDrag')
-const { PET_W, PET_H } = await import('../apps/crew-companion/constants')
+const { useDrag } = await import('../apps/desk-companion/useDrag')
+const { PET_W, PET_H } = await import('../apps/desk-companion/constants')
 
 /** Callbacks the hook registered with the main process. */
 let dragUpdateCb: ((x: number, y: number) => void) | null = null
@@ -87,7 +87,7 @@ afterEach(() => {
   vi.useRealTimers()
 })
 
-describe('crew-companion/useDrag — restoring the saved position', () => {
+describe('desk-companion/useDrag — restoring the saved position', () => {
   it('clamps the saved position onto the current screen and reports it ready', async () => {
     bridge.getWindowPosition.mockResolvedValue({ x: 5000, y: -50 })
     const { result } = await mount()
@@ -138,7 +138,7 @@ describe('crew-companion/useDrag — restoring the saved position', () => {
   })
 })
 
-describe('crew-companion/useDrag — pointer drag', () => {
+describe('desk-companion/useDrag — pointer drag', () => {
   it('ignores a non-primary button', async () => {
     const { result, opts } = await mount()
     act(() => result.current.onMouseDown(mouseDown(100, 100, 2)))
@@ -232,7 +232,7 @@ describe('crew-companion/useDrag — pointer drag', () => {
   })
 })
 
-describe('crew-companion/useDrag — cross-display drag from the main process', () => {
+describe('desk-companion/useDrag — cross-display drag from the main process', () => {
   it('follows position updates only while a drag is in flight', async () => {
     const opts = options()
     opts.isPeekingRef.current = true

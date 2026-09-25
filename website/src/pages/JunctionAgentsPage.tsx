@@ -17,13 +17,13 @@ import SegmentedControl from '../components/SegmentedControl'
 import InfoTip from '../components/InfoTip'
 import { FOCUSABLE } from '../hooks/useDialogFocusTrap'
 import SimpleSelect from '../components/SimpleSelect'
-import CrewAvatar from '../components/CrewAvatar'
-import CrewWakeSection from '../components/CrewWakeSection'
-import CrewWebhookSection from '../components/CrewWebhookSection'
-import CrewEditorRail from '../components/crew/CrewEditorRail'
-import CrewOverviewPane from '../components/crew/CrewOverviewPane'
-import { useCrewEditorSections, type CrewPaneKey } from '../components/crew/crewEditorSections'
-import { wakesCrew, crewWakeQueryKey, crewWebhooksQueryKey, webhookBoundToCrew, webhookCanCallIn } from '../components/crew/wakesCrew'
+import CrewAvatar from '../components/AgentAvatar'
+import CrewWakeSection from '../components/AgentWakeSection'
+import CrewWebhookSection from '../components/AgentWebhookSection'
+import CrewEditorRail from '../components/agent/AgentEditorRail'
+import CrewOverviewPane from '../components/agent/AgentOverviewPane'
+import { useCrewEditorSections, type CrewPaneKey } from '../components/agent/agentEditorSections'
+import { wakesCrew, crewWakeQueryKey, crewWebhooksQueryKey, webhookBoundToCrew, webhookCanCallIn } from '../components/agent/wakesAgent'
 import type { CronJob } from '../types'
 import type { JunctionAgent } from '../components/AgentSelector'
 import { SourceBadge } from '../components/SourceBadge'
@@ -204,7 +204,7 @@ function WorkspaceModal({
      subtree out the instant it closes skipped the layer's own deregistration —
      the editor underneath was then left believing it was no longer the top
      layer, so Escape stopped closing it. Verified in a real browser
-     (scripts/verify-crews-dialog-select.mjs), which is the only place the bug
+     (scripts/verify-agents-dialog-select.mjs), which is the only place the bug
      showed: happy-dom does not reproduce it.
 
      `z-[110]` because both layers are centered overlays and the editor's own

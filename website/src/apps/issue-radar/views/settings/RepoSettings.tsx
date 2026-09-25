@@ -12,7 +12,7 @@ import { repoWebUrl, userUrlFor, membersUrlFor, providerTerms, repoScopeKey } fr
 import { useIssueRadar } from '../../context'
 import ReadOnlyTag, { isReadOnly } from '../../components/ReadOnlyTag'
 import LabelPicker from '../../components/LabelPicker'
-import CrewProtocolSettings from './CrewProtocolSettings'
+import CrewProtocolSettings from './StewardProtocolSettings'
 import { asArray } from '../../lib/format'
 
 import { i18nT } from '../../../../i18n/t'

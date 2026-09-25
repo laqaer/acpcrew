@@ -619,7 +619,7 @@ class TestInitCrew:
         orch.dashboard_state = ds
         with caplog.at_level("WARNING"):
             with patch(
-                "junction.crew_chat.CrewOrchestrator", side_effect=RuntimeError("bad wiring")
+                "junction.multitask_chat.CrewOrchestrator", side_effect=RuntimeError("bad wiring")
             ):
                 orch._init_crew()
         assert "crew mode disabled" in caplog.text
@@ -627,7 +627,7 @@ class TestInitCrew:
     def test_no_dashboard_state_skips_crew_setup(self):
         orch = _make_orchestrator()
         orch.dashboard_state = None
-        with patch("junction.crew_chat.CrewOrchestrator") as ctor:
+        with patch("junction.multitask_chat.CrewOrchestrator") as ctor:
             orch._init_crew()
         ctor.assert_not_called()
 

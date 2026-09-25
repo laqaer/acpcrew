@@ -1870,7 +1870,7 @@ def _redact_json_strings(value: Any) -> Any:
 # ``path == p or path.startswith(p + "/")`` and carries no method, so the
 # ``/crew`` entry also reaches ``/crew/pause`` and
 # ``PUT``/``DELETE /crew``. The app closes that itself —
-# ``crew_routes._AGENT_REACHABLE`` refuses an internal-secret caller on every
+# ``steward_routes._AGENT_REACHABLE`` refuses an internal-secret caller on every
 # crew route except the exact two below.
 _CREW_READ_PATH = "/api/apps/issue-radar/crew"
 _CREW_WORK_PATH = "/api/apps/issue-radar/crew/work"

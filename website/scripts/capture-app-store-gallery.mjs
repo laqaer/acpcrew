@@ -33,7 +33,7 @@ const APPS = [
   ['channels', 'channels', 'channels', '/channels'],
   ['code-review-sage', 'code_review_sage', 'code-review-sage', '/code-review-sage'],
   ['command-bar', 'command_bar', 'command-bar', '/artifacts'],
-  ['crew-companion', 'crew_companion', 'crew-companion', '/crew-companion'],
+  ['crew-companion', 'desk_companion', 'desk-companion', '/crew-companion'],
   ['design-critique', 'design_critique', 'design-critique', '/design-critique'],
   ['design-tweak', 'design_tweak', 'design-tweak', '/design-tweak'],
   ['dev-fleet', 'dev_fleet', 'dev-fleet', '/dev-fleet'],

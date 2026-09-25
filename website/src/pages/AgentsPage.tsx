@@ -9,7 +9,7 @@ import { SourceBadge, PageHeader, EmptyState, Btn, Input, SearchInput, Card, Car
 import ModelDropdownList from '../components/ModelDropdownList'
 import AgentSkillsEditor from '../components/AgentSkillsEditor'
 import SimpleSelect from '../components/SimpleSelect'
-import CrewAvatar from '../components/CrewAvatar'
+import CrewAvatar from '../components/AgentAvatar'
 import type { JunctionAgent } from '../components/AgentSelector'
 import InfoTip from '../components/InfoTip'
 import ListDetailBack from '../components/ListDetailBack'

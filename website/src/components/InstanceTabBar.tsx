@@ -628,7 +628,7 @@ function SwitcherChip({
    * `border` (2) + the `w-1.5` dot (6) + one `gap-1.5` (6) = 30px, plus, when an
    * unread badge is present, a second gap (6) + `ml-0.5` (2) + the badge's
    * `min-w-[16px]` (16) = 54px. Keep them in sync with the classes below;
-   * `capture-crew-chip-shrink.mjs` asserts the declared floor against the measured
+   * `capture-instance-chip-shrink.mjs` asserts the declared floor against the measured
    * one, so a drift cannot pass silently. A chip carrying a state WORD is never
    * shrinkable (see `CrewChipRow`), because that word's width is not fixed and
    * would break the arithmetic.

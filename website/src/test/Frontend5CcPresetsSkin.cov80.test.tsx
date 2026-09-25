@@ -18,15 +18,15 @@ import {
   generatePresetId,
   validatePreset,
   type CatPreset,
-} from '../apps/crew-companion/catPresets'
+} from '../apps/desk-companion/catPresets'
 import {
   PANEL_FONT,
   PANEL_RADIUS,
   THEME_SKIN,
   resolveAccentText,
   skinFor,
-} from '../apps/crew-companion/panelSkin'
-import ToggleRow from '../apps/crew-companion/ToggleRow'
+} from '../apps/desk-companion/panelSkin'
+import ToggleRow from '../apps/desk-companion/ToggleRow'
 
 function preset(over: Partial<CatPreset> = {}): CatPreset {
   return {
@@ -40,7 +40,7 @@ function preset(over: Partial<CatPreset> = {}): CatPreset {
   }
 }
 
-describe('crew-companion/catPresets — validation', () => {
+describe('desk-companion/catPresets — validation', () => {
   it('accepts a well-formed preset', () => {
     expect(validatePreset(preset())).toEqual([])
   })
@@ -74,7 +74,7 @@ describe('crew-companion/catPresets — validation', () => {
   })
 })
 
-describe('crew-companion/catPresets — swatches and ids', () => {
+describe('desk-companion/catPresets — swatches and ids', () => {
   it('takes the first five distinct valid colours, in order', () => {
     const swatches = extractSwatches({
       a: '#111111',
@@ -101,7 +101,7 @@ describe('crew-companion/catPresets — swatches and ids', () => {
   })
 })
 
-describe('crew-companion/catPresets — PresetRegistry', () => {
+describe('desk-companion/catPresets — PresetRegistry', () => {
   const builtIn = preset({ id: 'zz-built' })
 
   it('drops corrupted custom entries rather than showing them in the picker', () => {
@@ -143,7 +143,7 @@ describe('crew-companion/catPresets — PresetRegistry', () => {
   })
 })
 
-describe('crew-companion/panelSkin', () => {
+describe('desk-companion/panelSkin', () => {
   it('serves one theme-driven skin regardless of the mode asked for', () => {
     expect(skinFor('dark')).toBe(THEME_SKIN)
     expect(skinFor('light')).toBe(THEME_SKIN)
@@ -191,7 +191,7 @@ describe('crew-companion/panelSkin', () => {
   })
 })
 
-describe('crew-companion/ToggleRow', () => {
+describe('desk-companion/ToggleRow', () => {
   it('reports its state through aria-checked and toggles to the opposite', () => {
     const onChange = vi.fn()
     render(<ToggleRow label="zz-label" hint="zz-hint" on={false} onChange={onChange} />)

@@ -183,7 +183,7 @@ const WAIVED_BARE_CONTROLS: Record<string, { counts: BareCounts; reason: string 
       '(manual: notifications.sources); the volume range input has no slider ' +
       'primitive (manual: notifications.volume)',
   },
-  'RemoteCrewPanel.tsx': {
+  'RemoteInstancesPanel.tsx': {
     counts: { input: 2 },
     reason:
       'setup-wizard AWS profile/region convenience fields (localStorage) behind a ' +

@@ -23,7 +23,7 @@ verified against `6d3e30bbbd`.
 | Document | Status | What is actually on main |
 |---|---|---|
 | [rfc-durable-run-coordinator.md](rfc-durable-run-coordinator.md) | `draft` | Nothing. Design and seven-PR additive migration stack only; the existing in-memory manager and run folders remain authoritative |
-| [rfc-issue-radar-crews.md](rfc-issue-radar-crews.md) | `draft` | Nothing. Design of record only; `crew_brief.md` and `crew_ledger_spec.md` sit beside the Issue Radar backend as companion specs, also unimplemented |
+| [rfc-issue-radar-stewards.md](rfc-issue-radar-stewards.md) | `draft` | Nothing. Design of record only; `steward_brief.md` and `steward_ledger_spec.md` sit beside the Issue Radar backend as companion specs, also unimplemented |
 | [rfc-orchestrator-chat-sessions.md](rfc-orchestrator-chat-sessions.md) | `partial` | Crew Mode shipped and has since received store and routing fixes. The implementation deliberately diverges from the RFC in at least three places: no snapshot-generation CAS, no `release` decision action, and immediate per-result delivery instead of burst coalescing |
 | [rfc-channel-plugin-architecture.md](rfc-channel-plugin-architecture.md) | `partial` | Shared turn pipeline shipped; **4 of 7** channels adopted. Registry/seam collapse, telegram+discord, Feishu unstarted. Its §9 address rule is separately half-shipped — audit this row alongside [rfc-session-address-model.md](rfc-session-address-model.md) |
 | [rfc-session-address-model.md](rfc-session-address-model.md) | `partial` | The dashboard half of the channel-plugin RFC's §9 rule 1 shipped: a chat-app conversation opened in a dashboard tab is no longer copied into a second session, and `has_dashboard_surface` (7 callers) replaced the name-prefix capability tests. All four phases it proposes are unstarted — 23 named key converters and 5 copies of the session-type ladder remain, surface capability is still one boolean, and an unbound channel tab still starts a second session against the same transcript file |
@@ -48,7 +48,7 @@ verified against `6d3e30bbbd`.
 | [version-compliance-framework.md](version-compliance-framework.md) | `draft` | Nothing. Framework doc, not an RFC; premise is pre-fork and stale |
 | [rfc-everything-is-an-app.md](rfc-everything-is-an-app.md) | `draft` | Nothing. Phase 0's boundary section is in this document's own branch and not yet merged; the eleven declared-but-unread manifest fields it inventories are all still declared and still unread |
 | [rfc-amend-tenets-everything-is-an-app.md](rfc-amend-tenets-everything-is-an-app.md) | `draft` | Nothing. `TENETS.md` still carries seven tenets on main. `git log --follow` on it shows two commits and no prior amendment, and `grep -i tenet` returns zero hits in `GOVERNANCE.md` |
-| [rfc-crew-projects.md](rfc-crew-projects.md) | `draft` | Nothing. Verified at `5cd92ff99`: no project manifest format exists, `slot.project` is a bare directory path, and `grep -ril "confluence\|servicenow" src/junction` returns zero hits |
+| [rfc-projects.md](rfc-projects.md) | `draft` | Nothing. Verified at `5cd92ff99`: no project manifest format exists, `slot.project` is a bare directory path, and `grep -ril "confluence\|servicenow" src/junction` returns zero hits |
 | [rfc-tool-derived-diff-cards.md](rfc-tool-derived-diff-cards.md) | `in-progress` | Shipped: dashboard diff-card/summary promotion + runtime-selected prompt rule. The messaging `OutputEvent` extension (§3.3) is unstarted |
 
 Nothing in this directory is `implemented` or `superseded` today.

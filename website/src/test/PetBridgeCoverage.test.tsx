@@ -8,7 +8,7 @@
 // a refusal read back as a success discards the user's artwork — so they are
 // exercised here alongside the happy paths.
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
-import { petBridge } from '../apps/crew-companion/petBridge'
+import { petBridge } from '../apps/desk-companion/petBridge'
 import {
   APPEARANCE_COLOURS_PATH,
   APPEARANCE_DELETE_PATH,
@@ -21,7 +21,7 @@ import {
   PETDEX_FETCH_PATH,
   REMINDERS_PATH,
   REMOVE_PATH,
-} from '../apps/crew-companion/constants'
+} from '../apps/desk-companion/constants'
 
 /** One answer for one request: a status, a body, or a transport failure. */
 interface Reply {

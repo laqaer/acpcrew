@@ -779,7 +779,7 @@ def build_transfer_bundle(
     #
     # Sized by MESSAGE IDENTITY, not by ``_disk_window_len``. That counter
     # advances only on the save and load paths, but a durable injector
-    # (``cron_inject``, ``workflow_inject``, ``crew_chat``) appends the same row
+    # (``cron_inject``, ``workflow_inject``, ``multitask_chat``) appends the same row
     # to the window AND to disk without going through a save — the disk read
     # above already returns the row while the counter has not moved, so a
     # boundary slice starts one row too early and ships the injection twice.

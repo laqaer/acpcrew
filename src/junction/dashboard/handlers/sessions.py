@@ -1315,7 +1315,7 @@ async def _remove_slot_for_history_key(state: DashboardState, key: str) -> None:
         # Deferred: `handlers.sessions` loads with the dashboard package, which the
         # gateway imports on its boot path. Crew is dashboard-only, and a delete
         # with no live crew never needs the class at all.
-        from junction.crew_chat import CrewOrchestrator
+        from junction.multitask_chat import CrewOrchestrator
     if crew is not None and isinstance(crew, CrewOrchestrator):
         for candidate in pin_slot_keys:
             try:

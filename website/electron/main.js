@@ -86,7 +86,7 @@ const { createPierrePerfLog } = require("./pierre-perf-log");
 const { identityFamily, decideGatewayAction, classifyGatewayReadiness, FAMILY_META, HEALTH_IDENTITY_PATH, READY_PATH } = require("./instance-guard");
 const { initMochi, shutdownMochi } = require("./mochi/index");
 const { borrowSessionToken } = require("./mochi-session-token");
-const { initCrewCompanion, shutdownCrewCompanion } = require("./crew-companion/index");
+const { initCrewCompanion, shutdownCrewCompanion } = require("./desk-companion/index");
 const { clampZoomFactor, stepZoomFactor } = require("./zoom");
 const { createBrowserViewManager, isUntrustedContents } = require("./browser-view");
 const {

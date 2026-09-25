@@ -52,7 +52,7 @@ export const EXIT_PHASES: Readonly<Record<string, true>> = {
 }
 
 /** The editing phases — the L1 "a crew is actively editing a worktree" class.
- * Mirrors `crew_store.EDITING_PHASES`. */
+ * Mirrors `steward_store.EDITING_PHASES`. */
 const EDITING_PHASES: Readonly<Record<string, true>> = {
   'implementing': true,
   'addressing-review': true,
@@ -475,7 +475,7 @@ export function queueSummary(lanes: FabricLane[], nowMs: number): QueueSummary {
   return { perPhase, live, editing, editingMaxPerCrew, reopens, exits, resolved, longestWait }
 }
 
-/** The editing-slot invariant the store enforces (`crew_store.upsert_work_item`):
+/** The editing-slot invariant the store enforces (`steward_store.upsert_work_item`):
  * at most ONE work item may hold a crew's worktree at a time, so the editing
  * phases carry a structural cap of 1. The fabric payload has no per-crew
  * `max_open` field, so the dashboard reads in-flight editing against THIS

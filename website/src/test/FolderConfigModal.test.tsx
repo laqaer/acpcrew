@@ -42,7 +42,7 @@ function open(props: Partial<React.ComponentProps<typeof FolderConfigModal>> = {
  *
  * NOTE ON THE HARNESS: a Radix Select nested in a Radix Dialog cannot be driven
  * in jsdom (Radix's flushSync inside Testing Library's act() throws "Should not
- * already be working"), which is why CrewEditorSelect.test.tsx and
+ * already be working"), which is why AgentEditorSelect.test.tsx and
  * WorkspaceModal.test.tsx stub SimpleSelect out. That does NOT apply here:
  * `Modal` is hand-rolled (createPortal + framer-motion), so there is no Radix
  * layer above the select and the real component is driven directly. Keep it

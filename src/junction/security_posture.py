@@ -527,7 +527,7 @@ _REDACTION_SINKS: tuple[tuple[str, str, str], ...] = (
     ),
     (
         "Crew Mode delivery",
-        "crew_chat.py",
+        "multitask_chat.py",
         "Every crew-slot post (`_post`): forwarded subagent summaries/errors, "
         "decision-agent questions, and topic-meta renders — all LLM-authored — "
         "written to the transcript, broadcast over WS, and persisted to the "
@@ -1180,7 +1180,7 @@ NON_EGRESS_REDACTION_MODULES: frozenset[str] = frozenset(
         # key if the redactors are unavailable), so this is inbound sanitisation
         # rather than an egress boundary — the slot title's user-visible surface
         # is already covered by the registered dashboard sinks.
-        "apps/builtins/issue_radar/backend/crew_runtime.py",
+        "apps/builtins/issue_radar/backend/steward_runtime.py",
         # Log/audit hygiene, not an egress boundary: strips ``user:password@`` from
         # an external registry's clone URL before it reaches the SEL credential-grant
         # record and the warning logs. The URL is index-supplied, so it can carry a

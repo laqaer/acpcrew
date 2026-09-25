@@ -926,14 +926,14 @@ export function repoBody(ref: RepoRef): Record<string, string> {
 // ── crews ───────────────────────────────────────────────────────────────────
 //
 // Every shape below MIRRORS the backend store,
-// `src/junction/apps/builtins/issue_radar/backend/crew_store.py` — that module is
+// `src/junction/apps/builtins/issue_radar/backend/steward_store.py` — that module is
 // the SOURCE OF TRUTH for the phase list, the three phase classifications, the
 // event kinds and every record field. A crew record has no upstream to refetch
 // from (unlike an issue, where a schema mismatch is just a cache miss), so these
 // types and that module must be changed together.
 
 /** Every phase a work item can be in, in lifecycle order — mirrors
- * `crew_store.PHASES`. `selected` is local-only and never public: it is the state
+ * `steward_store.PHASES`. `selected` is local-only and never public: it is the state
  * between "this issue looks workable" and the claim comment. */
 export const CREW_PHASES = [
   'selected',
@@ -953,7 +953,7 @@ export const CREW_PHASES = [
 
 export type CrewPhase = typeof CREW_PHASES[number]
 
-/** Mirrors `crew_store.EVENT_KINDS`. The store REFUSES an unknown kind, so this
+/** Mirrors `steward_store.EVENT_KINDS`. The store REFUSES an unknown kind, so this
  * union is enforced server-side rather than merely documented. */
 export const CREW_EVENT_KINDS = [
   'claim', 'investigate', 'reply', 'implement', 'ci',
@@ -962,7 +962,7 @@ export const CREW_EVENT_KINDS = [
 
 export type CrewEventKind = typeof CREW_EVENT_KINDS[number]
 
-// The three phase classifications, mirroring `crew_store.py`'s frozensets of the
+// The three phase classifications, mirroring `steward_store.py`'s frozensets of the
 // same names. They deliberately do NOT coincide, which is why a view must read
 // them from here rather than re-deriving any of them from a phase string:
 //
@@ -974,23 +974,23 @@ export type CrewEventKind = typeof CREW_EVENT_KINDS[number]
 //   EDITING_PHASES      — a worktree with uncommitted changes; at most one per
 //                         crew, enforced in the store's `upsert_work_item`.
 
-/** Mirrors `crew_store.TERMINAL_PHASES`. */
+/** Mirrors `steward_store.TERMINAL_PHASES`. */
 export const TERMINAL_PHASES: ReadonlySet<CrewPhase> = new Set<CrewPhase>([
   'resolved', 'skipped', 'yielded', 'handed-back', 'preempted',
 ])
 
-/** Mirrors `crew_store.TTL_ACTIVE_PHASES`. */
+/** Mirrors `steward_store.TTL_ACTIVE_PHASES`. */
 export const TTL_ACTIVE_PHASES: ReadonlySet<CrewPhase> = new Set<CrewPhase>([
   'claimed', 'investigating', 'implementing',
 ])
 
-/** Mirrors `crew_store.EDITING_PHASES`. */
+/** Mirrors `steward_store.EDITING_PHASES`. */
 export const EDITING_PHASES: ReadonlySet<CrewPhase> = new Set<CrewPhase>([
   'implementing', 'addressing-review',
 ])
 
 /** Whether a work item occupies one of the crew's `max_open` slots — mirrors
- * `crew_store.open_slot_count`.
+ * `steward_store.open_slot_count`.
  *
  * Every NON-TERMINAL phase: an item is either finished or it is still the crew's
  * to carry, and a crew that cannot proceed on its own records the pass on the
@@ -1096,7 +1096,7 @@ export interface CrewSettings {
   schema: number
   claim_ttl_hours: number
   /** The label a crew puts on an issue whose next step belongs to a human —
-   * mirrors `crew_store.DEFAULT_SETTINGS['needs_human_label']`. Repo-wide, because
+   * mirrors `steward_store.DEFAULT_SETTINGS['needs_human_label']`. Repo-wide, because
    * it is how the person answering finds those issues in the tracker's own
    * filters, and two crews using different labels would split that one queue. */
   needs_human_label: string
@@ -1799,12 +1799,12 @@ export const issueRadarApi = {
 
   // ── crews ──────────────────────────────────────────────────────────────────
   //
-  // Record shapes and the phase classifications mirror `crew_store.py` — see the
+  // Record shapes and the phase classifications mirror `steward_store.py` — see the
   // interface block above for which module owns each list.
   //
   // The request ENVELOPES are not uniform, and the differences are load-bearing
   // because a wrong key is a 400 rather than a type error. Checked against
-  // `crew_routes.py` handler by handler:
+  // `steward_routes.py` handler by handler:
   //
   //   GET  /crews, /crews/names, /crews/settings   ?owner&repo
   //   GET  /crew                     ?owner&repo&id

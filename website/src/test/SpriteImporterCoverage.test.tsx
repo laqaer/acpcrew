@@ -1,6 +1,6 @@
 /**
  * Companion sprite importer — first tests for
- * `apps/crew-companion/SpriteImporter.tsx`.
+ * `apps/desk-companion/SpriteImporter.tsx`.
  *
  * The importer is the whole "turn a sprite sheet into an appearance pack" screen:
  * pick a sheet, detect its grid, slice it into rows, map each row onto one of the
@@ -33,7 +33,7 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest'
 import { render, screen, fireEvent, act, cleanup, within } from '@testing-library/react'
 
-import type { PackMeta } from '../apps/crew-companion/appearanceTypes'
+import type { PackMeta } from '../apps/desk-companion/appearanceTypes'
 
 // ── Bridge double ──────────────────────────────────────────────────────────
 
@@ -46,9 +46,9 @@ const mocks = vi.hoisted(() => ({
   },
 }))
 
-vi.mock('../apps/crew-companion/petBridge', () => ({ galleryApi: mocks.api }))
+vi.mock('../apps/desk-companion/petBridge', () => ({ galleryApi: mocks.api }))
 
-vi.mock('../apps/crew-companion/SpriteRenderer', () => ({
+vi.mock('../apps/desk-companion/SpriteRenderer', () => ({
   SpriteRenderer: ({ src, frameWidth, frameHeight, fps, displaySize }: {
     src: string
     frameWidth: number
@@ -82,7 +82,7 @@ vi.mock('../components/SimpleSelect', () => ({
   ),
 }))
 
-import { SpriteImporter } from '../apps/crew-companion/SpriteImporter'
+import { SpriteImporter } from '../apps/desk-companion/SpriteImporter'
 
 const api = mocks.api
 

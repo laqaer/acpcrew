@@ -1980,9 +1980,9 @@ ISSUE_RADAR_RECORD_INVESTIGATION_SCHEMA = ToolSchema(
 # phase" invariant is per-crew, so a cross-crew write would also defeat that.
 #
 # The phase / event-kind vocabularies MIRROR
-# ``issue_radar.backend.crew_store.PHASES`` and ``.EVENT_KINDS`` rather than
+# ``issue_radar.backend.steward_store.PHASES`` and ``.EVENT_KINDS`` rather than
 # importing them: ``validation`` is core and must not import an app package
-# (apps load dynamically and may be absent). ``test_issue_radar_crew_mcp_tools``
+# (apps load dynamically and may be absent). ``test_issue_radar_steward_mcp_tools``
 # asserts the mirrors are exact, so drift fails a test instead of silently
 # rejecting a legitimate phase at the tool boundary.
 _ISSUE_RADAR_CREW_PHASES = frozenset(
@@ -2017,7 +2017,7 @@ _ISSUE_RADAR_CREW_EVENT_KINDS = frozenset(
         "yield",
     }
 )
-#: Mirrors ``crew_store.SKIP_SCOPES`` — the classification a crew attaches to a
+#: Mirrors ``steward_store.SKIP_SCOPES`` — the classification a crew attaches to a
 #: pass in the repo-wide shared skip index. Advertised to the model as an enum so
 #: it picks a real one; NOT enforced as ``allowed=`` on the field (see the
 #: ``skip_scope`` spec below for why).
@@ -2097,12 +2097,12 @@ ISSUE_RADAR_CREW_RECORD_SCHEMA = ToolSchema(
         # would fail the whole write, which on a ``skipped`` write is the write
         # that puts the issue in the shared skip index. Weakening "a skip is
         # always indexed" to buy a tidier label is the wrong trade, so the store
-        # coerces an unknown value to ``other`` (``crew_store.SKIP_SCOPES``) and
+        # coerces an unknown value to ``other`` (``steward_store.SKIP_SCOPES``) and
         # the pass is recorded either way. The vocabulary is still advertised as
         # an enum in the tool schema, so the model is told what to pick.
         FieldSpec("skip_scope", str, max_len=32),
         # ``outcome`` is a bounded free string, NOT an enum: the store keeps it
-        # as free text (``crew_store.upsert_work_item``) and no vocabulary is
+        # as free text (``steward_store.upsert_work_item``) and no vocabulary is
         # defined anywhere in the app, so an allowlist invented here would
         # reject a legitimate terminal outcome and lose it.
         FieldSpec("outcome", str, max_len=MAX_SHORT_STRING),

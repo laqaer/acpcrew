@@ -1377,7 +1377,7 @@ DEPS_CACHE_SCHEMA = 1
 #     a request on an expired cache (it returns the stale graph and refreshes in
 #     the background), so for the route this TTL governs how often a BACKGROUND
 #     rebuild fires and a long value would be harmless;
-#   * crew_runtime._read_or_refresh_deps, the sweep that feeds SIG_DEP_UNBLOCKED.
+#   * steward_runtime._read_or_refresh_deps, the sweep that feeds SIG_DEP_UNBLOCKED.
 #     For the sweep this TTL IS the freshness horizon on which a crew waiting for
 #     its blocker to merge gets woken, so raising it directly delays that wake.
 #

@@ -32,7 +32,7 @@ from aiohttp.test_utils import TestClient, TestServer
 from chat_test_helpers import _make_app, _make_state
 
 from junction import autonudge
-from junction.apps.builtins.issue_radar.backend import crew_runtime
+from junction.apps.builtins.issue_radar.backend import steward_runtime
 from junction.autonudge import AutoNudgeService, NudgeAdmissionRefused
 from junction.dashboard import chat_handlers as handlers
 
@@ -451,10 +451,10 @@ async def test_issue_radar_arm_queued_behind_final_retirement_is_refused(
 
     monkeypatch.setattr("junction.apps.teardown.notify_slot_closed", _hook)
     monkeypatch.setattr(
-        crew_runtime, "ensure_crew_session", AsyncMock(return_value=slot)
+        steward_runtime, "ensure_crew_session", AsyncMock(return_value=slot)
     )
     monkeypatch.setattr(
-        crew_runtime,
+        steward_runtime,
         "compose_turn_prompt_async",
         AsyncMock(return_value="replacement arm"),
     )
@@ -475,7 +475,7 @@ async def test_issue_radar_arm_queued_behind_final_retirement_is_refused(
     release_hook.set()
     assert await asyncio.to_thread(write_entered.wait, 5)
     launch = asyncio.create_task(
-        crew_runtime.launch_crew(
+        steward_runtime.launch_crew(
             state,
             "owner",
             "repo",

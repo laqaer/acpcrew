@@ -20,7 +20,7 @@ for loop state.
 
 The pattern already exists in this repo — three times, hand-rolled per app:
 
-- Issue Radar's crew ledger (`apps/builtins/issue_radar/backend/crew_store.py`):
+- Issue Radar's crew ledger (`apps/builtins/issue_radar/backend/steward_store.py`):
   work items with `phase` / `next` / `tried[]`, an append-only content-addressed
   event log, and the rule that a phase never moves without a logged event.
 - Ops Mission Control's knowledge ledger

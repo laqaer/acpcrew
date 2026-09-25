@@ -12,7 +12,7 @@
  *      dropdown either animates or pops, and only motion tells the two apart.
  *
  * Runs the REAL built SPA (website/dist) behind the shared in-process static
- * server, answering /api/** from the same fixtures capture-crews-list-modal.mjs
+ * server, answering /api/** from the same fixtures capture-agents-list-modal.mjs
  * uses — gateway-free, no kiro-cli, no dashboard auth. Rebuild dist first: the
  * change under test is CSS the build emits, so a stale bundle records the wrong
  * side.
@@ -29,7 +29,7 @@ import { join, resolve } from 'node:path'
 import { spawnSync } from 'node:child_process'
 import { serveDist } from './lib/serve-dist.mjs'
 import { logPageProblems, stubDashboardApi } from './lib/stub-dashboard-api.mjs'
-import { crewsApi } from './lib/crews-fixtures.mjs'
+import { crewsApi } from './lib/agents-fixtures.mjs'
 
 const OUT = resolve(process.argv[2] || '../temp-screenshots/dialog-animation')
 const PREFIX = process.argv[3] || 'after'

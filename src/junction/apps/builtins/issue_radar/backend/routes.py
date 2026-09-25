@@ -5314,12 +5314,12 @@ def register_routes(app: web.Application) -> None:
 
     # Crews (the worker-agent surface) live in their own module but register HERE,
     # so this function stays the single place that lists this app's routes. The
-    # import is function-local because it is CIRCULAR: crew_routes imports this
+    # import is function-local because it is CIRCULAR: steward_routes imports this
     # module for the shared gates (_require_enabled, _pr_action_preamble, _st), so
     # a module-scope import here would reach a half-initialized routes module.
-    from . import crew_routes
+    from . import steward_routes
 
-    crew_routes.register_crew_routes(app)
+    steward_routes.register_crew_routes(app)
 
     # Background new-issue watcher: a single in-process asyncio loop (NOT a cron
     # job) that polls opted-in repos every ~60s and pushes a Junction

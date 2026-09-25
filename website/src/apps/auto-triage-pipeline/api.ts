@@ -36,7 +36,7 @@ export interface RepoRef {
 }
 
 /** Every phase a work item can be in, in lifecycle order — mirrors
- * `crew_store.PHASES` and issue-radar's `CREW_PHASES`. The pure fold derives the
+ * `steward_store.PHASES` and issue-radar's `CREW_PHASES`. The pure fold derives the
  * on-spine subset from this, so it cannot drift from the enum. */
 export const CREW_PHASES = [
   'selected',
@@ -123,7 +123,7 @@ export interface CrewFabricResponse {
 }
 
 /** The fabric schema version this client was written against — mirrors
- * `crew_store.FABRIC_SCHEMA` and issue-radar's `CREW_FABRIC_SCHEMA`. */
+ * `steward_store.FABRIC_SCHEMA` and issue-radar's `CREW_FABRIC_SCHEMA`. */
 export const CREW_FABRIC_SCHEMA = 1
 
 /** A repository connected in Issue Radar's config — one row of the switcher this

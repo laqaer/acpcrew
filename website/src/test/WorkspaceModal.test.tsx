@@ -24,13 +24,13 @@ const mockApi = vi.hoisted(() => ({
   createChatSlot: vi.fn(),
 }))
 
-/* SimpleSelect is stubbed for the same reason as in CrewEditorSelect.test.tsx:
+/* SimpleSelect is stubbed for the same reason as in AgentEditorSelect.test.tsx:
    reaching this modal means driving a Radix Select from inside a Radix Dialog,
    and Radix commits discrete events with `ReactDOM.flushSync(...)`, which React
    refuses inside Testing Library's `act()` ("Should not already be working").
    The select is only the DOOR to the modal here — the modal's own lifecycle is
    what these tests are about. The real Radix path is driven end-to-end by
-   scripts/verify-crews-dialog-select.mjs. */
+   scripts/verify-agents-dialog-select.mjs. */
 vi.mock('../components/SimpleSelect', () => ({
   default: ({
     options, value, onChange, action, clearLabel, 'aria-label': ariaLabel,

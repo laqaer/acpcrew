@@ -36,7 +36,7 @@ vi.mock('../api/client', () => ({
 }))
 
 // The wizard's model picker reads the advertised list via useAvailableModels.
-// Mock the hook module (same pattern as IssueRadarCrewEditor.test.tsx): the
+// Mock the hook module (same pattern as IssueRadarStewardEditor.test.tsx): the
 // real hook fetches through the provider context, which this harness does not
 // stand up. Non-vendor test ids only.
 vi.mock('../hooks/useAvailableModels', () => ({

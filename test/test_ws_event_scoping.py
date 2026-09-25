@@ -3023,7 +3023,7 @@ class TestApiStatusRequiresDeclaration:
         """Source guard: no shipped builtin may RELY on the implicit allow.
 
         Derived, not a hardcoded name list: a name list goes stale the moment a
-        builtin's permissions change (``crew_companion`` legitimately dropped
+        builtin's permissions change (``desk_companion`` legitimately dropped
         ``/api/status`` from its manifest once it stopped calling it, which
         silently reds a hardcoded assertion instead of catching a real break).
         The invariant that actually matters is that any builtin whose shipped

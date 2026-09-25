@@ -76,7 +76,7 @@ describe('Issue Radar at narrow widths', () => {
     // selection-derived rule would open the detail on load with the list behind
     // it and Back unable to win against the restore.
     const lists = await Promise.all([
-      src('components/IssueList.tsx'), src('components/PrList.tsx'), src('components/CrewList.tsx'),
+      src('components/IssueList.tsx'), src('components/PrList.tsx'), src('components/StewardList.tsx'),
     ])
     const drills = lists.reduce((n, s) => n + (s.match(/listDetail\.openDetail\(\)/g) ?? []).length, 0)
     expect(drills, 'expected all five row handlers to drill in').toBe(5)

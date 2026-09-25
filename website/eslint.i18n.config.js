@@ -178,7 +178,7 @@ export default [
       // outside this gate sight-unseen, including one where someone later writes
       // `content: "…"` copy or misfiles a string. One config line per new app is
       // the cost of keeping the ratchet's shape.
-      'src/apps/crew-companion/styles.ts',
+      'src/apps/desk-companion/styles.ts',
       'src/apps/design-critique/styles.ts',
       'src/apps/file-explorer/styles.ts',
       'src/apps/md-notebook/styles.ts',
@@ -1035,7 +1035,7 @@ export default [
       // Same class as Notes: a CSS-in-TS string injected via <style>, never copy.
       // Editing a selector inside CC_CSS otherwise fails [added-lines] because the
       // whole template sits under an ALL-CAPS declarator.
-      'src/apps/crew-companion/styles.ts',
+      'src/apps/desk-companion/styles.ts',
     ],
     rules: {
       'i18next/no-literal-string': 'off',

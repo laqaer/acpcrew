@@ -9,7 +9,7 @@ A single asyncio background loop, started from ``register_routes(app)`` via
      Azure DevOps work items) created since the last check, and a Junction
      dashboard notification is pushed (``state.notify`` — the bell, persisted to
      the notification history) when new ones appear;
-  2. **crew sweep** (:func:`crew_runtime.sweep_repo`) — every repo with a live crew
+  2. **crew sweep** (:func:`steward_runtime.sweep_repo`) — every repo with a live crew
      has its crews' open work items compared against the six unblock signals, and
      the owning crew is woken when one moves.
 
@@ -34,7 +34,7 @@ high-water mark stored in ``watch-state.json``.
 
 Fail-safe / best-effort by design:
   * a disabled app is silent, crews included — revoked inside the disable request
-    by ``crew_runtime.on_app_disabled``, with the ``is_app_enabled`` gate below as
+    by ``steward_runtime.on_app_disabled``, with the ``is_app_enabled`` gate below as
     the backstop for a disable this process was never told about;
   * only repos with ``notify_on_new_issue`` set are polled for NEW ITEMS — the
     crew sweep deliberately does not inherit that gate (see :func:`_poll_once`);
@@ -52,7 +52,7 @@ from typing import Any
 
 from aiohttp import web
 
-from junction.apps.builtins.issue_radar.backend import crew_runtime, provider, store
+from junction.apps.builtins.issue_radar.backend import provider, steward_runtime, store
 from junction.apps.manager import is_app_enabled
 
 logger = logging.getLogger("junction.app.issue-radar")
@@ -119,7 +119,7 @@ async def _watch_loop(app: web.Application) -> None:
     # a minute after every gateway start. Registration is a dict write with no
     # subprocess, so it does not undo the startup-cost reason for the delay below.
     try:
-        crew_runtime.install_slot_close_hook()
+        steward_runtime.install_slot_close_hook()
     except Exception:  # pragma: no cover - defensive; never block the loop
         logger.debug("issue-radar crew close hook install failed", exc_info=True)
     # Same timing argument, and a sharper consequence: until the disable hook is
@@ -130,7 +130,7 @@ async def _watch_loop(app: web.Application) -> None:
     # Announced only from here — once per process — because the watchdog
     # re-registers every cycle and a warning there would be a log flood.
     try:
-        if not crew_runtime.install_app_disable_hook(app.get("state")):
+        if not steward_runtime.install_app_disable_hook(app.get("state")):
             logger.warning(
                 "issue-radar: this gateway has no app-disable hook registry, so "
                 "disabling the app stops the crews on the next %ds sweep rather "
@@ -171,7 +171,7 @@ async def _poll_once(app: web.Application) -> None:
     # nudge loop fires regardless of any app's enabled flag, so both have to be
     # taken away explicitly.
     #
-    # THE BACKSTOP, not the first line. ``crew_runtime.on_app_disabled`` revokes
+    # THE BACKSTOP, not the first line. ``steward_runtime.on_app_disabled`` revokes
     # inside the disable request itself, so an operator using the dashboard or the
     # API has stopped crews by the time it returns. This branch exists for the
     # disables nothing can tell us about: ``junction app disable`` in another
@@ -186,7 +186,7 @@ async def _poll_once(app: web.Application) -> None:
         if not _crews_suspended:
             _crews_suspended = True
             try:
-                await crew_runtime.suspend_crews(app.get("state"))
+                await steward_runtime.suspend_crews(app.get("state"))
             except Exception:
                 logger.warning("issue-radar: suspending crews failed", exc_info=True)
         return
@@ -218,7 +218,7 @@ async def _poll_once(app: web.Application) -> None:
                     "issue-radar watch failed for %s/%s", owner, repo, exc_info=True
                 )
         try:
-            await crew_runtime.sweep_repo(app, key)
+            await steward_runtime.sweep_repo(app, key)
         except Exception:
             # Same containment: one repo's crews failing must not stop the others,
             # and must not take the new-issue notification down with them.

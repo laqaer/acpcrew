@@ -15,7 +15,7 @@ import { api } from '../api/client'
 
 vi.mock('../api/client')
 
-/* SimpleSelect is stubbed for the same reason as CrewEditorSelect.test.tsx and
+/* SimpleSelect is stubbed for the same reason as AgentEditorSelect.test.tsx and
    WorkspaceModal.test.tsx: it wraps a Radix Select, which commits its selection
    inside `ReactDOM.flushSync(...)`, and this tab mounts FIVE of them at once —
    driving them for real costs an open/close cycle per assertion for a dropdown

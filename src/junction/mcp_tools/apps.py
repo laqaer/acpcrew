@@ -470,7 +470,7 @@ def issue_radar_crew_record(name: str, args: dict[str, Any]) -> str:
     }
     # Local-only resume fields, passed through verbatim. NOT scrubbed: an
     # absolute worktree path is the point of the field, and it is never
-    # rendered into a comment (crew_store keeps these local).
+    # rendered into a comment (steward_store keeps these local).
     for _cw_key in ("worktree", "branch", "base_sha"):
         if args.get(_cw_key):
             _cw_body[_cw_key] = args[_cw_key]
@@ -481,7 +481,7 @@ def issue_radar_crew_record(name: str, args: dict[str, Any]) -> str:
         _cw_body["phase"] = args["phase"]
     # Classification for the repo-wide shared skip index. Forwarded raw: the
     # store coerces an unrecognised value to `other` rather than refusing, so
-    # a mislabelled pass is still an indexed pass (see crew_store.SKIP_SCOPES).
+    # a mislabelled pass is still an indexed pass (see steward_store.SKIP_SCOPES).
     if args.get("skip_scope"):
         _cw_body["skip_scope"] = args["skip_scope"]
     # Prose that is rendered on the crew page. Redacted for the same reason
@@ -508,7 +508,7 @@ def issue_radar_crew_record(name: str, args: dict[str, Any]) -> str:
             redact(s) for s in (args.get("labels_applied") or []) if s
         ]
     # The flat ci_* args are re-assembled into the store's `ci_state` dict
-    # (crew_store merges it key-by-key). `ci_state` the ARG is the forge's
+    # (steward_store merges it key-by-key). `ci_state` the ARG is the forge's
     # verdict word and becomes the dict's `state`; an int reading of 0 is
     # meaningful (0/47 green, 0 inherited reds) so these are dropped on
     # "not supplied", not on falsiness.

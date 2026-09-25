@@ -92,9 +92,9 @@ _STATE_FILE = "state.json"
 _KEY_FILE = "slot_key"
 _LOCK_FILE = ".lock"
 
-#: Identical fold to ``crew_chat._store_name`` — kept in lockstep so a slot
+#: Identical fold to ``multitask_chat._store_name`` — kept in lockstep so a slot
 #: key and its stores share one spelling family. Reimplemented rather than
-#: imported: ``crew_chat`` drags the whole crew orchestrator import graph into
+#: imported: ``multitask_chat`` drags the whole crew orchestrator import graph into
 #: what must stay a leaf module usable from the gateway boot path. The fold
 #: shapes only the READABLE half of a directory name; identity is the digest
 #: over the exact key.

@@ -6819,11 +6819,11 @@ class GatewayOrchestrator:
             # Imported HERE, not at module scope: this module is on the gateway's
             # boot path and `--no-dashboard` must not pay for a dashboard-only
             # subsystem before it is ready to serve. By the time a subagent
-            # completes with a live `.crew`, `crew_chat` is already imported, so
+            # completes with a live `.crew`, `multitask_chat` is already imported, so
             # this costs a sys.modules hit. `_crew is None` short-circuits first,
             # which is the whole API-only case.
             if _crew is not None:
-                from junction.crew_chat import CrewOrchestrator
+                from junction.multitask_chat import CrewOrchestrator
             if _crew is not None and isinstance(_crew, CrewOrchestrator) and _crew.owns(info.id):
                 try:
                     await _crew.on_subagent_done(info)
@@ -7708,7 +7708,7 @@ class GatewayOrchestrator:
             # Deferred import: `gateway` is on the boot path and this subsystem is
             # dashboard-only, so `--no-dashboard` must not pay for it. This method
             # is already dashboard-gated by the return above.
-            from junction.crew_chat import CrewOrchestrator
+            from junction.multitask_chat import CrewOrchestrator
 
             self.dashboard_state.crew = CrewOrchestrator(
                 state=self.dashboard_state,

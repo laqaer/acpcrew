@@ -3,7 +3,7 @@ import {
   adoptDashboardTheme,
   applyThemeId,
   extractStylesheetHrefs,
-} from '../apps/crew-companion/dashboardTheme'
+} from '../apps/desk-companion/dashboardTheme'
 
 /**
  * Pins the fix for the crew-companion overlay adopting the dashboard theme:
