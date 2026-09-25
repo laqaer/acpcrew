@@ -139,6 +139,19 @@ class TestProse:
             f"{_KIRO}\\s?{_CREW}",
             f"{_KIRO}[ -]?{_CREW}",
             f"{_KIRO}[-._ ]?{_CREW}",
+            # A class naming the slash is a joiner like any other.
+            f"{_KIRO}[/_]{_CREW}",
+            f"{_KIRO}[\\\\/]{_CREW}",
+            f"{_KIRO}[\\s_-]?{_CREW}",
+            # Escaped joiners and regex classes after a backslash.
+            f"{_KIRO}\\W?{_CREW}",
+            f"{_KIRO}\\-{_CREW}",
+            f"{_KIRO}\\_{_CREW}",
+            f"{_KIRO}\\/{_CREW}",
+            # A short group of joiners, capturing or not.
+            f"{_KIRO}(?:-|_)?{_CREW}",
+            f"{_KIRO}(?:\\s|-|_)?{_CREW}",
+            f"{_KIRO}(-|_){_CREW}",
         ],
     )
     def test_a_regex_spelling_of_the_name_is_the_name(self, token: str) -> None:
@@ -157,6 +170,7 @@ class TestProse:
             f"{_KIRO_CAP}; {_CREW} next",
             f"{_KIRO_CAP}! {_CREW_CAP} ahoy",
             f"{_KIRO_CAP} - {_CREW} as a spaced aside",
+            f"{_KIRO_CAP} (the harness) and its {_CREW}",
         ],
     )
     def test_clause_punctuation_between_the_words_is_not_the_name(self, line: str) -> None:
@@ -232,6 +246,21 @@ class TestDataHome:
     def test_the_joined_data_home_is_flagged(self) -> None:
         assert _hits(f"migrated from {_HOME_JOINED}") == [_NAME_CLI]
 
+    @pytest.mark.parametrize(
+        "line",
+        [
+            # A cross-platform path regex, as a test or a redaction rule writes it.
+            f"re.compile(r'\\.{_KIRO}[\\\\/]{_CREW}')",
+            f"re.compile(r'\\.{_KIRO}[/\\\\]+{_CREW}')",
+            f"re.compile(r'\\.{_KIRO}(?:/|\\\\)+{_CREW}')",
+            # A JSON-escaped slash, and a regex doubled inside a string literal.
+            f'{{"home": "~\\/.{_KIRO}\\/{_CREW}"}}',
+            f'new RegExp("\\\\.{_KIRO}\\\\\\\\{_CREW}")',
+        ],
+    )
+    def test_a_regex_or_escaped_spelling_of_the_data_home_is_flagged(self, line: str) -> None:
+        assert _kinds(line) == ["home"], f"missed: {line}"
+
     def test_the_data_home_is_reported_once_not_again_as_the_name(self) -> None:
         # The path contains the two-word name; the leftmost rule claims the span.
         assert len(_hits(f"{_HOME_POSIX}/.env")) == 1
@@ -281,9 +310,29 @@ class TestRetiredLiterals:
     def test_the_bare_retired_domain_is_flagged(self) -> None:
         assert _kinds(f"alternate domain {_HOST.upper()}") == ["host"]
 
+    @pytest.mark.parametrize(
+        "dot",
+        [
+            "\\.",  # regex-escaped
+            "\\\\.",  # regex-escaped inside a string literal
+            "[.]",  # a one-character class
+        ],
+    )
+    def test_a_regex_spelling_of_the_host_is_flagged(self, dot: str) -> None:
+        # A test that asserts a URL against a pattern carries the retired host as
+        # much as the URL itself does, so reverting such a test must still fail.
+        host = _HOST.replace(".", dot)
+        line = f"assert.match(manualDownloadUrl('nightly'), /^https:\\/\\/download{dot}{host}\\//)"
+        assert _kinds(line) == ["host"], f"missed: {line}"
+        assert _hits(line) == [host]
+
     def test_the_bundle_id_is_flagged_once(self) -> None:
         # It contains the two-word name too; it is reported under its own rule only.
         assert _kinds(f"codesign --identifier {_BUNDLE_ID} App.app") == ["bundle"]
+
+    def test_a_regex_spelling_of_the_bundle_id_is_flagged_once(self) -> None:
+        pattern = _BUNDLE_ID.replace(".", "\\.")
+        assert _kinds(f"expect(appId).toMatch(/^{pattern}$/)") == ["bundle"]
 
     def test_the_slug_reports_the_org_and_the_name(self) -> None:
         assert _kinds(f"https://github.com/{_SLUG}/issues") == ["org", "brand"]
@@ -351,6 +400,8 @@ class TestNotFlagged:
             "agent.acp_backend = ACP_BACKEND_KIRO",
             "is_kiro_backend(backend)",
             "see https://kiro.dev/docs/cli for the harness",
+            "assert re.match(r'https://kiro\\.dev/docs', url)",
+            "re.compile(r'\\.kiro[\\\\/](?:settings|agents)')",
             # kiro-cli's own repository under the organisation.
             f"# (upstream fix requested in {_ORG}/{_KIRO_CAP}#10970)",
             f"# busy repo ({_ORG}/{_KIRO_CAP} ~2.6k open)",
@@ -401,6 +452,11 @@ class TestLinearity:
             (f"{_KIRO}%20", " "),
             (f"{_KIRO}\\\\", " "),
             (f"{_KIRO}[ -]", " "),
+            (f"{_KIRO}[\\s_", " "),
+            (f"{_KIRO}(?:-", " "),
+            (f".{_KIRO}[\\\\/]", " "),
+            (f"{_CREW}\\.{_KIRO}\\.x", " "),
+            ("\\", " "),
             (f"{_ORG}/{_KIRO_CAP} ", " "),
         ],
     )

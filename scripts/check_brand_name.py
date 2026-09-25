@@ -13,16 +13,21 @@ and in identifiers alike, and this gate reports each one:
 * the upstream two-word product name in any case, with its words glued or
   joined by one joiner: whitespace, ``_``, ``-``, ``.``, ``+``, ``/``, ``\\``
   (escaped or not), a Unicode dash or zero-width character, ``%20``,
-  ``&nbsp;``, or a regex spelling of any of those (see ``_JOINER``). That one
-  family spans the prose name, the CLI and package spellings, the environment
-  prefix, and the retired data home beside kiro-cli's directory;
+  ``&nbsp;``, or a regex spelling of a joiner -- an escape (``\\-``, ``\\s``,
+  ``\\W``), a short character class (``[/_]``, ``[\\s_-]``) or a short group
+  (``(?:-|_)``), optionally made optional with ``?`` or ``*`` (see
+  ``_JOINER``). That one family spans the prose name, the CLI and package
+  spellings, the environment prefix, and the retired data home beside
+  kiro-cli's directory;
 * the retired data home INSIDE kiro-cli's directory, both as one path literal
-  (either separator, escaped or not) and as code builds it: the directory and
-  the second word as two string literals joined by a path operator, a comma, a
-  ``+`` or ``joinpath``, or around an ``os.sep`` / ``path.sep`` interpolation;
+  (either separator, escaped or not, or a regex class or group of the two) and
+  as code builds it: the directory and the second word as two string literals
+  joined by a path operator, a comma, a ``+`` or ``joinpath``, or around an
+  ``os.sep`` / ``path.sep`` interpolation;
 * hosts under the retired product domain (its ``download.``, ``updates.`` and
-  ``apps.`` subdomains all carry it);
-* the retired Apple bundle id;
+  ``apps.`` subdomains all carry it), with dots plain, regex-escaped or written
+  as ``[.]``;
+* the retired Apple bundle id, its dots spelled the same ways;
 * the upstream GitHub organisation, except where it cites kiro-cli's own public
   repository (see ``_KIRO_CLI_REPO``). Every other use -- a slug with any other
   repository, the container namespace, the ``-labs`` registry, an owner check
@@ -129,11 +134,16 @@ _DEV = "dev"
 #   is a sentence boundary: a sentence that ends on the harness's name, followed
 #   by one that opens with the generic word, names kiro-cli and then a crew, not
 #   the retired product;
-# * one or two backslashes, optionally followed by a space, a dot or ``s`` (a
+# * one to four backslashes, optionally followed by one of `` .sSwW_+/-`` (a
 #   Windows path, the same path escaped inside a string literal, a
-#   shell-escaped space, a regex-escaped dot or whitespace class);
-# * ``%20`` (a URL-encoded space), ``&nbsp;`` (an HTML one), or a short regex
-#   character class such as ``[ -]``;
+#   shell-escaped space, a Markdown-escaped underscore, a JSON-escaped slash, a
+#   regex-escaped joiner, or a regex class such as ``\s`` or ``\W``);
+# * ``%20`` (a URL-encoded space) or ``&nbsp;`` (an HTML one);
+# * a short regex character class of joiners, such as ``[ -]``, ``[/_]``,
+#   ``[\\/]`` or ``[\s_-]``;
+# * a short regex group, such as ``(?:-|_)`` or ``(\s|-)``. Its contents are
+#   only bounded, not inspected: the name's two words never sit either side of a
+#   parenthesised aside with no space between them anywhere but in a pattern;
 #
 # optionally followed by a regex ``?`` or ``*``, so a pattern written to match
 # the name (the name with `` ?`` between its words) is reported as the name too.
@@ -149,11 +159,25 @@ _JOINER = (
     r"(?:\s{1,2}"
     r"|[_+/\-\u2010-\u2015\u00ad\u200b-\u200d\u2060\ufeff]{1,2}"
     r"|\."
-    r"|\\{1,2}[ .s]?"
+    r"|\\{1,4}[ .sSwW_+/\-]?"
     r"|%20|&nbsp;"
-    r"|\[[\s_.\-\\]{1,4}\])"
+    r"|\[[\s_./+\-\\sSwW]{1,6}\]"
+    r"|\([^()\n]{1,10}\))"
 )
 _SEPARATOR = rf"(?:{_JOINER}[?*]?)?"
+
+# A path separator between kiro-cli's directory and the second word of the
+# retired data home: one to four slashes or backslashes (either separator,
+# escaped for a string literal or a JSON document), or a regex spelling of
+# one -- a class such as ``[\\/]`` or ``[/\\]+``, or a group such as
+# ``(?:/|\\)``.
+_PATH_SEP = r"(?:[/\\]{1,4}|\[[/\\]{1,4}\][+?]?|\((?:\?:)?[/\\|]{1,8}\)[+?]?)"
+
+# A dot inside a retired dotted literal (the hosts, the bundle id): plain, or as
+# a pattern spells it -- regex-escaped (with the backslash doubled inside a
+# string literal) or as the one-character class ``[.]``. A test that asserts a
+# URL against a regex carries the retired host just as much as the URL does.
+_DOT = r"(?:\\{0,4}\.|\[\.\])"
 
 # A quote that opens or closes a string literal in Python, JavaScript or shell.
 _QUOTE = "[\"'`]"
@@ -169,10 +193,13 @@ _HOME_SPLIT = (
     rf"|\$?\{{(?:os|path)\.sep\}}{_CREW}"
 )
 
-# The retired literals, each built from the fragments above.
+# The retired literals, each built from the fragments above, and the patterns
+# for the two dotted ones, whose dots may be regex-escaped.
 _HOST = f"{_CREW}.{_KIRO}.{_DEV}"
 _BUNDLE_ID = ".".join(("com", "amazon", _KIRO, _CREW))
 _ORG = f"{_KIRO}dot{_DEV}"
+_HOST_RE = _DOT.join((_CREW, _KIRO, _DEV))
+_BUNDLE_RE = _DOT.join(("com", "amazon", _KIRO, _CREW))
 
 # The upstream organisation also owns kiro-cli's own public repository, whose
 # name is the bare first word. kiro-cli is the harness Junction drives, so a
@@ -199,10 +226,10 @@ _KIRO_CLI_REPO = (
 RETIRED = re.compile(
     "|".join(
         (
-            f"(?P<bundle>{re.escape(_BUNDLE_ID)})",
-            f"(?P<host>{re.escape(_HOST)})",
+            f"(?P<bundle>{_BUNDLE_RE})",
+            f"(?P<host>{_HOST_RE})",
             f"(?P<org>{_ORG}(?!{_KIRO_CLI_REPO}))",
-            rf"(?P<home>\.{_KIRO}(?:[/\\]{{1,2}}{_CREW}|{_HOME_SPLIT}))",
+            rf"(?P<home>\.{_KIRO}(?:{_PATH_SEP}{_CREW}|{_HOME_SPLIT}))",
             f"(?P<mascot>{_KIRO}{_SEPARATOR}{_GHOST})",
             f"(?P<brand>{_KIRO}{_SEPARATOR}{_CREW})",
         )
@@ -469,6 +496,13 @@ _CREW_CAP = _CREW.capitalize()
 _NAME = _KIRO_CAP + _CREW_CAP
 _NAME_SPACED = f"{_KIRO_CAP} {_CREW_CAP}"
 _MASCOT = _KIRO_CAP + _GHOST.capitalize()
+# The dotted literals as a pattern spells them: dots regex-escaped once, escaped
+# again inside a string literal, or written as a one-character class.
+_BS = "\\"
+_HOST_ESC = _HOST.replace(".", _BS + ".")
+_HOST_ESC2 = _HOST.replace(".", _BS * 2 + ".")
+_HOST_CLASS = _HOST.replace(".", "[.]")
+_BUNDLE_ESC = _BUNDLE_ID.replace(".", _BS + ".")
 
 # (label, line, expected kinds in order). An empty tuple means "must not flag".
 PROBES: tuple[tuple[str, str, tuple[str, ...]], ...] = (
@@ -480,6 +514,13 @@ PROBES: tuple[tuple[str, str, tuple[str, ...]], ...] = (
     ("url-encoded", f"https://example.com/?q={_KIRO_CAP}%20{_CREW_CAP}", ("brand",)),
     ("regex-optional", f"title.replace(/^{_KIRO_CAP} ?{_CREW_CAP} /g, '')", ("brand",)),
     ("regex-class", f"re.compile(r'{_KIRO}[ -]?{_CREW}')", ("brand",)),
+    ("regex-class-slash", f"re.compile(r'{_KIRO}[/_]{_CREW}')", ("brand",)),
+    ("regex-class-escape", f"re.compile(r'{_KIRO}[\\s_-]?{_CREW}')", ("brand",)),
+    ("regex-group", f"re.compile(r'{_KIRO}(?:-|_)?{_CREW}')", ("brand",)),
+    ("regex-nonword", f"re.compile(r'{_KIRO}\\W?{_CREW}')", ("brand",)),
+    ("regex-escaped-hyphen", f"/{_KIRO}\\-{_CREW}/", ("brand",)),
+    ("markdown-escaped", f"the `{_KIRO}\\_{_CREW}` package", ("brand",)),
+    ("json-escaped-slash", f'{{"p": "{_KIRO}\\/{_CREW}"}}', ("brand",)),
     ("shell-escaped", f"open /Applications/{_KIRO_CAP}\\ {_CREW_CAP}.app", ("brand",)),
     ("cli", f"run `{_KIRO}{_CREW} serve` to start it", ("brand",)),
     ("package", f"from {_KIRO}_{_CREW}.config import loader", ("brand",)),
@@ -496,8 +537,15 @@ PROBES: tuple[tuple[str, str, tuple[str, ...]], ...] = (
     ("home-tuple", f'parts = (".{_KIRO}", "{_CREW}")', ("home",)),
     ("home-closed-call", f'Path(".{_KIRO}") / "{_CREW}-auth-staging"', ("home",)),
     ("home-os-sep", f'f".{_KIRO}{{os.sep}}{_CREW}"', ("home",)),
+    ("home-regex-class", f"re.compile(r'\\.{_KIRO}[\\\\/]{_CREW}')", ("home",)),
+    ("home-regex-group", f"re.compile(r'\\.{_KIRO}(?:/|\\\\)+{_CREW}')", ("home",)),
+    ("home-json-escaped", f'{{"home": "~\\/.{_KIRO}\\/{_CREW}"}}', ("home",)),
     ("host", f"curl -fsSL https://download.{_HOST}/cli.sh | sh", ("host",)),
+    ("host-regex", f"assert.match(url, /^https:\\/\\/download\\.{_HOST_ESC}\\//)", ("host",)),
+    ("host-regex-string", f'new RegExp("apps\\\\.{_HOST_ESC2}")', ("host",)),
+    ("host-regex-class", f"apps[.]{_HOST_CLASS}", ("host",)),
     ("bundle-id", f"codesign --identifier {_BUNDLE_ID}", ("bundle",)),
+    ("bundle-id-regex", f"/^{_BUNDLE_ESC}$/", ("bundle",)),
     ("slug", f"https://github.com/{_ORG}/{_NAME}/issues", ("org", "brand")),
     ("org", f"ghcr.io/{_ORG}/junction:latest", ("org",)),
     ("org-labs", f"registry: '{_ORG}-labs'", ("org",)),
@@ -508,6 +556,9 @@ PROBES: tuple[tuple[str, str, tuple[str, ...]], ...] = (
     ("kiro-home-built", 'Path.home() / ".kiro" / "settings" / "cli.json"', ()),
     ("kiro-cli", "install kiro-cli, the Kiro CLI, as ACP_BACKEND_KIRO", ()),
     ("kiro-docs", "see https://kiro.dev/docs/cli for the harness", ()),
+    ("kiro-docs-regex", "assert re.match(r'https://kiro\\.dev/docs', url)", ()),
+    ("kiro-home-regex", "re.compile(r'\\.kiro[\\\\/](?:settings|agents)')", ()),
+    ("aside", f"{_KIRO_CAP} (the harness) and its {_CREW}", ()),
     ("kiro-cli-repo", f"upstream fix requested in {_ORG}/{_KIRO_CAP}#10970", ()),
     ("kiro-cli-repo-url", f"https://github.com/{_ORG}/{_KIRO_CAP}/issues/11", ()),
     ("kiro-cli-repo-pair", f"{{ owner: '{_ORG}', repo: '{_KIRO_CAP}' }}", ()),
@@ -555,6 +606,11 @@ def self_test() -> int:
         (f"{_KIRO}%20", " "),
         (f"{_KIRO}\\\\", " "),
         (f"{_KIRO}[ -]", " "),
+        (f"{_KIRO}[\\s_", " "),
+        (f"{_KIRO}(?:-", " "),
+        (f".{_KIRO}[\\\\/]", " "),
+        (f"{_CREW}\\.{_KIRO}\\.x", " "),
+        ("\\", " "),
         (f"{_ORG}/{_KIRO_CAP} ", " "),
         ("`", " "),
     )

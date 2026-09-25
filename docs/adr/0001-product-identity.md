@@ -61,8 +61,9 @@ Hearth was the runner-up (home/memory) and lost because it is silent on routing.
   identity as retired. On newly added lines it rejects the upstream
   product's name glued or joined by one separator (including Unicode
   dashes, `%20` and regex spellings), in prose and identifiers alike;
-  its data home, whether spelled as one path or built from split string
-  literals; its hosts; its bundle id; its GitHub org; and its mascot. The
+  its data home, whether spelled as one path (or a regex of one) or built
+  from split string literals; its hosts and its bundle id, dots plain or
+  regex-escaped; its GitHub org; and its mascot. The
   root `NOTICE` (the Apache-2.0 attribution) is the only exempt file.
   Junction is accepted. The optional kiro-cli harness keeps its own
   spellings: `kiro-cli`, `~/.kiro` with its own directories, and
