@@ -16,8 +16,9 @@ invoking prompt gives you the value.
 
 Junction is an open-source AI agent platform (Python backend, React/TS
 dashboard). `CLAUDE.md` and `AGENTS.md` (root and `website/`) are read
-automatically; follow the conventions there. This repo is a de-Amazoned public
-fork: do NOT flag the absence of Brazil/AUTOSDE tooling.
+automatically; follow the conventions there. This repo is built and published
+with public tooling only (setuptools, PyPI, npm): do NOT flag the absence of
+proprietary build systems.
 
 DO NOT REASON FROM AN ASSUMED USER COUNT, in either direction. "It is
 a single-user tool, so this guard is unnecessary" and "it will be

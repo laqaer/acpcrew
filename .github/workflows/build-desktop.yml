@@ -19,7 +19,7 @@ name: Build Desktop (reusable)
 # with one host because Rosetta 2 executes the x86_64 slice; Linux has no
 # equivalent, hence one runner per arch.
 #
-# Windows lives in build-windows.yml, NOT here. Its Squirrel installer embeds
+# Windows lives in build-windows.yml, NOT here. Its NSIS installer embeds
 # its own already-signed executables, so Authenticode signing has to happen
 # during the build rather than in a downstream job -- which means that job
 # holds a production signing identity. This workflow must stay credential-free
@@ -148,8 +148,9 @@ jobs:
         shell: bash
         run: bash packaging/build-desktop.sh
         env:
-          # Unsigned here by design: the signing service signs the .app downstream in
-          # sign-and-notarize.yml. Local certificate discovery must stay off.
+          # Unsigned here by design: sign-and-notarize.yml Developer ID signs the
+          # .app downstream, in the one job that holds the identity. Local
+          # certificate discovery must stay off.
           CSC_IDENTITY_AUTO_DISCOVERY: "false"
 
       - name: Upload desktop artifact

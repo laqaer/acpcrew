@@ -35,8 +35,8 @@ They are base-branch snapshots, so a PR cannot weaken the rules that govern it.
 ## Repo context
 
 Junction is an open-source AI agent platform (Python backend, React/TS
-dashboard). De-Amazoned public fork: the absence of Brazil/AUTOSDE tooling is not
-a defect.
+dashboard), built and published with public tooling only (setuptools, PyPI,
+npm): the absence of proprietary build systems is not a defect.
 
 DO NOT REASON FROM AN ASSUMED USER COUNT, in either direction. "It is
 a single-user tool, so this guard is unnecessary" and "it will be

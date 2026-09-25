@@ -494,7 +494,7 @@ def test_subcommand_matches_the_discovery_mapping():
 
 
 def test_computer_use_sources_are_scrub_lint_clean():
-    """Every computer-use source file passes the De-Amazon scrub-lint pattern.
+    """Every computer-use source file passes the internal-marker scrub-lint pattern.
 
     ``scripts/scrub-lint.sh`` is a BLOCKING CI job, and its ``INTERNAL_PATTERN``
     includes a bare ``\\.amazon\\.``, so a bundle id or host in that namespace
@@ -555,7 +555,7 @@ def test_computer_use_sources_are_scrub_lint_clean():
             offenders.append(hit)
 
     assert offenders == [], (
-        "these lines trip the BLOCKING De-Amazon scrub-lint job; add an anchored "
+        "these lines trip the BLOCKING internal-marker scrub-lint job; add an anchored "
         f"scripts/scrub-allowlist.txt entry for each: {offenders}"
     )
 

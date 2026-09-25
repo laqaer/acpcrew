@@ -78,8 +78,8 @@ _WIN_CERT_TYPE_PKCS_SIGNED_DATA = 0x0002
 _MS_RFC3161_TIMESTAMP_OID = bytes.fromhex("2b060104018237030301")
 
 # RFC2253 escapes a comma inside an attribute value as "\,", which is what makes
-# splitting on commas safe. The expected publisher CN contains one
-# ("Amazon Web Services, Inc."), so a parser that treats every comma as an RDN
+# splitting on commas safe. A publisher CN routinely contains one (a legal name
+# such as "Example Corp, Inc."), so a parser that treats every comma as an RDN
 # separator truncates it and rejects the genuine installer.
 _RFC2253_CN_RE = re.compile(r"(?:^|,)CN=((?:[^,\\]|\\.)*)")
 
@@ -180,9 +180,10 @@ def _signer_common_name(blob: bytes) -> tuple[str | None, int]:
     every client, which is the fleet-wide breakage this guard exists to prevent.
 
     Subjects and issuers are read in RFC2253 form, where a comma inside a value
-    is escaped, so splitting on commas is safe. The expected publisher CN
-    contains one ("Amazon Web Services, Inc."), and a parser that treats every
-    comma as an RDN separator truncates it and refuses the genuine installer.
+    is escaped, so splitting on commas is safe. A publisher CN routinely
+    contains one (a legal name such as "Example Corp, Inc."), and a parser that
+    treats every comma as an RDN separator truncates it and refuses the genuine
+    installer.
 
     The end-entity certificate is the one that issued nothing else in the bag.
     """

@@ -24,8 +24,9 @@ The message that pointed you here names the pull request, its HEAD sha, and
 where to read the change. Use those; do not look for them elsewhere.
 
 REPO CONTEXT: Junction is an open-source AI agent platform (Python
-backend + React/TS dashboard), a de-Amazoned public fork. Do NOT flag
-the absence of Brazil/AUTOSDE build tooling or internal-only infra.
+backend + React/TS dashboard), built and published with public tooling
+only (setuptools, PyPI, npm). Do NOT flag the absence of proprietary build
+systems or internal-only infra.
 
 DO NOT REASON FROM AN ASSUMED USER COUNT, in either direction. "It is
 a single-user tool, so this guard is unnecessary" and "it will be

@@ -87,11 +87,11 @@ Notes:
   Linux: the script provisions a Windows python-build-standalone interpreter
   via `uv` and executes its `python.exe` to install and verify the bundled
   backend, then runs `electron-builder --win` to produce the NSIS installer.
-- **Signing is optional for a local build.** The `signtoolOptions.sign` hook
-  (`scripts/sign-windows.js`) skips cleanly when none of the
-  `WINDOWS_SIGNING_*` environment variables are set, so a credential-less
-  build produces a working unsigned installer. (Setting only some of the five
-  variables is treated as a misconfiguration and fails the build.)
+- **Signing is optional for a local build.** electron-builder signs natively
+  when `WIN_CSC_LINK` and `WIN_CSC_KEY_PASSWORD` name a code-signing
+  certificate and its password, and builds a working unsigned installer when
+  they are empty. Certificate setup and rotation are in
+  [`docs/build/signing-runbook.md`](../../docs/build/signing-runbook.md).
 - The result is an assisted (non-one-click, per-user) NSIS installer,
   `Junction Setup <version>.exe` (nightly builds:
   `Junction Nightly Setup <version>.exe`), in `website/electron/dist/`.

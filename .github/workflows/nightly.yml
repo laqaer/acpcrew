@@ -61,9 +61,10 @@ jobs:
           #   wheel_version   (PEP 440): <base>.dev<YYYYMMDDHHMMSS>      -> pip wheel, unique per RUN
           # The desktop stamp carries the same seconds precision as the wheel:
           # a date-only stamp meant two nightlies on one UTC date overwrote the
-          # same signed/<channel>/<version>/ and notarized/<channel>/<version>/
-          # keys (the exact republish class #62 fixed for cli/*), which becomes
-          # a CloudFront edge-divergence bug the day mac artifacts go public.
+          # same pre-signed/<channel>/<version>/ and notarized/<channel>/<version>/
+          # keys (the republish class the versioned cli/ keys are also guarded
+          # against), which becomes a CloudFront edge-divergence bug the day mac
+          # artifacts go public.
           # The old shared "-nightly.<date>" is invalid PEP 440, so setuptools normalized
           # every nightly wheel down to the base version (all became 0.1.0). ".dev<date>"
           # is valid PEP 440 and keeps nightly wheels uniquely versioned.
@@ -136,17 +137,17 @@ jobs:
       version: ${{ needs.version.outputs.nightly_version }}
 
   # Windows builds in its own workflow because it Authenticode-signs during the
-  # build (the Squirrel installer embeds already-signed executables), so unlike
-  # build-desktop.yml it needs OIDC. Keeping it separate is what lets
-  # build-desktop.yml stay credential-free. Installer-only (publishes nothing):
-  # soft_fail keeps a Windows failure from skipping publish-linux /
-  # sign-and-notarize via this caller's result.
+  # build (the NSIS installer embeds already-signed executables), so unlike
+  # build-desktop.yml it holds a signing certificate. Keeping it separate is
+  # what lets build-desktop.yml stay credential-free. The certificate comes from
+  # secrets, so this job needs no OIDC token and is granted none.
+  # Installer-only (publishes nothing): soft_fail keeps a Windows failure from
+  # skipping publish-linux / sign-and-notarize via this caller's result.
   build-windows:
     name: Build Windows Desktop
     needs: [version, dependency-vulnerability-gate]
     permissions:
       contents: read
-      id-token: write
     uses: ./.github/workflows/build-windows.yml
     with:
       version: ${{ needs.version.outputs.nightly_version }}
@@ -157,8 +158,8 @@ jobs:
   # ── CLI channel publish ───────────────────────────────────────────────
   # Publishes the built wheel to the nightly CLI channel (cli/ + latest-cli.json).
   # Depends only on the wheel and its CLI-specific KMS manifest signer (not
-  # build-desktop, Apple notarization, or CDSigner), so a macOS signing failure
-  # never blocks the CLI release. See docs/build/release.md.
+  # build-desktop, Developer ID signing, or Apple notarization), so a macOS
+  # signing failure never blocks the CLI release. See docs/build/release.md.
   publish-cli:
     name: Publish CLI (nightly channel)
     needs: [version, build-wheel]

@@ -197,8 +197,9 @@ No model, no secrets, so it is safe on forks and always runs. It is the grep-hal
 of the AUTOSDE rules; the semantic half is delegated to the line reviewers.
 
 - **`autosde-rules`** blocks unambiguous frontend violations on added lines: an
-  inline `<svg viewBox>` outside brand-mark components (`KiroGhost.tsx`, `*Logo.tsx`,
-  `*Ghost.tsx`), a `<div>`/`<span>` with `onClick` and no `role`, `.innerHTML =`,
+  inline `<svg viewBox>` outside third-party brand-logo components (`*Logo.tsx`;
+  Junction's own glyph ships as an asset file, not inline SVG), a
+  `<div>`/`<span>` with `onClick` and no `role`, `.innerHTML =`,
   Mermaid `securityLevel: 'loose'`, and an oversized `max-w-[>=900px]` page wrapper.
   It also blocks three backend keystones: a sensitive credential or keystone path
   read that does not go through `is_sensitive_path()`, `denied_commands.json`

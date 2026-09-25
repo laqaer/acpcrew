@@ -514,7 +514,6 @@ log "Packaging desktop app (electron-builder, version: $JN_VERSION)…"
     # - Squirrel.Mac validates updates against the host app's designated
     #   requirement (which pins the bundle id); a distinct nightly id would
     #   strand every existing install at the identity switch.
-    # - CDSigner authz is per-identifier; the shared id is already onboarded.
     # Cost accepted: shared TCC/notification identity, and a junction:// URL
     # scheme could not disambiguate the two apps (none is registered today).
     EB_ARGS+=(

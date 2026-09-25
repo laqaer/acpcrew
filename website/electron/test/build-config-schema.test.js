@@ -29,24 +29,32 @@ test("the electron-builder build config satisfies the installed schema", () => {
   validateSchema(schema, buildConfig, { name: "Configuration" });
 });
 
-test("publisherName sits where the signature-verification chain reads it", () => {
-  // publisherName belongs to WindowsSigntoolConfiguration, not
-  // WindowsConfiguration. Placement is not cosmetic: it is the only path
-  // WindowsSignToolManager.computedPublisherName reads, PublishManager copies
-  // that into app-update.yml, and app-update.yml is the only thing
-  // NsisUpdater.verifySignature consults. An absent value there makes the
-  // updater return early and SKIP verification rather than fail, so a
-  // misplaced key would quietly cost the fail-closed Authenticode check that
-  // the Windows publish lane is built around.
+test("the update publisher is read from the signing certificate", () => {
+  // WindowsSignToolManager.computedPublisherName reads
+  // win.signtoolOptions.publisherName and, when it is absent, falls back to the
+  // subject CN of the certificate WIN_CSC_LINK carries. PublishManager copies
+  // the result into app-update.yml, and app-update.yml is the only thing
+  // NsisUpdater.verifySignature consults. Leaving the key absent therefore
+  // makes every client expect exactly the identity that signed its build,
+  // which is also what the Windows publish lane checks. A certificate
+  // rotation that changes the CN lists both names here for one bridge
+  // release; docs/build/signing-runbook.md has the order.
   const win = buildConfig.win;
   assert.ok(win, "the win build config is gone");
   assert.strictEqual(
     win.publisherName,
     undefined,
-    "publisherName must live in win.signtoolOptions; at win level the schema " +
+    "publisherName is not a WindowsConfiguration key; at win level the schema " +
       "rejects the whole config and every desktop build fails",
   );
-  assert.deepStrictEqual(win.signtoolOptions.publisherName, ["Amazon Web Services, Inc."]);
+  assert.ok(win.signtoolOptions, "win.signtoolOptions is gone");
+  assert.strictEqual(
+    win.signtoolOptions.publisherName,
+    undefined,
+    "a pinned publisherName stops electron-builder reading the CN from the " +
+      "signing certificate, so clients would expect a name the publish lane " +
+      "does not check",
+  );
   // verifyUpdateCodeSignature defaults on (isForceCodeSigningVerification is
   // `!== false`). Setting it false drops publisherName from app-update.yml and
   // disables the check.

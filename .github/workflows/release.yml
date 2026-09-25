@@ -322,19 +322,20 @@ jobs:
       version: ${{ needs.version.outputs.version }}
 
   # Windows builds in its own workflow because it Authenticode-signs during the
-  # build (the Squirrel installer embeds already-signed executables), so unlike
-  # build-desktop.yml it needs OIDC. Keeping it separate is what lets
-  # build-desktop.yml stay credential-free. use_prod_environment is what makes
-  # signing work on a release at all: these runs are tag-triggered
-  # (ref:refs/tags/v*), which the signing role does NOT trust. Installer-only
-  # (publishes nothing): soft_fail keeps a Windows failure from skipping
-  # publish-linux / sign-and-notarize via this caller's result.
+  # build (the NSIS installer embeds already-signed executables), so unlike
+  # build-desktop.yml it holds a signing certificate. Keeping it separate is
+  # what lets build-desktop.yml stay credential-free. The certificate comes from
+  # secrets, so this job needs no OIDC token and is granted none.
+  # use_prod_environment is what makes signing work on a release at all: the
+  # certificate is a prod environment secret, and without the environment a
+  # tag-triggered run cannot read it. Installer-only (publishes nothing):
+  # soft_fail keeps a Windows failure from skipping publish-linux /
+  # sign-and-notarize via this caller's result.
   build-windows:
     name: Build Windows Desktop
     needs: [version, dependency-vulnerability-gate]
     permissions:
       contents: read
-      id-token: write
     uses: ./.github/workflows/build-windows.yml
     with:
       version: ${{ needs.version.outputs.version }}
@@ -347,8 +348,8 @@ jobs:
   # latest-cli.json + PEP 503 index) -- previously release wheels only
   # reached GitHub Releases, so pip/cli.sh users could never track insider
   # or stable. Depends only on the wheel and its CLI-specific KMS manifest signer
-  # (not build-desktop, Apple notarization, or CDSigner), so a macOS signing
-  # failure never blocks the CLI release.
+  # (not build-desktop, Developer ID signing, or Apple notarization), so a macOS
+  # signing failure never blocks the CLI release.
   publish-cli:
     name: Publish CLI (${{ needs.version.outputs.channel }} channel)
     needs: [version, stable-gate, build-wheel, resolve-promotion]

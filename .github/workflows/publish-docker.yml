@@ -414,7 +414,7 @@ jobs:
       # cannot pull. The input still defaults to false so forks — which
       # legitimately keep private packages — are unaffected.
       - name: Verify anonymous pull (package visibility)
-        if: github.repository_owner == 'kirodotdev' && inputs.require_public_access
+        if: github.repository_owner == 'laqaer' && inputs.require_public_access
         run: |
           set -euo pipefail
           IMAGE="${{ steps.image.outputs.name }}"
