@@ -14,12 +14,22 @@ Windows signs inside `.github/workflows/build-windows.yml` and is verified again
 
 ## Secrets and variables
 
-Every signing input is optional. Without it the matching lane skips cleanly and the
-build produces the same unsigned artifacts, under the same names, that a fork
-produces; nothing fails for want of a credential. Store the secrets as **`prod`
-environment secrets**, not repository secrets: every job that reads them runs in
-`prod`, and the environment's ref policy (below) is what keeps a production identity
-away from unmerged code.
+With **no** signing inputs at all, every lane skips cleanly and the build produces
+the same unsigned artifacts, under the same names, that a fork produces; nothing
+fails for want of a credential. A **partial** configuration fails closed on
+purpose, with an error naming what is missing, rather than shipping something
+half-signed:
+
+- a Developer ID identity without `AWS_SIGNING_ROLE_ARN` fails the macOS `sign` job,
+  because the unsigned app was never staged for `notarize` to read;
+- a Windows certificate without its password fails the Windows build;
+- with `AWS_SIGNING_ROLE_ARN` set, the Windows publish lane refuses to publish an
+  unsigned installer, one signed under a different CN, or any installer at all
+  while `WINDOWS_SIGNING_SUBJECT_CN` is unset.
+
+Store the secrets as **`prod` environment secrets**, not repository secrets: every
+job that reads them runs in `prod`, and the environment's ref policy (below) is what
+keeps a production identity away from unmerged code.
 
 | Name | Kind | Read by | Purpose |
 |---|---|---|---|
@@ -28,7 +38,7 @@ away from unmerged code.
 | `AWS_SIGNING_ROLE_ARN` | secret | `sign-and-notarize.yml`, the publish lanes | OIDC role that stages unsigned artifacts, reads the notary credential, and writes the distribution bucket. |
 | `AWS_SIGNING_BUCKET` | secret | `sign-and-notarize.yml` | The private staging bucket (`pre-signed/`, `notarized/`). |
 | `junction/signing/apple-notary` | AWS Secrets Manager | `sign-and-notarize.yml` | The Apple notary credential (see [The notary credential](#the-notary-credential)). |
-| `WINDOWS_SIGNING_CERT_P12_BASE64` | secret | `build-windows.yml` | Base64 of the Authenticode code-signing `.pfx`/`.p12`. Its presence (together with the `prod` environment) is the Windows signing gate (`HAS_WINDOWS_SIGNING`). |
+| `WINDOWS_SIGNING_CERT_P12_BASE64` | secret | `build-windows.yml` | Base64 of the Authenticode code-signing `.pfx`/`.p12`. Its presence (together with the `prod` environment) is the Windows signing gate (`HAS_WINDOWS_SIGNING`). Only a certificate whose private key may legitimately be exported fits here; see [Key custody](#key-custody-a-pfx-cannot-hold-a-public-certificate). |
 | `WINDOWS_SIGNING_CERT_PASSWORD` | secret | `build-windows.yml` | Its password. Setting the certificate without it fails the build with a named error rather than deep inside signtool. |
 | `WINDOWS_SIGNING_SUBJECT_CN` | repository variable | `publish-windows.yml` | The subject CN of that certificate, exactly as it appears in the certificate, commas included. The publish lane refuses any installer whose signer carries a different CN, and refuses to publish at all while it is unset. |
 
@@ -156,8 +166,8 @@ and break the permalink. The DMG's **volume** name does follow the bundle.
 `packaging/signing/Entitlements.entitlements` is the release-lane entitlements
 file. `website/electron/build/entitlements.mac.plist` is the electron-builder-lane
 twin. **The two signing paths read their OWN file**, so a key present in only one
-of them means that lane ships a broken bundle. `website/electron/packaging.test.js`
-pins both.
+of them means that lane ships a broken bundle.
+`website/electron/test/packaging.test.js` pins both.
 
 Under the hardened runtime an entitlement, not the `Info.plist` usage string, is
 what grants a device capability. `com.apple.security.device.audio-input` is what
@@ -312,6 +322,39 @@ packaging probe therefore always builds unsigned, and so does every fork.
      `publisherName` so the build reads the CN from the certificate again. The
      `test_windows_signing_contract.py` and `build-config-schema.test.js` pins on
      an absent `publisherName` are edited in the bridge change and restored here.
+
+### Key custody: a `.pfx` cannot hold a public certificate
+
+The certificate flow above needs a `.pfx` that carries the private key, and a
+**publicly trusted** Authenticode certificate cannot be one. Since 1 June 2023 the
+CA/Browser Forum Code Signing Baseline Requirements oblige the issuing CA to ensure
+the key is generated and kept on a hardware module (FIPS 140-2 Level 2 or Common
+Criteria EAL 4+), so no CA issues a publicly trusted code-signing certificate with
+an exportable key. Those requirements also cap validity at 39 months, so the last
+certificates issued with software keys before that date have expired. A `.pfx`
+secret therefore works only for a certificate whose key may legitimately leave
+hardware, such as one from a private CA that the target machines already trust.
+
+A public release has to sign through a cloud HSM or a managed signing service
+(Azure Trusted Signing, DigiCert KeyLocker, SSL.com eSigner and similar), which
+`build-windows.yml` does not wire yet. The seams for it already exist in
+electron-builder and in the workflow:
+
+- **A vendor signing tool** plugs in through `win.signtoolOptions.sign`, a hook
+  that electron-builder calls for each file it signs, so the installer, its
+  uninstaller and the app executable are all still signed inside the build.
+- **Azure Trusted Signing** is `win.azureSignOptions`, which replaces
+  `signtoolOptions` rather than extending it.
+- **Either one needs an explicit `publisherName`.** With no certificate file there
+  is no CN for electron-builder to read, so `app-update.yml` would carry no
+  publisher, and `NsisUpdater` skips signature verification entirely when it has
+  none. Adopting either path therefore changes the absent-`publisherName` pins and
+  the rotation procedure above in the same change.
+- **The gate stays the same shape.** The service credentials become `prod`
+  environment secrets, `HAS_WINDOWS_SIGNING` keys on their presence instead of the
+  `.pfx`, and a build without them stays unsigned. `publish-windows.yml` needs no
+  change: it checks the signer CN against `WINDOWS_SIGNING_SUBJECT_CN` whatever
+  produced the signature.
 
 ## Troubleshooting
 
