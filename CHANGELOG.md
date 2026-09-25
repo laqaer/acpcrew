@@ -1,6 +1,6 @@
 # Changelog
 
-All notable changes to KiroCrew are documented in this file.
+All notable changes to Junction are documented in this file.
 
 ## [0.4.0] — 2026-08-25
 
@@ -14,12 +14,12 @@ turns into a place to edit code, not just discuss it.
 
 - **Signed Windows installer** — Windows ships a signed installer with in-app auto-updates, published on the stable channel alongside macOS and Linux.
 - **Linux deb and rpm packages** — The desktop app installs from `.deb` or `.rpm` with a fixed install path, a desktop entry, and per-format in-app updates. The Linux desktop app needs glibc 2.34 or newer; on an older host use the one-line CLI install.
-- **Computer use on Windows** — Kiro Crew can read and drive native Windows applications through UI Automation, so desktop work is no longer macOS-only.
+- **Computer use on Windows** — Junction can read and drive native Windows applications through UI Automation, so desktop work is no longer macOS-only.
 - **A resource ceiling for Windows agents** — The Windows agent tree now runs under a Job-object process and memory limit, mirroring the Linux cgroup control that previously had no Windows equivalent.
 - **Provider CLI trust on Windows** — Issue Radar and Code Review Sage now work on Windows, because `gh` and `glab` trust is established by reading ACLs.
 - **Managed Python for old distros** — The installer can provision a pinned interpreter into a user directory with `--managed-python`, which works on hosts whose system Python is too old, and stays on that interpreter across updates.
 - **Bring your existing setup** — First-run setup imports from Gemini CLI and Antigravity, including their MCP servers and workspaces.
-- **Switch Kiro accounts from the CLI** — `kirocrew cloud logout` ends the current sign-in so you can log back in as someone else.
+- **Switch Kiro accounts from the CLI** — `junction cloud logout` ends the current sign-in so you can log back in as someone else.
 
 ### Every messaging channel catches up, and three new ones arrive
 
@@ -35,7 +35,7 @@ turns into a place to edit code, not just discuss it.
 - **An encrypted vault** — Secrets are stored encrypted and can be withheld from agents on a denylist, managed from a new Settings → Secrets page where values stay masked and are never sent to the browser.
 - **Reference secrets from MCP servers** — An MCP server's environment can name a secret as `secret://NAME`, resolved from the vault at spawn time so the value never sits in on-disk config.
 - **Share pooled servers safely** — An operator can declare which environment keys carry per-session identity, which lets MCP servers that use per-session credentials be pooled instead of relaunched.
-- **Read what is blocked** — `kirocrew policy show` prints the built-in denied-command rules grouped by category, so the agent can read the list instead of discovering it by refusal.
+- **Read what is blocked** — `junction policy show` prints the built-in denied-command rules grouped by category, so the agent can read the list instead of discovering it by refusal.
 
 ### The dashboard becomes a place to edit code
 
@@ -88,7 +88,7 @@ turns into a place to edit code, not just discuss it.
 - **Scope a lesson to one repository** — A lesson no longer has to apply to every session, and the scope option that previously did nothing now works.
 - **Tune how memories age** — Episodic memory decay is configurable per tag, so different kinds of memory fade at different speeds.
 - **Search one knowledge source** — Knowledge search takes a source filter with source discovery, and the graph view gains a source dropdown, physics layout, community clustering, and adjustable depth.
-- **Project-local skills** — Kiro Crew can load a project's own skills, gated behind per-directory consent.
+- **Project-local skills** — Junction can load a project's own skills, gated behind per-directory consent.
 - **Hooks explain themselves** — Hooks gain regex and contains matcher modes plus declarative skill injection, and the UI shows why a hook last failed as a badge tooltip.
 - **A guided five-whys mode** — A built-in skill walks a dive-deep investigation one question at a time and folds the log into a report.
 
@@ -101,12 +101,12 @@ turns into a place to edit code, not just discuss it.
 ### Faster and lighter
 
 - **Boot uses ~875MB less memory** — The embedding model is no longer loaded at startup when there is no embedding work to do; it loads on first real use.
-- **The bytecode cache stops growing without bound** — It had been reaching tens of gigabytes; foreign Python processes no longer mirror their standard library under the Crew home, and the gateway prunes its own cache.
+- **The bytecode cache stops growing without bound** — It had been reaching tens of gigabytes; foreign Python processes no longer mirror their standard library under the Junction data home, and the gateway prunes its own cache.
 - **The dashboard opens immediately** — Boot prints the URL and opens the browser without waiting on MCP probing, and probes each server once instead of twice.
 - **Sandboxed spawns are ~1.45s faster each** — A needless credential and hardlink scan on every sandboxed spawn is gone.
 - **Graphs and grids load instantly** — The Issue Radar dependency graph serves from cache and refreshes in the background instead of blocking its tab for about eleven seconds, and the multi-session grid loads a bounded slice of each pane instead of full history.
 - **Long chats stop leaking** — An abandoned streamed turn no longer holds its entire token stream for the life of the process.
-- **CLI commands start more than twice as fast** — `kirocrew` startup drops from 1.3s and 112 MB of imports to 0.5s and 54 MB.
+- **CLI commands start more than twice as fast** — `junction` startup drops from 1.3s and 112 MB of imports to 0.5s and 54 MB.
 
 ### Notable fixes
 
@@ -124,7 +124,7 @@ turns into a place to edit code, not just discuss it.
 
 **Windows and the desktop app.** Settings survive the package rename instead of silently resetting, a failed app clone actually removes its partial checkout, and starting a task no longer briefly freezes while the memory store initializes. Signing runs once per artifact rather than twice, shortening builds.
 
-**Updates and install.** `kirocrew update` refuses to discard local commits on a diverged checkout and tells you how to override it. `kirocrew doctor` gained a stored-defaults view, detection of agent specs pointing at removed virtualenvs or relocated tools with repair for managed ones, and a warning when an editable-install checkout is stale or on the wrong branch.
+**Updates and install.** `junction update` refuses to discard local commits on a diverged checkout and tells you how to override it. `junction doctor` gained a stored-defaults view, detection of agent specs pointing at removed virtualenvs or relocated tools with repair for managed ones, and a warning when an editable-install checkout is stale or on the wrong branch.
 
 **Localization.** Product names stay in English across every locale and are interpolated through a shared placeholder, so the application name renders consistently, and a CI gate now flags catalog entries left untranslated.
 
@@ -142,7 +142,7 @@ first-class builds, and you can talk to it by holding a key.
 - **Multi-account Telegram is withdrawn.** Only a single bot token is accepted;
   move the token you want served to `telegram.bot_token`. Existing config is
   still parsed and preserved, but nothing reads the account map.
-- **`kirocrew logout` now revokes refresh tokens**, not just access tokens, so
+- **`junction logout` now revokes refresh tokens**, not just access tokens, so
   logging out actually ends the session everywhere.
 - **The terminal no longer scans its output for credentials.** That scan was
   corrupting CJK text and emoji in the PTY stream, and it swallowed secrets you
@@ -245,7 +245,7 @@ first-class builds, and you can talk to it by holding a key.
   Alt+Shift+K elsewhere) raises the dashboard. Reconfigurable, or off.
 - **Change release channel without reinstalling** — Move between Stable, Insider,
   and Nightly from About, and the gateway restarts in place after an update.
-- **Publish it on your tailnet** — `kirocrew tailnet up` puts the dashboard on
+- **Publish it on your tailnet** — `junction tailnet up` puts the dashboard on
   your Tailscale network, reachable from your other devices.
 - **Launch a cloud crew from the dashboard** — Remote EC2 provisioning, device
   sign-in included, as a restartable job rather than a CLI session you must not
@@ -289,7 +289,7 @@ first-class builds, and you can talk to it by holding a key.
 - **Connecting takes one click** — Connect mints the provider's approval link
   immediately and consent finishes on the card, instead of waiting for a later
   chat to trigger the challenge.
-- **Pooling works itself out** — Kiro Crew probes which MCP servers can safely
+- **Pooling works itself out** — Junction probes which MCP servers can safely
   share a process. A per-server choice replaces the old global switch and its
   guesswork.
 - **Per-agent tool sets** — Assign servers to particular agents so each sees its
@@ -299,7 +299,7 @@ first-class builds, and you can talk to it by holding a key.
   until they are needed, trading context for immediacy.
 - **Authenticated custom servers** — Supply request headers when adding a remote
   MCP server, instead of hand-editing a file.
-- **`kirocrew policy show` lists the denied-command catalog**, so you can read
+- **`junction policy show` lists the denied-command catalog**, so you can read
   what is blocked without going to the source.
 
 ### Autonomy with a governor
@@ -380,13 +380,13 @@ agent until restart, and an agent spec Kiro CLI rejects is reported instead of
 silently degraded. The settings tab strip shows scroll cues and scrolls the active
 tab into view. Deep links highlight the right control in every language. An app
 installed from a path or from git reports honestly, runs its MCP server on its own
-interpreter, and starts its crons on `kirocrew app enable` without a restart. The
+interpreter, and starts its crons on `junction app enable` without a restart. The
 skill browser serves the skill you asked for rather than another of the same leaf
 name. A folder knowledge source added from the dashboard can now actually be
 started. Speech-to-text settings stop offering to install Whisper on a machine
 that cannot run it. Notes render markdown tables, follow the active theme, and
 remember collapsed folders. Dev Fleet discovers your clone instead of assuming
-`~/kirocrew`, reattaches to an in-flight Pull and Build, and can force-remove kept
+`~/junction`, reattaches to an in-flight Pull and Build, and can force-remove kept
 worktrees.
 
 **Channels and notifications.** A Teams answer is no longer silently truncated
@@ -399,11 +399,11 @@ a code fence open across message rotation. Notifications deep-link to the item,
 stay dismissed when a stale fetch resolves, clear across every open window, and
 retire themselves when the skill they refer to is handled.
 
-**Desktop, install, and CLI.** `kirocrew stop` and `restart` find a macOS
-framework Python. Ctrl+C exits `kirocrew chat` cleanly. Ctrl+Cmd+F toggles full
+**Desktop, install, and CLI.** `junction stop` and `restart` find a macOS
+framework Python. Ctrl+C exits `junction chat` cleanly. Ctrl+Cmd+F toggles full
 screen instead of opening the find bar. The macOS tray icon follows the menu bar's
 theme. A failed update's card survives a reload. The installer's probe cannot hang
-forever. `kirocrew` commands start up to about 0.8 s faster. A remote instance's
+forever. `junction` commands start up to about 0.8 s faster. A remote instance's
 token-mint timeout is configurable for a slow network. A proxy-only host gets its
 proxy variables forwarded to the identity check, and a slow SSO refresh no longer
 parks you at the first-run gate. The frontend builds against a private npm
@@ -507,7 +507,7 @@ weeks in the open.
 - **Agent Templates became a two-pane inspector**, and agents defined in the
   project you are working in are discovered alongside your user-level ones.
 - **Send a copy of a session to another instance** — hand a conversation, with
-  its context, to a different Kiro Crew you run.
+  its context, to a different Junction instance you run.
 - Jira issue URLs and setting references render as **link chips** you can click
   straight through.
 - Stale auto-titles refresh in the background, the command palette tells a
@@ -520,10 +520,10 @@ weeks in the open.
 
 ### Channels, and setup that no longer assumes Slack
 
-- **`kirocrew setup` stops asking for Slack tokens.** The wizard finishes on the
+- **`junction setup` stops asking for Slack tokens.** The wizard finishes on the
   dashboard and points at the full set of chat channels; walk through the Slack
-  credentials only when you ask for them with `kirocrew setup --slack`. Docs and
-  in-app copy describe Kiro Crew as multi-channel rather than Slack-first.
+  credentials only when you ask for them with `junction setup --slack`. Docs and
+  in-app copy describe Junction as multi-channel rather than Slack-first.
 - **Telegram** accepts inbound attachments — images for vision, documents, and
   audio that is transcribed on arrival. Serving **multiple bot accounts per
   gateway** was withdrawn before this release: a second bot is a second inbound
@@ -562,7 +562,7 @@ weeks in the open.
 - Loopback requests no longer leak the internal secret to a proxy; sensitive
   paths and credential redaction got faster without getting looser.
 - The ACP runtime survives oversize output frames, worker sessions are no longer
-  reaped as orphans, and `kirocrew update` works for wheel and `cli.sh` installs.
+  reaped as orphans, and `junction update` works for wheel and `cli.sh` installs.
 - A refusal from one of **your own** deny patterns can carry your note
   explaining it, and the seven always-on git-publish rules now render locked in
   Settings instead of offering a toggle that never took effect.
@@ -583,7 +583,7 @@ or a raw JSON-RPC dump.
 
 ## [0.1.2] — 2026-07-30
 
-First public release of KiroCrew — an open-source personal AI agent that runs on
+First public release of Junction — an open-source personal AI agent that runs on
 your own machine, driving [kiro-cli](https://kiro.dev) over the Agent Client
 Protocol. Install it, sign in once, and it is yours: no server to rent, no
 account to create, and your conversations, memory, and files stay on your disk.
@@ -591,7 +591,7 @@ account to create, and your conversations, memory, and files stay on your disk.
 ### Chat from wherever you already are
 
 - **One agent, ten ways in** — A web dashboard, a native desktop app, a terminal
-  CLI (`kirocrew chat`, plus a full TUI), and bots for **Slack, Discord,
+  CLI (`junction chat`, plus a full TUI), and bots for **Slack, Discord,
   Telegram, Microsoft Teams, Webex, WeCom (企业微信), and WeChat** all drive the
   same gateway with the same memory and the same tools. Start
   something at your desk, follow up from your phone. Each Slack thread or
@@ -614,7 +614,7 @@ account to create, and your conversations, memory, and files stay on your disk.
 ### Work that continues while you are away
 
 - **Unattended multi-step tasks** — Hand it a spec and it decomposes, executes,
-  tests, and retries (`kirocrew run TASK.md`), designed for 10+ hour runs. It
+  tests, and retries (`junction run TASK.md`), designed for 10+ hour runs. It
   checkpoints to disk, so a crash or Ctrl+C resumes where it stopped; if
   kiro-cli dies it rebuilds the session and carries on; a watchdog catches
   stalls; and an LLM reviewer checks the result against the spec before calling
@@ -627,7 +627,7 @@ account to create, and your conversations, memory, and files stay on your disk.
   whether it remembers the previous run. A job that finds a broken build at 3am
   can fix it and tell you over breakfast.
 - **Parallel subagents** — Split one job across background agents
-  (`kirocrew spawn run`), blocking or fire-and-forget, with progress visible in
+  (`junction spawn run`), blocking or fire-and-forget, with progress visible in
   the chat header and completions delivered back into the conversation.
 - **Dynamic workflows** — For work too structured for one agent, an authored
   Python script drives many agents through fan-out, pipelines, and
@@ -664,7 +664,7 @@ account to create, and your conversations, memory, and files stay on your disk.
   automatically when a message matches or on demand when it decides it needs
   one. Twelve ship built in; write your own with no code and no rebuild.
 - **Any MCP server** — Discover, probe, enable, and disable MCP servers from the
-  dashboard. KiroCrew's own capabilities are exposed the same way, so the agent
+  dashboard. Junction's own capabilities are exposed the same way, so the agent
   calls structured tools instead of shelling out.
 - **Artifacts** — Documents, code files, and interactive widgets with a stable
   identity, version history, and a dashboard library. Deploy a webapp artifact
@@ -695,13 +695,13 @@ account to create, and your conversations, memory, and files stay on your disk.
   Linux namespaces or macOS Seatbelt, with three modes controlling which
   credential directories are even visible. This ships **opt-in**: the default
   (`agent.sandbox: "off"`) defers to whatever sandboxing kiro-cli applies itself,
-  so set `agent.sandbox` to `"auto"` to have KiroCrew wrap the subprocess.
+  so set `agent.sandbox` to `"auto"` to have Junction wrap the subprocess.
 - **Layered controls** — 137 built-in denied-command patterns that hold even in
   YOLO mode, credential redaction scanning everything the model emits, blocked
   access to `~/.aws` and `~/.ssh`, XSS sanitization with CSP, and an audit log of
   every command.
 - **A ceiling the agent cannot raise** — A two-level governance model
-  (`POLICY ∩ PROFILE`, tightest-wins) enforced at KiroCrew's own tool gate. The
+  (`POLICY ∩ PROFILE`, tightest-wins) enforced at Junction's own tool gate. The
   policy files live where the agent can neither read nor write them, so a
   prompt-injected agent cannot widen its own limits. Tool calls are auto-approved
   by default (`agent.approval_mode: "auto"`) with the deny and governance gates
@@ -739,11 +739,10 @@ account to create, and your conversations, memory, and files stay on your disk.
 
 ### Notes
 
-- **kiro-cli is required** — KiroCrew orchestrates it. `kirocrew setup` walks you
-  through installing and signing in; `kirocrew doctor` verifies the whole wiring.
-- **Data lives in `~/.kiro/crew`** — override with `KIROCREW_HOME`. Installs
-  using the earlier `~/.kirocrew` layout migrate automatically on first launch.
+- **kiro-cli is required** — Junction orchestrates it. `junction setup` walks you
+  through installing and signing in; `junction doctor` verifies the whole wiring.
+- **Data lives in `~/.junction`** — override with `JUNCTION_HOME`.
 - **The dashboard defaults to `http://localhost:5476`** — override with
-  `KIROCREW_PORT`.
-- **Optional extras** — speech-to-text needs `pip install kirocrew[voice]`; the
+  `JUNCTION_PORT`.
+- **Optional extras** — speech-to-text needs `pip install junction[voice]`; the
   OS sandbox is POSIX-only; computer use is macOS-only in this release.

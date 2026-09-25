@@ -4,7 +4,6 @@
 # frontend rules). Rules here govern the Python package under src/junction/.
 # Both files are enforced by the Claude and Codex PR reviewers.
 #
-# De-Amazoned from the internal package rule set (internal links removed).
 # Blocking rules are backed by real vulnerabilities/incidents in this codebase.
 
 custom-rules:
@@ -18,11 +17,10 @@ custom-rules:
 
       - Never read sensitive credential paths (~/.aws, ~/.ssh, ~/.gnupg,
         ~/.docker, ~/.kube, ~/.npmrc, ~/.pypirc, ~/.netrc, ~/.git-credentials,
-        ~/.kiro/crew/.env and the pre-move ~/.kirocrew/.env). File reads of
-        user- or LLM-influenced paths MUST go
-        through hooks.py, which enforces is_sensitive_path(); trusted
-        fixed-path internal config/package reads are exempt. Never weaken that
-        keystone.
+        and the data home's .env, ~/.junction/.env or $JUNCTION_HOME/.env).
+        File reads of user- or LLM-influenced paths MUST go through hooks.py,
+        which enforces is_sensitive_path(); trusted fixed-path internal
+        config/package reads are exempt. Never weaken that keystone.
       - Never trust LLM output. Scan with redact_exfiltration_urls() AND
         redact_credentials() before posting to Slack, the dashboard, or any
         external surface. redact_credentials() catches raw credential patterns
@@ -40,7 +38,7 @@ custom-rules:
         token_auth.py:token_auth_middleware().
       - All tool invocations and permission decisions MUST emit a SEL audit
         event via sel.py.
-      - Never hardcode secrets. Store them in ~/.kiro/crew/.env with chmod 600,
+      - Never hardcode secrets. Store them in ~/.junction/.env with chmod 600,
         enforced at load time (log a warning if the chmod fails).
       - Auto-approve / YOLO mode: an AD-HOC activation (Slack command, dashboard
         picker, API) MUST auto-expire — either on a timed TTL capped at the
@@ -169,7 +167,7 @@ custom-rules:
       - "src/junction/apps/builtins/**/tests/**/*.py"
     rule: |
       A test must have no side effects outside its own tmp dir. Never register a
-      real cron job, write into the operator's real ~/.kiro/crew or HOME, start
+      real cron job, write into the operator's real ~/.junction or HOME, start
       or reconfigure a gateway/service, or create files or directories in the
       repo or anywhere else that outlive the run. These shapes have already
       bitten us: a unit test registered a live cron job, test runs accumulated
@@ -236,9 +234,9 @@ custom-rules:
       - The ROOTDIR `conftest.py` is the HOST-MUTATION FLOOR and applies to both
         testpaths. It pins $XDG_CONFIG_HOME and the launchd paths, blocks
         host service mutation, pins JUNCTION_HOME per test (with
-        `config.paths._resolved_home` reset, since resolving the home CREATES it
-        and can run the legacy migration), pins the import-time `~/.kiro`
-        bindings via `_isolate_shared_kiro_paths`, pins the SEL default dir
+        `config.paths._resolved_home` reset, since resolving the home CREATES
+        it), pins the import-time `~/.kiro` bindings via
+        `_isolate_shared_kiro_paths`, pins the SEL default dir
         session-wide, redirects `tempfile`'s base with residue reported, and
         fails the run on residue at the repository root.
       - `test/conftest.py` adds ~20 MORE autouse fixtures, and it applies ONLY to
