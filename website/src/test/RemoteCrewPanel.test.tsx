@@ -321,7 +321,7 @@ describe('RemoteCrewPanel', () => {
     const card = (await screen.findByText(/WXYZ-1234/)).closest('div')?.parentElement
     expect(card).toBeTruthy()
     const page = document.body.textContent ?? ''
-    expect(page).toMatch(/leave the page or switch crews and it keeps going/i)
+    expect(page).toMatch(/leave the page or switch gateways and it keeps going/i)
     expect(page).not.toMatch(/quit the app/i)
     expect(page).not.toMatch(/get a notification/i)
   })
@@ -395,8 +395,8 @@ describe('RemoteCrewPanel', () => {
     vi.mocked(api.listInstances).mockRejectedValue(new ApiError(403, 'instances feature is disabled'))
     vi.mocked(api.cloudLaunches).mockResolvedValue({ jobs: [] })
     renderWithProviders(<RemoteCrewPanel />)
-    expect(await screen.findByText(/Remote crew management is off/i)).toBeInTheDocument()
-    expect(screen.getByRole('button', { name: /Enable remote crew management/i })).toBeInTheDocument()
+    expect(await screen.findByText(/Remote gateway management is off/i)).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: /Enable remote gateway management/i })).toBeInTheDocument()
   })
 
   it('does not flash the tabbed UI before showing the disabled state', async () => {
@@ -412,14 +412,14 @@ describe('RemoteCrewPanel', () => {
 
     // While loading: a spinner, no tabs, no form.
     expect(screen.getByText(/Loading/i)).toBeInTheDocument()
-    expect(screen.queryByRole('button', { name: /Your crews/i })).not.toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: /Your gateways/i })).not.toBeInTheDocument()
     expect(screen.queryByRole('button', { name: /Set up a new one/i })).not.toBeInTheDocument()
-    expect(screen.queryByRole('button', { name: /Enable remote crew management/i })).not.toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: /Enable remote gateway management/i })).not.toBeInTheDocument()
 
     // After the 403 resolves: transitions directly to the disabled card.
     rejectInstances(new ApiError(403, 'instances feature is disabled'))
-    expect(await screen.findByText(/Remote crew management is off/i)).toBeInTheDocument()
-    expect(screen.queryByRole('button', { name: /Your crews/i })).not.toBeInTheDocument()
+    expect(await screen.findByText(/Remote gateway management is off/i)).toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: /Your gateways/i })).not.toBeInTheDocument()
   })
 
   it('distinguishes cloud crews from hand-added machines, and shows an in-progress launch', async () => {
@@ -479,7 +479,7 @@ describe('RemoteCrewPanel', () => {
     renderWithProviders(<RemoteCrewPanel />)
 
     expect(await screen.findByText(/gateway exploded/i)).toBeInTheDocument()
-    expect(screen.queryByText(/No crews yet/i)).not.toBeInTheDocument()
+    expect(screen.queryByText(/No gateways yet/i)).not.toBeInTheDocument()
     // A retry sits with the error, in addition to the header's refresh control.
     expect(screen.getAllByRole('button', { name: /Refresh/i }).length).toBeGreaterThan(1)
   })

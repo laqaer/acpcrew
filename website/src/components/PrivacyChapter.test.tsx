@@ -77,7 +77,7 @@ describe('PrivacyChapter', () => {
 
     // Identical aside copy is what keeps the shared shell's mascots from
     // re-animating across the hand-off.
-    expect(screen.getByText('Bring your crew with you.')).toBeInTheDocument()
+    expect(screen.getByText('Bring your agents with you.')).toBeInTheDocument()
     expect(
       screen.getByText('Merge-only setup · credentials stay where they are'),
     ).toBeInTheDocument()

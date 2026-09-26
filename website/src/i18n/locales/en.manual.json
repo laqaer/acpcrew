@@ -946,7 +946,7 @@
         "browser_note": "This is the browser view. Everything here is live, but the companion itself appears in the {{productName}} desktop app.",
         "desktop_tip": "Click the companion on your desktop to open its panel; right-click to change its avatar.",
         "subtitle": "Set your break rhythm, add reminders, choose what your companion tells you about, and look back on your time together.",
-        "title": "Crew Companion"
+        "title": "Companion"
       },
       "memories": {
         "days_together_one": "{{count}} day together",
@@ -983,8 +983,8 @@
         "body": "Open it to change break nudges and set reminders — those live inside the companion on your Mac.",
         "couldnt_open": "Couldn’t open the companion — {{error}}",
         "couldnt_turn_off": "Couldn’t turn the companion off — {{error}}",
-        "open": "Open Crew Companion",
-        "title": "Crew Companion isn’t running"
+        "open": "Open Companion",
+        "title": "Companion isn’t running"
       },
       "panel": {
         "add": {
@@ -1493,7 +1493,7 @@
           "junction_agents": "{{productName}} Agents",
           "logs": "Logs",
           "pages": "Pages",
-          "remote_crew": "Remote Crew",
+          "remote_crew": "Remote gateways",
           "tasks": "Tasks"
         },
         "promptsProvider": {
@@ -2478,7 +2478,7 @@
       "group_actions": "Actions",
       "group_chat_navigation": "Chat Navigation",
       "group_panel_navigation": "Panel Navigation",
-      "group_remote_crews": "Remote Crews",
+      "group_remote_crews": "Remote gateways",
       "jump_to_chat": "Jump to chat {{n}}",
       "last_visited_chat_mru": "Last visited chat (MRU)",
       "next_chat": "Next chat",
@@ -2494,7 +2494,7 @@
       "projects_panel": "Projects panel",
       "schedule_panel": "Schedule panel",
       "switch_to_local": "Switch to Local",
-      "switch_to_remote_crew": "Switch to remote crew {{n}}",
+      "switch_to_remote_crew": "Switch to remote gateway {{n}}",
       "walk_back_mru_history": "Walk back MRU history",
       "stop_speaking": "Stop speaking",
       "toggle_focus_mode": "Toggle focus mode",
@@ -4403,7 +4403,7 @@
         "terminal_shell_save_failed": "Could not save the shell setting"
       },
       "instancesPanel": {
-        "add_remote_crew": "Add remote crew",
+        "add_remote_crew": "Add remote gateway",
         "adding": "Adding…",
         "connect": "Connect",
         "connect_failed": "Connect to {{id}} failed: {{error}}",
@@ -4416,10 +4416,10 @@
         "disable": "Disable",
         "disabling": "Disabling…",
         "disconnect_failed": "Disconnect of {{id}} failed: {{error}}",
-        "enable_remote_crew_management": "Enable remote crew management",
+        "enable_remote_crew_management": "Enable remote gateway management",
         "enabling": "Enabling…",
-        "failed_to_add_remote_crew": "Failed to add remote crew",
-        "failed_to_load_remote_crews": "Failed to load remote crews",
+        "failed_to_add_remote_crew": "Failed to add remote gateway",
+        "failed_to_load_remote_crews": "Failed to load remote gateways",
         "remove": "Remove {{name}}",
         "remove_failed": "Remove of {{id}} failed: {{error}}",
         "token_left": "· token {{time}} left",
@@ -5040,8 +5040,8 @@
         "label": "Import / Export"
       },
       "instances": {
-        "description": "Manage remote crews over SSH tunnels; switch between them from the top header",
-        "label": "Remote Crew"
+        "description": "Manage remote gateways over SSH tunnels; switch between them from the top header",
+        "label": "Remote gateways"
       },
       "notifications": {
         "description": "Sound effects and per-source alert preferences",

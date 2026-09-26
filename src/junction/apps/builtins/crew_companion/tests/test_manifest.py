@@ -65,7 +65,7 @@ def test_identity() -> None:
     m = _manifest()
     assert m.name == "crew-companion"
     assert m.version == "1.0.0"
-    assert m.displayName == "Crew Companion"
+    assert m.displayName == "Companion"
     assert m.author == "junction"
 
 
