@@ -56,7 +56,7 @@ from junction._sqlite_compat import sqlite3
 from junction.agent_files import AGENT_FILENAME
 from junction.atomic_write import atomic_write
 from junction.config.loader import CRED_KIRO_API_KEY, read_env_file_credential
-from junction.config.paths import CONFIG_DIR_NAME, config_dir
+from junction.config.paths import CONFIG_DIR_NAME, RETIRED_DATA_HOME_NAMES, config_dir
 from junction.config.paths import data_home as resolve_data_home
 from junction.kiro_cli import (
     find_kiro_cli_candidates,
@@ -1967,7 +1967,8 @@ class KiroPrerequisiteService:
             mapping.source
             for mapping in _auth_store_mappings(self._platform, self._home, self._environ)
         ]
-        # Junction's own secret home is always hidden from a probed CLI. The
+        # Junction's own secret home is always hidden from a probed CLI, and so
+        # is each retired data home an upgraded machine may still hold. The
         # credential-minimal probe additionally hides the identity stores; the
         # real-home callers must leave those visible — the readiness probe so a
         # CLI whose valid session lives outside the staged files (an external
@@ -1979,6 +1980,7 @@ class KiroPrerequisiteService:
                 for path in (
                     self._data_home,
                     self._home / CONFIG_DIR_NAME,
+                    *(self._home / name for name in RETIRED_DATA_HOME_NAMES),
                 )
             )
         )

@@ -56,6 +56,7 @@ from typing import Callable
 import junction.validation as _validation
 from junction import security
 from junction import sel as _sel_mod
+from junction.config.paths import RETIRED_DATA_HOME_NAMES
 from junction.executors import governance_executor
 
 logger = logging.getLogger(__name__)
@@ -1516,12 +1517,13 @@ _EXFIL_HEURISTICS: tuple[tuple[str, str], ...] = (
 def _own_namespace_prefixes() -> tuple[str, ...]:
     """Home-relative prefixes that belong to Junction / kiro-cli itself.
 
-    Derived from the data-home prefixes, plus the ``.kiro`` directory that
-    holds kiro-cli's own state and the gateway's auth staging dir. Used only to
-    label a row in the posture view — a misclassification is cosmetic, never a
-    gate decision.
+    Derived from the data-home prefixes and the retired data homes still fenced
+    on upgraded machines, plus the ``.kiro`` directory that holds kiro-cli's own
+    state and the gateway's auth staging dir. Used only to label a row in the
+    posture view — a misclassification is cosmetic, never a gate decision.
     """
-    return tuple({p.split("/", 1)[0] for p in security.data_home_prefixes()} | {".kiro"})
+    prefixes = (*security.data_home_prefixes(), *RETIRED_DATA_HOME_NAMES)
+    return tuple({p.split("/", 1)[0] for p in prefixes} | {".kiro"})
 
 
 def _sensitive_path_items() -> list[PostureItem]:

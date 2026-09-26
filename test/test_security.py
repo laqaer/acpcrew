@@ -16,6 +16,7 @@ import pytest
 from oauth_url_corpus import OPERATOR_EXTENSION_OAUTH_URLS
 
 from junction import security
+from junction.config.paths import RETIRED_AUTH_STAGING_NAME, RETIRED_DATA_HOME_NAMES
 from junction.security import (
     _SECRET_KEY_LEN,
     apply_resource_limits,
@@ -23,6 +24,7 @@ from junction.security import (
     audit_bash_exfiltration,
     is_sensitive_bash_command,
     is_sensitive_path,
+    is_sensitive_write_path,
     oauth_url_contains_credential,
     redact_and_truncate,
     redact_credentials,
@@ -3245,6 +3247,32 @@ class TestIsSensitivePath:
         # Junction's own credential file and governance ceiling under the data home.
         assert is_sensitive_path("~/.junction/.env") is True
         assert is_sensitive_path("~/.junction/security_policy.json") is True
+
+    @pytest.mark.parametrize("retired", RETIRED_DATA_HOME_NAMES)
+    @pytest.mark.parametrize(
+        "leaf", [".env", "token_signing.key", ".local_secret", ".vault/.vault_key"]
+    )
+    def test_retired_data_home_secrets_stay_fenced(self, retired: str, leaf: str) -> None:
+        """A machine upgraded in place can still hold live secrets in a retired home.
+
+        Junction no longer reads those directories, but dropping them from the
+        floor would open credentials an agent could not read the day before.
+        """
+        home = str(Path.home())
+        assert is_sensitive_path(f"~/{retired}/{leaf}") is True
+        assert is_sensitive_path(f"{home}/{retired}/{leaf}") is True
+        assert is_sensitive_bash_command(f"cat ~/{retired}/{leaf}") is not None
+        assert is_sensitive_write_path(f"~/{retired}/{leaf}") is True
+
+    def test_retired_auth_staging_root_stays_fenced(self) -> None:
+        assert is_sensitive_path(f"~/{RETIRED_AUTH_STAGING_NAME}/credentials.json") is True
+        assert is_sensitive_bash_command(f"ls ~/{RETIRED_AUTH_STAGING_NAME}") is not None
+
+    def test_retired_homes_leave_the_harness_home_readable(self) -> None:
+        """``~/.kiro`` is kiro-cli's own home; only the retired child is fenced."""
+        assert is_sensitive_path("~/.kiro/settings/cli.json") is False
+        assert is_sensitive_path("~/.kiro/agents/default.json") is False
+        assert is_sensitive_bash_command("cat ~/.kiro/settings/cli.json") is None
 
     def test_browser_auth_cookie_paths(self) -> None:
         # The browser-auth cookie jar + the Playwright storage-state derived from

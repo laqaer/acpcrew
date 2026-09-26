@@ -29,6 +29,11 @@ from pathlib import Path
 from typing import TYPE_CHECKING, NamedTuple
 from urllib.parse import parse_qs, unquote, unquote_plus, urlparse
 
+from junction.config.paths import (
+    CONFIG_DIR_NAME,
+    RETIRED_AUTH_STAGING_NAME,
+    RETIRED_DATA_HOME_NAMES,
+)
 from junction.executors import maintenance_executor
 from junction.sel import SecurityEvent, SecurityEventLog
 from junction.trust_patterns import ENV_ASSIGNMENT_RE
@@ -4766,8 +4771,11 @@ def _emit_push_allow_event(command: str) -> None:
 _SENSITIVE_HOME_DIRS: list[str] = [
     # Gateway-owned Kiro auth staging. Owner-only filesystem mode does not
     # isolate another process running as the same UID, so every agent sandbox
-    # and the shared read/write hook floor hide this fixed parent.
+    # and the shared read/write hook floor hide this fixed parent. The staging
+    # root earlier builds created stays covered too: it persists on an upgraded
+    # machine and can still hold staged credential copies.
     ".kiro/junction-auth-staging",
+    RETIRED_AUTH_STAGING_NAME,
     ".aws",
     ".ssh",
     ".gnupg",
@@ -4862,7 +4870,16 @@ _SENSITIVE_HOME_DIRS: list[str] = [
 # ``_home_dir_targets_uncached`` re-anchors it under a ``JUNCTION_HOME`` override,
 # so one leaf list means a new secret is added once and covered wherever the
 # data home lives.
-_DATA_HOME_PREFIXES: tuple[str, ...] = (".junction",)
+#
+# The leaves are ALSO expanded under each retired data home
+# (``config.paths.RETIRED_DATA_HOME_NAMES``). Junction no longer reads those
+# directories, but a machine upgraded in place can still hold a live ``.env``,
+# vault key or signing key in one, and dropping the entries would hand an agent
+# read access to credentials that were fenced the day before the upgrade. Only
+# the secret leaves are expanded there: the write-protected leaves below guard
+# inputs to a live decision, and nothing reads a retired home's copy.
+_DATA_HOME_PREFIXES: tuple[str, ...] = (CONFIG_DIR_NAME,)
+_RETIRED_DATA_HOME_PREFIXES: tuple[str, ...] = RETIRED_DATA_HOME_NAMES
 _DATA_HOME_SECRET_LEAVES: list[str] = [
     ".env",
     # The Notes builtin stores a GitHub Personal Access Token here so it can
@@ -5143,7 +5160,9 @@ _DATA_HOME_SECRET_LEAVES: list[str] = [
     ".vault",
 ]
 _SENSITIVE_HOME_DIRS += [
-    f"{prefix}/{leaf}" for prefix in _DATA_HOME_PREFIXES for leaf in _DATA_HOME_SECRET_LEAVES
+    f"{prefix}/{leaf}"
+    for prefix in (*_DATA_HOME_PREFIXES, *_RETIRED_DATA_HOME_PREFIXES)
+    for leaf in _DATA_HOME_SECRET_LEAVES
 ]
 
 # ── Write-protected paths (block modification, allow reads) ──

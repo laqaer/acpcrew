@@ -41,7 +41,12 @@ from pathlib import Path
 from typing import TYPE_CHECKING
 
 from junction import platform_compat
-from junction.config.paths import CONFIG_DIR_NAME, config_dir
+from junction.config.paths import (
+    CONFIG_DIR_NAME,
+    RETIRED_AUTH_STAGING_NAME,
+    RETIRED_DATA_HOME_NAMES,
+    config_dir,
+)
 from junction.constants import GITHUB_SLUG, JUNCTION_SPAWNED_ENV, JUNCTION_SPAWNED_VALUE
 from junction.platform import current_context
 
@@ -63,6 +68,15 @@ _LAUNCHER_MAX_AGE_SECONDS = 3600
 # Legacy sandbox launcher directory (before migration to <config_dir>/run/).
 _LEGACY_LAUNCHER_DIR = "/tmp"
 
+# Secret directories left by earlier builds' data homes. Junction no longer
+# reads them, but a machine upgraded in place can still hold a vault or staged
+# kiro-cli credentials there, so every mode hides them alongside the current
+# home's copies (``security._RETIRED_DATA_HOME_PREFIXES`` is the hook-side half).
+_RETIRED_SECRET_DIRS: list[str] = [
+    RETIRED_AUTH_STAGING_NAME,
+    *(f"{name}/.vault" for name in RETIRED_DATA_HOME_NAMES),
+]
+
 # Sensitive directories to hide from the agent subprocess tree.
 # "strict" mode hides all; "standard" mode only hides non-workflow dirs.
 _STRICT_DIRS: list[str] = [
@@ -83,6 +97,7 @@ _STRICT_DIRS: list[str] = [
     # in ``_CC_FILES``. Without this a same-UID agent subprocess could read
     # ``.vault/.vault_key`` and decrypt the store.
     f"{CONFIG_DIR_NAME}/.vault",
+    *_RETIRED_SECRET_DIRS,
 ]
 
 _STANDARD_DIRS: list[str] = [
@@ -94,6 +109,7 @@ _STANDARD_DIRS: list[str] = [
     ".docker",
     # Secret vault — hidden in every mode (see _STRICT_DIRS note above).
     f"{CONFIG_DIR_NAME}/.vault",
+    *_RETIRED_SECRET_DIRS,
 ]
 
 # CC mode: hides all credential dirs including .aws, but selectively exposes
@@ -110,6 +126,7 @@ _CC_DIRS: list[str] = [
     ".kube",
     # Secret vault — hidden in every mode (see _STRICT_DIRS note above).
     f"{CONFIG_DIR_NAME}/.vault",
+    *_RETIRED_SECRET_DIRS,
 ]
 
 # CC mode: files to expose read-only inside otherwise-hidden dirs.
@@ -125,8 +142,10 @@ _CC_FILES: list[str] = [
     ".pypirc",
     ".netrc",
     ".git-credentials",
-    # Junction's channel-credential file under the default data home.
+    # Junction's channel-credential file under the default data home, and the
+    # copy a retired data home may still hold (see _RETIRED_SECRET_DIRS).
     f"{CONFIG_DIR_NAME}/.env",
+    *(f"{name}/.env" for name in RETIRED_DATA_HOME_NAMES),
 ]
 
 

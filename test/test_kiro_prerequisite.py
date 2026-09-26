@@ -27,6 +27,7 @@ from junction import _process_group_supervisor as supervisor
 from junction import kiro_prerequisite as prerequisite_module
 from junction import platform_compat
 from junction.agent_files import AGENT_FILENAME
+from junction.config.paths import RETIRED_DATA_HOME_NAMES
 from junction.dashboard.chat_handlers import api_chat_slot_create
 from junction.dashboard.chat_regenerate import (
     api_chat_slot_edit_resend,
@@ -937,7 +938,10 @@ class TestKiroPrerequisiteWorkflow:
             home = kwargs["env"]["HOME"]
             whoami_homes.append(home)
             assert home == str(tmp_path)
-            assert kwargs["extra_hidden_dirs"] == (str(tmp_path / ".junction"),)
+            assert kwargs["extra_hidden_dirs"] == (
+                str(tmp_path / ".junction"),
+                *(str(tmp_path / name) for name in RETIRED_DATA_HOME_NAMES),
+            )
             return ProcessResult(ok=False)
 
         service = KiroPrerequisiteService(
@@ -1546,6 +1550,7 @@ class TestKiroPrerequisiteWorkflow:
                 assert runtime.kwargs[index]["sandbox_mode"] == "strict"
                 assert runtime.kwargs[index]["extra_hidden_dirs"] == (
                     str(tmp_path / ".junction"),
+                    *(str(tmp_path / name) for name in RETIRED_DATA_HOME_NAMES),
                     str(tmp_path / ".aws" / "sso" / "cache"),
                     str(tmp_path / ".local" / "share" / "kiro-cli"),
                     str(tmp_path / ".local" / "share" / "amazon-q"),

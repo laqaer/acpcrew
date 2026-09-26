@@ -8,6 +8,7 @@ from unittest.mock import patch
 import pytest
 
 import junction.sandbox as _sb_mod
+from junction.config.paths import RETIRED_AUTH_STAGING_NAME, RETIRED_DATA_HOME_NAMES
 from junction.sandbox import (
     _AGENT_DENIED_ENV_KEYS,
     _CC_DIRS,
@@ -80,6 +81,18 @@ class TestCcFilesList:
 
     def test_has_junction_env(self):
         assert ".junction/.env" in _CC_FILES
+
+    @pytest.mark.parametrize("retired", RETIRED_DATA_HOME_NAMES)
+    def test_hides_retired_data_home_secrets_in_every_mode(self, retired):
+        """An upgraded machine can still hold a retired home's ``.env`` or vault.
+
+        A spawned subprocess opens files without routing through the hook gate,
+        so the retired copies must be hidden here as well as fenced there.
+        """
+        assert f"{retired}/.env" in _CC_FILES
+        for dirs in (_sb_mod._STRICT_DIRS, _STANDARD_DIRS, _CC_DIRS):
+            assert f"{retired}/.vault" in dirs
+            assert RETIRED_AUTH_STAGING_NAME in dirs
 
 
 class TestBuildLauncherScriptCcMode:

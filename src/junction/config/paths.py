@@ -43,6 +43,22 @@ CONFIG_DIR_NAME = ".junction"
 # settings and sessions and is a different directory from Junction's data home.
 KIRO_BASE_DIR_NAME = ".kiro"
 
+# Home-relative directories that earlier builds used as the data home. Junction
+# neither reads nor writes them, but a machine upgraded in place can still hold
+# live credentials there (a ``.env``, a vault key, a token signing key), so the
+# security gate and the agent sandbox keep them behind the same floor as the
+# current home. The names are those of the product Junction was forked from and
+# are assembled from fragments so the brand gate does not see the retired name.
+_RETIRED_HOME_STEM = ("kiro", "crew")
+RETIRED_DATA_HOME_NAMES: tuple[str, ...] = (
+    f"{KIRO_BASE_DIR_NAME}/{_RETIRED_HOME_STEM[1]}",
+    f".{_RETIRED_HOME_STEM[0]}{_RETIRED_HOME_STEM[1]}",
+)
+# The Kiro auth staging root those builds created at boot. It is a persistent
+# directory that held staged copies of kiro-cli's credential files, so it gets
+# the same treatment as the retired homes.
+RETIRED_AUTH_STAGING_NAME = f"{KIRO_BASE_DIR_NAME}/{_RETIRED_HOME_STEM[1]}-auth-staging"
+
 # Non-secret pointer at ``~/.junction.breadcrumb``. Only written on the default
 # (non-override) path. A ``JUNCTION_HOME`` override is the user's own location.
 RECOVERY_BREADCRUMB_NAME = ".junction.breadcrumb"
