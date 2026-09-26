@@ -1137,16 +1137,26 @@ class TestRunProbe:
         # root-residue guard. Anchoring it under tmp_path keeps the leak
         # assertion at full strength while any stray resolution stays in tmp.
         monkeypatch.setenv("HOME", str(tmp_path / "leaked-HOME"))
+        # The sandbox launcher APPENDS its Gradle daemon opt-out to whatever
+        # GRADLE_OPTS it sees, so an inherited value would survive in front of it.
+        # Naming the variable below cannot tell the two apart; this sentinel can,
+        # through the `leaked-` assertion.
+        monkeypatch.setenv("GRADLE_OPTS", "leaked-GRADLE_OPTS")
         out = await tc._run_probe(["/bin/sh", "-c", "env"], None)
         assert out is not None
         assert "leaked-" not in out
         # And the allowlist really is minimal. The extras are not ours: the sandbox
-        # launcher injects its own markers (`JUNCTION_*`, `GIT_SSH_COMMAND`) and the
-        # shell adds `PWD`/`SHLVL`/`_`, so they are named rather than blanket-allowed
-        # — a NEW name appearing here should fail this and be looked at.
+        # launcher injects its own markers (`JUNCTION_*`, `GIT_SSH_COMMAND`,
+        # `GRADLE_OPTS`) and the shell adds `PWD`/`SHLVL`/`_`, so they are named
+        # rather than blanket-allowed — a NEW name appearing here should fail this
+        # and be looked at.
         ours = {"TERM", "NO_COLOR", "PAGER", "GIT_PAGER", "PATH", "LANG", "LC_ALL", "LC_CTYPE"}
+        # GRADLE_OPTS is the launcher's Gradle daemon block in sandbox.py, which
+        # sets it to end with `-Dorg.gradle.daemon=false` so a sandboxed build
+        # leaves no daemon for an unsandboxed one to adopt.
         sandbox_injected = {"JUNCTION_HOST_PID", "JUNCTION_SANDBOX_ACTIVE",
-                            "JUNCTION_SANDBOX_LEVEL", "JUNCTION_SPAWNED", "GIT_SSH_COMMAND"}
+                            "JUNCTION_SANDBOX_LEVEL", "JUNCTION_SPAWNED", "GIT_SSH_COMMAND",
+                            "GRADLE_OPTS"}
         shell_added = {"PWD", "SHLVL", "_"}
         # macOS injects __CF_USER_TEXT_ENCODING into every spawned process
         # unconditionally (CoreFoundation per-user encoding preference). This is
