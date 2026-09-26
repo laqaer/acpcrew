@@ -6,7 +6,7 @@ The module's happy paths are well covered by the existing chat suites
 *defensive* branches those suites never reach: fail-open ``except`` arms,
 deny-by-default returns, the three retry ladders that a terminal
 ``stop_reason`` walks, and the auto-approve rungs (trusted patterns,
-read-only bash, native crew) that sit between the interactive prompt and the
+read-only bash, native subagent) that sit between the interactive prompt and the
 session-trust flag.
 
 Two harnesses are used and the choice between them is deliberate:
@@ -763,29 +763,31 @@ class TestTrustPredicates:
 
         assert chat_runner._persistable_session_policy(slot, yolo) == "auto"
 
-    def test_native_crew_auto_approve_requires_an_active_crew(self, tmp_path):
+    def test_native_subagent_auto_approve_requires_an_active_subagent(self, tmp_path):
         state = _state(tmp_path)
         state.is_yolo_active = MagicMock(return_value=True)
         slot = _slot()
         slot._trust = True
 
-        assert chat_runner._native_crew_should_auto_approve({}, state, slot) is False
+        assert chat_runner._native_subagent_should_auto_approve({}, state, slot) is False
         assert (
-            chat_runner._native_crew_should_auto_approve({"s1": {"done": True}}, state, slot)
+            chat_runner._native_subagent_should_auto_approve({"s1": {"done": True}}, state, slot)
             is False
         )
         assert (
-            chat_runner._native_crew_should_auto_approve({"s1": {"done": False}}, state, slot)
+            chat_runner._native_subagent_should_auto_approve({"s1": {"done": False}}, state, slot)
             is True
         )
 
-    def test_active_crew_without_any_grant_is_still_denied(self, tmp_path):
+    def test_active_subagent_without_any_grant_is_still_denied(self, tmp_path):
         state = _state(tmp_path)
         state.is_yolo_active = MagicMock(return_value=False)
         state.context_builder = None
 
         assert (
-            chat_runner._native_crew_should_auto_approve({"s1": {"done": False}}, state, _slot())
+            chat_runner._native_subagent_should_auto_approve(
+                {"s1": {"done": False}}, state, _slot()
+            )
             is False
         )
 

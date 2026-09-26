@@ -4,8 +4,6 @@ Covers:
 - ``is_docker_container()`` probe on all detection paths
 - ``wrap_argv()`` Docker-specific error guidance when no user-namespace
   backend is available inside a container
-
-Related issue: https://github.com/kirodotdev/KiroCrew/issues/1617
 """
 
 from __future__ import annotations

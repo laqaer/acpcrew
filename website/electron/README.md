@@ -87,11 +87,11 @@ Notes:
   Linux: the script provisions a Windows python-build-standalone interpreter
   via `uv` and executes its `python.exe` to install and verify the bundled
   backend, then runs `electron-builder --win` to produce the NSIS installer.
-- **Signing is optional for a local build.** The `signtoolOptions.sign` hook
-  (`scripts/sign-windows.js`) skips cleanly when none of the
-  `WINDOWS_SIGNING_*` environment variables are set, so a credential-less
-  build produces a working unsigned installer. (Setting only some of the five
-  variables is treated as a misconfiguration and fails the build.)
+- **Signing is optional for a local build.** electron-builder signs natively
+  when `WIN_CSC_LINK` and `WIN_CSC_KEY_PASSWORD` name a code-signing
+  certificate and its password, and builds a working unsigned installer when
+  they are empty. Certificate setup and rotation are in
+  [`docs/build/signing-runbook.md`](../../docs/build/signing-runbook.md).
 - The result is an assisted (non-one-click, per-user) NSIS installer,
   `Junction Setup <version>.exe` (nightly builds:
   `Junction Nightly Setup <version>.exe`), in `website/electron/dist/`.
@@ -169,7 +169,7 @@ Remote host settings are **per-port** — each tab can have its own remote host
    unusual. The default tries, in order:
    - `~/.toolbox/bin/junction` (toolbox install — recommended)
    - `~/.local/bin/junction` (install.sh / source install)
-   - `~/.kirocrew-app/.venv/bin/junction` (one-liner installer venv)
+   - `~/.junction-app/.venv/bin/junction` (one-liner installer venv)
 4. Optionally set a **Remote port** if the gateway port on the remote host differs
    from the local tab port (default: same as tab port)
 5. Optionally set a **Remote PATH** if junction needs additional directories
@@ -187,7 +187,6 @@ each launch to get a fresh JWT — no manual paste required.
 
 ```
 1. Try local ~/.junction/.local_secret → /api/token/local on the tab's port
-   (with a temporary ~/.kirocrew read fallback during one-time migration)
 2. If remote host configured for this port:
    SSH: export PATH=<remotePath> JUNCTION_PORT=<port>; <bin> token
 3. Fallback: show manual token prompt

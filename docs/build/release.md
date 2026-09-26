@@ -50,8 +50,8 @@ rebuild that hopes for reproducibility. The mechanism:
   API-recorded digest, safely extracts it, and verifies every manifest field
   and file digest (`scripts/release_promotion.py verify`). Only then do the
   publish lanes move stable pointers/tags to those bytes. The stable run never
-  invokes the build workflows, CDSigner, Apple notarization, or the OCI
-  builder.
+  invokes the build workflows, Developer ID signing, Apple notarization, or the
+  OCI builder.
 - **Everything fails closed.** A missing, expired, ambiguous, or
   digest-mismatched record aborts the promotion: cut and validate a fresh RC
   rather than rebuilding stable.
@@ -122,7 +122,7 @@ concurrency group, and their version derivation.
 | `dependency-vulnerability.yml` | reusable gate | `scripts/check_npm_audit.py`. Runs first; every build job needs it. |
 | `build-wheel.yml` | reusable build | Stamps the PEP 440 version into `pyproject.toml` and `__init__.py`, stamps the distribution channel, builds the frontend and stages it into the package, then `python -m build`. Uploads artifact `cli-wheel` (wheel + sdist). Credential-free. |
 | `build-desktop.yml` | reusable build | Matrix `macos-15` (universal macOS app) and `ubuntu-22.04` / `ubuntu-22.04-arm` (AppImage + deb + rpm) via `packaging/build-desktop.sh`, then a `smoke-linux-packages` job that installs the deb and rpm in Ubuntu 24.04 and Amazon Linux 2023 containers. Deliberately credential-free (`contents: read` only, pinned by `test_workflow_permissions.py`), so it builds **unsigned** and hands the `.app` downstream. |
-| `build-windows.yml` | reusable build | `windows-latest`, an NSIS `Setup.exe`. Separate from `build-desktop.yml` because Authenticode signing has to happen *inside* the build (the installer compresses its own already-signed executable), so this job holds an AWS Signer identity and `build-desktop.yml` can stay credential-free. Callers pass `soft_fail: true`, so a Windows failure cannot skip the mac/Linux lanes. |
+| `build-windows.yml` | reusable build | `windows-latest`, an NSIS `Setup.exe`. Separate from `build-desktop.yml` because Authenticode signing has to happen *inside* the build (the installer compresses its own already-signed executable), so this job holds the code-signing certificate and `build-desktop.yml` can stay credential-free. Callers pass `soft_fail: true`, so a Windows failure cannot skip the mac/Linux lanes. |
 | `publish-cli.yml` | reusable publish | Wheel + `SHA256SUMS` + KMS-signed `cli-manifest.json` to `cli/<channel>/<version>/`, the same signed manifest to `feed/<channel>/latest-cli.json`, and a PEP 503 index under `feed/<channel>/simple/`. |
 | `publish-linux.yml` | reusable publish | One Linux artifact to `desktop/<channel>/<version>/`, its channel file under `<feed prefix>/latest-linux[-arm64].yml`, then the `latest/` alias. Invoked ONCE PER (ARCH, FORMAT) PAIR — `arch: x64\|arm64` × `format: appimage\|deb\|rpm`, six callers — each with its own keys and feed, so no two ever share one. |
 | `sign-and-notarize.yml` | reusable publish | Three chained jobs (`sign`, `notarize`, `publish`) covering the whole macOS trust chain and the mac feed write. |
@@ -146,16 +146,20 @@ The **signing bucket** is private working space and never public:
 
 ```
 pre-signed/<channel>/<version>/     unsigned uploads from the sign job
-signed/<channel>/<version>/         CDSigner output (CI cannot write here)
-notarized/<channel>/<version>/      stapled, Gatekeeper-verified archive
+notarized/<channel>/<version>/      signed, stapled, Gatekeeper-verified archive
 ```
 
 The **distribution bucket** is private with BLOCK_ALL and served only through
 CloudFront with Origin Access Control. Two advertised hostnames alias the same
-distribution: `updates.crew.kiro.dev` for pointers and
-`download.crew.kiro.dev` for artifact bytes. Splitting the URL classes across
+distribution: `updates.getjunction.dev` for pointers and
+`download.getjunction.dev` for artifact bytes. Splitting the URL classes across
 hostnames means future protective policy on the byte surface can never touch the
 availability-critical feed path.
+
+> **Not provisioned yet.** Junction owns both hostnames, but neither serves a
+> distribution today. Until one does, the channel installer and the in-app
+> updater reach no feed by default; set `JUNCTION_CDN_BASE` to a distribution
+> you host (it replaces both bases) to exercise the channel path.
 
 ```
 cli/<channel>/<version>/junction-<version>-py3-none-any.whl   immutable
@@ -223,7 +227,7 @@ stable) moves only after the version tag and its attestation exist. GHCR needs
 no AWS credentials: the push authenticates with the workflow's own
 `GITHUB_TOKEN`, so this lane also works on forks.
 
-The GHCR package is public, so `docker pull ghcr.io/kirodotdev/junction:stable`
+The GHCR package is public, so `docker pull ghcr.io/laqaer/junction:stable`
 works with no login. That is not automatic: GHCR creates every package private
 and inherits only *access permissions* from the linked repository, never
 visibility — a public repo does not imply a pullable image, and the flip is
@@ -231,8 +235,8 @@ one-way (a public package cannot be made private again). Both canonical callers
 pass `require_public_access: true`, which arms the logged-out-pull gate proving
 anonymous consumers can resolve the image; a visibility regression fails the
 lane instead of shipping an unpullable tag. The input itself still defaults to
-`false` and the step is scoped to `kirodotdev`, so forks keep private packages
-and authenticate with a token carrying `read:packages`.
+`false` and the step is scoped to the canonical repository owner, so forks keep
+private packages and authenticate with a token carrying `read:packages`.
 
 ### GitHub Releases
 
@@ -257,7 +261,7 @@ PyPI is not a supported path. `publish-cli.yml` builds a **private static PEP 50
 index** per channel under `feed/<channel>/simple/` and installs go through it:
 
 ```bash
-pip install --pre junction --extra-index-url https://updates.crew.kiro.dev/feed/insider/simple/
+pip install --pre junction --extra-index-url https://updates.getjunction.dev/feed/insider/simple/
 ```
 
 `--extra-index-url` (not `--index-url`) is deliberate: the channel index carries
@@ -279,22 +283,24 @@ version derivation and `uses:` calls.
 
 1. **sign** (ubuntu). Flattens the build artifacts, attests SLSA provenance for
    the wheel, sdist, and every Linux artifact (not the mac zip or DMG, whose bytes are not
-   final yet), uploads everything to `pre-signed/`, extracts the `.app` from the
-   `*-mac.zip`, and submits it to CDSigner with a manifest generated at sign
-   time from the actual bundle contents by
-   `packaging/signing/generate-manifest.py`. `packaging/signing/sign.sh` polls
-   every 30s with a 15-minute ceiling. `awscurl` is installed **before** AWS
-   credentials are configured, so a drifted release of it can never observe the
-   signing credentials.
-2. **notarize** (macos-15). `notarytool submit --wait`, `stapler staple`, then a
-   fail-closed `spctl --assess` that must report `Notarized Developer ID`. On an
-   `Invalid` verdict the itemized Apple log is printed. The branded
+   final yet), uploads everything to `pre-signed/`, and, when the Developer ID
+   identity secret is configured, hands the `*-mac.zip` and DMG keys to
+   `notarize`. Without that secret the handoff stays empty and the rest of the
+   chain skips, leaving the unsigned build outputs.
+2. **notarize** (macos-15). Imports the Developer ID identity from its `.p12`
+   secret into a temporary keychain, signs the `.app` inside-out with the
+   hardened runtime and a secure timestamp (`packaging/signing/sign.sh`, in an
+   order `packaging/signing/signing-plan.py` derives from the actual bundle,
+   embedded Python backend included), then `notarytool submit --wait`,
+   `stapler staple`, and a fail-closed `spctl --assess` that must report
+   `Notarized Developer ID`. On an `Invalid` verdict the itemized Apple log is
+   printed. The branded
    electron-builder DMG is then converted to a writable layout template; its
    unsigned app is removed and replaced with the stapled app before the image
    is shrunk and recompressed. This preserves the Finder background and icon
    positions while ensuring no unsigned app survives. The resulting DMG is
-   signed by a second CDSigner task with a `type: dmg` manifest, notarized,
-   stapled, and held to the same `spctl` gate. The DMG signature is load-bearing
+   Developer ID signed by `packaging/signing/sign-dmg.sh`, notarized, stapled,
+   and held to the same `spctl` gate. The DMG signature is load-bearing
    twice over: an `hdiutil` DMG carries an adhoc signature that the Apple notary
    accepts but Gatekeeper treats as "no usable signature" ("app is damaged" on
    drag-out), and an unsigned DMG cannot be stapled at all (`stapler` Error 73),
@@ -303,7 +309,8 @@ version derivation and `uses:` calls.
    attaching the gated artifact, which is the sole input of everything
    downstream. The Apple credential is fetched from AWS Secrets Manager at
    runtime, masked, scoped to single steps in this job, and never written to
-   `GITHUB_ENV`, a file, or a log.
+   `GITHUB_ENV`, a file, or a log. The signing keychain is deleted by an
+   `always()` step at the end of the job, so the identity never outlives it.
 3. **publish** (ubuntu). Copies the gated zip and DMG to the distribution
    bucket, writes `latest-mac.yml`, writes the legacy `latest-mac.json` bridge,
    then the human `latest/Junction.dmg` alias. Separate from notarize so a
@@ -386,7 +393,7 @@ chronological. The `-nightly.` prefix is load-bearing (`auto-update.js`
 
 Seconds precision exists so no published key is ever overwritten: a date-only
 stamp let two nightlies on one UTC date collide on the same
-`signed/`, `notarized/`, and `cli/` keys.
+`pre-signed/`, `notarized/`, and `cli/` keys.
 
 **One collision trap:** any two prerelease tags sharing a base and a trailing
 number collapse onto the same PEP 440 wheel version, because `release.yml` maps
@@ -440,8 +447,8 @@ alternatives.
 The wheel is a first-class channel target, not a byproduct: a Linux or EC2 host
 tracks nightly, insider, or stable and installs from the same feed shape the
 desktop uses. `publish-cli.yml` depends only on the built wheel and its own
-KMS key, never on Apple or CDSigner, so a macOS signing failure cannot block a
-CLI release. The same independence holds for `publish-linux.yml` (needs only
+KMS key, never on the Apple signing identity or notarization, so a macOS
+signing failure cannot block a CLI release. The same independence holds for `publish-linux.yml` (needs only
 `build-desktop`) and `publish-docker.yml` (needs only the wheel).
 
 `SHA256SUMS` sits beside the wheel for legacy tooling, but it is only a
@@ -459,7 +466,7 @@ signed with a non-exportable RSA KMS key:
   "sha256": "<wheel digest>",
   "signature": "<base64 RSA signature over canonical JSON without this field>",
   "version": "0.2.0",
-  "wheel_url": "https://download.crew.kiro.dev/cli/insider/0.2.0/junction-0.2.0-py3-none-any.whl"
+  "wheel_url": "https://download.getjunction.dev/cli/insider/0.2.0/junction-0.2.0-py3-none-any.whl"
 }
 ```
 
@@ -510,12 +517,12 @@ since publishing is not a regression for it.
 
 ```bash
 # install, or move to another channel
-curl -fsSL https://download.crew.kiro.dev/cli.sh | sh -s -- --channel {nightly|insider|stable}
+curl -fsSL https://download.getjunction.dev/cli.sh | sh -s -- --channel {nightly|insider|stable}
 ```
 
 The installer resolves the channel feed, verifies it as described above,
 installs with `pipx` when available (otherwise a managed venv beside the data
-home), and records the channel in `~/.kiro/crew/channel`. Default channel is
+home), and records the channel in `~/.junction/channel`. Default channel is
 `stable`; `JUNCTION_CHANNEL` overrides it, and `--version` pins an exact wheel
 through the immutable `cli/<channel>/<version>/cli-manifest.json` instead of the
 mutable feed. This download path is separate from the source install
@@ -545,8 +552,10 @@ signals — `resources/package-type`, `$APPIMAGE`, and an `/opt` install path �
 and a package whose FORMAT cannot be named is refused rather than pointed at
 another format's feed. On Windows `NsisUpdater` reads
 `latest.yml` and runs the NSIS installer, verifying the download's Authenticode
-signature **fail-closed** against the `publisherName` pinned in
-`website/electron/package.json`. That verification is why `publish-windows.yml`
+signature **fail-closed** against the `publisherName` in the app's
+`app-update.yml`, which electron-builder writes from the subject CN of the
+certificate that signed the build (the committed config pins none). That
+verification is why `publish-windows.yml`
 refuses to publish an installer whose signature or signer does not check out: a
 bad publish would not degrade updates, it would fail every client's update at
 once.
@@ -587,7 +596,7 @@ reintroduced.
 The client resolves `{feedBase}/{channel}/` as a **directory** (the trailing
 slash matters: without it `new URL("latest-mac.yml", base)` replaces the last
 segment and resolves the wrong channel) and the library appends the platform
-filename. The feed base defaults to `https://updates.crew.kiro.dev/feed` and is
+filename. The feed base defaults to `https://updates.getjunction.dev/feed` and is
 overridable through `JUNCTION_UPDATE_FEED`, which enforces HTTPS except on
 loopback so the local harness works. The yml lives on the pointer host while
 `files[].url` entries are absolute byte-host URLs; electron-updater's
@@ -601,13 +610,13 @@ electron-updater string-compares it and a hex value fails every download:
 ```yaml
 version: 0.1.0-nightly.20260721t061155
 files:
-  - url: https://download.crew.kiro.dev/desktop/nightly/0.1.0-nightly.20260721t061155/Junction.zip
+  - url: https://download.getjunction.dev/desktop/nightly/0.1.0-nightly.20260721t061155/Junction.zip
     sha512: '<base64>'
     size: 123456789
-  - url: https://download.crew.kiro.dev/desktop/nightly/0.1.0-nightly.20260721t061155/Junction.dmg
+  - url: https://download.getjunction.dev/desktop/nightly/0.1.0-nightly.20260721t061155/Junction.dmg
     sha512: '<base64>'
     size: 234567890
-path: https://download.crew.kiro.dev/desktop/nightly/0.1.0-nightly.20260721t061155/Junction.zip
+path: https://download.getjunction.dev/desktop/nightly/0.1.0-nightly.20260721t061155/Junction.zip
 sha512: '<base64>'
 releaseDate: '2026-07-21T06:22:13Z'
 ```
@@ -692,10 +701,13 @@ natural quit through a `before-quit` hook in the same stop-gateway-first order.
 ## Windows
 
 `build-windows.yml` builds and **Authenticode-signs** the NSIS `Setup.exe`
-through AWS Signer during the build (signing profile `JunctionWindowsExe`),
-whenever `AWS_WINDOWS_SIGNING_ROLE_ARN` is present and the caller passed
-`use_prod_environment: true`. Signing happens inside the build because the NSIS
-installer compresses its own already-signed executables.
+during the build with electron-builder's native signtool support, whenever the
+`WINDOWS_SIGNING_CERT_P12_BASE64` secret is present and the caller passed
+`use_prod_environment: true`; otherwise it builds unsigned. Signing happens
+inside the build because the NSIS installer compresses its own already-signed
+executables. The certificate secrets and the `WINDOWS_SIGNING_SUBJECT_CN`
+variable the publish lane checks against are listed in
+[signing-runbook.md](signing-runbook.md).
 
 `publish-windows.yml` then publishes that installer on **every desktop channel --
 nightly, insider and stable**, following the same contract as `publish-linux.yml`:
@@ -712,8 +724,9 @@ Three things about this lane are deliberate rather than incidental:
 
 - **It verifies before it publishes.** `scripts/verify_windows_installer.py`
   refuses an installer whose certificate table is empty, whose SIGNER
-  certificate is not the pinned publisher, or which carries no RFC3161
-  timestamp. It matches the signer alone because that is what the client checks,
+  certificate's CN is not `WINDOWS_SIGNING_SUBJECT_CN`, or which carries no
+  RFC3161 timestamp, and it refuses to publish at all while that variable is
+  unset. It matches the signer alone because that is what the client checks,
   so a build whose leaf is wrong but whose issuer happens to carry our name
   cannot pass here and then be refused by every client. `build-windows.yml`
   skips signing cleanly when its secret is absent, so "a working but unsigned
@@ -807,9 +820,14 @@ reusable workflow the `github` context reports the *caller's* trigger and never
 `workflow_call`, so an `event_name` test would leave the environment unset on
 exactly the paths that need it).
 
-CI cannot write `signed/*`. Only the CDSigner service principal's role can,
-which is what makes "signed artifacts originate from the signer" structural
-rather than procedural.
+The code-signing identities are not cloud credentials: the Developer ID `.p12`
+and the Windows Authenticode certificate are `prod` environment secrets, read
+only by the macOS `notarize` job and the Windows build job respectively. The
+Windows build is granted no `id-token` at all, so the job that holds the
+certificate while running third-party packaging tooling cannot present the prod
+identity to the distribution role. The secrets, the variable
+`WINDOWS_SIGNING_SUBJECT_CN`, and their rotation are listed in
+[signing-runbook.md](signing-runbook.md).
 
 `publish-docker.yml` takes no `secrets: inherit`. It authenticates with
 `GITHUB_TOKEN` alone, and inheriting would expose every signing and CDN secret
@@ -839,8 +857,8 @@ Manual spot-check of a channel after a release:
 
 ```bash
 CH=stable
-BYTES=https://download.crew.kiro.dev
-PTR=https://updates.crew.kiro.dev
+BYTES=https://download.getjunction.dev
+PTR=https://updates.getjunction.dev
 
 curl -fsSI "$BYTES/desktop/$CH/latest/Junction.dmg" | head -1
 curl -fsSI "$BYTES/desktop/$CH/latest/Junction-x86_64.AppImage" | head -1

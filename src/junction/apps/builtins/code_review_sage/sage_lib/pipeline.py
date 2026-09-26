@@ -179,13 +179,13 @@ def list_open_prs(owner: str, repo: str, *, host: str = "github.com",
 
 def resolve_rule_pack(pack_name: str) -> str | None:
     """Find a rule-pack SKILL.md by skill name under the Junction skills dir
-    (``<config_dir>/skills/`` — ``~/.kiro/crew/skills/`` by default, honoring
+    (``<config_dir>/skills/`` — ``~/.junction/skills/`` by default, honoring
     ``JUNCTION_HOME`` — this is where the app framework symlinks app + user
     skills). Prefers the most recently modified copy. Returns an absolute path
     or None."""
     if not pack_name or "/" in pack_name or ".." in pack_name:
         return None
-    skills = store.crew_home() / "skills"
+    skills = store.data_home() / "skills"
     if not skills.exists():
         return None
     candidates = list(skills.glob(f"{pack_name}/SKILL.md"))          # flat link

@@ -5241,12 +5241,12 @@ class TestExtractToolEvent:
             params={
                 "update": {
                     "sessionUpdate": "tool_call",
-                    "title": "Running: node kc-shot.mjs",
+                    "title": "Running: node jn-shot.mjs",
                     "kind": "execute",
                     "toolCallId": "tc-5",
                     "input": {
                         "__toolUsePurpose": "check harness render errors",
-                        "command": "node kc-shot.mjs",
+                        "command": "node jn-shot.mjs",
                     },
                 }
             },

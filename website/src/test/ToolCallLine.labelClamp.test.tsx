@@ -41,7 +41,7 @@ beforeEach(() => {
 })
 
 /** Shaped like the row in the report: a chained command carrying a heredoc. */
-const LONG_CMD = `cd /tmp/kc-1429 && sed -i 's/${'a'.repeat(40)}/${'b'.repeat(40)}/g' prbody.md && python3 - <<'EOF'\n${'x'.repeat(2000)}\nEOF`
+const LONG_CMD = `cd /tmp/jn-1429 && sed -i 's/${'a'.repeat(40)}/${'b'.repeat(40)}/g' prbody.md && python3 - <<'EOF'\n${'x'.repeat(2000)}\nEOF`
 
 function longToolMsg(): ChatMessage {
   return { role: 'tool', content: `🔧 ${LONG_CMD}`, cls: '', meta: { tool_call_id: 'tc_long' } }

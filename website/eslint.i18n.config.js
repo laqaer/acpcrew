@@ -178,7 +178,7 @@ export default [
       // outside this gate sight-unseen, including one where someone later writes
       // `content: "…"` copy or misfiles a string. One config line per new app is
       // the cost of keeping the ratchet's shape.
-      'src/apps/crew-companion/styles.ts',
+      'src/apps/desk-companion/styles.ts',
       'src/apps/design-critique/styles.ts',
       'src/apps/file-explorer/styles.ts',
       'src/apps/md-notebook/styles.ts',
@@ -256,23 +256,6 @@ export default [
       // module parser-facing only, and keep it DOM-free, which is the property
       // that makes that easy to check.
       'src/hooks/themeCss.ts',
-      // The Kiro-ghost avatar generator's art tables. Every literal in the module
-      // is SVG handed to the SVG parser: the shipped mark's `d` path data, the
-      // per-part fragments built from it, and the hex tile colors. Translating any
-      // of them would not change a word anyone reads — it would emit a malformed
-      // path and render a blank avatar.
-      //
-      // Verified copy-free rather than assumed, and by a MECHANICAL boundary: the
-      // module's only import is a TYPE from `@dicebear/core`, it imports no `i18nT`
-      // / `useTranslation`, and it does not touch the DOM — every export is data in,
-      // SVG `string` out. Its consumer `components/CrewAvatar.tsx` stays fully
-      // gated, and that component renders the avatar `alt=""` / `aria-hidden`
-      // precisely because the crew name is shown as real translated text beside it.
-      //
-      // Stated as a false-negative class, per this file's convention: any
-      // user-visible copy ever added to THIS path will not be reported — keep the
-      // module parser-facing only, and keep it DOM-free.
-      'src/lib/kiroGhostAvatar.ts',
       // Same rationale, different convention: this app keeps its seed prompts in a
       // dedicated `lib/prompts.ts` rather than a `*Prompt.ts` file. Also prompt
       // payload sent over the wire, never rendered.
@@ -362,7 +345,7 @@ export default [
               String.raw`^[?&][a-z_]+=[a-z0-9]+$`,
 
               // A catalog KEY assembled at runtime, e.g.
-              // `apps.crewCompanion.state.${slot}`. Translating a key would break the
+              // `apps.deskCompanion.state.${slot}`. Translating a key would break the
               // lookup it performs — the value it resolves to is what gets translated.
               String.raw`^apps\.[A-Za-z]+\.[A-Za-z]+\.$`,
 
@@ -733,12 +716,10 @@ export default [
               // which excluded most English prose and hid five of six strings in a
               // six-string probe file.
               '^[^A-Za-z]*$',
-              // The product brand. The display name is `Junction`; the
-              // previous two-word spelling remains DNT for catalog strings
-              // that still interpolate or mention it. Anchored to the whole
-              // value, so a sentence merely *containing* the brand is still
-              // reported — only the bare name is exempt.
-              '^(Kiro ?Crew|Junction)$',
+              // The product brand, `Junction`. Anchored to the whole value, so
+              // a sentence merely *containing* the brand is still reported —
+              // only the bare name is exempt.
+              '^Junction$',
               // The messaging-channel product brands. Same class as the product
               // brand above and covered by the do-not-translate glossary: "Slack"
               // is "Slack" in every locale, and a localized spelling would name a
@@ -1054,7 +1035,7 @@ export default [
       // Same class as Notes: a CSS-in-TS string injected via <style>, never copy.
       // Editing a selector inside CC_CSS otherwise fails [added-lines] because the
       // whole template sits under an ALL-CAPS declarator.
-      'src/apps/crew-companion/styles.ts',
+      'src/apps/desk-companion/styles.ts',
     ],
     rules: {
       'i18next/no-literal-string': 'off',

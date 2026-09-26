@@ -358,7 +358,7 @@ class TestStartApiServerWiring:
 
         # start_api_server now persists .local_secret via server.data_home and
         # warms the token_auth revoked-nonce store via loader.config_dir; patch
-        # all three sites so the test never writes the real ~/.kirocrew secret.
+        # all three sites so the test never writes the real ~/.junction secret.
         monkeypatch.setattr(_st, "config_dir", lambda: tmp_path)
         monkeypatch.setattr(_srv, "data_home", lambda: tmp_path)
         monkeypatch.setattr(_loader, "config_dir", lambda: tmp_path)

@@ -47,12 +47,12 @@ dashboard token on the remote, and embedding the remote dashboard in an
 `<iframe>`. You switch panes from a dropdown (`InstanceTabBar`, plus
 Cmd/Ctrl+digit in the Electron shell); the hub keeps the most-recently-used set
 "warm" (tunnel + iframe live) and lazily reconnects the rest. The switcher is a
-menu rather than a row of chips by DEFAULT because the number of configured crews
+menu rather than a row of chips by DEFAULT because the number of configured instances
 is unbounded: the closed trigger costs constant width, and unread counts stay
-visible on it as an aggregate badge over every crew that is not on screen. A user
-who switches between the same two or three crews can PIN those out of the menu
+visible on it as an aggregate badge over every instance that is not on screen. A user
+who switches between the same two or three instances can PIN those out of the menu
 into always-visible chips beside it, spending header width only on the
-destinations they actually use — see [Pinned crew chips](#pinned-crew-chips).
+destinations they actually use — see [Pinned instance chips](#pinned-instance-chips).
 
 **Key properties**
 
@@ -103,14 +103,14 @@ after startup and a restart is still pending.
  +----------------------- Hub gateway (this host) ------------------------+
  |                                                                       |
  |  Dashboard SPA                                                        |
- |   |- InstanceTabBar    switcher dropdown: Local + crews with intent   |
+ |   |- InstanceTabBar    switcher dropdown: Local + remotes with intent |
  |   |- InstancesViewport  warm <iframe>s: http://<host>:<port>/?token=  |
  |   +- Settings > Instances   add / edit / connect / diagnose / remove  |
  |            | owner-only JSON API (SEL-audited)                        |
  |  dashboard/handlers_instances.py                                      |
  |            |                                                          |
  |  instances/ package                                                   |
- |   |- registry.py         ~/.kiro/crew/instances.json                  |
+ |   |- registry.py         ~/.junction/instances.json                  |
  |   |- port_allocator.py   free-loopback-port probe (base 7778)         |
  |   |- token_mint.py       ssh <host> junction token -> JWT (never logged)|
  |   |- validation.py       injection-safe ssh_host / remote_bin guards  |
@@ -130,7 +130,7 @@ Module responsibilities:
 
 | Module | Responsibility |
 |--------|----------------|
-| `registry.py` | Persistent list of configured instances (`~/.kiro/crew/instances.json`) + `last_active_id`. Light charset check on `ssh_host`/`remote_bin` (SSH) or `ssm_target`/`aws_profile`/`aws_region`/`ssm_run_as` (SSM) at add/update, per `connection_method`; every mutation re-reads the file and writes atomically, so a live gateway and a CLI edit cannot clobber each other. |
+| `registry.py` | Persistent list of configured instances (`~/.junction/instances.json`) + `last_active_id`. Light charset check on `ssh_host`/`remote_bin` (SSH) or `ssm_target`/`aws_profile`/`aws_region`/`ssm_run_as` (SSM) at add/update, per `connection_method`; every mutation re-reads the file and writes atomically, so a live gateway and a CLI edit cannot clobber each other. |
 | `port_allocator.py` | Probes for a free loopback port at or above `tunnel_base_port` (7778). The probe sets `SO_REUSEADDR` so a `TIME_WAIT` remnant from a just-closed forward is not a false "in use". |
 | `token_mint.py` | Runs `junction token --ttl --port --embed-parent-port` on the remote over SSH (run-marker first, then a bin-candidate ladder) and parses the JWT out of the printed URL. Token is returned in memory only, **never logged**. |
 | `ssm_token_mint.py` | The SSM sibling of `token_mint.py`: runs the same subcommand via `aws ssm send-command` through the launcher's `cloud.ssm` chokepoint, reusing the shared remote-command builders. Token in memory only, **never logged**. See §13. |
@@ -281,7 +281,7 @@ to gain).
 
 ### 5.3 Registry file
 
-`~/.kiro/crew/instances.json`, one record per instance:
+`~/.junction/instances.json`, one record per instance:
 
 ```
 id, name, ssh_host, remote_port (default 5476), local_port (0 = unallocated),
@@ -368,7 +368,7 @@ request with no `request["user"]` with `401`, and rejects a disabled feature wit
 |---|---|
 | `GET /api/instances` | List instances + live status + `warm_set_cap` + `active`. |
 | `POST /api/instances` | Add an instance. |
-| `PATCH /api/instances/{id}` | Edit `name`/`ssh_host`/`remote_port`/`ttl`/`remote_bin`/`connection_method`/`ssm_target`/`ssm_run_as`/`aws_profile`/`aws_region` (`id` and internal hints are not editable). Editing a field the tunnel is BUILT from (everything except `name` and `ttl`) disconnects a live tunnel first, because it would otherwise keep forwarding the old port to the old host under the new label; the teardown passes `keep_intent=True` so it does not touch `was_connected` — that flag records a USER disconnect, so a reconfiguration leaves it alone and a real disconnect arriving mid-edit still wins. The crew therefore keeps its switcher entry and reconnects in one click. The teardown and the coordinate rewrite happen as ONE operation, `SshTunnelManager.reconfigure()`, which holds the manager lock across both. Done as two steps a `connect` can read the OLD record in between, and whether its tunnel is already CONNECTED or still CONNECTING when the write lands decides whether any after-the-fact sweep would notice it — so the window is removed rather than narrowed: a racing `connect` either completes before (and is torn down inside the section) or starts after (and reads the new coordinates). It also cancels and AWAITS that instance's in-flight self-heal first: recovery reads the record before it takes the lock, so a recovery already running carries the pre-edit coordinates and would reinstall a tunnel to the old machine. Because that cancellation itself awaits, a reconfiguration additionally raises a per-instance BARRIER before its first await; while the barrier is up the scheduling seams refuse to start work — `_on_tunnel_exit` will not begin a self-heal, a backed-off one returns without acting, and `_schedule_token_refresh` will not restart a mint loop — so nothing can slip into the window. Self-heal is cancelled AND awaited before the coordinates move, because it rebuilds from the record it read. The token-refresh loop is unwound by the teardown instead — after the stop succeeds — so a REJECTED edit leaves the live tunnel holding both its credential and its refresh; in both cases the cancellation is awaited, since a mint already in flight would otherwise store a token for a tunnel that is being replaced. A teardown that raises ABORTS the edit with `503` / `code: tunnel_teardown_failed` and persists nothing: a stop that failed leaves the old forward live, so advancing the record would describe one machine while the still-open tunnel serves another — and that tunnel is the one the user reaches. Nothing is discarded unless the stop succeeded — the tunnel keeps its place in `_tunnels` along with its token and refresh task — so a failed stop can neither leave an untracked process holding the port nor a live forward without a credential. The registry write is also shielded from cancellation: a client hanging up mid-write must not unwind the `async with` and free the lock while the write is still in flight. An edit sends only the fields that DIFFER from an IMMUTABLE snapshot of the record taken when its form opened (not the live polled record, which a concurrent CLI edit would move under the user), so the later of two concurrent saves cannot revert the earlier one's corrections; optional fields travel as explicit empty values, so emptying one clears it instead of being read as "leave as-is". The dashboard does NOT reconnect afterwards: any automatic reconnect races an explicit Disconnect arriving mid-save, so the row offers **Connect** instead. A crew CORRELATED to a cloud stack has its `connection_method`/`ssm_target`/`aws_profile`/`aws_region` frozen in the edit form and omitted from the request — Stop/Start/Delete resolve the machine through those, so editing them would strand a billing instance. That freeze is **dashboard-side only**: this endpoint still accepts those fields for any instance, because correlation lives in the cloud launch store rather than the registry. A non-dashboard caller (CLI, script, the agent driving this owner-only API) can therefore still rewrite the coordinates. This is a recorded ACCEPT rather than an oversight: the endpoint is owner-only, loopback-bound, SEL-audited, and rejected from the Slack path, so the caller is already the machine's owner or their own agent — and the damage is reversible by re-editing, though the EC2 instance bills until it is. Server-side enforcement is tracked separately; it needs correlation data that lives in the cloud launch store, not the registry. An SSM crew that cannot be correlated is offered no lifecycle action, so its fields stay editable — that identity is how the dashboard finds the machine to stop or delete, and editing it away would strand a billing instance. |
+| `PATCH /api/instances/{id}` | Edit `name`/`ssh_host`/`remote_port`/`ttl`/`remote_bin`/`connection_method`/`ssm_target`/`ssm_run_as`/`aws_profile`/`aws_region` (`id` and internal hints are not editable). Editing a field the tunnel is BUILT from (everything except `name` and `ttl`) disconnects a live tunnel first, because it would otherwise keep forwarding the old port to the old host under the new label; the teardown passes `keep_intent=True` so it does not touch `was_connected` — that flag records a USER disconnect, so a reconfiguration leaves it alone and a real disconnect arriving mid-edit still wins. The instance therefore keeps its switcher entry and reconnects in one click. The teardown and the coordinate rewrite happen as ONE operation, `SshTunnelManager.reconfigure()`, which holds the manager lock across both. Done as two steps a `connect` can read the OLD record in between, and whether its tunnel is already CONNECTED or still CONNECTING when the write lands decides whether any after-the-fact sweep would notice it — so the window is removed rather than narrowed: a racing `connect` either completes before (and is torn down inside the section) or starts after (and reads the new coordinates). It also cancels and AWAITS that instance's in-flight self-heal first: recovery reads the record before it takes the lock, so a recovery already running carries the pre-edit coordinates and would reinstall a tunnel to the old machine. Because that cancellation itself awaits, a reconfiguration additionally raises a per-instance BARRIER before its first await; while the barrier is up the scheduling seams refuse to start work — `_on_tunnel_exit` will not begin a self-heal, a backed-off one returns without acting, and `_schedule_token_refresh` will not restart a mint loop — so nothing can slip into the window. Self-heal is cancelled AND awaited before the coordinates move, because it rebuilds from the record it read. The token-refresh loop is unwound by the teardown instead — after the stop succeeds — so a REJECTED edit leaves the live tunnel holding both its credential and its refresh; in both cases the cancellation is awaited, since a mint already in flight would otherwise store a token for a tunnel that is being replaced. A teardown that raises ABORTS the edit with `503` / `code: tunnel_teardown_failed` and persists nothing: a stop that failed leaves the old forward live, so advancing the record would describe one machine while the still-open tunnel serves another — and that tunnel is the one the user reaches. Nothing is discarded unless the stop succeeded — the tunnel keeps its place in `_tunnels` along with its token and refresh task — so a failed stop can neither leave an untracked process holding the port nor a live forward without a credential. The registry write is also shielded from cancellation: a client hanging up mid-write must not unwind the `async with` and free the lock while the write is still in flight. An edit sends only the fields that DIFFER from an IMMUTABLE snapshot of the record taken when its form opened (not the live polled record, which a concurrent CLI edit would move under the user), so the later of two concurrent saves cannot revert the earlier one's corrections; optional fields travel as explicit empty values, so emptying one clears it instead of being read as "leave as-is". The dashboard does NOT reconnect afterwards: any automatic reconnect races an explicit Disconnect arriving mid-save, so the row offers **Connect** instead. An instance CORRELATED to a cloud stack has its `connection_method`/`ssm_target`/`aws_profile`/`aws_region` frozen in the edit form and omitted from the request — Stop/Start/Delete resolve the machine through those, so editing them would strand a billing instance. That freeze is **dashboard-side only**: this endpoint still accepts those fields for any instance, because correlation lives in the cloud launch store rather than the registry. A non-dashboard caller (CLI, script, the agent driving this owner-only API) can therefore still rewrite the coordinates. This is a recorded ACCEPT rather than an oversight: the endpoint is owner-only, loopback-bound, SEL-audited, and rejected from the Slack path, so the caller is already the machine's owner or their own agent — and the damage is reversible by re-editing, though the EC2 instance bills until it is. Server-side enforcement is tracked separately; it needs correlation data that lives in the cloud launch store, not the registry. An SSM instance that cannot be correlated is offered no lifecycle action, so its fields stay editable — that identity is how the dashboard finds the machine to stop or delete, and editing it away would strand a billing instance. |
 | `DELETE /api/instances/{id}` | Disconnect then remove. |
 | `POST /api/instances/{id}/connect` | Open tunnel + mint token. Returns the token. |
 | `POST /api/instances/{id}/refresh-token` | Force a fresh mint and return the new token. See below. |
@@ -421,7 +421,7 @@ deletes `reconfigure()` and everything it carries — the per-instance barrier, 
 recovery index, cancel-and-await on two task families, the shielded write — from a
 manager that is already large. It was rejected for one reason: **a transport edit
 is most often made because the tunnel is broken, and a broken tunnel is exactly
-what does not report itself as down.** A crew whose host moved, whose port was
+what does not report itself as down.** An instance whose host moved, whose port was
 taken, or whose AMI runs a different remote user sits in `connected` or
 `connecting` while being unusable; `409` would answer "disconnect first" to a user
 who is editing precisely because connecting is what stopped working, and it hands
@@ -506,16 +506,16 @@ what its own edit invalidated, and never reopens anything on the user's behalf.
    returns to your own dashboard). In the Electron shell, Cmd/Ctrl+digit jumps
    between panes in switcher order. Each row names its tunnel state in words on
    screen next to the status dot — colour is reinforcement, not the carrier, so
-   the row that errored is findable without hovering every entry. Crews you switch
+   the row that errored is findable without hovering every entry. Instances you switch
    between often can be PINNED beside the trigger as chips, so the switch costs no
-   dropdown click — see [Pinned crew chips](#pinned-crew-chips).
+   dropdown click — see [Pinned instance chips](#pinned-instance-chips).
 6. **Diagnose** a flaky instance (runs the ladder), or **Disconnect** from its
    row. **Edit settings** / **Remove** live in the row's overflow menu — a row
    shows two primary actions plus that menu, so everything past them is one
    menu deep.
 
-An unsaved edit is held by the PANEL, keyed by crew, not by the form component.
-The crew list unmounts for any number of reasons the form cannot see — switching
+An unsaved edit is held by the PANEL, keyed by instance, not by the form component.
+The instance list unmounts for any number of reasons the form cannot see — switching
 to the **Set up a new one** tab is enough — and an edit whose only home was the
 form's own state came back silently reverted to the stored record. Because a
 guard can only refuse the exits it enumerates, the values are lifted instead of
@@ -528,15 +528,15 @@ thought only touched the host. One snapshot anchors everything: `dirty` and the
 request body both measure against that baseline, so a restored draft is unsaved
 work rather than a clean form, and a field the user never touched is never a
 difference. Only three things clear it: **Cancel** (the user choosing
-to discard), a successful save, and the crew ceasing to exist. That last one is
-anchored to the crew's EXISTENCE rather than to the Remove button, so a removal
-from the CLI or a cloud Delete clears it too — ids are derived from the name, so a
-crew added afterwards can land on the same id, and a surviving draft would remount
+to discard), a successful save, and the instance ceasing to exist. That last one is
+anchored to the instance's EXISTENCE rather than to the Remove button, so a removal
+from the CLI or a cloud Delete clears it too — ids are derived from the name, so an
+instance added afterwards can land on the same id, and a surviving draft would remount
 on a different machine and let Save overwrite settings the user never typed. It is
-gated on a SUCCESSFUL poll, so an errored fetch is not read as "all crews gone"
+gated on a SUCCESSFUL poll, so an errored fetch is not read as "all instances gone"
 and does not throw unsaved work away.
 
-A live id is not proof of a live RECORD, though: a crew removed and recreated under
+A live id is not proof of a live RECORD, though: an instance removed and recreated under
 the same derived id between two polls never leaves the list. So the draft is also
 checked against the record's **machine-addressing** fields (`connection_method`,
 `ssh_host`, `remote_port`, `ssm_target`, `aws_profile`, `aws_region`). When one of
@@ -546,7 +546,7 @@ either way, because the two situations that produce the signal are
 indistinguishable from the client and want opposite outcomes: a concurrent CLI edit
 should keep the user's typing, while a replacement must never receive it — only the
 person looking at the row can tell which happened. A label or lifetime changed
-elsewhere does NOT trigger it: that cannot make this a different crew, and the
+elsewhere does NOT trigger it: that cannot make this a different instance, and the
 baseline diff already stops the save from reverting it.
 
 Adopting the record is a **three-way merge**, with the draft's original baseline as
@@ -555,12 +555,12 @@ taken from the record that exists now, and the baseline advances to it. Keeping 
 old values wholesale would convert untouched-but-stale fields into deliberate
 writes — the very clobber the baseline exists to prevent.
 
-A save that tore the tunnel down also drops the crew's WARM pane. That pane is an
+A save that tore the tunnel down also drops the instance's WARM pane. That pane is an
 iframe holding the old local port and token, so once the tunnel behind it is gone
 it cannot be revived by reconnecting — it would reuse a credential the new tunnel
 never issued and sit on 403. The decision reads the saved record's own status
 rather than guessing from which fields changed, so a name-or-ttl-only edit (which
-tears nothing down) keeps its working pane. Opening a DIFFERENT crew's editor while one
+tears nothing down) keeps its working pane. Opening a DIFFERENT instance's editor while one
 holds unsaved changes is still refused outright — that is about two editors being
 open at once, not about the unmount — and the refusal renders at the row that was
 clicked, since the menu has already closed by then.
@@ -569,32 +569,32 @@ clicked, since the menu has already closed by then.
 > (a valid key or cert in your `ssh-agent`, no password prompt), and the remote
 > has `junction` installed with a gateway running on its loopback port.
 
-### Pinned crew chips
+### Pinned instance chips
 
-Switching between two crews through the dropdown costs a click every time. Any
+Switching between two instances through the dropdown costs a click every time. Any
 entry — including **Local** — can be PINNED from the pin icon on its own dropdown
 row (lit for pinned, unlit outline for not), which lifts it out of the menu into
 an always-visible chip beside the trigger. Nothing is pinned by default, so a
-single-crew user pays no header width for the feature and sees no chip row at all.
+single-instance user pays no header width for the feature and sees no chip row at all.
 
-The pin sits on the row rather than in a second list of the same crews below it,
+The pin sits on the row rather than in a second list of the same instances below it,
 and it is a SIBLING menu item of the row's switch target rather than a button
 inside it: a `menuitemradio` may not contain another interactive element, so a
 nested pin would be invalid ARIA and unreachable by the menu's own arrow keys.
-Clicking a pin toggles it and leaves the menu open, so several crews can be
+Clicking a pin toggles it and leaves the menu open, so several instances can be
 pinned in one visit without navigating anywhere.
 
-Pinning is per crew rather than one expand-everything switch because the header's
-budget is a PIXEL budget, not a crew count: three crews named after real hosts
-outgrow it while six short names fit. Choosing WHICH crews are worth header space
+Pinning is per instance rather than one expand-everything switch because the header's
+budget is a PIXEL budget, not an instance count: three instances named after real hosts
+outgrow it while six short names fit. Choosing WHICH instances are worth header space
 is what keeps that budget spendable on the ones actually being switched between.
 
 | Concern | Behaviour |
 |---|---|
-| Storage | `localStorage` key `mc-crew-switcher-pinned`, a JSON array of instance ids (`__local__` for the local dashboard). A module-level store broadcasts changes, because several bars in one realm are mounted at once and hidden with `display:none` rather than unmounted — a per-component hook would leave a hidden bar on a stale value until it remounted. A remote pane's embedded bar is a separate cross-origin realm and so carries its own pin set. |
-| Migration | The predecessor was one expand-everything flag, `mc-crew-switcher-expanded`. On first read a `'1'` there migrates to a pinned **Local** rather than to an empty set: that user wanted chips, and migrating them to nothing would read as the feature having been removed. The legacy key is dropped in the same pass. |
-| Order | The crew on screen leads as its own chip, then the pinned chips, then the dropdown. The dropdown TRAILS the chips so it stays adjacent to the last one and reads as "and the rest"; it carries the aggregate unread for every crew not on screen, clipped ones included. The active crew is never also a pinned chip — two copies of one name would spend the budget twice. |
-| Width bound | None of its own. The switcher sits in the topbar's left grid track (`minmax(0,1fr)`) inside `.tb-left`, which carries `min-width:0` and `overflow:hidden`, so the track structurally prevents it from reaching the centered search column — see [the three-track topbar](#pinned-crew-chips). Earlier revisions of this feature carried a `vw`-derived `max-width` because the search overlay was absolutely positioned and a left-side cluster could squeeze it; the grid layout removed that failure mode along with the need for the cap. |
+| Storage | `localStorage` key `mc-instance-switcher-pinned`, a JSON array of instance ids (`__local__` for the local dashboard). A module-level store broadcasts changes, because several bars in one realm are mounted at once and hidden with `display:none` rather than unmounted — a per-component hook would leave a hidden bar on a stale value until it remounted. A remote pane's embedded bar is a separate cross-origin realm and so carries its own pin set. |
+| Unreadable value | An absent key, a value that is not a JSON array, or a non-string entry reads as nothing pinned (`resolvePinnedPref`), so a hand-corrupted or disabled storage never throws during module init. The pin set is a per-browser convenience and is read from this key alone. |
+| Order | The instance on screen leads as its own chip, then the pinned chips, then the dropdown. The dropdown TRAILS the chips so it stays adjacent to the last one and reads as "and the rest"; it carries the aggregate unread for every instance not on screen, clipped ones included. The active instance is never also a pinned chip — two copies of one name would spend the budget twice. |
+| Width bound | None of its own. The switcher sits in the topbar's left grid track (`minmax(0,1fr)`) inside `.tb-left`, which carries `min-width:0` and `overflow:hidden`, so the track structurally prevents it from reaching the centered search column — see [the three-track topbar](#pinned-instance-chips). Earlier revisions of this feature carried a `vw`-derived `max-width` because the search overlay was absolutely positioned and a left-side cluster could squeeze it; the grid layout removed that failure mode along with the need for the cap. |
 | Overflow | The row is a single `nowrap` line with `overflow: hidden`, and the chip at the boundary is CUT rather than dropped. Wrapping into a hidden second row would keep every chip whole, but a wrapped row still holds its full ALLOCATED width with the wrapped chips' space empty — which pushes the trailing dropdown away from the last visible chip by a gap that changes with the viewport. Filling the row keeps the two adjacent (measured at the 4px flex gap, asserted by the capture harness). A trailing fade marks the cut edge, so a cut chip reads as "there is more, in the dropdown next to me" rather than as a rendering fault. Cut chips stay reachable in the dropdown, whose row marks them *no room* so a pin with no visible chip does not read as a pin that failed. |
 
 **Why the switcher needs no width cap.** The topbar is a three-track CSS grid:
@@ -714,7 +714,7 @@ used by the managed path.
 
 ### Provisioning from the dashboard (`/api/cloud/*`)
 
-The Remote Crew settings page can create an EC2 crew in the user's own AWS
+The Remote Instances settings page can create an EC2 instance in the user's own AWS
 account without dropping to the CLI. `dashboard/handlers_cloud.py` exposes the
 launcher behind the same owner-only guard as `/api/instances/*`: an
 authenticated owner (`request["user"]`), non-Slack, POSIX only, `403` otherwise.
@@ -752,7 +752,7 @@ a new process and marks every non-terminal job it does not own as `failed`
 that can never advance, and a `cancel` that returns 200 while signalling a thread
 that no longer exists. Ownership is tracked (`adopt()`) so a live process never
 reaps its own in-flight jobs. The CloudFormation stack may well have completed in
-AWS, so the message points the user at their crew list rather than implying
+AWS, so the message points the user at their instance list rather than implying
 nothing was created.
 
 Because the gateway cannot answer the device login on the user's behalf, a job
@@ -789,7 +789,7 @@ whose current variable parts are all charset-bound literals.
 | Connect fails for another reason | Use **Diagnose**. The ladder reports the first broken link: `ssh_unreachable` (check SSH access or the host alias), `remote_down` (remote gateway not listening), `not_connected` (SSH and remote are fine, this instance has no tunnel yet: click Connect), or `tunnel_down` (reconnect). |
 | "local port N was taken while connecting" | The allocator picked a port that something grabbed in the moment before `ssh` bound it. Retry. If it persists, stop whatever keeps taking ports in that range or move `instances.tunnel_base_port` to a quieter one. |
 | Instance keeps dropping | The health probe plus 2-tier self-heal retry over roughly a two-minute window (8 attempts, capped-exponential backoff). Tune `instances.max_recovery_attempts` / `recover_backoff_max_secs` / `probe_failure_threshold`; both recovery values are clamped so they cannot loop indefinitely. If self-heal gives up, diagnosis runs automatically. Check the remote gateway and SSH stability. |
-| A pane vanished from the warm set but its switcher entry is still there | It was LRU-evicted (warm set full). The tunnel is untouched: selecting the crew re-warms it. Raise `instances.warm_set_cap` if you want more panes resident. |
+| A pane vanished from the warm set but its switcher entry is still there | It was LRU-evicted (warm set full). The tunnel is untouched: selecting the instance re-warms it. Raise `instances.warm_set_cap` if you want more panes resident. |
 | Every token mint fails on one remote, though its gateway is healthy | The remote's `~/.local/bin/junction` probably points at an uninstalled checkout. See §12: the run-marker is what makes mint follow the *running* gateway's install. |
 
 ---
@@ -867,13 +867,11 @@ live gateway. The snippet probes these data homes in priority order, since the
 remote's non-interactive SSH shell usually does not export `JUNCTION_HOME`:
 
 1. `$JUNCTION_HOME` when set and non-empty,
-2. `$HOME/<CONFIG_DIR_NAME>` (the current default, `.junction`),
-3. `$HOME/<PRIOR_CONFIG_DIR_NAME>` (`.kiro/crew`, kept when `~/.junction` is absent),
-4. `$HOME/<LEGACY_CONFIG_DIR_NAME>` (`.kirocrew`, the older top-level home).
+2. `$HOME/<CONFIG_DIR_NAME>` (the default, `.junction`).
 
-Those home segments are **interpolated from the shared
-`junction.config.paths` constants**, the same ones the marker *writer* derives
-its default from, so reader and writer cannot drift apart on a future data-home
+The default home segment is **interpolated from the shared
+`junction.config.paths.CONFIG_DIR_NAME` constant**, the same one the marker
+*writer* derives its default from, so reader and writer cannot drift apart on a future data-home
 rename. An absent or stale marker, or one that does not name an executable, falls
 through to the candidate search, so nothing regresses on an older remote. An
 explicit `remote_bin` is never overridden by the marker: it is the user's
@@ -1145,7 +1143,7 @@ sanctioned way to reach a peer. Nothing here opens a socket.
 
 The transcript above is only the **display** copy (*Layer A*). The context the
 model actually holds — the compaction/turn state, keyed by a kiro-cli session id
-— lives in a **second store outside the crew home**:
+— lives in a **second store outside the data home**:
 `kiro_sessions_dir()/<sid>.json` + `<sid>.jsonl`, joined to a slot through
 `session_map.json`. Call it *Layer B*.
 

@@ -2,7 +2,7 @@
 
 ## Introduction
 
-Junction's configuration (`~/.kirocrew/config.json`) is defined implicitly by Python dataclasses in `config/loader.py`, with several keys (`workspaces`, `default_workspace`, `slack.*`) parsed ad-hoc outside the dataclass hierarchy. This feature formalizes the config schema by pulling all keys into the dataclass hierarchy, attaching rich metadata to the dataclass fields, generating a flat baseline document, exposing the schema via API for dashboard consumption, and adding runtime validation with graceful degradation. After this feature, the dataclasses are the complete and sole source of truth — no ad-hoc parsing remains.
+Junction's configuration (`~/.junction/config.json`) is defined implicitly by Python dataclasses in `config/loader.py`, with several keys (`workspaces`, `default_workspace`, `slack.*`) parsed ad-hoc outside the dataclass hierarchy. This feature formalizes the config schema by pulling all keys into the dataclass hierarchy, attaching rich metadata to the dataclass fields, generating a flat baseline document, exposing the schema via API for dashboard consumption, and adding runtime validation with graceful degradation. After this feature, the dataclasses are the complete and sole source of truth — no ad-hoc parsing remains.
 
 ## Glossary
 

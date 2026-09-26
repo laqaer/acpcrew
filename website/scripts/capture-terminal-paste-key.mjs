@@ -64,7 +64,7 @@ async function stubContext(context, theme) {
     '/api/notifications': { notifications: [], unread: 0 },
     '/api/auth/me': { user: 'owner', app: '' },
     '/api/themes': { themes: [], installed: [] },
-    '/api/dashboard/branding': { bot_name: 'Kiro Crew', avatar: '/logo.png' },
+    '/api/dashboard/branding': { bot_name: 'Junction', avatar: '/logo.png' },
     '/api/recent-projects': { dirs: [] },
     '/api/agents': {
       agents: [{ name: 'junction', kiro_agent: 'junction', workspace: 'default', memory_store: 'default' }],

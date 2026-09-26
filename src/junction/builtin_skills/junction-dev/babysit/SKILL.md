@@ -480,8 +480,8 @@ status-only loop unsound:
 > no blocking marker" is already folded into its exit code. Which repos are
 > affected, and the evidence for each, belongs in that repo's issue tracker — not
 > in this skill, which ships to every install and cannot be corrected in copies
-> already distributed. For kirodotdev/KiroCrew that record is #2548; #2550 moved
-> the check itself into the script so the conditional is data, not prose.
+> already distributed. The check itself lives in `pr_status.py`, so the
+> conditional is data, not prose.
 
 Where a reviewer's conclusion *is* trustworthy, none of the above applies and reading
 job logs every cycle is wasted work: check first, then decide.

@@ -1,10 +1,10 @@
 # ──────────────────────────────────────────────────────────────────────
 # Playwright CLI installer for Windows (no pre-existing Node/npm required).
 #
-#   irm https://raw.githubusercontent.com/kirodotdev/KiroCrew/main/playwright-cli.ps1 | iex
+#   irm https://raw.githubusercontent.com/laqaer/junction/main/playwright-cli.ps1 | iex
 #
 # Read before you run (many enterprises forbid piping a script into a shell):
-#   irm https://raw.githubusercontent.com/kirodotdev/KiroCrew/main/playwright-cli.ps1 -OutFile playwright-cli.ps1
+#   irm https://raw.githubusercontent.com/laqaer/junction/main/playwright-cli.ps1 -OutFile playwright-cli.ps1
 #   notepad playwright-cli.ps1
 #   powershell -ExecutionPolicy Bypass -File .\playwright-cli.ps1 -Version 0.1.18
 #
@@ -61,7 +61,7 @@ $WrapperName = "playwright-cli"
 # package 401 as soon as that mirror's token expires.
 $PublicNpmRegistry = "https://registry.npmjs.org/"
 # The floor that matters is not the package's own engines.node (>= 18) but the one
-# Kiro Crew's browsing requires of this CLI: MIN_NODE_MAJOR in
+# Junction's browsing requires of this CLI: MIN_NODE_MAJOR in
 # src/junction/browser_cli/install.py. Accepting less would install a CLI the
 # product refuses to drive. A test binds the two together. A bootstrap installs
 # Node 22 LTS.
@@ -70,7 +70,7 @@ $NodeOfficialMirror = "https://nodejs.org/dist"
 # Written into a Node tree this installer unpacked. Its ABSENCE is what stops the
 # bootstrap from recursively deleting a `node` directory it did not create
 # (reachable with -Prefix $HOME on a machine that also has ~\node).
-$NodeStampName = ".kirocrew-playwright-cli-node"
+$NodeStampName = ".junction-playwright-cli-node"
 
 $ExUsage = 2
 $ExMissingTool = 10
@@ -133,7 +133,7 @@ Options:
   -Help                  this text
 
 Environment:
-  JUNCTION_HOME                 data home (default ~\.kiro\crew)
+  JUNCTION_HOME                 data home (default ~\.junction)
   JUNCTION_PLAYWRIGHT_CLI_HOME  overrides -Prefix
   JUNCTION_NPM_REGISTRY         overrides -Registry
   JUNCTION_NODE_BIN_DIR         an existing Node bin dir to reuse
@@ -288,7 +288,7 @@ if ($NodeMirror) {
 }
 if ($DownloadHost) { Require-Https "-DownloadHost" $DownloadHost }
 
-$dataHome = if ($env:JUNCTION_HOME) { $env:JUNCTION_HOME } else { Join-Path $HOME ".kiro\crew" }
+$dataHome = if ($env:JUNCTION_HOME) { $env:JUNCTION_HOME } else { Join-Path $HOME ".junction" }
 if ([string]::IsNullOrWhiteSpace($Prefix)) {
     $Prefix = if ($env:JUNCTION_PLAYWRIGHT_CLI_HOME) {
         $env:JUNCTION_PLAYWRIGHT_CLI_HOME

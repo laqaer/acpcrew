@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import type { CrewFabricItem, ConnectedRepo, RepoRef } from '../api'
+import type { StewardFabricItem, ConnectedRepo, RepoRef } from '../api'
 import {
   SPINE_PHASES, EXIT_PHASES, spineIndex, isKnownPhase, phaseClass, tsMs,
   foldItem, columnOccupancy, dwellSeconds, formatDwell, laneDwells, openDwellSeconds,
@@ -14,10 +14,10 @@ const T = (h: number, m = 0, s = 0) =>
 const MS = (h: number, m = 0, s = 0) => Date.UTC(2026, 0, 1, h, m, s)
 
 /** Minimal item builder — only the fields the fold reads. */
-function item(partial: Partial<CrewFabricItem> & Pick<CrewFabricItem, 'phase' | 'timeline'>): CrewFabricItem {
+function item(partial: Partial<StewardFabricItem> & Pick<StewardFabricItem, 'phase' | 'timeline'>): StewardFabricItem {
   return {
     number: 1,
-    crew_id: 'c_test',
+    steward_id: 'c_test',
     title: 'a work item',
     next: '',
     pr_number: null,
@@ -132,7 +132,7 @@ describe('foldItem — title and next are distinct fields', () => {
       timeline: [{ phase: 'claimed', at: T(2, 34) }],
     }))
     expect(lane.title).toBe('pr_status rollup degrades to red on a torn cache')
-    // next is the crew's resumable INTENT — never conflated with the title.
+    // next is the steward's resumable INTENT — never conflated with the title.
     expect(lane.next).toBe('add the Windows branch to _safe_chmod')
   })
 
@@ -149,9 +149,9 @@ describe('foldItem — title and next are distinct fields', () => {
 
   it('a payload omitting next folds to an empty next, not undefined', () => {
     const lane = foldItem({
-      number: 7, crew_id: 'c_x', title: 'x', pr_number: null,
+      number: 7, steward_id: 'c_x', title: 'x', pr_number: null,
       exit: null, reopens: 0, phase: 'claimed', timeline: [{ phase: 'claimed', at: T(2, 34) }],
-    } as unknown as CrewFabricItem)
+    } as unknown as StewardFabricItem)
     expect(lane.next).toBe('')
   })
 })
@@ -717,16 +717,16 @@ describe('selectRepo — the four contract cases', () => {
 // "never returns a repo outside the connected list" assertion go RED. Observed
 // going red on that mutation and restored — see the report.
 
-describe('editing slot is bounded per crew, not globally', () => {
-  // The store scopes the cap to one crew (`_editing_item` takes `crew_id`, and its
-  // refusal names that crew), so two crews each editing one item is legal and routine.
-  // Folding the TOTAL against a cap of 1 turned normal two-crew work into a red
+describe('editing slot is bounded per steward, not globally', () => {
+  // The store scopes the cap to one steward (`_editing_item` takes `steward_id`, and its
+  // refusal names that steward), so two stewards each editing one item is legal and routine.
+  // Folding the TOTAL against a cap of 1 turned normal two-steward work into a red
   // violation -- a false fault, which is worse than no signal at all.
-  const editingLane = (number: number, crewId: string): FabricLane => ({
+  const editingLane = (number: number, stewardId: string): FabricLane => ({
     ...foldItem(
       {
         number,
-        crew_id: crewId,
+        steward_id: stewardId,
         phase: 'implementing',
         timeline: [{ phase: 'implementing', at: '2026-01-01T00:00:00Z' }],
       } as never,
@@ -734,17 +734,17 @@ describe('editing slot is bounded per crew, not globally', () => {
     ),
   })
 
-  it('two crews editing one item each is NOT over the cap', () => {
-    const s = queueSummary([editingLane(1, 'crew-a'), editingLane(2, 'crew-b')], 0)
+  it('two stewards editing one item each is NOT over the cap', () => {
+    const s = queueSummary([editingLane(1, 'steward-a'), editingLane(2, 'steward-b')], 0)
     expect(s.editing).toBe(2)
-    expect(s.editingMaxPerCrew).toBe(1)
-    expect(s.editingMaxPerCrew > EDITING_SLOT_CAP).toBe(false)
+    expect(s.editingMaxPerSteward).toBe(1)
+    expect(s.editingMaxPerSteward > EDITING_SLOT_CAP).toBe(false)
   })
 
-  it('one crew editing two items IS over the cap', () => {
-    const s = queueSummary([editingLane(1, 'crew-a'), editingLane(2, 'crew-a')], 0)
+  it('one steward editing two items IS over the cap', () => {
+    const s = queueSummary([editingLane(1, 'steward-a'), editingLane(2, 'steward-a')], 0)
     expect(s.editing).toBe(2)
-    expect(s.editingMaxPerCrew).toBe(2)
-    expect(s.editingMaxPerCrew > EDITING_SLOT_CAP).toBe(true)
+    expect(s.editingMaxPerSteward).toBe(2)
+    expect(s.editingMaxPerSteward > EDITING_SLOT_CAP).toBe(true)
   })
 })

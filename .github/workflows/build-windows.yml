@@ -1,26 +1,26 @@
 name: Build Windows Desktop (reusable)
 
 # Reusable workflow: build the Windows desktop installer (NSIS Setup.exe) and
-# Authenticode-sign it through AWS Signer during the build.
-# Called by nightly.yml and release.yml beside build-desktop.yml.
+# Authenticode-sign it during the build with the project's code-signing
+# certificate. Called by nightly.yml and release.yml beside build-desktop.yml.
 #
 # WHY THIS IS NOT A LEG OF build-desktop.yml
 #
 # Signing has to happen INSIDE the build here. electron-builder signs the app
 # executable, compresses it into the installer payload, then signs the
 # installer and its uninstaller -- so signing afterwards would mean unpacking
-# and rebuilding a self-extracting archive by hand. Instead
-# website/electron/scripts/sign-windows.js hooks electron-builder wherever it
-# would have called signtool. macOS can do the opposite -- ship an unsigned
-# .app to sign-and-notarize.yml -- because a .app is a directory, not a
+# and rebuilding a self-extracting archive by hand. electron-builder's own
+# signtool integration does it at each of those points when WIN_CSC_LINK
+# carries a certificate. macOS can do the opposite -- ship an unsigned .app to
+# sign-and-notarize.yml -- because a .app is a directory, not a
 # self-extracting archive of signed parts.
 #
 # The consequence is that this job holds a production signing identity, and
 # build-desktop.yml deliberately holds NO credentials at all
-# (contents:read only, pinned by test/test_workflow_permissions.py). Adding
-# id-token to the shared workflow would have handed OIDC to the mac and Linux
-# legs too, and dragged them under the prod environment's branch policy --
-# widening the blast radius of a build workflow for one platform's benefit.
+# (contents:read only, pinned by test/test_workflow_permissions.py). Handing
+# the certificate to the shared workflow would put it within reach of the mac
+# and Linux legs too, and drag them under the prod environment's branch policy
+# -- widening the blast radius of a build workflow for one platform's benefit.
 # A separate workflow keeps the credentialed surface to exactly the platform
 # that cannot avoid it.
 #
@@ -56,10 +56,10 @@ on:
       use_prod_environment:
         description: >-
           Run the job in the `prod` deployment environment. Publishing callers
-          MUST pass true: the signing role's OIDC trust accepts only
-          ref:refs/heads/main and environment:prod, and release runs are
-          tag-triggered (ref:refs/tags/v*, untrusted), so without the
-          environment they cannot assume the role.
+          MUST pass true: the signing certificate is a `prod` environment
+          secret, and the environment's deployment policy admits only main and
+          v* tags, so without the environment a release build cannot read the
+          certificate and ships unsigned.
 
           Cannot be derived from github.event_name: inside a called reusable
           workflow the github context "is always associated with the caller
@@ -72,8 +72,8 @@ on:
           make the any-ref packaging probe fail at job start on a feature
           branch, defeating the one mechanism for validating a packaging change
           before merge. The probe needs no credentials -- without the signing
-          secret the steps below skip and it builds unsigned, which is the
-          point of a packaging probe.
+          certificate electron-builder skips signing and it builds unsigned,
+          which is the point of a packaging probe.
         required: false
         type: boolean
         default: false
@@ -131,42 +131,37 @@ jobs:
     runs-on: windows-latest
     timeout-minutes: 60
     # Publishing callers pass use_prod_environment: true -- REQUIRED, because
-    # the signing role's OIDC trust accepts exactly two subjects
-    # (ref:refs/heads/main and environment:prod) and tag-triggered release runs
-    # present ref:refs/tags/v*, which is NOT trusted. The environment switches
-    # the claim to environment:prod, the same alignment every job in
-    # sign-and-notarize.yml documents.
+    # the signing certificate is scoped to the prod environment, whose
+    # deployment policy (main and v* tags only) is what keeps the production
+    # signing identity away from unmerged refs. sign-and-notarize.yml holds its
+    # Developer ID identity under the same environment for the same reason.
     #
     # An empty string applies NO environment, which is how the dispatch probe
     # escapes the prod branch policy. See the input's description for why this
     # is an explicit input rather than a github.event_name test.
     environment: ${{ inputs.use_prod_environment == true && 'prod' || '' }}
+    # contents:read and nothing else. Signing reads a certificate from secrets,
+    # so this job mints no OIDC token: a build running third-party packaging
+    # tooling must not be able to present the prod environment's identity to
+    # the distribution role that the publish lanes assume.
     permissions:
       contents: read
-      # The signing hook assumes the signing role via OIDC. Scoped to this
-      # workflow because only Windows signs during its build.
-      id-token: write
     env:
-      # Gate for the signing steps, mirroring sign-and-notarize.yml:
+      # Gate for the signing inputs, mirroring sign-and-notarize.yml:
       # `secrets.*` is not available in a step-level `if`, so it is hoisted
       # into env here and tested as env.HAS_WINDOWS_SIGNING. Empty on a fork or
-      # any repo without the secret.
+      # any repo without the certificate secret.
       #
-      # This single flag drives BOTH the credential step AND the five
-      # WINDOWS_SIGNING_* values below. That coupling is the point: the values
-      # are inline literals (bucket/role names, not secrets), so if they were
-      # set unconditionally the hook could never take its "not configured"
-      # skip path -- it would find a full env, call the AWS CLI with no
-      # credentials, and fail the build instead of shipping unsigned.
+      # This single flag drives BOTH the configuration guard AND the two
+      # WIN_CSC_* values below, so the build either receives the whole signing
+      # identity or none of it. With none, electron-builder finds no
+      # certificate, skips signing, and ships an unsigned installer.
       #
-      # It ALSO requires use_prod_environment, because signing needs both the
-      # secret and the prod environment: the role trusts only
-      # ref:refs/heads/main and environment:prod. Without this second term, once
-      # the secret exists the any-ref dispatch probe would try to assume the
-      # role from an untrusted feature-branch ref and die at the credential step
-      # -- exactly the probe the conditional environment above exists to keep
-      # alive. A probe deliberately builds unsigned; that is what it is for.
-      HAS_WINDOWS_SIGNING: ${{ secrets.AWS_WINDOWS_SIGNING_ROLE_ARN != '' && inputs.use_prod_environment == true && 'true' || '' }}
+      # It ALSO requires use_prod_environment. Without this second term, a
+      # repository-level copy of the secret would reach the any-ref dispatch
+      # probe, handing the production identity to an unmerged feature branch.
+      # A probe deliberately builds unsigned; that is what it is for.
+      HAS_WINDOWS_SIGNING: ${{ secrets.WINDOWS_SIGNING_CERT_P12_BASE64 != '' && inputs.use_prod_environment == true && 'true' || '' }}
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 
@@ -201,20 +196,22 @@ jobs:
           node -e "const fs=require('fs');const f='website/electron/package.json';const p=JSON.parse(fs.readFileSync(f));p.version=process.env.STAMP_VERSION;fs.writeFileSync(f,JSON.stringify(p,null,2)+'\n')"
           echo "Building Windows desktop: ${STAMP_VERSION}"
 
-      # Scoped as tightly as the role allows: 1-hour session, assumable only
-      # from main / environment:prod, and its only permission is sts:AssumeRole
-      # onto the artifact role behind an ExternalId gate. Declared in
-      # JunctionPublishCDK lib/windows-signer-stack.ts.
-      #
-      # Skips on a fork or when the secret is absent, which -- together with
-      # the env gate on the WINDOWS_SIGNING_* values below -- leaves the
-      # installer unsigned rather than failing the build.
-      - name: Configure AWS credentials for Windows signing
+      # A certificate without its password is a misconfiguration, and letting
+      # it through would fail deep inside signtool with an opaque PFX error
+      # after the whole app has been built. Refusing here names the missing
+      # secret instead. The reverse half (a password with no certificate)
+      # leaves HAS_WINDOWS_SIGNING empty and builds unsigned, which the publish
+      # lane's Authenticode guard then refuses to ship.
+      - name: Refuse partial Windows signing configuration
         if: env.HAS_WINDOWS_SIGNING
-        uses: aws-actions/configure-aws-credentials@e1253824e5c10ff9df46874f81ed3ec929e19cfd # v6.3.0
-        with:
-          role-to-assume: ${{ secrets.AWS_WINDOWS_SIGNING_ROLE_ARN }}
-          aws-region: us-west-2
+        shell: bash
+        env:
+          HAS_CERT_PASSWORD: ${{ secrets.WINDOWS_SIGNING_CERT_PASSWORD != '' && 'true' || '' }}
+        run: |
+          if [ -z "${HAS_CERT_PASSWORD}" ]; then
+            echo "::error::WINDOWS_SIGNING_CERT_P12_BASE64 is set but WINDOWS_SIGNING_CERT_PASSWORD is not. Set both or neither."
+            exit 1
+          fi
 
       - name: Build desktop app
         # bash (Git Bash): the build script is bash, and `make` is not on the
@@ -223,25 +220,24 @@ jobs:
         shell: bash
         run: bash packaging/build-desktop.sh
         env:
-          # There is no certificate on the runner: the private key lives in the
-          # signing service. Signing goes through the custom hook
-          # (website/electron/scripts/sign-windows.js, wired as
-          # win.signtoolOptions.sign), so local certificate discovery must stay
-          # off -- otherwise electron-builder may pick up something unexpected
-          # instead of calling the hook.
+          # The only certificate the build may use is the one WIN_CSC_LINK
+          # carries. electron-builder reads this flag in its macOS keychain
+          # lookup alone (packaging/build-desktop.sh also forces it off on every
+          # platform); it is pinned here as well so no signing input on this
+          # job comes from anywhere but the two values below.
           CSC_IDENTITY_AUTO_DISCOVERY: "false"
-          # Consumed by the sign hook. Gated as ONE unit on HAS_WINDOWS_SIGNING:
-          # the hook enables signing only when all five are present, so an
-          # ungated partial set would make it try to sign without credentials
-          # and fail the build instead of skipping. The values themselves are
-          # not secret (bucket and role names); only the role ARN is a secret.
-          WINDOWS_SIGNING_UNSIGNED_BUCKET: ${{ env.HAS_WINDOWS_SIGNING && 'junction-windows-unsigned-116101834266' || '' }}
-          WINDOWS_SIGNING_SIGNED_BUCKET: ${{ env.HAS_WINDOWS_SIGNING && 'junction-windows-signed-116101834266' || '' }}
-          WINDOWS_SIGNING_PROFILE_ID: ${{ env.HAS_WINDOWS_SIGNING && 'JunctionWindowsExe' || '' }}
-          WINDOWS_SIGNING_ARTIFACT_ROLE: ${{ env.HAS_WINDOWS_SIGNING && 'arn:aws:iam::116101834266:role/JunctionWindows-ArtifactAccessRole' || '' }}
-          # Equals the Signer application name; ArtifactAccessRole's trust
-          # policy requires it as sts:ExternalId.
-          WINDOWS_SIGNING_EXTERNAL_ID: ${{ env.HAS_WINDOWS_SIGNING && 'JunctionWindows' || '' }}
+          # electron-builder's native Windows signing inputs: WIN_CSC_LINK takes
+          # the base64 of the .pfx/.p12 directly and WIN_CSC_KEY_PASSWORD its
+          # password. With both empty electron-builder finds no certificate and
+          # builds unsigned. Signing uses sha256 only (signtoolOptions pins it)
+          # with an RFC3161 timestamp, which is what publish-windows.yml's guard
+          # requires. The Authenticode publisher that app-update.yml pins for
+          # NsisUpdater is read from this same certificate's subject CN, so the
+          # client always expects the identity that actually signed the bytes.
+          # Gated as ONE unit on HAS_WINDOWS_SIGNING so a probe run never
+          # receives the identity.
+          WIN_CSC_LINK: ${{ env.HAS_WINDOWS_SIGNING && secrets.WINDOWS_SIGNING_CERT_P12_BASE64 || '' }}
+          WIN_CSC_KEY_PASSWORD: ${{ env.HAS_WINDOWS_SIGNING && secrets.WINDOWS_SIGNING_CERT_PASSWORD || '' }}
 
       # The installer and its blockmap are one artifact in two files: without
       # the .blockmap, electron-updater silently falls back to a FULL download

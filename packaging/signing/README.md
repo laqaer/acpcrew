@@ -1,28 +1,34 @@
 # Signing Infrastructure
 
-This directory contains the macOS code signing and notarization scaffolding
-for the Junction desktop app, using an enterprise code-signing service.
+This directory contains the macOS code signing and notarization scaffolding for
+the Junction desktop app. Signing is the standard Developer ID flow: `codesign`
+on the macOS runner, with the identity imported from a `.p12` secret into a
+temporary keychain. `docs/build/signing-runbook.md` documents the whole chain,
+the secrets it reads, and credential rotation.
 
-## Why identifiers are committed here
+## What is committed, and what is not
 
-Junction is distributed as a signed desktop application under a shared Apple
-Developer identity. The bundle identifier and team ID are required by Apple's
-code signing infrastructure and are not secrets — they're embedded in every
-signed `.app` bundle users download.
-
-These files are gated behind `CDSIGNER_API_ENDPOINT` and `AWS_SIGNER_ROLE_ARN`
-secrets that only the upstream repository has. Forks without these secrets
-skip signing entirely (the workflow produces unsigned builds that work but
-trigger macOS Gatekeeper warnings).
+The entitlements, the scripts, and the signing order logic are committed. The
+signing identity is not: it lives only in the `APPLE_DEVELOPER_ID_P12_BASE64` and
+`APPLE_DEVELOPER_ID_P12_PASSWORD` secrets of the `prod` environment. A fork or
+any repository without them skips signing entirely (the workflow produces
+unsigned builds that work but trigger macOS Gatekeeper warnings). The team ID and
+the bundle identifier are not secrets either way: they are embedded in every
+signed `.app` a user downloads.
 
 ## Files
 
 - `Entitlements.entitlements` — macOS entitlements for the Electron app.
   JIT + disable-library-validation are required for V8/Node.js + native addons.
-- `manifest-template.json` — signing manifest with embedded requirements
-  for all Electron helper processes and frameworks.
-- `sign.sh` — CI script that packages, uploads, submits to the signing
-  service, polls, downloads, and verifies the signed artifact.
+- `signing-plan.py` — derives the inside-out signing order from the actual
+  bundle: every nested Mach-O (the embedded Python backend included), then every
+  nested code bundle, deepest first, each marked with whether it takes the
+  entitlements.
+- `sign.sh` — Developer ID signs a `.app` in place by following that plan, with
+  the hardened runtime and a secure timestamp, then verifies the result
+  (`codesign --verify --deep --strict` and a Developer ID Application authority).
+- `sign-dmg.sh` — Developer ID signs the shipping DMG in place and fails closed
+  unless the result carries a Developer ID Application authority.
 - `build-dmg.sh` — replaces the unsigned app inside electron-builder's branded
   DMG layout template with the signed/stapled app, then shrinks and recompresses
   the image before the DMG signing and notarization stages.
@@ -56,12 +62,16 @@ trigger macOS Gatekeeper warnings).
 
 ## Prerequisites
 
-Access to the signing service must be onboarded (a security review plus
-sign-off). See `docs/build/release.md` for the full onboarding runbook.
+Signing needs a Developer ID Application certificate for the project's Apple
+Developer team, exported with its private key as a `.p12`. Creating, storing and
+rotating it is covered in `docs/build/signing-runbook.md`.
+
+To sign locally, import the identity into your keychain and run
+`SIGNING_IDENTITY="Developer ID Application: <Name> (<TEAMID>)" bash packaging/signing/sign.sh <App.app>`.
 
 ## CLI artifact manifests (separate trust domain)
 
-The wheel installer does **not** reuse Apple/CDSigner. `publish-cli.yml` signs a
+The wheel installer does **not** reuse the Apple signing identity. `publish-cli.yml` signs a
 canonical JSON artifact manifest with an asymmetric AWS KMS key and publishes the
 same signed JSON at both:
 

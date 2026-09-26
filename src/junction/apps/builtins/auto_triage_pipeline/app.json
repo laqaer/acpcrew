@@ -7,7 +7,7 @@
   "iconUrl": "/app-assets/auto-triage-pipeline/icon.svg",
   "tags": [
     "pipeline",
-    "crews",
+    "stewards",
     "triage",
     "developer-tools"
   ],
@@ -15,7 +15,7 @@
   "defaultEnabled": false,
   "permissions": {
     "api": [
-      "/api/apps/issue-radar/crew/fabric",
+      "/api/apps/issue-radar/steward/fabric",
       "/api/apps/auto-triage-pipeline/overview",
       "/api/apps/auto-triage-pipeline/step",
       "/api/apps/auto-triage-pipeline/item/sessions"
@@ -33,10 +33,10 @@
     ]
   },
   "useCases": [
-    "See where Issue Radar crew work is accumulating, reopening, or waiting across the full delivery pipeline."
+    "See where Issue Radar stewards' work is accumulating, reopening, or waiting across the full delivery pipeline."
   ],
   "configuration": [
-    "Connect a repository in Issue Radar and let its crew ledger collect phase events, then enable this app and choose that repository from the picker."
+    "Connect a repository in Issue Radar and let its steward ledger collect phase events, then enable this app and choose that repository from the picker."
   ],
   "screenshots": [
     "/app-assets/auto-triage-pipeline/screenshot-main.png"

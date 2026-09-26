@@ -29,7 +29,7 @@ def _no_gateway(monkeypatch):
 
 
 def _setup_fake_junction(d: Path) -> None:
-    """Create a realistic fake ~/.kirocrew directory."""
+    """Create a realistic fake ~/.junction directory."""
     for sub in (
         "workspace/memory/history",
         "workspace/hygiene_data",
@@ -40,8 +40,7 @@ def _setup_fake_junction(d: Path) -> None:
 
     # memory.db with all tables
     conn = sqlite3.connect(str(d / "memory.db"))
-    conn.executescript(
-        """
+    conn.executescript("""
         CREATE TABLE schema_version (version INTEGER PRIMARY KEY, applied_at TEXT NOT NULL);
         CREATE TABLE semantic_memory (key TEXT PRIMARY KEY, value_json TEXT NOT NULL,
             confidence REAL DEFAULT 0.5, source TEXT NOT NULL, created_at TEXT NOT NULL,
@@ -73,8 +72,7 @@ def _setup_fake_junction(d: Path) -> None:
             VALUES ('user', 'prefers', 'dark_mode', 'ep1', '2026-01-01');
         INSERT INTO knowledge_edges (source_key, target_key, relation, weight, created_at)
             VALUES ('user', 'dark_mode', 'prefers', 1.0, '2026-01-01');
-    """
-    )
+    """)
     conn.close()
 
     (d / "crons.json").write_text(
@@ -99,7 +97,7 @@ def _setup_fake_junction(d: Path) -> None:
     (d / "telemetry_salt").write_bytes(b"\x04" * snapshot_mod._TELEMETRY_SALT_BYTES)
     (d / "notifications.jsonl").write_text('{"ts":"2026-01-01","msg":"test"}\n')
     (d / "project_dir").write_text("/home/user/project")
-    (d / "workspace_dir").write_text("/home/user/.kirocrew/workspace")
+    (d / "workspace_dir").write_text("/home/user/.junction/workspace")
     (d / "workspace/memory/history/2026-01-01.md").write_text("history entry")
     (d / "workspace/doc.md").write_text("doc content")
     (d / "workspace/hygiene_data/week1.json").write_text("big data")
@@ -983,7 +981,7 @@ class TestGatewayRunningRefusal:
 
 class TestEmptyJunctionDir:
     def test_snapshot_empty_dir(self, tmp_path, monkeypatch):
-        """Snapshot succeeds on an empty ~/.kirocrew directory."""
+        """Snapshot succeeds on an empty ~/.junction directory."""
         empty = tmp_path / "empty_mc"
         empty.mkdir()
         out = tmp_path / "empty_out"

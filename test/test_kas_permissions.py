@@ -58,7 +58,7 @@ class TestTheShellAndFilesystemFamiliesAreRefused:
     """The one place this module declines to translate something it could.
 
     Auto-approval is not "one fewer prompt", it is the ABSENCE of a permission
-    request — and Crew's deny floor and sensitive-path check run on that request.
+    request — and Junction's deny floor and sensitive-path check run on that request.
     A rule derived from a tool-name allowlist is also unscoped, because the
     allowlist carries no resource pattern, so the grant would be "any command" /
     "any path". Refusing means no rule, and no rule means prompt.
@@ -123,7 +123,7 @@ class TestMcpEntries:
 class TestTranslationNeverWidensAGrant:
     """A glob in the source list must not become a glob in the projected policy.
 
-    Crew's own auto-approve check compares ``allowedTools`` entries literally, so
+    Junction's own auto-approve check compares ``allowedTools`` entries literally, so
     ``@*`` there grants a server named ``*`` — nothing at all. Translated naively
     it becomes the pattern ``*/*``, which KAS resolves as every tool on every
     server: one line of text meaning "no grant" on one backend and "grant
@@ -185,7 +185,7 @@ class TestUnclassifiableEntriesFailClosed:
 
 
 class TestTheRealAllowlist:
-    """The spec Crew actually ships, so a drift in it shows up here.
+    """The spec Junction actually ships, so a drift in it shows up here.
 
     Pinned as behaviour rather than a literal: what matters is which capabilities
     end up auto-approved and — more importantly — which do not.
@@ -275,7 +275,7 @@ class TestTheDiskWriter:
     def test_an_existing_block_is_never_touched_whatever_its_shape(self, existing):
         """Once the key exists it belongs to whoever edits the file.
 
-        Recognising Crew's own output by shape and regenerating that was the
+        Recognising Junction's own output by shape and regenerating that was the
         first design and is gone: a blanket ``allow`` is exactly what a user
         writes too, so the rule that keeps a derived policy current is the same
         rule that silently destroys a hand-written one.
@@ -288,7 +288,7 @@ class TestTheDiskWriter:
         """Seeding-not-refreshing means the file can lag ``allowedTools``.
 
         Bounded on purpose: the wire projection derives afresh every session and
-        outranks the file, so the block on disk is what applies when Crew is not
+        outranks the file, so the block on disk is what applies when Junction is not
         injecting an agent at all.
         """
         config = self._config(

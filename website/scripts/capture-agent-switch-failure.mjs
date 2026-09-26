@@ -42,7 +42,7 @@ const extra = async (path, route) => {
   if (path === '/api/agents') {
     await json(route, {
       agents: [
-        { name: 'junction', description: 'Default crew agent' },
+        { name: 'junction', description: 'Default agent' },
         { name: 'reviewer', description: 'Reviews diffs against the repo conventions' },
       ],
       default: 'junction',

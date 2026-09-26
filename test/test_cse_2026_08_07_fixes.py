@@ -301,7 +301,7 @@ class TestMdNotebookErrorRedaction:
         this, so a fix that only chains the credential/URL passes is cosmetic."""
         from junction.apps.builtins.md_notebook import server as md_server
         exc = FileNotFoundError(
-            "[Errno 2] No such file or directory: '/home/alice/.kiro/crew/vaults/v1'"
+            "[Errno 2] No such file or directory: '/home/alice/.junction/vaults/v1'"
         )
         out = md_server._safe_error(exc)
         assert "/home/alice" not in out

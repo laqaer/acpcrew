@@ -196,7 +196,7 @@ def _review_work_dir() -> Optional[str]:
         return str(store.app_root())
     except Exception:
         try:
-            return str(store.crew_home() / "apps" / "code-review-sage")
+            return str(store.data_home() / "apps" / "code-review-sage")
         except Exception:
             return None
 

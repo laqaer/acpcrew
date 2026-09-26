@@ -2,7 +2,7 @@
 
 Storage layout
 --------------
-``~/.kiro/crew/artifacts/<slug>/``
+``~/.junction/artifacts/<slug>/``
   ``meta.json``        canonical metadata
   ``current.html``     latest rendered content
   ``versions/v1.html`` older versions, never overwritten
@@ -1405,7 +1405,7 @@ class ArtifactStore:
         The set is:
 
         * the user's home directory;
-        * the data home (this store's parent — ``~/.kiro/crew`` in production,
+        * the data home (this store's parent — ``~/.junction`` in production,
           a tmp dir under test);
         * every operator-configured ``publish.relocate_roots`` entry;
         * when supplied, the artifact's own ``source_root`` — the project root

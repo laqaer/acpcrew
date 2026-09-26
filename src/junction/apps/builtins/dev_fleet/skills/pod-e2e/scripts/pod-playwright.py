@@ -57,7 +57,7 @@ except Exception as e:  # pragma: no cover - environment guard
 
 # First-run UI that a FRESH browser context always triggers.
 _FIRST_RUN_LS = {
-    "kc-onboarded": "1",   # theme onboarding
+    "mc-onboarded": "1",   # theme onboarding
 }
 
 # Defaults for the teardown/video guards: a spec that passes in 16s

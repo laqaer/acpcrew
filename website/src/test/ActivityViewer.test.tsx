@@ -155,14 +155,14 @@ describe('ActivityViewer', () => {
       reducer: { chat: chatReducer, dashboard: dashboardReducer, notifications: notificationsReducer },
     })
     store.dispatch(openActivityToTab('links'))
-    const prUrl = 'https://github.com/kirodotdev/KiroCrew/pull/42'
+    const prUrl = 'https://github.com/laqaer/junction/pull/42'
     render(
       <Provider store={store}>
         <QueryClientProvider client={qc}>
           <ActivityViewer
             {...baseProps}
             // The Changes tab surfaces this PR, so it should NOT also appear in Resources.
-            sources={[{ url: prUrl, provider: 'github', number: 42, repo: 'Junction' }]}
+            sources={[{ url: prUrl, provider: 'github', number: 42, repo: 'junction' }]}
             navLinks={[
               { url: prUrl, type: 'cr', label: 'PR #42', msgIdx: 0 },
               // Not in `sources` (a code-review host Changes can't render) — must stay reachable.

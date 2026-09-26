@@ -105,16 +105,13 @@ _TARGET = ""
 
 # Resolve the app data dir. The host injects JUNCTION_APP_DATA_DIR for builtin
 # app backends; fall back to the platform-standard location under
-# $JUNCTION_HOME/apps/<name>/data (JUNCTION_HOME defaults to ~/.kiro/crew, the
-# data home nested under kiro-cli's ~/.kiro/ — NOT the pre-move ~/.kirocrew).
+# $JUNCTION_HOME/apps/<name>/data (JUNCTION_HOME defaults to ~/.junction).
 _DATA_ENV = os.environ.get("JUNCTION_APP_DATA_DIR") or os.environ.get("JUNCTION_APP_DATA") or ""
 if _DATA_ENV:
     DATA_DIR = Path(_DATA_ENV).expanduser().resolve()
 else:
     _home = os.environ.get("JUNCTION_HOME")
-    _base = (
-        Path(_home).expanduser() if _home else (Path(os.path.expanduser("~")) / ".kiro" / "crew")
-    )
+    _base = Path(_home).expanduser() if _home else (Path(os.path.expanduser("~")) / ".junction")
     DATA_DIR = (_base / "apps" / APP_NAME / "data").resolve()
 
 QUEUE_DIR = DATA_DIR / "queue"
@@ -130,35 +127,34 @@ HANDLED_DIR = DATA_DIR / "handled"
 # registered as a project root.
 #
 # WHY A TREE AND NOT MORE FILENAMES. `is_sensitive_path()` gates only the
-# ENUMERATED LEAVES under the crew home (`security._CREW_SECRET_LEAVES`), so
-# `is_sensitive_path("~/.kiro/crew")` is False and every unlisted file under it is
+# ENUMERATED LEAVES under the data home (`security._DATA_HOME_SECRET_LEAVES`), so
+# `is_sensitive_path("~/.junction")` is False and every unlisted file under it is
 # servable. Registering `~` as a project is a natural pick when a site lives at
-# `~/index.html`, and that alone put `~/.kiro/crew/apps/<app>/.app_secret` — the
+# `~/index.html`, and that alone put `~/.junction/apps/<app>/.app_secret` — the
 # proxy-auth HMAC credential shared by every app backend — and
-# `~/.kiro/crew/history/*.jsonl` (chat transcripts) one same-origin `fetch()` away
+# `~/.junction/history/*.jsonl` (chat transcripts) one same-origin `fetch()` away
 # from any script on the previewed page.
 #
 # Adding those two names to a denylist would close the two we happened to think
 # of. Refusing the whole tree closes the class, including files a later release
 # adds. `~/.kiro` is included because it is kiro-cli's own directory (it holds the
-# auth store) and the crew home is nested inside it.
+# auth store).
 _HOME_REAL = os.path.realpath(os.path.expanduser("~"))
-# The crew data home, resolved the same way `DATA_DIR` resolves it. Needed
-# SEPARATELY from `DATA_DIR`: that is only this app's own subtree, so a relocated
-# `JUNCTION_HOME` left the rest of the home — `history/*.jsonl` transcripts,
-# `sessions.db`, the governance policy files — outside every entry below, and one
-# `fetch()` from a previewed page away. The default path is already covered by the
-# `~/.kiro` entry; this is what closes the custom-home case.
-_CREW_HOME_ENV = os.environ.get("JUNCTION_HOME")
-_CREW_HOME = (
-    Path(_CREW_HOME_ENV).expanduser() if _CREW_HOME_ENV else Path(_HOME_REAL) / ".kiro" / "crew"
+# The data home, resolved the same way `DATA_DIR` resolves it. Needed SEPARATELY
+# from `DATA_DIR`: that is only this app's own subtree, so the rest of the home —
+# `history/*.jsonl` transcripts, `sessions.db`, the governance policy files —
+# would otherwise sit outside every entry below, one `fetch()` from a previewed
+# page away. Covers both the default `~/.junction` and a relocated
+# `JUNCTION_HOME`.
+_DATA_HOME_ENV = os.environ.get("JUNCTION_HOME")
+_DATA_HOME = (
+    Path(_DATA_HOME_ENV).expanduser() if _DATA_HOME_ENV else Path(_HOME_REAL) / ".junction"
 )
 _JUNCTION_INTERNAL_DIRS: tuple[str, ...] = tuple(
     os.path.realpath(p)
     for p in (
-        os.path.join(_HOME_REAL, ".kiro"),  # kiro-cli's dir; crew home nests inside
-        os.path.join(_HOME_REAL, ".kirocrew"),  # pre-move legacy data home
-        str(_CREW_HOME),  # a relocated crew home (JUNCTION_HOME)
+        os.path.join(_HOME_REAL, ".kiro"),  # kiro-cli's own dir (auth store)
+        str(_DATA_HOME),  # the data home (~/.junction, or JUNCTION_HOME)
         str(DATA_DIR),  # a relocated app data home (JUNCTION_APP_DATA_DIR)
     )
 )
@@ -215,7 +211,7 @@ _ID_RE = re.compile(r"^[A-Za-z0-9._-]+$")  # queue file id safety
 # The only hosts this backend will ever fetch from (dev-server reverse proxy).
 _LOOPBACK_HOSTS = frozenset({"localhost", "127.0.0.1"})
 # Credential dirs a previewed "project" folder may never be. The shared
-# `is_sensitive_path()` floor covers the crew home and the governance trust
+# `is_sensitive_path()` floor covers the data home and the governance trust
 # root; these are the plain dot-dirs it does not need to know about.
 _DENIED_ROOT_PARTS = frozenset({".ssh", ".aws", ".gnupg", ".kube", ".docker"})
 
@@ -846,7 +842,7 @@ def _valid_root(path: str):
 
     Sensitivity is delegated to the shared `is_sensitive_path()` floor, not just
     a local dot-dir denylist: the preview servers will serve ANY file under the
-    chosen folder, so picking `~/.kiro/crew` as a "project" would have exposed
+    chosen folder, so picking `~/.junction` as a "project" would have exposed
     the governance trust root and this backend's own `.app_secret`.
     """
 
@@ -2185,7 +2181,7 @@ _CHILD_ENV_STRIP = (
 # `JUNCTION_PROJECT_DIR`, …). None of them are the child's business, and a
 # forward-compatible prefix strip means a var added upstream later cannot leak
 # through this seam by default.
-_CHILD_ENV_STRIP_PREFIXES = ("JUNCTION_", "KIRO_CREW_")
+_CHILD_ENV_STRIP_PREFIXES = ("JUNCTION_",)
 
 
 def _child_env(bin_dir: Path) -> dict:
@@ -2696,7 +2692,7 @@ def _static_response(
     # Junction's own trees are refused outright, whatever the project root is.
     # This is the barrier that actually holds: the checks above are a HOME-relative
     # leaf list and a project-relative name list, and neither knows about
-    # `<crew home>/apps/<app>/.app_secret` or `<crew home>/history/*.jsonl`.
+    # `<data home>/apps/<app>/.app_secret` or `<data home>/history/*.jsonl`.
     if _is_junction_internal(target):
         return 403, "text/plain", b"forbidden"
     if target.is_dir():

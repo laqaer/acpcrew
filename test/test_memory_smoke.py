@@ -12,7 +12,13 @@ from __future__ import annotations
 import json
 from pathlib import Path
 
-from junction.context import ContextBuilder
+import pytest
+
+from junction.context import (
+    INCLUDE_JUNCTION_CONTEXT_KEY,
+    LEGACY_INCLUDE_CONTEXT_KEY,
+    ContextBuilder,
+)
 from junction.hooks import ContextRule, HookManager, HooksConfig, TransformHook
 from junction.learn import LessonStore
 from junction.memory import MemoryStore
@@ -100,7 +106,7 @@ class TestMemoryInjectionAllAgents:
     """Memory, lessons, and hooks are injected for ALL agents; the dashboard
     critical-rules contract is injected by default for every agent, and a custom
     agent may opt out of it (and the dashboard tool nudges) via
-    ``includeCrewContext: false``."""
+    ``includeJunctionContext: false``."""
 
     def test_junction_agent_gets_everything(self, tmp_path: Path) -> None:
         ws = tmp_path / "ws"
@@ -121,20 +127,20 @@ class TestMemoryInjectionAllAgents:
         assert "[Memory" in ctx
 
     def test_plain_custom_agent_includes_critical_rules(self, tmp_path: Path, monkeypatch) -> None:
-        # OPT-OUT default: a plain custom agent with no ``includeCrewContext``
+        # OPT-OUT default: a plain custom agent with no ``includeJunctionContext``
         # flag (here, no materialized spec at all) STILL gets the dashboard
         # critical-rules block — reproducing the pre-opt-out behavior. Only an
-        # explicit ``includeCrewContext: false`` suppresses it.
+        # explicit ``includeJunctionContext: false`` suppresses it.
         agents_dir = tmp_path / "agents"
         agents_dir.mkdir()
         monkeypatch.setattr("junction.context.kiro_agents_dir", lambda: agents_dir)
-        monkeypatch.setattr("junction.context._INCLUDE_CREW_CONTEXT_CACHE", {})
+        monkeypatch.setattr("junction.context._INCLUDE_JUNCTION_CONTEXT_CACHE", {})
         builder = _builder(tmp_path)
         ctx = builder.build_session_context(agent="my-custom-agent")
         assert "[CRITICAL RULES" in ctx
 
     def test_opted_out_custom_agent_omits_critical_rules(self, tmp_path: Path, monkeypatch) -> None:
-        # A custom app agent that declares ``includeCrewContext: false`` ships its
+        # A custom app agent that declares ``includeJunctionContext: false`` ships its
         # own output contract, so the junction assistant's critical-rules block
         # (diff blocks, [OPTIONS:] footer, absolute-path rule) must NOT be injected
         # on top of it — that both conflicts with the agent's contract and, on a
@@ -142,22 +148,62 @@ class TestMemoryInjectionAllAgents:
         agents_dir = tmp_path / "agents"
         agents_dir.mkdir()
         (agents_dir / "opted-out-agent.json").write_text(
-            json.dumps({"name": "opted-out-agent", "includeCrewContext": False})
+            json.dumps({"name": "opted-out-agent", "includeJunctionContext": False})
         )
         monkeypatch.setattr("junction.context.kiro_agents_dir", lambda: agents_dir)
-        monkeypatch.setattr("junction.context._INCLUDE_CREW_CONTEXT_CACHE", {})
+        monkeypatch.setattr("junction.context._INCLUDE_JUNCTION_CONTEXT_CACHE", {})
         builder = _builder(tmp_path)
         ctx = builder.build_session_context(agent="opted-out-agent")
         assert "[CRITICAL RULES" not in ctx
         # The built-in agent still gets it (see test_junction_agent_gets_everything).
 
+    def test_legacy_opt_out_key_still_omits_critical_rules(
+        self, tmp_path: Path, monkeypatch
+    ) -> None:
+        # An agent spec written for an earlier build carries the legacy key; its
+        # opt-out must still hold, or the agent silently gets the rules back.
+        agents_dir = tmp_path / "agents"
+        agents_dir.mkdir()
+        (agents_dir / "opted-out-agent.json").write_text(
+            json.dumps({"name": "opted-out-agent", LEGACY_INCLUDE_CONTEXT_KEY: False})
+        )
+        monkeypatch.setattr("junction.context.kiro_agents_dir", lambda: agents_dir)
+        monkeypatch.setattr("junction.context._INCLUDE_JUNCTION_CONTEXT_CACHE", {})
+        builder = _builder(tmp_path)
+        ctx = builder.build_session_context(agent="opted-out-agent")
+        assert "[CRITICAL RULES" not in ctx
+
+    @pytest.mark.parametrize(
+        "current,legacy,injected",
+        [(True, False, True), (False, True, False), ("no", False, False)],
+    )
+    def test_current_opt_out_key_wins_over_the_legacy_key(
+        self, tmp_path: Path, monkeypatch, current: object, legacy: bool, injected: bool
+    ) -> None:
+        # A spec carrying both keys follows the current one, in either direction;
+        # only a boolean counts, so a malformed current key cannot mask an explicit
+        # legacy opt-out.
+        agents_dir = tmp_path / "agents"
+        agents_dir.mkdir()
+        spec = {
+            "name": "both-keys-agent",
+            INCLUDE_JUNCTION_CONTEXT_KEY: current,
+            LEGACY_INCLUDE_CONTEXT_KEY: legacy,
+        }
+        (agents_dir / "both-keys-agent.json").write_text(json.dumps(spec))
+        monkeypatch.setattr("junction.context.kiro_agents_dir", lambda: agents_dir)
+        monkeypatch.setattr("junction.context._INCLUDE_JUNCTION_CONTEXT_CACHE", {})
+        builder = _builder(tmp_path)
+        ctx = builder.build_session_context(agent="both-keys-agent")
+        assert ("[CRITICAL RULES" in ctx) is injected
+
     def test_plain_custom_agent_keeps_dashboard_nudges(self, tmp_path: Path, monkeypatch) -> None:
-        # No ``includeCrewContext`` flag ⇒ the dashboard tool nudges
+        # No ``includeJunctionContext`` flag ⇒ the dashboard tool nudges
         # (ask_question / suggest_followup) are still injected on a dashboard slot.
         agents_dir = tmp_path / "agents"
         agents_dir.mkdir()
         monkeypatch.setattr("junction.context.kiro_agents_dir", lambda: agents_dir)
-        monkeypatch.setattr("junction.context._INCLUDE_CREW_CONTEXT_CACHE", {})
+        monkeypatch.setattr("junction.context._INCLUDE_JUNCTION_CONTEXT_CACHE", {})
         monkeypatch.setattr("junction.context.has_dashboard_surface", lambda key: True)
         builder = _builder(tmp_path)
         msg, _ = builder.build_message(
@@ -173,17 +219,17 @@ class TestMemoryInjectionAllAgents:
     def test_opted_out_custom_agent_omits_dashboard_nudges(
         self, tmp_path: Path, monkeypatch
     ) -> None:
-        # ``includeCrewContext: false`` also suppresses the dashboard tool nudges,
+        # ``includeJunctionContext: false`` also suppresses the dashboard tool nudges,
         # but NOT the provider-agnostic [OPTIONS:] reminder (that only tells the
         # agent how to render options it chooses to emit, and every surface parses
         # the tag regardless).
         agents_dir = tmp_path / "agents"
         agents_dir.mkdir()
         (agents_dir / "opted-out-agent.json").write_text(
-            json.dumps({"name": "opted-out-agent", "includeCrewContext": False})
+            json.dumps({"name": "opted-out-agent", "includeJunctionContext": False})
         )
         monkeypatch.setattr("junction.context.kiro_agents_dir", lambda: agents_dir)
-        monkeypatch.setattr("junction.context._INCLUDE_CREW_CONTEXT_CACHE", {})
+        monkeypatch.setattr("junction.context._INCLUDE_JUNCTION_CONTEXT_CACHE", {})
         monkeypatch.setattr("junction.context.has_dashboard_surface", lambda key: True)
         builder = _builder(tmp_path)
         msg, _ = builder.build_message(
@@ -197,26 +243,26 @@ class TestMemoryInjectionAllAgents:
         assert "suggest_followup" not in msg
         assert "OPTIONS" in msg
 
-    def test_invalidate_clears_the_include_crew_context_cache(self, monkeypatch) -> None:
+    def test_invalidate_clears_the_include_junction_context_cache(self, monkeypatch) -> None:
         # The per-agent flag cache must be droppable: an app upgrade rewrites its
         # agent JSON mid-process, so a value cached before that write would stay
         # wrong until gateway restart otherwise.
         import junction.context as ctx
 
-        monkeypatch.setattr(ctx, "_INCLUDE_CREW_CONTEXT_CACHE", {"a": True, "b": False})
-        ctx.invalidate_include_crew_context_cache()
-        assert ctx._INCLUDE_CREW_CONTEXT_CACHE == {}
+        monkeypatch.setattr(ctx, "_INCLUDE_JUNCTION_CONTEXT_CACHE", {"a": True, "b": False})
+        ctx.invalidate_include_junction_context_cache()
+        assert ctx._INCLUDE_JUNCTION_CONTEXT_CACHE == {}
 
     def test_refresh_materialized_agents_invalidates_flag_cache(self, monkeypatch) -> None:
         # Wiring: rescanning the materialized-agent snapshot MUST invalidate the
-        # flag cache, so a flipped includeCrewContext takes effect without a
-        # gateway restart (the restart-heals class this PR removes).
+        # flag cache, so a flipped includeJunctionContext takes effect without a
+        # gateway restart.
         import junction.context as ctx
         from junction.config import loader
 
         hit = {}
         monkeypatch.setattr(
-            ctx, "invalidate_include_crew_context_cache", lambda: hit.setdefault("v", True)
+            ctx, "invalidate_include_junction_context_cache", lambda: hit.setdefault("v", True)
         )
         monkeypatch.setattr(loader, "_scan_materialized_agents", lambda d: frozenset())
         saved = loader._MATERIALIZED_AGENTS

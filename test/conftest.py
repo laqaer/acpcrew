@@ -1033,7 +1033,7 @@ def short_sock_dir(tmp_path):
     if short_root is None:
         yield tmp_path
         return
-    path = tempfile.mkdtemp(dir=short_root, prefix="kcsock-")
+    path = tempfile.mkdtemp(dir=short_root, prefix="jnsock-")
     try:
         yield pathlib.Path(path)
     finally:
@@ -1053,7 +1053,7 @@ def _no_release_feed_network(monkeypatch: pytest.MonkeyPatch) -> None:
     env with no ``JUNCTION_PROJECT_DIR`` takes the feed branch by definition.
 
     Without this fixture the suite would make real HTTPS requests to
-    ``updates.crew.kiro.dev`` — slow, flaky, offline-hostile, and CI traffic
+    ``updates.getjunction.dev`` — slow, flaky, offline-hostile, and CI traffic
     nobody asked for. Tests that WANT a feed response stub this same seam, which
     overrides the fixture for that test.
 

@@ -483,7 +483,7 @@ which is the whole point of specifying it now and building only `human`.
 
 ### §6 The life directory
 
-`~/.kiro/crew/agents/<job_id>/`
+`~/.junction/agents/<job_id>/`
 
 Revision 1 prescribed five files. Revision 2 ships **two** and lets the rest be
 earned: a file layout is policy, and policy invented before the first agent runs

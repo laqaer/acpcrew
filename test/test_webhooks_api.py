@@ -1351,7 +1351,7 @@ class TestRejectionPathsAreRecorded:
             "POST",
             "/api/hooks/agent",
             {"message": "x" * 1000},
-            headers={"Authorization": "Bearer kc_whk_unknown"},
+            headers={"Authorization": "Bearer jn_whk_unknown"},
         )
         resp = await H.api_hooks_agent(req)
         assert resp.status == 401
@@ -1597,7 +1597,7 @@ class TestMalformedStoreDoesNotFiveHundredTheExternalRoute:
                 "POST",
                 "/api/hooks/agent",
                 {"message": "hello"},
-                headers={"Authorization": "Bearer kc_whk_anything"},
+                headers={"Authorization": "Bearer jn_whk_anything"},
             )
         )
 
@@ -1617,7 +1617,7 @@ class TestMalformedStoreDoesNotFiveHundredTheExternalRoute:
                 "POST",
                 "/api/hooks/agent",
                 {"message": "hello"},
-                headers={"Authorization": "Bearer kc_whk_anything"},
+                headers={"Authorization": "Bearer jn_whk_anything"},
             )
         )
 

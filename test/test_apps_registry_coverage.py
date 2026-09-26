@@ -1111,7 +1111,7 @@ class TestApplyTrustFields:
     def test_core_row_is_verified_only_from_the_index_author(self):
         rows = registry._apply_trust_fields(
             [
-                {"name": "a", "_index_author": "Junction"},  # brand-ok: registry.py compares author.lower() == "junction"
+                {"name": "a", "_index_author": "Junction"},
                 {"name": "b", "_index_author": "someone-else"},
                 {"name": "c", "_index_author": {"name": "junction"}},
             ]

@@ -48,13 +48,11 @@ _EXCLUDE_DIRS = {
     ".claude",
     ".testmondata",
     # Secret-bearing / local-only dirs — never ship these off-box.
-    # ``.kiro`` is the Kiro-family base (kiro-cli SSO tokens/sessions AND
-    # Junction's own data home ~/.kiro/crew after the data-root move); excluding
-    # the whole ``.kiro`` segment covers both. The legacy ~/.kirocrew stays
-    # listed for not-yet-migrated trees.
+    # ``.kiro`` is kiro-cli's home (SSO tokens, sessions); ``.junction`` is
+    # Junction's own data home and ``.junction-dev`` the dev-mode one.
     ".kiro",
-    ".kirocrew",
-    ".kirocrew-dev",
+    ".junction",
+    ".junction-dev",
     ".aws",
     ".ssh",
     ".gnupg",
@@ -198,13 +196,13 @@ def _refilter_archive(archive: Path) -> Path:
 def _custom_home_rel_parts(root: Path) -> Optional[tuple]:
     """``JUNCTION_HOME``'s path parts relative to the repo root, if it's under it.
 
-    Dev mode (AGENTS.md) allows a custom-named data dir (e.g. ``.kirocrew-dev`` or
+    Dev mode (AGENTS.md) allows a custom-named data dir (e.g. ``.junction-dev`` or
     an arbitrary name) anywhere inside the repo. The git-archive path is protected
     by ``.gitignore``, but the tarfile fallback isn't — so exclude that dir by its
-    actual (possibly nested) path, not just the hardcoded ``.kirocrew*`` entries.
-    Returns e.g. ``("data", "kc-home")`` for ``root/data/kc-home``; ``None`` when
+    actual (possibly nested) path, not just the hardcoded ``.junction*`` entries.
+    Returns e.g. ``("data", "jn-home")`` for ``root/data/jn-home``; ``None`` when
     ``JUNCTION_HOME`` is unset or resolves outside the repo (an absolute
-    ``~/.kirocrew`` isn't in the tarball anyway).
+    ``~/.junction`` isn't in the tarball anyway).
     """
     raw = os.environ.get("JUNCTION_HOME")
     if not raw:
@@ -285,7 +283,7 @@ def _tar_fallback(root: Path) -> Path:
             action="source:PackageLocalCheckout",
         )
 
-    home_parts = _custom_home_rel_parts(root)  # e.g. ("data", "kc-home") or None
+    home_parts = _custom_home_rel_parts(root)  # e.g. ("data", "jn-home") or None
 
     def _excluded(rel: str) -> bool:
         parts = Path(rel).parts

@@ -11,7 +11,7 @@ in the README, the marketing site, CLI help, and the dashboard default bot
 name. Junction is the product of this checkout.
 
 Criteria: one-word CLI; works for **both** “which agent” and “which model”;
-local-first; not a clone of Crew / Router / Codex; searchable; low trademark
+local-first; not a clone of the upstream gateway / Router / Codex; searchable; low trademark
 collision.
 
 ## Decision
@@ -47,7 +47,7 @@ The product name is **Junction**.
 | Portico | Gateway | `portico` | Few | Gateway ≠ two planes |
 | Switchboard | Classic routing | `switchboard` | Dated, long | Reject |
 | Codex Router | Accurate to one plane | — | Their 3.7k-star product | Never |
-| acpcrew / the previous product name | Left behind | — | Operator asked to leave both | Never |
+| Earlier working titles | Left behind | — | Operator asked to leave them | Never |
 | **Junction** | Meeting of agent plane + model plane | `junction` | Minor (git-junction, road signs); no category killer | **Winner** |
 
 Junction names the join: ACP harnesses on one side, model routing on the other.
@@ -57,9 +57,18 @@ Hearth was the runner-up (home/memory) and lost because it is silent on routing.
 
 - User-facing overlay this cut: README, `site/`, CLI, dashboard
   `DEFAULT_PRODUCT_NAME` / `bot_name`, brand gate.
-- Brand gate still forbids the concatenated upstream brand token in newly
-  added prose. Junction is accepted. Security paths and the optional
-  kiro-cli harness keep their own spellings.
+- The brand gate (`scripts/check_brand_name.py`) treats the upstream
+  identity as retired. On newly added lines it rejects the upstream
+  product's name glued or joined by one separator (including Unicode
+  dashes, `%20` and regex spellings), in prose and identifiers alike;
+  its data home, whether spelled as one path (or a regex of one) or built
+  from split string literals; its hosts and its bundle id, dots plain or
+  regex-escaped; its GitHub org; and its mascot. The
+  root `NOTICE` (the Apache-2.0 attribution) is the only exempt file.
+  Junction is accepted. The optional kiro-cli harness keeps its own
+  spellings: `kiro-cli`, `~/.kiro` with its own directories, and
+  citations of kiro-cli's own repository under the shared org are not
+  flagged, and neither is the word "crew" on its own.
 - Hardcoded catalog descriptions stay a follow-up issue.
 - Chartroom remains an internal nod only, not a public name.
 

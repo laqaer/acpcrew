@@ -39,7 +39,7 @@ async def init_workspace(run: Project) -> None:
 
     run.base_branch = (await _git(orig_dir, "rev-parse", "--abbrev-ref", "HEAD")).strip()
     repo_root = (await _git(orig_dir, "rev-parse", "--show-toplevel")).strip()
-    wt_dir = str(Path(repo_root).parent / ".kirocrew-work" / run.task_id)
+    wt_dir = str(Path(repo_root).parent / ".junction-work" / run.task_id)
     await _git(orig_dir, "worktree", "add", wt_dir, "-b", branch)
     run.work_dir = wt_dir
     run.worktree_path = wt_dir

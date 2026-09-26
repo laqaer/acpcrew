@@ -1,6 +1,5 @@
 /**
- * ChatPane reorder wiring - locks the full-order invariant from the GPT 5.6
- * review of https://github.com/kirodotdev/KiroCrew/pull/2250:
+ * ChatPane reorder wiring - locks the full-order invariant:
  *
  * The slot's queue can contain HIDDEN queued messages (sub-agent completion
  * deliveries, recovery continuations) that QueueStack does not render. A

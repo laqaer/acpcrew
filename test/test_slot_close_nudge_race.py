@@ -32,7 +32,7 @@ from aiohttp.test_utils import TestClient, TestServer
 from chat_test_helpers import _make_app, _make_state
 
 from junction import autonudge
-from junction.apps.builtins.issue_radar.backend import crew_runtime
+from junction.apps.builtins.issue_radar.backend import steward_runtime
 from junction.autonudge import AutoNudgeService, NudgeAdmissionRefused
 from junction.dashboard import chat_handlers as handlers
 
@@ -217,7 +217,7 @@ async def test_a_failed_persist_takes_the_app_dismissal_back(tmp_path, monkeypat
     REGRESSION: the close mutates three independent stores — the slot table, the
     history file, and whatever the app writes — and no ordering makes that atomic.
     With the notify last, a failed persist left a live worker behind a dismissed
-    tab. Moving it first fixed that and created the mirror: the crew was durably
+    tab. Moving it first fixed that and created the mirror: the steward was durably
     PAUSED, then the persist failed, and the handler restored the tab and returned
     500 while the worker stayed silently disabled. Only a compensating call closes
     both, unwound in reverse order of commitment.
@@ -260,8 +260,8 @@ async def test_an_app_that_cannot_be_told_aborts_the_close(tmp_path, monkeypatch
     """A dismissal the app could not record must not remove the tab.
 
     REGRESSION: the slot-close hook's failure was logged and swallowed, and it
-    fired AFTER the slot was popped and history was written. For a crew that hook
-    is the write that PAUSES the worker, so a failure left the crew live and
+    fired AFTER the slot was popped and history was written. For a steward that
+    hook is the write that PAUSES the worker, so a failure left the steward live and
     auto-approved behind a tab the user believed was gone — and its watchdog then
     relaunched that tab, the exact resurrection the hook exists to prevent.
 
@@ -451,10 +451,10 @@ async def test_issue_radar_arm_queued_behind_final_retirement_is_refused(
 
     monkeypatch.setattr("junction.apps.teardown.notify_slot_closed", _hook)
     monkeypatch.setattr(
-        crew_runtime, "ensure_crew_session", AsyncMock(return_value=slot)
+        steward_runtime, "ensure_steward_session", AsyncMock(return_value=slot)
     )
     monkeypatch.setattr(
-        crew_runtime,
+        steward_runtime,
         "compose_turn_prompt_async",
         AsyncMock(return_value="replacement arm"),
     )
@@ -475,11 +475,11 @@ async def test_issue_radar_arm_queued_behind_final_retirement_is_refused(
     release_hook.set()
     assert await asyncio.to_thread(write_entered.wait, 5)
     launch = asyncio.create_task(
-        crew_runtime.launch_crew(
+        steward_runtime.launch_steward(
             state,
             "owner",
             "repo",
-            {"id": "crew-1"},
+            {"id": "steward-1"},
             tmp_path,
         )
     )

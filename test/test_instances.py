@@ -386,11 +386,7 @@ class TestTokenMint:
             build_remote_token_command("", ttl="20h", port=99999)
 
     def test_token_command_prefers_run_marker_for_port(self):
-        from junction.config.paths import (
-            CONFIG_DIR_NAME,
-            LEGACY_CONFIG_DIR_NAME,
-            PRIOR_CONFIG_DIR_NAME,
-        )
+        from junction.config.paths import CONFIG_DIR_NAME
         from junction.instances.token_mint import (
             build_candidate_command,
             build_remote_token_command,
@@ -398,23 +394,21 @@ class TestTokenMint:
 
         # empty remote_bin + port -> run-marker clause runs BEFORE the candidate
         # ladder, keyed by the same port, and execs the recorded launcher. The
-        # marker is probed under each candidate data home (JUNCTION_HOME override,
-        # the current default, the previous home, then the older top-level home)
-        # so a remote whose non-interactive SSH shell doesn't export JUNCTION_HOME
-        # still hits the marker. The home segments are asserted via the SHARED
-        # config.paths constants (not re-hardcoded literals) so that
-        # re-hardcoding — the read/write desync this fix closes — fails this
+        # marker is probed under the JUNCTION_HOME override first, then the
+        # default data home, so a remote whose non-interactive SSH shell doesn't
+        # export JUNCTION_HOME still hits the marker. The home segment is asserted
+        # via the SHARED config.paths constant (not a re-hardcoded literal) so
+        # that re-hardcoding — the read/write desync this guards — fails this
         # test loudly at PR time.
+        override_marker = '"${JUNCTION_HOME:+$JUNCTION_HOME/run/gateway-7879.bin}"'
         default_marker = f'"$HOME/{CONFIG_DIR_NAME}/run/gateway-7879.bin"'
-        prior_marker = f'"$HOME/{PRIOR_CONFIG_DIR_NAME}/run/gateway-7879.bin"'
-        legacy_marker = f'"$HOME/{LEGACY_CONFIG_DIR_NAME}/run/gateway-7879.bin"'
         cmd = build_remote_token_command("", ttl="20h", port=7879)
-        assert '"${JUNCTION_HOME:+$JUNCTION_HOME/run/gateway-7879.bin}"' in cmd
+        assert override_marker in cmd
         assert default_marker in cmd
-        assert prior_marker in cmd
-        assert legacy_marker in cmd
-        # current home, then the previous home, then the older top-level home
-        assert cmd.index(default_marker) < cmd.index(prior_marker) < cmd.index(legacy_marker)
+        # the override, then the default home
+        assert cmd.index(override_marker) < cmd.index(default_marker)
+        marker_loop = cmd[cmd.index("for __mk in ") : cmd.index("; do")]
+        assert marker_loop.count("/run/gateway-7879.bin") == 2
         assert 'exec "$__kb" token --ttl 20h --port 7879;' in cmd
         assert cmd.index("for __mk in ") < cmd.index("for b in ")  # marker tried first
         # it still falls through to the candidate ladder (older remotes/no marker)
@@ -1226,7 +1220,7 @@ class TestSshTunnelMultiplexing:
     down.
     """
 
-    _HOST = "kc-test-multiplex-host"
+    _HOST = "jn-test-multiplex-host"
 
     #: A user config that enables multiplexing for the instance host.
     _ADVERSARIAL_CONFIG = """\
@@ -2257,7 +2251,7 @@ class TestHandlers:
         one of those leaves a live tunnel forwarding the OLD port to the OLD host
         under the new label. The edit must tear it down, and must keep
         ``was_connected`` — that flag records an explicit user disconnect, which an
-        edit is not, and clearing it would drop the crew out of the switcher."""
+        edit is not, and clearing it would drop the instance out of the switcher."""
         from junction.dashboard import handlers_instances as handlers
 
         _enable(tmp_path, monkeypatch)
@@ -2298,7 +2292,7 @@ class TestHandlers:
         # only for a tunnel that connected before the record changed — and this
         # manager reports none live afterwards, so nothing more to tear down. The
         # teardown is a reconfiguration, so it must not claim to be a user
-        # disconnect (that flag is what keeps the crew in the switcher).
+        # disconnect (that flag is what keeps the instance in the switcher).
         assert mgr.disconnected == [("cd-1", True)], (
             "the stale tunnel was left running, or the teardown claimed to be a "
             "user disconnect"
@@ -2338,7 +2332,7 @@ class TestHandlers:
     ):
         """A rejected save must not cost the user their connection: the proposed
         record is validated before the teardown, so a typo answers 400 with the
-        crew still connected."""
+        instance still connected."""
         from junction.dashboard import handlers_instances as handlers
 
         _enable(tmp_path, monkeypatch)
@@ -2379,7 +2373,7 @@ class TestHandlers:
     ):
         """``disconnect()`` clears the persisted intent whether or not it tracked
         a live tunnel, and reports False in that case. Restoring only on a True
-        return would drop the crew out of the switcher."""
+        return would drop the instance out of the switcher."""
         from junction.dashboard import handlers_instances as handlers
 
         _enable(tmp_path, monkeypatch)
@@ -2414,7 +2408,7 @@ class TestHandlers:
         assert r.status == 200
         inst = reg.get("cd-1")
         assert inst is not None and inst.remote_port == 7999
-        assert inst.was_connected is True, "the crew lost its switcher entry"
+        assert inst.was_connected is True, "the instance lost its switcher entry"
 
     def test_update_tears_the_tunnel_down_exactly_once(
         self, tmp_path, monkeypatch
@@ -2466,7 +2460,7 @@ class TestHandlers:
         # Only the pre-edit teardown ran; the sweep spared the newer tunnel.
         assert mgr.disconnect_calls == 1
 
-    def test_update_does_not_revive_a_crew_disconnected_mid_edit(
+    def test_update_does_not_revive_an_instance_disconnected_mid_edit(
         self, tmp_path, monkeypatch
     ):
         """An explicit Disconnect landing while a transport edit is in flight must
@@ -2511,7 +2505,7 @@ class TestHandlers:
         assert r.status == 200 and _body(r)["remote_port"] == 7999
         inst = reg.get("cd-1")
         assert inst is not None
-        assert inst.was_connected is False, "the edit revived a crew the user disconnected"
+        assert inst.was_connected is False, "the edit revived an instance the user disconnected"
         # The response must report the same thing, so the dashboard does not
         # reconnect off a stale view.
         assert _body(r)["was_connected"] is False

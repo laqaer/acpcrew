@@ -163,9 +163,9 @@ class SignedClient:
 def fixtures(tmp_path: Path, monkeypatch: pytest.MonkeyPatch, _seed_template: Path):
     """A fresh backend module bound to a temp home, plus git fixture repos."""
     monkeypatch.setenv("MD_NOTEBOOK_HOME", str(tmp_path / "home"))
-    # The PAT lives under the crew data home (config_dir), never MD_NOTEBOOK_HOME,
-    # so isolate JUNCTION_HOME too or tests would touch the real ~/.kiro/crew.
-    monkeypatch.setenv("JUNCTION_HOME", str(tmp_path / "crew"))
+    # The PAT lives under the Junction data home (config_dir), never MD_NOTEBOOK_HOME,
+    # so isolate JUNCTION_HOME too or tests would touch the real ~/.junction.
+    monkeypatch.setenv("JUNCTION_HOME", str(tmp_path / "data-home"))
     monkeypatch.setenv("JUNCTION_PROXY_SECRET", SECRET)
     monkeypatch.setenv("MD_NOTEBOOK_NO_PICKER", "1")
     from junction.apps.builtins.md_notebook import server as server_mod
@@ -1003,10 +1003,10 @@ def test_path_contains_sensitive_flags_ancestors_of_credentials(
     benign = tmp_path / "elsewhere" / "notes"
     benign.mkdir(parents=True)
     assert security.path_contains_sensitive(str(benign)) is False
-    # A custom JUNCTION_HOME re-anchors the crew secret leaves — a folder
+    # A custom JUNCTION_HOME re-anchors the data home's secret leaves — a folder
     # containing THAT must be refused as well (the Notes PAT lives there).
-    crew = tmp_path / "elsewhere" / "notes" / "crew"
-    monkeypatch.setenv("JUNCTION_HOME", str(crew))
+    data_home = tmp_path / "elsewhere" / "notes" / "data-home"
+    monkeypatch.setenv("JUNCTION_HOME", str(data_home))
     assert security.path_contains_sensitive(str(benign)) is True
 
 
@@ -1042,36 +1042,36 @@ async def test_attach_expands_leading_tilde(fixtures, monkeypatch, tmp_path: Pat
         assert body["code"] == "ENOGIT"
 
 
-def test_pat_stays_under_crew_home_ignoring_md_notebook_home(monkeypatch, tmp_path: Path) -> None:
+def test_pat_stays_under_data_home_ignoring_md_notebook_home(monkeypatch, tmp_path: Path) -> None:
     """MD_NOTEBOOK_HOME may relocate vaults, but the PAT must stay under the
-    crew data home so it remains behind is_sensitive_path()'s floor. Pointing
+    Junction data home so it remains behind is_sensitive_path()'s floor. Pointing
     MD_NOTEBOOK_HOME at an unprotected dir must not move the credential there."""
-    crew = tmp_path / "crew"
+    data_home = tmp_path / "data-home"
     stray = tmp_path / "stray"
-    monkeypatch.setenv("JUNCTION_HOME", str(crew))
+    monkeypatch.setenv("JUNCTION_HOME", str(data_home))
     monkeypatch.setenv("MD_NOTEBOOK_HOME", str(stray))
     from junction.apps.builtins.md_notebook import server as server_mod
 
     server_mod = importlib.reload(server_mod)
     pat = server_mod._pat_file()
-    # The PAT is under the crew data home, NOT the stray MD_NOTEBOOK_HOME.
+    # The PAT is under the Junction data home, NOT the stray MD_NOTEBOOK_HOME.
     assert str(stray) not in str(pat), pat
     assert pat.parts[-3:] == ("workspace", "md-notebook", "pat"), pat
-    assert str(crew) in str(pat), pat
+    assert str(data_home) in str(pat), pat
     # settings.json carries `autoSync` (authorizes unattended push), so like the
-    # PAT it MUST stay under the crew data home behind the sensitive-path floor —
+    # PAT it MUST stay under the data home behind the sensitive-path floor —
     # MD_NOTEBOOK_HOME must not relocate it to an unprotected dir an agent could
     # write.
     settings = server_mod._settings_json()
     assert str(stray) not in str(settings), settings
-    assert str(crew) in str(settings), settings
+    assert str(data_home) in str(settings), settings
     # The vault REGISTRY carries each vault's push target (remoteUrl/gitDir) that
-    # the unattended sync loop trusts, so vaults.json is fenced under the crew data
+    # the unattended sync loop trusts, so vaults.json is fenced under the data
     # home too — MD_NOTEBOOK_HOME must not relocate it where an agent could repoint
     # the push.
     vaults = server_mod._vaults_json()
     assert str(stray) not in str(vaults), vaults
-    assert str(crew) in str(vaults), vaults
+    assert str(data_home) in str(vaults), vaults
     # The clone DATA, by contrast, is bulk per-instance content and DOES follow
     # MD_NOTEBOOK_HOME.
     assert str(stray) in str(server_mod._clone_root())
@@ -1081,8 +1081,8 @@ def test_default_home_follows_junction_home(monkeypatch, tmp_path: Path) -> None
     """An isolated instance keeps its own vaults instead of the production ones.
 
     Deriving the data root from ``Path.home()`` ignored ``JUNCTION_HOME``, so a
-    dev gateway (``JUNCTION_HOME=.kirocrew-dev``) would load and edit the real
-    ~/.kiro/crew notes. ``_default_home`` now routes through ``config_dir()``.
+    dev gateway (``JUNCTION_HOME=.junction-dev``) would load and edit the real
+    ~/.junction notes. ``_default_home`` now routes through ``config_dir()``.
     """
     from junction.apps.builtins.md_notebook import server as server_mod
 
@@ -2400,22 +2400,17 @@ def test_notebook_pat_is_behind_the_sensitive_path_floor() -> None:
     """
     from junction.security import is_sensitive_path
 
-    assert is_sensitive_path("~/.kiro/crew/workspace/md-notebook/pat") is True
-    # config_dir() can resolve to the legacy `.kirocrew` data-home on a migration
-    # fallback, and HOME follows it — the token must be protected there too.
-    assert is_sensitive_path("~/.kirocrew/workspace/md-notebook/pat") is True
+    assert is_sensitive_path("~/.junction/workspace/md-notebook/pat") is True
     # vaults.json stores each vault's on-disk localPath, which auto-sync trusts
     # for git add/commit/push. An agent that could rewrite it would repoint a
-    # vault at an unrelated repo, so it is behind the floor under both prefixes.
-    assert is_sensitive_path("~/.kiro/crew/workspace/md-notebook/vaults.json") is True
-    assert is_sensitive_path("~/.kirocrew/workspace/md-notebook/vaults.json") is True
+    # vault at an unrelated repo, so it is behind the floor.
+    assert is_sensitive_path("~/.junction/workspace/md-notebook/vaults.json") is True
     # settings.json carries `autoSync`, the bit that authorizes the background
     # loop's unattended push — an agent that could write it would flip pushing on
-    # without the operator, so it is behind the floor under both prefixes too.
-    assert is_sensitive_path("~/.kiro/crew/workspace/md-notebook/settings.json") is True
-    assert is_sensitive_path("~/.kirocrew/workspace/md-notebook/settings.json") is True
+    # without the operator, so it is behind the floor too.
+    assert is_sensitive_path("~/.junction/workspace/md-notebook/settings.json") is True
     # Notes themselves must stay readable — the floor covers the token, not the vault.
-    assert is_sensitive_path("~/.kiro/crew/workspace/md-notebook/vaults/v1/note.md") is False
+    assert is_sensitive_path("~/.junction/workspace/md-notebook/vaults/v1/note.md") is False
 
 
 def test_pat_header_is_scoped_to_github_only() -> None:

@@ -1004,7 +1004,7 @@ class TestStreamAndCollectThrottleFallback:
 
         # 4 same-model + 2 per candidate × 2 candidates
         assert call_count == (_TRANSIENT_RETRIES + 1) + 2 * FALLBACK_CANDIDATE_ATTEMPTS
-        story = getattr(ei.value, "_kc_fallback_story", "")
+        story = getattr(ei.value, "_jn_fallback_story", "")
         assert "fb-1" in story and "fb-2" in story
         assert "primary-model" in story
 
@@ -1028,7 +1028,7 @@ class TestStreamAndCollectThrottleFallback:
 
         assert call_count == _TRANSIENT_RETRIES + 1
         provider.set_model.assert_not_awaited()
-        assert not hasattr(ei.value, "_kc_fallback_story")
+        assert not hasattr(ei.value, "_jn_fallback_story")
 
     @pytest.mark.asyncio
     async def test_non_transient_error_mid_chain_propagates_immediately(self) -> None:

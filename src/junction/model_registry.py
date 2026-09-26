@@ -160,10 +160,8 @@ def _kiro_windows_cache_path() -> Path:
     Resolved lazily (not at import) so tests / JUNCTION_HOME overrides are
     honoured, and so a home-resolution failure never breaks module import.
     Routes through ``config_dir()`` (deferred import of the stdlib-only
-    ``config.paths`` leaf to avoid a cycle) so it follows the data-home move to
-    ``~/.kiro/crew`` instead of writing to the now-archived legacy ``~/.kirocrew``
-    — where no reader would ever consult it and which would re-create the very
-    directory the migration just archived.
+    ``config.paths`` leaf to avoid a cycle) so it lands in the same data home
+    (``~/.junction``, or ``JUNCTION_HOME``) every reader consults.
     """
     from junction.config.paths import config_dir
 

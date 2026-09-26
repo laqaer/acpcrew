@@ -78,7 +78,7 @@ _BACKEND_GUARDS = (
     # Under the third testpath root -- these were silently unscanned until
     # src/junction/apps/builtins was added to _BACKEND_ROOTS.
     "src/junction/apps/builtins/design_critique/tests/test_manifest.py",
-    "src/junction/apps/builtins/crew_companion/tests/test_manifest.py",
+    "src/junction/apps/builtins/desk_companion/tests/test_manifest.py",
     "src/junction/apps/builtins/ops_mission_control/tests/test_routes.py",
 )
 

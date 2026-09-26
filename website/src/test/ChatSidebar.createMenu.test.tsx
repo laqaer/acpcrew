@@ -129,7 +129,7 @@ describe('create-button caret menu', () => {
   })
 
   it('explains what each engineered mode does, at the point of choice', async () => {
-    // The moment a user cannot tell Autopilot from Crew Mode is the moment this
+    // The moment a user cannot tell Autopilot from Multitask Mode is the moment this
     // menu opens. Before this, the only explanation was a native title= on the
     // sidebar badge — i.e. visible only after the session already existed.
     renderSidebar()
@@ -176,23 +176,33 @@ describe('create-button caret menu', () => {
     expect(mocks.createChatSlot.mock.calls.some(c => c.includes('orchestrator'))).toBe(true)
   })
 
-  it('tags Crew Mode experimental where the mode is chosen, and only there', async () => {
-    // Crew Mode dispatches every message to a sub-session and relays a summary
-    // rather than the reply, so it does not yet read like a conversation. Until
-    // that is fixed the mode has to announce itself, and the only moment that
-    // helps is BEFORE the click — a warning on the resulting session's badge is
-    // read once the session already exists.
+  it('the Multitask Mode entry creates a multitask session', async () => {
+    // The slot mode is the wire value the gateway validates and persists, so the
+    // entry has to send exactly `multitask` — any other spelling is refused.
     renderSidebar()
     openCreateMenu()
-    const crewItem = (await screen.findByText('New Crew Mode chat')).closest('[role="menuitem"]')
-    expect(crewItem).not.toBeNull()
-    // Scoped to the crew item, not the menu: asserting the word merely appears
-    // somewhere would still pass if the tag drifted onto a sibling entry.
-    const tag = crewItem?.querySelector('[data-testid="crew-experimental-tag"]')
+    fireEvent.click(await screen.findByTestId('new-multitask-chat'))
+    await waitFor(() => expect(mocks.createChatSlot).toHaveBeenCalled())
+    expect(mocks.createChatSlot.mock.calls.some(c => c.includes('multitask'))).toBe(true)
+  })
+
+  it('tags Multitask Mode experimental where the mode is chosen, and only there', async () => {
+    // Multitask Mode dispatches every message to a sub-session and relays a
+    // summary rather than the reply, so it does not yet read like a conversation.
+    // Until that is fixed the mode has to announce itself, and the only moment
+    // that helps is BEFORE the click — a warning on the resulting session's badge
+    // is read once the session already exists.
+    renderSidebar()
+    openCreateMenu()
+    const multitaskItem = (await screen.findByTestId('new-multitask-chat')).closest('[role="menuitem"]')
+    expect(multitaskItem).not.toBeNull()
+    // Scoped to the multitask item, not the menu: asserting the word merely
+    // appears somewhere would still pass if the tag drifted onto a sibling entry.
+    const tag = multitaskItem?.querySelector('[data-testid="multitask-experimental-tag"]')
     expect(tag?.textContent).toBe('Experimental')
     // The neighbouring mode is NOT experimental; a tag that leaks onto it turns
     // a targeted caution into noise on a shipped feature.
     const autopilotItem = screen.getByText('New autopilot chat').closest('[role="menuitem"]')
-    expect(autopilotItem?.querySelector('[data-testid="crew-experimental-tag"]')).toBeNull()
+    expect(autopilotItem?.querySelector('[data-testid="multitask-experimental-tag"]')).toBeNull()
   })
 })

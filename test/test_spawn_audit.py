@@ -242,7 +242,7 @@ BENIGN_SPAWNS: frozenset[str] = frozenset(
         # KAS auth callback token fetch (--auth=acp-callback): a single fixed
         # argv ``[<kiro-cli>, "chat", "_", "get-kas-token"]`` with a 20s timeout,
         # no shell and no agent-influenced arguments — the subcommand tail is a
-        # module constant and the binary is the same kiro-cli Crew already spawns
+        # module constant and the binary is the same kiro-cli Junction already spawns
         # as its agent runtime (``resolve_kiro_cli``). Deliberately NOT
         # sandbox-routed: kiro-cli must reach its OWN auth/token store to mint the
         # KAS access token (same reason ``gh`` is not routed), which a sandbox

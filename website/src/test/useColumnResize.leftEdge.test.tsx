@@ -12,7 +12,7 @@ vi.mock('../hooks/useIsMobile', () => ({ useIsMobile: () => false }))
 import { useColumnResize } from '../hooks/useColumnResize'
 import ResizeHandle from '../components/ResizeHandle'
 
-const WIDTH_KEY = 'kc:test:left-edge-col-width'
+const WIDTH_KEY = 'jn:test:left-edge-col-width'
 const MIN = 300
 const MAX = 520
 const START = 400

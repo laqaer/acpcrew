@@ -122,7 +122,7 @@ on disk is reused, not rebuilt.
 
 | Dependency | Why | If missing |
 |---|---|---|
-| a speech provider | narration (none needed in silent mode) | reported, not auto-installed. piper counts as ready only with a voice model (`KC_VIDEO_PIPER_MODEL`), because `resolve_provider` needs one -- a binary alone would make the doctor claim a local default it will not actually pick. `auto` has no third-party fallback to reach for |
+| a speech provider | narration (none needed in silent mode) | reported, not auto-installed. piper counts as ready only with a voice model (`JUNCTION_VIDEO_PIPER_MODEL`), because `resolve_provider` needs one -- a binary alone would make the doctor claim a local default it will not actually pick. `auto` has no third-party fallback to reach for |
 | `ffmpeg` with **libx264** | transcode the capture, normalise clips | `pip install --user imageio-ffmpeg` (auto). The ffmpeg Playwright bundles is vp8/webm-only with no mp4 muxer, so the doctor checks for the encoder, not just the binary |
 | `ffprobe` | measures durations; the timeline depends on it | NOT provided by imageio-ffmpeg -- needs a full ffmpeg install, so the doctor marks it human-installable |
 | `playwright` + chromium | drive and record the real UI | `pip install --user playwright` + `playwright install chromium` (auto) |
@@ -237,15 +237,15 @@ This is worth stating plainly, because "brand slides plus a punch-in camera over
 screen capture" is a whole genre and a reader could reasonably ask whose look this is.
 
 **The palette is not a choice made here.** `useTheme.tsx` sets
-`DEFAULT_COLOR_THEME = 'kiro'`, so the Junction factory theme is what a viewer already sees, and
-the brand frames use its tokens verbatim from the inherited `:root` / `[data-theme="kiro-dark"]` block in
-`website/src/index.css`: `--bg:#0c0d12`, `--bg-elevated:#16171f`, `--accent:#e4a54a`,
-`--accent-hover:#f0b35c`, `--text-strong:#fafafa`, `--muted:#7f7f88`,
-`--border:#27272a`. **The capture is recorded on the same theme** -- the recorder seeds
-`mc-color-theme=kiro` and `mc-theme=dark` -- so a slide and the dashboard behind it are
-one product rather than two. Getting this wrong is visible: mixing a copper brand
-frame with a leftover purple dashboard is exactly what makes a film look assembled
-from parts.
+`DEFAULT_COLOR_THEME = 'junction'`, so the Junction factory theme is what a viewer already sees, and
+the brand frames use its tokens verbatim from the `:root` / `[data-theme="junction-dark"]` block in
+`website/src/index.css`: `--bg:#0b0e13`, `--bg-elevated:#161b24`, `--accent:#5c8dff`,
+`--accent-hover:#7ea5ff`, `--text-strong:#f3f6fa`, `--muted:#8591a3`,
+`--border:#232a35`. **The capture is recorded on the same theme** -- the recorder seeds
+`mc-color-theme=junction` and `mc-theme=dark` -- so a slide and the dashboard behind it are
+one product rather than two. Getting this wrong is visible: mixing a blue brand
+frame with a dashboard left on another theme is exactly what makes a film look
+assembled from parts.
 
 **The method is the distinctive part, not the look.** Everything here follows from one
 rule -- the voice is measured first and the picture is paced to it. The genre norm is
@@ -299,7 +299,7 @@ which is the level at which everyone shares it.
 7. **Do not mint a dashboard credential from the recorder.** A local safety policy
    blocks command lines pairing a product name with the word token, and moving that
    same mint into a child process routes around the control instead of satisfying
-   it. The operator hands the finished URL in `KC_VIDEO_TARGET_URL`; the recorder
+   it. The operator hands the finished URL in `JUNCTION_VIDEO_TARGET_URL`; the recorder
    only falls back to the bare pod URL, which is enough when the target asks for no
    credential.
 8. **A FRESH pod shows first-run modals**, and the gate is server-state driven: set

@@ -62,7 +62,7 @@ const server = createServer((req, res) => {
   }
 })
 
-const REPO = { owner: 'kirodotdev', repo: 'Junction' }
+const REPO = { owner: 'laqaer', repo: 'junction' }
 const ISO = '2026-08-01T18:00:00Z'
 
 /** Two open PRs, so a bulk selection is genuinely two rows.
@@ -73,7 +73,7 @@ const ISO = '2026-08-01T18:00:00Z'
 const PULLS = [
   {
     number: 1111, title: 'feat(issue-radar): act on pull requests from the app',
-    url: 'https://github.com/kirodotdev/KiroCrew/pull/1111', state: 'open', draft: false,
+    url: 'https://github.com/laqaer/junction/pull/1111', state: 'open', draft: false,
     labels: ['enhancement'], author: 'bolinchen', author_association: 'MEMBER',
     created_at: ISO, updated_at: ISO, closed_at: null, merged_at: null,
     assignees: [], requested_reviewers: ['kyleseaman'],
@@ -85,7 +85,7 @@ const PULLS = [
   },
   {
     number: 1102, title: 'fix(nav): keep the rail width across a reload',
-    url: 'https://github.com/kirodotdev/KiroCrew/pull/1102', state: 'open', draft: false,
+    url: 'https://github.com/laqaer/junction/pull/1102', state: 'open', draft: false,
     labels: ['bug'], author: 'kyleseaman', author_association: 'MEMBER',
     created_at: ISO, updated_at: ISO, closed_at: null, merged_at: null,
     assignees: [], requested_reviewers: [],
@@ -140,7 +140,7 @@ async function main() {
       return json(route, {
         repos: [{
           ...REPO, provider: 'github', host: 'github.com',
-          slug: 'kirodotdev/KiroCrew',
+          slug: 'laqaer/junction',
           permissions: { triage: true, push: true, maintain: false, admin: false },
         }],
       })
@@ -224,7 +224,7 @@ async function main() {
     if (path === '/api/themes') return json(route, { themes: [], installed: [] })
     if (path === '/api/agents') {
       return json(route, {
-        agents: [{ name: 'default', kiro_agent: 'junction', description: 'Default crew agent' }],
+        agents: [{ name: 'default', kiro_agent: 'junction', description: 'Default agent' }],
         default_agent: 'default',
       })
     }
@@ -266,10 +266,10 @@ async function main() {
       localStorage.setItem('mc-onboarded', '1')
       localStorage.setItem('mc-theme-mode', t)
       localStorage.setItem('mc-theme', t)
-      localStorage.setItem('kc:issue-radar:active-repo', JSON.stringify({
-        owner: 'kirodotdev', repo: 'Junction', provider: 'github', host: 'github.com',
+      localStorage.setItem('jn:issue-radar:active-repo', JSON.stringify({
+        owner: 'laqaer', repo: 'junction', provider: 'github', host: 'github.com',
       }))
-      localStorage.setItem('kc:issue-radar:ui-state', JSON.stringify({
+      localStorage.setItem('jn:issue-radar:ui-state', JSON.stringify({
         mainView: 'pulls', prStateFilter: 'open', prSelectedPull: 1111,
       }))
     }, theme)

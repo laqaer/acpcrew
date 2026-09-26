@@ -684,23 +684,24 @@ _403_HTML = (
     "*{{margin:0;padding:0;box-sizing:border-box}}"
     "body{{font-family:system-ui,-apple-system,sans-serif;display:flex;"
     "align-items:center;justify-content:center;height:100vh;"
-    "background:#f8fafc;color:#1e293b}}"
+    "background:#f4f6f9;color:#0e1521}}"
     ".c{{text-align:center;max-width:420px;padding:24px}}"
-    ".logo{{font-size:18px;font-weight:700;letter-spacing:0.18em;margin-bottom:16px;color:#e4a54a}}"
+    ".logo{{font-size:18px;font-weight:800;letter-spacing:0.18em;margin-bottom:16px;color:#1f55ec}}"
     "h1{{font-size:20px;margin-bottom:8px}}"
-    "p{{color:#64748b;font-size:13px;line-height:1.6;margin-bottom:16px}}"
-    "code{{background:#e2e8f0;padding:2px 6px;border-radius:4px;color:#c2410c;"
+    "p{{color:#5d6878;font-size:13px;line-height:1.6;margin-bottom:16px}}"
+    "code{{background:#e7eefe;padding:2px 6px;border-radius:4px;color:#1847d0;"
     "font-size:13px}}"
-    "input{{width:100%;padding:10px 12px;border-radius:8px;border:1px solid #cbd5e1;"
-    "background:#fff;color:#1e293b;font-size:14px;margin-bottom:10px;outline:none}}"
-    "input:focus{{border-color:#f97316}}"
+    "input{{width:100%;padding:10px 12px;border-radius:8px;border:1px solid #c8d0db;"
+    "background:#fff;color:#0e1521;font-size:14px;margin-bottom:10px;outline:none}}"
+    "input:focus{{border-color:#1f55ec}}"
     "button{{padding:8px 24px;border-radius:8px;border:none;cursor:pointer;"
-    "background:#f97316;color:#fff;font-size:14px;font-weight:600}}"
-    "button:hover{{background:#ea580c}}"
+    "background:#1f55ec;color:#fff;font-size:14px;font-weight:600}}"
+    "button:hover{{background:#1847d0}}"
     ".err{{color:#dc2626;font-size:12px;margin-top:8px;display:none}}"
-    "@media(prefers-color-scheme:dark){{body{{background:#0f1117;color:#e2e8f0}}"
-    "p{{color:#94a3b8}}code{{background:#1e293b;color:#f97316}}"
-    "input{{border-color:#334155;background:#1e293b;color:#e2e8f0}}"
+    "@media(prefers-color-scheme:dark){{body{{background:#0b0e13;color:#d8dee7}}"
+    ".logo{{color:#5c8dff}}p{{color:#8591a3}}code{{background:#161f33;color:#9dbcff}}"
+    "input{{border-color:#313a48;background:#11151c;color:#d8dee7}}"
+    "button{{background:#5c8dff;color:#06112b}}button:hover{{background:#7ea5ff}}"
     ".err{{color:#ef4444}}}}"
     "</style></head><body>"
     "<div class='c'>"
@@ -1052,7 +1053,7 @@ def generate_app_secret() -> str:
 def validate_app_secret(app_name: str, provided_secret: str) -> bool:
     """Validate an app secret against the stored secret on disk.
 
-    Reads ``~/.kiro/crew/apps/{app_name}/.app_secret`` and performs
+    Reads ``~/.junction/apps/{app_name}/.app_secret`` and performs
     constant-time comparison via :func:`hmac.compare_digest`.
     Returns ``False`` if the file doesn't exist or doesn't match.
     """
@@ -1069,7 +1070,7 @@ def validate_app_secret(app_name: str, provided_secret: str) -> bool:
 
 
 def write_app_secret(app_name: str, secret: str) -> None:
-    """Write an app secret to ``~/.kiro/crew/apps/{app_name}/.app_secret``.
+    """Write an app secret to ``~/.junction/apps/{app_name}/.app_secret``.
 
     Creates the directory if needed and sets file mode to 0o600.
     """
@@ -1924,7 +1925,7 @@ def token_auth_middleware(
 
     *internal_paths* are exact paths that internal processes (mcp-core,
     doctor) call — these require loopback AND a matching
-    ``X-Internal-Secret`` header (read from ``~/.kiro/crew/.local_secret``).
+    ``X-Internal-Secret`` header (read from ``~/.junction/.local_secret``).
     Non-loopback access to these paths is always denied.
 
     *mixed_internal_paths* are paths called by BOTH internal processes

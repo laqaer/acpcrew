@@ -78,45 +78,11 @@ src/junction/deploy/skills/artifact-deploy/MIGRATION.md:.*meshclaw
 # Deploy scan module (detects internal content - the regex IS the feature)
 src/junction/deploy/scan.py
 
-# macOS Apple bundle id (com.amazon.kiro.crew): the app's signed identity, baked
-# into every shipped .app and ONBOARDED with the code-signing service per exact
-# identifier. Renaming it is a coordinated task (re-onboard the signing identity
-# first), NOT a string scrub — kept intentionally. Not a secret (README.md).
-packaging/signing/generate-manifest.py:.*com\.amazon\.kiro\.crew
-packaging/signing/manifest-template.json:.*com\.amazon\.kiro\.crew
-packaging/signing/sign-dmg.sh:.*com\.amazon\.kiro\.crew
-packaging/build-desktop.sh:.*com\.amazon\.kiro\.crew
-docs/build/signing-runbook.md:.*com\.amazon\.kiro\.crew
-# Same signed identity, in the computer-use self-denylist: Junction's own
-# dashboard can flip this feature's primary enable, edit the denied-command
-# opt-out and change approval mode — all reachable ONLY out-of-band precisely so
-# the agent cannot reach them. Refusing our own bundle as an automation target is
-# what stops the agent from clicking its way around those keystone protections,
-# so the id must be matched literally. Anchored to the one file that needs it.
-src/junction/computer_use/policy.py:.*com\.amazon\.kiro\.crew
-
 # Public AWS documentation URLs (docs.aws.amazon.com / aws.amazon.com) — generic
 # AWS product references, not internal couplings.
 src/junction/cli_cloud.py:.*aws\.amazon\.com/cli
 src/junction/cloud/aws.py:.*docs\.aws\.amazon\.com
 src/junction/cloud/ssm.py:.*docs\.aws\.amazon\.com
-
-# Code-of-conduct enforcement contact. ``opensource-codeofconduct@amazon.com`` is
-# the PUBLISHED intake for the Amazon Open Source Code of Conduct
-# (https://aws.github.io/code-of-conduct), printed in that public policy and in
-# every Amazon-published OSS repo that adopts it. It is a public-facing address,
-# not an employee alias or an internal coupling, and the policy is unusable
-# without naming where reports go. Line-anchored so a NEW @amazon.com address
-# anywhere in this file is still caught.
-CODE_OF_CONDUCT.md:.*opensource-codeofconduct@amazon\.com
-
-# Security-issue intake contact. ``kiro-crew-security-support@amazon.com`` is the
-# monitored shared mailbox that receives vulnerability reports; the project-domain
-# address it replaces is not a monitored inbox. Like the code-of-conduct address
-# above it is a published, public-facing intake — SECURITY.md is unusable without
-# naming where reports go — not an employee alias or an internal coupling.
-# Line-anchored so a NEW @amazon.com address anywhere in this file is still caught.
-SECURITY.md:.*kiro-crew-security-support@amazon\.com
 
 # Live public AWS service class-name string the dashboard credit pill calls
 # (CodeWhisperer RTS GetUsageLimits) — a functional API identifier, not a leak.
@@ -164,16 +130,13 @@ src/junction/agent.py:.*AIM install neutralized
 src/junction/agent.py:.*Path.home() / "\.aim"
 src/junction/agent.py:.*pkg / "\.aim"
 
-# Two more pre-existing, OSS-inert ``.aim`` reads that the path-BUILDING half of
-# AIM_PATTERN newly surfaces (the ``~/.aim`` literal alone missed them). Both are
+# One more pre-existing, OSS-inert ``.aim`` read that the path-BUILDING half of
+# AIM_PATTERN surfaces (the ``~/.aim`` literal alone misses it):
+# slack/handler.py reads ``~/.aim/cc-plugins`` for cc-plugin agent names. It is
 # the same deferred follow-up as agent.py above, allowlisted line-anchored so the
-# gate still catches a NEW one:
-#   - slack/handler.py: reads ``~/.aim/cc-plugins`` for cc-plugin agent names.
-#   - dashboard/handlers/files.py: ``.aim`` is one element of a directory-SKIP set
-#     (a file-indexer exclusion), so it is an inert name, not a coupling.
+# gate still catches a NEW one.
 src/junction/slack/handler.py:.*~/\.aim/cc-plugins
 src/junction/slack/handler.py:.*Path.home() / "\.aim" / "cc-plugins"
-src/junction/dashboard/handlers/files.py:.*"\.kirocrew", "\.kiro", "\.aim"
 
 # Public AWS console deep-link in the Ops Mission Control CloudWatch adapter.
 # ``<region>.console.aws.amazon.com`` is the PUBLIC AWS console — the same domain

@@ -6,7 +6,7 @@
       `home_dir()`, `env_file()`; optional `repo_hint` (`JUNCTION_POD_REPO`) and
       optional `worktrees_root` (`JUNCTION_POD_WORKTREES_ROOT`, unset by default);
       defaults: live port `5476`, base `7810`, prefix `junction-pod`, roots under
-      `~/.kirocrew-pods` / `~/.kirocrew/pods`. No `checkout()` — resolution is
+      `~/.junction-pods` / `~/.junction/pods`. No `checkout()` — resolution is
       git-native (see 2.0).
 - [ ] 1.3 `__init__.py` — re-export `PodConfig, PodError, derive_port,
       resolve_checkout, pod_home, pod_unit`.

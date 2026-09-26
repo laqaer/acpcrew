@@ -75,9 +75,8 @@ taken. Agents must not buy a domain or change DNS.
 
 ### M4 — identity leftovers
 
-- Package import path is `junction`. Env is `JUNCTION_HOME`. A new install
-  uses `~/.junction`. An older data directory is still opened when the new
-  one is absent, and it stays on the security floor.
+- Package import path is `junction`. Env is `JUNCTION_HOME`. The one data
+  home is `~/.junction`.
 - GitHub slug is `laqaer/junction`. Site is https://getjunction.dev.
 - Catalog-wide dashboard i18n (`{{productName}}` already binds new copy)
   still has older path spellings in some locale strings.

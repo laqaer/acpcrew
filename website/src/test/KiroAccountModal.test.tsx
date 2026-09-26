@@ -36,7 +36,7 @@ describe('KiroAccountModal', () => {
           costUsd: 0,
           bonusCredits: [
             { name: 'Welcome bonus', used: 500, total: 500, daysLeft: 13 },
-            { name: 'Amb-Kiro-crew-test', used: 185.84, total: 2_000, daysLeft: 153 },
+            { name: 'Amb-junction-test', used: 185.84, total: 2_000, daysLeft: 153 },
           ],
         }}
       />,
@@ -51,7 +51,7 @@ describe('KiroAccountModal', () => {
     expect(screen.getByText('$0.00')).toBeInTheDocument()
     expect(screen.getByText('Bonus credits')).toBeInTheDocument()
     expect(screen.getByText('Welcome bonus')).toBeInTheDocument()
-    expect(screen.getByText('Amb-Kiro-crew-test')).toBeInTheDocument()
+    expect(screen.getByText('Amb-junction-test')).toBeInTheDocument()
     expect(screen.getByText(/Remaining credit balance: 1,814.16/)).toBeInTheDocument()
     expect(screen.getByText(/Used: 185.84 \/ 2,000/)).toBeInTheDocument()
     expect(screen.getByText(/Days until expiration: 153/)).toBeInTheDocument()

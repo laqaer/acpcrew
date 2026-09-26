@@ -53,7 +53,7 @@ async function mockShot(browser, w, h) {
   return buf
 }
 
-const UPLOAD_DIR = '/home/user/.kiro/crew/uploads'
+const UPLOAD_DIR = '/home/user/.junction/uploads'
 const PATHS = Array.from({ length: N_IMAGES }, (_, i) => `${UPLOAD_DIR}/shot-${i + 1}.png`)
 
 const slots = [{

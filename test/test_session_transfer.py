@@ -126,7 +126,7 @@ def test_bundle_appends_unflushed_tail():
 def test_durably_injected_row_is_not_duplicated_in_the_bundle():
     """Regression for #4684 — mirrors #4137's duplication test on the read path.
 
-    A durable injector (``cron_inject``/``workflow_inject``/``crew_chat``) puts
+    A durable injector (``cron_inject``/``workflow_inject``/``multitask_chat``) puts
     the same row into the window AND onto disk with one ``meta.mid``, without a
     save — so ``_disk_window_len`` does not move while the disk read already
     returns the row. Sizing the un-flushed tail as

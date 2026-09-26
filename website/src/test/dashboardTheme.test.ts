@@ -3,10 +3,10 @@ import {
   adoptDashboardTheme,
   applyThemeId,
   extractStylesheetHrefs,
-} from '../apps/crew-companion/dashboardTheme'
+} from '../apps/desk-companion/dashboardTheme'
 
 /**
- * Pins the fix for the crew-companion overlay adopting the dashboard theme:
+ * Pins the fix for the desk-companion overlay adopting the dashboard theme:
  *  - the RIGHT stylesheet(s) are discovered (root cause of the fallback #2a2a2a menu),
  *  - `data-theme` is copied so variables resolve to the user's theme, not :root light,
  *  - window transparency survives adopting the dashboard's body-painting stylesheet.
@@ -94,19 +94,19 @@ describe('applyThemeId — copies the dashboard theme selection onto <html>', ()
   })
 
   it('resolves `system` preference through prefers-color-scheme: dark', () => {
-    localStorage.setItem('mc-color-theme', 'kiro')
+    localStorage.setItem('mc-color-theme', 'junction')
     localStorage.setItem('mc-theme', 'system')
     window.matchMedia = vi.fn().mockReturnValue({ matches: true }) as unknown as typeof window.matchMedia
     applyThemeId()
-    expect(document.documentElement.dataset.theme).toBe('kiro-dark')
+    expect(document.documentElement.dataset.theme).toBe('junction-dark')
     expect(document.documentElement.dataset.mode).toBe('dark')
   })
 
-  it('falls back to the kiro default when nothing is persisted', () => {
+  it('falls back to the junction default when nothing is persisted', () => {
     window.matchMedia = vi.fn().mockReturnValue({ matches: false }) as unknown as typeof window.matchMedia
     applyThemeId()
-    // kiro + system(light) → kiro-light
-    expect(document.documentElement.dataset.theme).toBe('kiro-light')
+    // junction + system(light) → junction-light
+    expect(document.documentElement.dataset.theme).toBe('junction-light')
   })
 })
 

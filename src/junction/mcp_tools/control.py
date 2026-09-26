@@ -35,7 +35,7 @@ from junction.validation import (
     MONITOR_START_SCHEMA,
     MONITOR_UPDATE_SCHEMA,
     REGISTER_HOOK_SCHEMA,
-    SELECT_CREW_SCHEMA,
+    SELECT_AGENT_SCHEMA,
     SET_PROJECT_SCHEMA,
     SUGGEST_FOLLOWUP_SCHEMA,
     TASK_RUN_SCHEMA,
@@ -94,26 +94,26 @@ def schemas() -> list[dict[str, Any]]:
             },
         },
         {
-            "name": "select_crew",
+            "name": "select_agent",
             "description": (
-                "Orchestrator crew routing. Call with NO argument to get the roster of "
-                "selectable crews (name + triggers) so you can decide whether a specialist "
-                "crew fits the task better than handling it yourself. Call with `crew` set "
-                "to a roster name to bind it: returns the crew's resolved {workspace, "
+                "Orchestrator agent routing. Call with NO argument to get the roster of "
+                "selectable agents (name + triggers) so you can decide whether a specialist "
+                "agent fits the task better than handling it yourself. Call with `agent` set "
+                "to a roster name to bind it: returns the agent's resolved {workspace, "
                 "memory_store, kiro_agent, model}, which you then run via "
-                "spawn_run(agent=<crew>). Selection rules: (1) pick a crew ONLY when its "
+                "spawn_run(agent=<name>). Selection rules: (1) pick an agent ONLY when its "
                 "triggers clearly and specifically match the task with high confidence; "
-                "(2) if no crew is a strong match, do NOT route — fall back to the default "
-                "crew (default_agent); (3) crews without triggers are omitted from the "
+                "(2) if no agent is a strong match, do NOT route — fall back to the default "
+                "agent (default_agent); (3) agents without triggers are omitted from the "
                 "roster and are never auto-selected."
             ),
             "inputSchema": {
                 "type": "object",
                 "properties": {
-                    "crew": {
+                    "agent": {
                         "type": "string",
                         "description": (
-                            "Crew name to bind. Omit or leave empty to list the roster instead."
+                            "Agent name to bind. Omit or leave empty to list the roster instead."
                         ),
                     },
                 },
@@ -636,9 +636,9 @@ def wait(name: str, args: dict[str, Any]) -> str:
     return f"Waited {seconds}s. Resuming: {reason_safe}"
 
 
-def select_crew(name: str, args: dict[str, Any]) -> str:
-    args = validate_tool_args(args, SELECT_CREW_SCHEMA)
-    return mcp_core._do_select_crew(str(args.get("crew") or ""))
+def select_agent(name: str, args: dict[str, Any]) -> str:
+    args = validate_tool_args(args, SELECT_AGENT_SCHEMA)
+    return mcp_core._do_select_agent(str(args.get("agent") or ""))
 
 
 def register_hook(name: str, args: dict[str, Any]) -> str:
@@ -911,7 +911,7 @@ def suggest_followup(name: str, args: dict[str, Any]) -> str:
 HANDLERS: dict[str, Callable[[str, dict[str, Any]], str]] = {
     "task_run": task_run,
     "wait": wait,
-    "select_crew": select_crew,
+    "select_agent": select_agent,
     "register_hook": register_hook,
     "autonudge_stop": autonudge_stop,
     "ask_question": ask_question,

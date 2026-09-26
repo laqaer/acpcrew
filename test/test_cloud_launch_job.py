@@ -163,7 +163,7 @@ class TestRunLaunch:
         out = lj.run_launch(job, s, eng)
         assert out.status == lj.DONE
         assert out.instance_id == "i-0abc123456789def0"
-        assert out.tag.startswith("kc-")
+        assert out.tag.startswith("jn-")
         assert all(st.state == lj.STEP_DONE for st in out.steps)
         assert out.signin_detected is True
         assert [c[0] for c in eng.calls] == ["preflight", "provision", "begin_signin", "register"]
@@ -224,15 +224,15 @@ class TestRunLaunch:
         assert ("teardown", out.tag) in eng.calls
         assert "was removed" in out.error
 
-    def test_a_failure_after_provisioning_does_not_tear_down_the_crew(self, tmp_path):
-        # Once provisioning succeeded the crew exists; a later-step failure (register)
+    def test_a_failure_after_provisioning_does_not_tear_down_the_instance(self, tmp_path):
+        # Once provisioning succeeded the instance exists; a later-step failure (register)
         # must NOT delete it — register even names it so the user can recover it. Only
         # a STEP_PROVISION failure rolls back.
         s = _store(tmp_path)
         job = s.create(profile="dev", region="us-east-1", size_key="balanced")
         eng = FakeEngine(
             handle=FakeHandle(already=True),
-            register_exc=RuntimeError("could not add to your crews (billing)"),
+            register_exc=RuntimeError("could not add to your instances (billing)"),
         )
         out = lj.run_launch(job, s, eng)
         assert out.status == lj.FAILED
@@ -317,7 +317,7 @@ class TestFilePermissions:
 class TestRealSigninHandleFailures:
     """A sign-in that cannot be confirmed must not fail the job: run_launch would
     return before STEP_CONNECT, leaving a provisioned, billing instance that was
-    never registered and so never appears in the crew list."""
+    never registered and so never appears in the instance list."""
 
     def _handle(self, monkeypatch, resume_exc=None):
         from junction.cloud import launch_engine as le
@@ -345,15 +345,15 @@ class TestRealSigninHandleFailures:
 
     def test_a_non_aws_failure_is_also_survivable(self, monkeypatch):
         # These helpers shell out, so an exec/sandbox failure arrives as an
-        # unrelated exception type — it must not strand the crew either.
+        # unrelated exception type — it must not strand the instance either.
         h = self._handle(monkeypatch, resume_exc=RuntimeError("no sandbox backend"))
         assert h.wait(threading.Event()) is False
 
-    def test_a_failure_starting_device_login_does_not_strand_the_crew(self, monkeypatch):
-        # start_device_login shells out to SSM. If it raises in the constructor, the
-        # job used to fail BEFORE register() — stranding a provisioned, billing
-        # instance outside the crew list. The handle must instead come back empty and
-        # unconfirmed so the launch still registers the crew.
+    def test_a_failure_starting_device_login_does_not_strand_the_instance(self, monkeypatch):
+        # start_device_login shells out to SSM. If it raised out of the constructor,
+        # the job would fail BEFORE register() — stranding a provisioned, billing
+        # instance outside the instance list. The handle must instead come back empty
+        # and unconfirmed so the launch still registers the instance.
         from junction.cloud import launch_engine as le
 
         def _boom(*a, **k):
@@ -369,15 +369,13 @@ class TestRealSigninHandleFailures:
 
 
 class TestRealEngineGatewayPort:
-    """A provisioned crew takes the stock port on BOTH ends.
+    """A provisioned instance takes the stock port on BOTH ends.
 
-    The launch engine once allocated a bespoke gateway port because the tunnel
-    forced local_port == remote_port and hard-failed when that port was busy —
-    the operator's own gateway usually owns the default, so a crew registered on
-    it could never be connected. The hub now picks its local forward port
-    independently, so crews share the stock remote port: the stack binds its
-    DashboardPort default, the registry records its matching default, and no
-    allocation step exists to reintroduce.
+    The hub picks its local forward port independently of the remote one, so
+    the operator's own gateway owning the default local port never blocks a
+    connection, and every remote Junction shares the stock remote port: the
+    stack binds its DashboardPort default, the registry records its matching
+    default, and there is no per-launch port allocation step.
     """
 
     def _engine(self, monkeypatch):
@@ -397,12 +395,12 @@ class TestRealEngineGatewayPort:
         le, seen = self._engine(monkeypatch)
         eng = le.RealLaunchEngine()
 
-        eng.provision(tag="kc-1", size_key="balanced", profile="", region="us-east-1")
-        eng.register(instance_id="i-0abc", tag="kc-1", profile="", region="us-east-1")
+        eng.provision(tag="jn-1", size_key="balanced", profile="", region="us-east-1")
+        eng.register(instance_id="i-0abc", tag="jn-1", profile="", region="us-east-1")
 
         # Neither end may pass an override: the stack's DashboardPort default
         # and register_instance's remote_port default name the SAME port (the
-        # stock dashboard port), which is what lets one crew reach the other.
+        # stock dashboard port), which is what lets the tunnel reach the gateway.
         assert "dashboard_port" not in seen
         assert "remote_port" not in seen["reg"]
 
@@ -412,7 +410,7 @@ class TestRealEngineGatewayPort:
         Both ends resolve independently -- the stack binds the template's
         ``DashboardPort`` Default, the registry records ``register_instance``'s
         signature default -- so nothing at runtime checks they agree. A drift in
-        either literal ships crews whose tunnel forwards to a port nothing is
+        either literal ships instances whose tunnel forwards to a port nothing is
         listening on, with every other test green. This is the one place the two
         numbers are compared.
         """
@@ -489,12 +487,12 @@ class TestRealEngineRegistration:
 
         with pytest.raises(RuntimeError) as err:
             le.RealLaunchEngine().register(
-                instance_id="i-0abc", tag="kc-3f9a", profile="", region="us-east-1"
+                instance_id="i-0abc", tag="jn-3f9a", profile="", region="us-east-1"
             )
 
         # The instance exists and is billing, so the message must name it.
         assert "i-0abc" in str(err.value)
-        assert "kc-3f9a" in str(err.value)
+        assert "jn-3f9a" in str(err.value)
         assert "billing" in str(err.value)
 
     def test_a_successful_registration_returns_quietly(self, monkeypatch):
@@ -503,12 +501,12 @@ class TestRealEngineRegistration:
         monkeypatch.setattr(le.connect_mod, "register_instance", lambda *a, **k: "inst-7")
 
         le.RealLaunchEngine().register(
-            instance_id="i-0abc", tag="kc-3f9a", profile="", region="us-east-1"
+            instance_id="i-0abc", tag="jn-3f9a", profile="", region="us-east-1"
         )
 
 
 class TestCancelRollsBackTheStack:
-    """Cancellation is only observed between steps and the crew is registered last, so
+    """Cancellation is only observed between steps and the instance is registered last, so
     a cancel after provisioning must delete the stack — otherwise a billing instance
     survives that the dashboard never lists."""
 

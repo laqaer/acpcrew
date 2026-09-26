@@ -600,9 +600,9 @@ class TestDefaultHomeDetection:
     def test_real_home_spelled_explicitly_is_default(self, monkeypatch):
         from pathlib import Path
 
-        from junction.config.paths import CONFIG_DIR_LEAF, KIRO_BASE_DIR_NAME
+        from junction.config.paths import CONFIG_DIR_NAME
 
-        real = Path.home() / KIRO_BASE_DIR_NAME / CONFIG_DIR_LEAF
+        real = Path.home() / CONFIG_DIR_NAME
         monkeypatch.setenv("JUNCTION_HOME", str(real))
         assert beacon.is_default_home() is True
 
@@ -1133,12 +1133,23 @@ class TestSnapshotAndPortabilityRegistration:
 
 
 class TestConfigDefaults:
-    def test_beacon_on_by_default_with_https_endpoint(self):
+    def test_no_collector_ships_so_a_default_install_sends_nothing(self, monkeypatch):
+        """The flag defaults on, but Junction ships no collector.
+
+        An empty endpoint is what keeps a default install silent: ``send``
+        returns before it builds a request, so no network call can happen.
+        """
         from junction.config.loader import TelemetryConfig
 
         cfg = TelemetryConfig()
         assert cfg.beacon_enabled is True
-        assert cfg.beacon_endpoint.startswith("https://")
+        assert cfg.beacon_endpoint == ""
+
+        def _no_network(*_a, **_k):
+            raise AssertionError("a default install must not open a connection")
+
+        monkeypatch.setattr(beacon.urllib.request, "urlopen", _no_network)
+        assert beacon.send(cfg.beacon_endpoint, "1.0.0", enabled=True, acked=True) is False
 
     def test_a_default_install_actually_sends(self, _isolated_home):
         """DEFAULT-ON, end to end — the whole suppression chain, not just the flag.

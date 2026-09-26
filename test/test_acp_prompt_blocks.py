@@ -230,10 +230,10 @@ class TestPlatformPathGrammar:
         be the path itself (openable via ``open()`` on Windows), not a mangled
         span, or the agent silently receives no image block.
         """
-        text = "![image](//fileserver/home/me/.kiro/crew/uploads/shot.png)"
+        text = "![image](//fileserver/home/me/.junction/uploads/shot.png)"
         m = prompt_blocks._WINDOWS_PATH_RE.search(text)
         assert m is not None
-        assert m.group(1) == "//fileserver/home/me/.kiro/crew/uploads/shot.png"
+        assert m.group(1) == "//fileserver/home/me/.junction/uploads/shot.png"
 
     def test_windows_pattern_ignores_urls(self):
         """``//`` acceptance must not make ``https://host/x.png`` a candidate."""
@@ -277,13 +277,13 @@ class TestUncProbeGate:
         """Roaming profile: the data home ITSELF is a UNC share."""
         monkeypatch.setattr(
             "junction.config.paths.data_home",
-            lambda: Path(r"\\fileserver\home\me\.kiro\crew"),
+            lambda: Path(r"\\fileserver\home\me\.junction"),
         )
         allowed = hooks.unc_probe_allowed(
-            r"\\fileserver\home\me\.kiro\crew\uploads\shot.png"
+            r"\\fileserver\home\me\.junction\uploads\shot.png"
         )
         forward = hooks.unc_probe_allowed(
-            "//fileserver/home/me/.kiro/crew/uploads/shot.png"
+            "//fileserver/home/me/.junction/uploads/shot.png"
         )
         # normcase/normpath only fold separators and case on Windows, so the
         # cross-separator equivalence holds there; on POSIX the gate is never
@@ -295,7 +295,7 @@ class TestUncProbeGate:
     def test_sibling_share_on_same_server_is_refused(self, monkeypatch):
         monkeypatch.setattr(
             "junction.config.paths.data_home",
-            lambda: Path(r"\\fileserver\home\me\.kiro\crew"),
+            lambda: Path(r"\\fileserver\home\me\.junction"),
         )
         if os.name == "nt":
             assert hooks.unc_probe_allowed(r"\\fileserver\other\x.png") is False

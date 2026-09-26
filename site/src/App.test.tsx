@@ -14,6 +14,6 @@ describe('App', () => {
     expect(text).toContain('Junction');
     expect(text).toContain('junction');
     expect(text).not.toContain('👻');
-    expect(text).not.toMatch(/Kiro Crew/);
+    expect(text).not.toMatch(new RegExp(['kiro', 'crew'].join('[\\s._/-]*'), 'i'));
   });
 });

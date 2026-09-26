@@ -29,6 +29,11 @@ from pathlib import Path
 from typing import TYPE_CHECKING, NamedTuple
 from urllib.parse import parse_qs, unquote, unquote_plus, urlparse
 
+from junction.config.paths import (
+    CONFIG_DIR_NAME,
+    RETIRED_AUTH_STAGING_NAME,
+    RETIRED_DATA_HOME_NAMES,
+)
 from junction.executors import maintenance_executor
 from junction.sel import SecurityEvent, SecurityEventLog
 from junction.trust_patterns import ENV_ASSIGNMENT_RE
@@ -143,14 +148,14 @@ BUILTIN_DENIED_RULES: list[DeniedCommandRule] = [
         ),
     ),
     DeniedCommandRule(
-        id="credential-exfil-kirocrew-token",
+        id="credential-exfil-junction-token",
         # Enforced by BOTH the regex tier and the argv-structural floor
         # (``_is_credential_mint``) -- a union, so neither can fail open alone.
         # This pattern is the raw-text half: it still sees inside a nested shell
         # payload (``bash -c "… token"``) and covers the case where tokenizing
         # fails outright.  The name must be in COMMAND POSITION -- start of input or
         # after a separator, optionally quoted or path-qualified -- so the word
-        # merely APPEARING in another command's arguments (``echo kirocrew token``,
+        # merely APPEARING in another command's arguments (``echo junction token``,
         # ``git commit -m '… token …'``) is not a mint.  The gap then accepts
         # anything up to a command separator (``; & |``), a comment (``#``), a
         # redirect (``>``), a path separator (``/``) or a glob (``*``); the last two
@@ -159,26 +164,24 @@ BUILTIN_DENIED_RULES: list[DeniedCommandRule] = [
         # ``token_auth.py`` from matching at all.  The forms this half misses on
         # purpose (a redirect between name and verb, a quoted verb) are the floor's.
         pattern=(
-            "(?:\\A|[;&|\\n`]|\\$\\()[\\s\"'(]*"
-            "[\\w.:/\\\\-]*(?:kiro[-.]?crew|junction|acpcrew)\\b[^|;&#>/*]*\\btoken\\b"
+            "(?:\\A|[;&|\\n`]|\\$\\()[\\s\"'(]*[\\w.:/\\\\-]*junction\\b[^|;&#>/*]*\\btoken\\b"
         ),
         category="credential-exfil",
         description=(
-            "Blocks the `junction token` / `kirocrew token` CLI, which mints a signed dashboard "
-            "access token an attacker could use to authenticate to the gateway. Matches the CLI "
-            "name (including public aliases `junction` and `acpcrew`) and the token verb within "
-            "one command segment. The argv floor additionally covers `python -m junction ... "
-            "token`."
+            "Blocks the `junction token` CLI, which mints a signed dashboard access token an "
+            "attacker could use to authenticate to the gateway. Matches the CLI name and the "
+            "token verb within one command segment. The argv floor additionally covers "
+            "`python -m junction ... token`."
         ),
     ),
     DeniedCommandRule(
-        id="credential-exfil-kirocrew-token-argv",
+        id="credential-exfil-junction-token-argv",
         # Companion to the rule above, for the case a command-text matcher cannot
         # otherwise reach: an INTERPRETER payload that spawns the CLI through a
         # library call rather than as a shell word --
-        # ``python -c "subprocess.run(['kirocrew','token'])"``,
-        # ``node -e 'execFileSync("kirocrew",["token"])'``,
-        # ``perl -e 'system("kirocrew","token")'``.  The floor cannot help here: the
+        # ``python -c "subprocess.run(['junction','token'])"``,
+        # ``node -e 'execFileSync("junction",["token"])'``,
+        # ``perl -e 'system("junction","token")'``.  The floor cannot help here: the
         # payload is one opaque token to the shell tokenizer and its contents are
         # Python/JS, not shell.
         #
@@ -189,11 +192,11 @@ BUILTIN_DENIED_RULES: list[DeniedCommandRule] = [
         # is made of, since an argv literal may carry global options between the
         # program and the verb -- deliberately NOT ``.``, ``*``, ``/`` or
         # ``>``.  That is what keeps a regex LITERAL quoting this very rule
-        # (``re.search(r'.*kirocrew.*token', cmd)``) and prose mentioning both words
+        # (``re.search(r'.*junction.*token', cmd)``) and prose mentioning both words
         # from matching, both of which are recorded false positives.
         #
         # Accepted over-block from that widening: a quoted LIST that merely contains
-        # both words as data (``print(['kirocrew', 'x', 'token'])``) also matches.
+        # both words as data (``print(['junction', 'x', 'token'])``) also matches.
         # That direction is the safe one -- a visible refusal, not a silent bypass.
         # Residual limit, stated rather than implied: an interpreter that ASSEMBLES the
         # name at runtime (string concatenation, a base64 blob, an HTTP call to the
@@ -203,7 +206,7 @@ BUILTIN_DENIED_RULES: list[DeniedCommandRule] = [
         pattern=(
             "(?:"
             # (a) argv literal: the two words as adjacent QUOTED arguments.
-            "['\"][\\w.:/\\\\-]*(?:kiro[-.]?crew|junction|acpcrew)[\\w.]*['\"]"
+            "['\"][\\w.:/\\\\-]*junction[\\w.]*['\"]"
             "[\\s,\\[\\]\\(\\)+*'\"=\\w-]*['\"]token['\"]"
             # (b) SINK-QUALIFIED single string: the two words inside ONE quoted
             # string, but only as the argument of a call that EXECUTES it.  The
@@ -217,16 +220,16 @@ BUILTIN_DENIED_RULES: list[DeniedCommandRule] = [
             "|child_process\\.exec\\w*|exec\\w*sync|spawn\\w*"
             "|kernel\\.system|io\\.popen)"
             "\\s*\\(?\\s*[a-z]{0,2}['\"][^'\"]*"
-            "\\b(?:kiro[-.]?crew|irocrew|junction|acpcrew)\\b"
+            "(?:\\[j\\]unction|\\bjunction)\\b"
             "[^'\"]*\\btoken\\b"
             ")"
         ),
         category="credential-exfil",
         description=(
-            "Blocks an interpreter payload that spawns the `kirocrew token` credential mint "
+            "Blocks an interpreter payload that spawns the `junction token` credential mint "
             "through a library call rather than as a shell command -- the CLI name and the "
             "token verb as adjacent QUOTED arguments, as in "
-            "`python -c \"subprocess.run(['kirocrew','token'])\"`. Scoped to the argv-literal "
+            "`python -c \"subprocess.run(['junction','token'])\"`. Scoped to the argv-literal "
             "shape so a regex literal or prose mentioning both words is not a mint; a "
             "single-string spelling is out of reach of command-text matching and is covered by "
             "the sensitive-path floor over the signing key instead."
@@ -236,8 +239,8 @@ BUILTIN_DENIED_RULES: list[DeniedCommandRule] = [
         id="self-protection-kill-interpreter",
         # Companion to ``self-protection-kill`` for the shape a shell-command matcher
         # cannot reach: an INTERPRETER payload that terminates the gateway through a
-        # library call -- ``os.system("pkill -f kirocrew")``,
-        # ``execSync("pkill -f kirocrew")``.  The argv floor cannot help; the payload is
+        # library call -- ``os.system("pkill -f junction")``,
+        # ``execSync("pkill -f junction")``.  The argv floor cannot help; the payload is
         # one opaque token to the shell tokenizer and its contents are Python/JS.
         #
         # SINK-QUALIFIED on purpose: the two words are matched inside ONE quoted string
@@ -256,24 +259,24 @@ BUILTIN_DENIED_RULES: list[DeniedCommandRule] = [
             "(?:"
             # (a) the command as a single quoted string.
             "\\s*\\(?\\s*[a-z]{0,2}['\"][^'\"]*\\b(?:pkill|killall)\\b"
-            "[^'\"]*\\b(?:kiro[-.]?crew|irocrew|junction|acpcrew)\\b"
+            "[^'\"]*(?:\\[j\\]unction|\\bjunction)\\b"
             # (b) the command as an argv LIST -- verb and target as separate quoted
-            # elements (``run(['pkill','-f','kirocrew'])``), list concatenation included.
+            # elements (``run(['pkill','-f','junction'])``), list concatenation included.
             "|[\\s\\(\\[]*['\"][\\w.:/\\\\-]*(?:pkill|killall)['\"]"
-            "[\\s,\\[\\]\\(\\)+*'\"=\\w-]*['\"][^'\"]*(?:kiro[-.]?crew|irocrew|junction|acpcrew)"
+            "[\\s,\\[\\]\\(\\)+*'\"=\\w-]*['\"][^'\"]*(?:\\[j\\]unction|junction)"
             ")"
             # --- a DIRECT process-kill API, which IS the sink and therefore stands on
-            # its own rather than behind the list above: ``os.kill(pid_from("[k]irocrew
+            # its own rather than behind the list above: ``os.kill(pid_from("[j]unction
             # gateway"), 9)``.  The signal is the kill API and the product name in the
-            # same call.  Matched on ``irocrew`` rather than the full name so the
-            # standard "don't match my own lookup" bracket idiom (``[k]irocrew``), which
+            # same call.  The bracketed spelling ``[j]unction`` is matched alongside the
+            # full name so the standard "don't match my own lookup" bracket idiom, which
             # still resolves to the gateway, is not a free pass.
-            "|(?:os\\.kill(?:pg)?|process\\.kill|\\bkillpg)\\s*\\([^)]*(?:irocrew|junction|acpcrew)"
+            "|(?:os\\.kill(?:pg)?|process\\.kill|\\bkillpg)\\s*\\([^)]*(?:\\[j\\]unction|junction)"
             ")"
         ),
         category="self-protection",
         description=(
-            "Blocks an interpreter payload that terminates a kirocrew process through a "
+            "Blocks an interpreter payload that terminates a junction process through a "
             "library call rather than as a shell command -- a pkill/killall command and the "
             "product name inside one quoted string passed to an executing sink such as "
             "`os.system(...)` or `execSync(...)`. Sink-qualified so prose, a commit message "
@@ -1187,15 +1190,12 @@ BUILTIN_DENIED_RULES: list[DeniedCommandRule] = [
         ),
     ),
     DeniedCommandRule(
-        id="sensitive-file-read-cat-kirocrew-env",
-        # Current home, the previous nested home, and the older top-level home.
-        # A machine that still has an older directory holds live secrets there.
-        pattern=".*cat.*/(?:\\.junction|\\.kiro/crew|\\.kirocrew)/\\.env.*",
+        id="sensitive-file-read-cat-junction-env",
+        pattern=".*cat.*/\\.junction/\\.env.*",
         category="sensitive-file-read",
         description=(
-            "Blocks using cat to read Junction's credential file (~/.junction/.env, "
-            "the previous ~/.kiro/crew/.env, or the older ~/.kirocrew/.env), which holds "
-            "Junction's secrets and environment credentials."
+            "Blocks using cat to read Junction's credential file (~/.junction/.env), which "
+            "holds Junction's secrets and environment credentials."
         ),
     ),
     DeniedCommandRule(
@@ -1351,41 +1351,41 @@ BUILTIN_DENIED_RULES: list[DeniedCommandRule] = [
         # byte-identical to the ``credential-exfil-s3-cp``/aws idiom on purpose:
         # ``_linearize_deny_pattern`` rewrites exactly that spelling into its
         # linear-time equivalent, so reusing it keeps these rules ReDoS-safe (#4799).
-        pattern=".*(?:kiro.?crew|junction|acpcrew)(?:\\s+--?[a-z-]+(?:[= ]\\S+)?)*\\s+restart.*",
+        pattern=".*junction(?:\\s+--?[a-z-]+(?:[= ]\\S+)?)*\\s+restart.*",
         category="self-protection",
         description=(
-            "Blocks 'kirocrew restart' so the agent cannot restart its own gateway process and "
+            "Blocks 'junction restart' so the agent cannot restart its own gateway process and "
             "disrupt the running session or evade in-flight controls."
         ),
     ),
     DeniedCommandRule(
         id="self-protection-update",
-        pattern=".*(?:kiro.?crew|junction|acpcrew)(?:\\s+--?[a-z-]+(?:[= ]\\S+)?)*\\s+update.*",
+        pattern=".*junction(?:\\s+--?[a-z-]+(?:[= ]\\S+)?)*\\s+update.*",
         category="self-protection",
         description=(
-            "Blocks 'kirocrew update' so the agent cannot self-update (git pull + rebuild + "
+            "Blocks 'junction update' so the agent cannot self-update (git pull + rebuild + "
             "execv restart) and swap out its own running code without operator oversight."
         ),
     ),
     DeniedCommandRule(
         id="self-protection-cloud",
         pattern=(
-            ".*(?:kiro.?crew|junction|acpcrew)(?:\\s+--?[a-z-]+(?:[= ]\\S+)?)*\\s+cloud\\s+"
+            ".*junction(?:\\s+--?[a-z-]+(?:[= ]\\S+)?)*\\s+cloud\\s+"
             "(destroy|stop|start|launch|connect|tunnel|log(in|out)).*"
         ),
         category="self-protection",
         description=(
-            "Blocks 'kirocrew cloud' lifecycle subcommands "
+            "Blocks 'junction cloud' lifecycle subcommands "
             "(destroy/stop/start/launch/connect/tunnel/login/logout) so the agent cannot tear "
             "down, provision, re-authenticate, or sign out its own cloud instance."
         ),
     ),
     DeniedCommandRule(
         id="self-protection-cron-adopt",
-        pattern=".*(?:kiro.?crew|junction|acpcrew)\\b(?:(?!&&)[^;|])*?\\bcron\\b(?:(?!&&)[^;|])*?\\badopt\\b.*",
+        pattern=".*junction\\b(?:(?!&&)[^;|])*?\\bcron\\b(?:(?!&&)[^;|])*?\\badopt\\b.*",
         category="self-protection",
         description=(
-            "Blocks 'kirocrew cron adopt' so the agent cannot assign itself ownership of a "
+            "Blocks 'junction cron adopt' so the agent cannot assign itself ownership of a "
             "scheduled job. A cron's owning session both manages the job and receives its "
             "output, and the MCP cron tools deliberately cannot write that field -- without "
             "this rule a session could reach the same power through bash and claim a job that "
@@ -1400,10 +1400,10 @@ BUILTIN_DENIED_RULES: list[DeniedCommandRule] = [
     ),
     DeniedCommandRule(
         id="self-protection-gateway-restart",
-        pattern=".*(?:kiro.?crew|junction|acpcrew)(?:\\s+--?[a-z-]+(?:[= ]\\S+)?)*\\s+gateway restart.*",
+        pattern=".*junction(?:\\s+--?[a-z-]+(?:[= ]\\S+)?)*\\s+gateway restart.*",
         category="self-protection",
         description=(
-            "Blocks 'kirocrew gateway restart' so the agent cannot bounce its own gateway "
+            "Blocks 'junction gateway restart' so the agent cannot bounce its own gateway "
             "server and interrupt the active session or supervision."
         ),
     ),
@@ -1419,8 +1419,8 @@ BUILTIN_DENIED_RULES: list[DeniedCommandRule] = [
         # redirect (``>``), which is what the false positives this replaced always
         # crossed -- a bare ``kill <pid>`` followed by an unrelated command that
         # merely mentions the product, or a trailing comment naming it.  ``|`` and
-        # ``/`` stay INSIDE the gap on purpose: ``pkill -f 'x|kirocrew'`` and
-        # ``pkill -f /usr/local/bin/kirocrew`` are both real by-name kills, and
+        # ``/`` stay INSIDE the gap on purpose: ``pkill -f 'x|junction'`` and
+        # ``pkill -f /usr/local/bin/junction`` are both real by-name kills, and
         # treating those characters as boundaries would let them through.
         pattern=(
             "(?:"
@@ -1428,22 +1428,22 @@ BUILTIN_DENIED_RULES: list[DeniedCommandRule] = [
             # argument in the same segment IS the kill target.  The verb must be in
             # COMMAND POSITION -- start of input or after a separator, optionally
             # quoted or path-qualified -- so the word merely appearing in another
-            # command's arguments (``echo pkill kirocrew``) is not a kill.
+            # command's arguments (``echo pkill junction``) is not a kill.
             "(?:\\A|[;&|\\n`]|\\$\\()[\\s\"'(]*[\\w.:/\\\\-]*"
-            "(?:pkill|killall)\\b[^;&#>]*\\b(?:kiro[-.]?crew|junction|acpcrew)\\b"
+            "(?:pkill|killall)\\b[^;&#>]*\\bjunction\\b"
             # Bare ``kill`` takes PIDs, so it can only aim at the product through
             # a command substitution that resolves the name to one.  The gap after
             # the opener is deliberately NOT stopped at ``)``: a nested
-            # substitution (``$(pgrep -f "$(printf '')kirocrew")``) closes an inner
+            # substitution (``$(pgrep -f "$(printf '')junction")``) closes an inner
             # paren first, and stopping there would let that form through.
             "|(?:\\A|[;&|\\n`]|\\$\\()[\\s\"'(]*[\\w.:/\\\\-]*"
-            "kill\\b[^;&#>]*(?:\\$\\(|`)[^;&#>]*\\b(?:kiro[-.]?crew|junction|acpcrew)\\b"
+            "kill\\b[^;&#>]*(?:\\$\\(|`)[^;&#>]*\\bjunction\\b"
             ")"
         ),
         category="self-protection",
         description=(
-            "Blocks pkill/killall naming a kirocrew process, and a bare kill whose PID comes "
-            "from a command substitution that resolves the kirocrew name, so the agent cannot "
+            "Blocks pkill/killall naming a junction process, and a bare kill whose PID comes "
+            "from a command substitution that resolves the junction name, so the agent cannot "
             "terminate its own gateway or supervisor and disable the controls governing it. "
             "Scoped to the kill target within one command segment: an incidental mention of the "
             "product in a later command or a comment (a file being restored, a log path) is not "
@@ -1528,48 +1528,10 @@ _RULES_BY_ID: dict[str, DeniedCommandRule] = {r.id: r for r in BUILTIN_DENIED_RU
 # Reverse map (pattern → rule id) for SEL audit enrichment on a regex-tier match.
 _RULE_ID_BY_PATTERN: dict[str, str] = {r.pattern: r.id for r in BUILTIN_DENIED_RULES}
 
-# Legacy spellings of rules whose patterns were later widened (#4799).  A
-# governance policy persists the pattern STRING it pinned, and the pin resolvers
-# treat a pattern as pinning a built-in rule only when it maps back to a rule id
-# — so a ceiling or profile written against a pre-widening catalog must keep
-# resolving to the rule id after an upgrade (upgrade monotonicity).  Without
-# these aliases a stale pin falls out of the id map: the force-re-add is lost
-# and a user opt-out would drop the rule even though the administrator pinned
-# it.  LOOKUP-ONLY: consulted by :func:`_rule_id_for_pattern` (the pin
-# resolvers), never merged into ``_RULE_ID_BY_PATTERN`` — the legacy spellings
-# must not count as built-ins for ``_DenyMatcher``'s fast-path election or SEL
-# enrichment, and they never enter ``BUILTIN_DENY_PATTERNS`` or the golden
-# manifest.
-_LEGACY_RULE_ID_BY_PATTERN: dict[str, str] = {
-    ".*kiro.?crew restart.*": "self-protection-restart",
-    ".*kiro.?crew update.*": "self-protection-update",
-    ".*kiro.?crew\\s+cloud\\s+(destroy|stop|start|launch|connect|tunnel|log(in|out)).*": (
-        "self-protection-cloud"
-    ),
-    ".*kiro.?crew gateway restart.*": "self-protection-gateway-restart",
-    ".*kiro.?crew(?:\\s+--?[a-z-]+(?:[= ]\\S+)?)*\\s+restart.*": "self-protection-restart",
-    ".*kiro.?crew(?:\\s+--?[a-z-]+(?:[= ]\\S+)?)*\\s+update.*": "self-protection-update",
-    ".*kiro.?crew(?:\\s+--?[a-z-]+(?:[= ]\\S+)?)*\\s+cloud\\s+"
-    "(destroy|stop|start|launch|connect|tunnel|log(in|out)).*": "self-protection-cloud",
-    ".*kiro.?crew(?:\\s+--?[a-z-]+(?:[= ]\\S+)?)*\\s+gateway restart.*": (
-        "self-protection-gateway-restart"
-    ),
-    ".*kiro.?crew\\b(?:(?!&&)[^;|])*?\\bcron\\b(?:(?!&&)[^;|])*?\\badopt\\b.*": (
-        "self-protection-cron-adopt"
-    ),
-    "(?:\\A|[;&|\\n`]|\\$\\()[\\s\"'(]*[\\w.:/\\\\-]*kiro[-.]?crew\\b[^|;&#>/*]*\\btoken\\b": (
-        "credential-exfil-kirocrew-token"
-    ),
-}
-
 
 def _rule_id_for_pattern(pattern: str) -> "str | None":
-    """Resolve a governance-pinned pattern string to a built-in rule id.
-
-    Current catalog spellings first, then the legacy (pre-widening) spellings,
-    so a persisted policy keeps its pin across a pattern change.
-    """
-    return _RULE_ID_BY_PATTERN.get(pattern) or _LEGACY_RULE_ID_BY_PATTERN.get(pattern)
+    """Resolve a governance-pinned pattern string to a built-in rule id."""
+    return _RULE_ID_BY_PATTERN.get(pattern)
 
 
 # ── Git-publish rule patterns are NOT evaluated in the Python regex tier ──
@@ -1625,12 +1587,12 @@ def floor_enforced_builtin_command_ids() -> frozenset[str]:
 #     The widened regex (#4799) catches the real-flag and raw-text forms (incl.
 #     ``bash -c`` payloads and the ``python -m junction`` module form); the floor
 #     (#4824) additionally catches shell de-escaping the regex cannot -- e.g.
-#     ``kirocrew -\v restart``, ``kirocrew \restart``, a ``\<newline>`` continuation.
+#     ``junction -\v restart``, ``junction \restart``, a ``\<newline>`` continuation.
 # All members stay in the regex tier (only git-publish is removed from ``re``);
 # the floor is a union with it, never a replacement.
 _SELF_PROTECTION_FLOOR_RULE_IDS: frozenset[str] = frozenset(
     {
-        "credential-exfil-kirocrew-token",
+        "credential-exfil-junction-token",
         "self-protection-kill",
         "self-protection-restart",
         "self-protection-update",
@@ -1660,7 +1622,7 @@ _SELF_PROTECTION_FLOOR_PATTERNS: frozenset[str] = frozenset(_SELF_PROTECTION_FLO
 # ``RecoveryCard.tsx`` extracts the pattern with a per-line end-anchored regex
 # and the suite's ``_denied_by`` partitions on the first line's separator.
 _SELF_PROTECTION_FLOOR_NOTES: dict[str, str] = {
-    "credential-exfil-kirocrew-token": (
+    "credential-exfil-junction-token": (
         "Matched structurally on the command's argv, not by the pattern text above: "
         "the product CLI is invoked to mint a dashboard token, or an inline "
         "interpreter program imports it (an imported CLI can construct the token verb "
@@ -1692,7 +1654,7 @@ _SELF_PROTECTION_FLOOR_NOTES: dict[str, str] = {
 # interpreter CONCATENATES adjacent string literals, so they are additionally matched
 # against a copy of the text with those joins collapsed.
 _INTERPRETER_RULE_IDS: frozenset[str] = frozenset(
-    {"credential-exfil-kirocrew-token-argv", "self-protection-kill-interpreter"}
+    {"credential-exfil-junction-token-argv", "self-protection-kill-interpreter"}
 )
 _INTERPRETER_RULE_PATTERNS: frozenset[str] = frozenset(
     r.pattern for r in BUILTIN_DENIED_RULES if r.id in _INTERPRETER_RULE_IDS
@@ -2447,28 +2409,28 @@ DENY_REASON_MATCH_PREFIX = DENY_REASON_PREFIX.rstrip()
 # contains the product name" is exactly the false positive these rules exist to
 # stop.  Tokenizing resolves quoting and redirection BEFORE matching, so both
 # sides can be exact.  See ``_is_credential_mint`` / ``_is_self_kill``.
-_SELF_NAME_RE = re.compile(r"kiro[-.]?crew|\bjunction\b|\bacpcrew\b")
-# ``[k]irocrew`` -- a one-character bracket class expands to that character, so it names
+_SELF_NAME_RE = re.compile(r"\bjunction\b")
+# ``[j]unction`` -- a one-character bracket class expands to that character, so it names
 # the protected program.  Collapsed before comparison rather than folded into every name
 # pattern, so a single rule covers the idiom wherever it appears in the word.
 _ONE_CHAR_CLASS_RE = re.compile(r"\[(\w)\]")
 
 
 def _debracket(text: str) -> str:
-    """Collapse one-character bracket classes (``[k]irocrew`` -> ``kirocrew``)."""
+    """Collapse one-character bracket classes (``[j]unction`` -> ``junction``)."""
     return _ONE_CHAR_CLASS_RE.sub(r"\1", text)
 
 
 # The product name as a WHOLE program name (bare or the tail of a path), which is
-# what distinguishes ``bin/kirocrew token`` from ``cd kirocrew-wt-x``.
+# what distinguishes ``bin/junction token`` from ``cd junction-wt-x``.
 
 
-_SELF_PROGRAM_RE = re.compile(r"\A(?:kiro[-.]?crew|junction|acpcrew)(?:\.(?:exe|cmd|bat|sh|py))?\Z")
+_SELF_PROGRAM_RE = re.compile(r"\Ajunction(?:\.(?:exe|cmd|bat|sh|py))?\Z")
 # Shell glob metacharacters, and the concrete spellings a glob could expand to.  A
-# glob in the program name (``kiro[c]rew``) is resolved by the shell BEFORE exec, so
+# glob in the program name (``junc[t]ion``) is resolved by the shell BEFORE exec, so
 # it has to be tested for expandability rather than compared literally.
 _GLOB_CHARS_RE = re.compile(r"[\[\]?*{}]")
-_SELF_PROGRAM_SPELLINGS = ("kirocrew", "kiro-crew", "kiro.crew", "junction", "acpcrew")
+_SELF_PROGRAM_SPELLINGS = ("junction",)
 # The kill programs that select their target BY NAME.  Bare ``kill`` takes PIDs
 # and is handled separately (it can only reach the product through a command
 # substitution that resolves the name), and both verbs are matched on TOKENS via
@@ -2486,7 +2448,7 @@ def _strip_redirect(token: str) -> str:
     """The token with any ATTACHED redirection suffix removed.
 
     ``shlex`` keeps a redirect glued to its neighbour as one token, so
-    ``kirocrew>/tmp/out`` arrives as a single word and a program comparison against
+    ``junction>/tmp/out`` arrives as a single word and a program comparison against
     it fails.  bash splits the redirect off before exec, so the program is the part
     before the first ``>``/``<``; the same applies to an operand
     (``token>/tmp/out``).  A leading fd number (``2>``) leaves an empty program,
@@ -2502,7 +2464,7 @@ def _substitution_program(token: str) -> str:
     """The program a command-substitution body resolves to.
 
     A substitution in program position is a RESOLVER -- ``$(which pkill)``,
-    ``$(command -v bash)``, ``$(type -p kirocrew)`` -- and the program it resolves to
+    ``$(command -v bash)``, ``$(type -p junction)`` -- and the program it resolves to
     is the resolver's final argument.  ``shlex`` splits an UNQUOTED body on its
     own spaces, so ``$(which pkill)`` already arrives as two words; a QUOTED body
     (``"$(command -v pkill)"``) arrives as one multi-word token instead.  Taking the
@@ -2517,15 +2479,15 @@ def _program_basename(token: str) -> str:
     Strips quoting, command-substitution wrappers and any attached redirection
     before taking the basename, so an expansion-produced program name
     (``$(which pkill)``, ``"$(command -v bash)"``) or a redirect-glued one
-    (``kirocrew>/tmp/out``) is compared as the program it resolves to rather than as
+    (``junction>/tmp/out``) is compared as the program it resolves to rather than as
     literal punctuation.  Every program check goes through this -- comparing a raw
     ``os.path.basename`` lets ``$(which pkill) -f <name>`` past the kill rule.
 
     The layers are peeled to a FIXED POINT rather than once in a fixed order.
     A wrapper and a redirect interleave freely, and any single ordering leaves a
-    hole for the interleavings it does not match: ``$(which kirocrew)>/tmp/out`` needs
+    hole for the interleavings it does not match: ``$(which junction)>/tmp/out`` needs
     the redirect gone before its closing paren reaches the end of the word, while
-    ``kirocrew)`` needs the paren gone with no redirect in play at all.  Looping until
+    ``junction)`` needs the paren gone with no redirect in play at all.  Looping until
     nothing changes makes the peel order-independent, which closes the class
     instead of whichever spelling a fixed order happened to cover.
     """
@@ -2548,7 +2510,7 @@ def _program_basename(token: str) -> str:
             token = token[1:]
     if substituted:
         token = _substitution_program(token)
-    # A control operator GLUED to the name (``true;kirocrew``, ``x&&kirocrew``)
+    # A control operator GLUED to the name (``true;junction``, ``x&&junction``)
     # means the program that actually runs is what follows the LAST operator --
     # ``shlex`` splits on whitespace only, so it hands the whole run over as one
     # word and a comparison against it matches nothing.  Taking the trailing
@@ -2566,7 +2528,7 @@ def _glob_could_expand_to(base: str, names: "tuple[str, ...] | frozenset[str]") 
     A glob in the program name is resolved by the shell BEFORE exec, so it has to be
     tested for expandability rather than compared literally.  ``[...]`` and ``?`` stand
     for one character and ``*`` for any run, so only a pattern that CAN name the target
-    counts -- ``kiro[x]few`` still does not.
+    counts -- ``junc[t]ure`` still does not.
     """
     if not _GLOB_CHARS_RE.search(base):
         return False
@@ -2598,9 +2560,8 @@ _PYTHON_PROGRAM_RE = re.compile(r"\Apy(?:thon)?[0-9.]*(?:\.exe)?\Z")
 _PYTHON_OPERAND_FLAGS = frozenset({"-x", "-w", "-q", "--check-hash-based-pycs"})
 
 #: Module path of the product package, for the ``python -m junction ... token`` form.
-#: Underscored, because that is the IMPORT name — `_SELF_PROGRAM_SPELLINGS` covers the
-#: console script (`kirocrew`, `kiro-crew`) and deliberately does not admit `_`, since no
-#: executable is spelled that way.
+#: This is the IMPORT name; `_SELF_PROGRAM_SPELLINGS` covers the console script. The two
+#: are kept apart because they are matched in different argv positions.
 _SELF_MODULE_SPELLINGS = ("junction",)
 
 #: Interpreter flags that take an INLINE PROGRAM as their operand: ``-c`` a statement string,
@@ -2619,7 +2580,7 @@ _SELF_IMPORT_RE = re.compile(r"\bjunction\b")
 
 #: Dynamic-execution primitives that let an inline Python payload REACH the CLI without the
 #: package name ever appearing as a literal token: string-concatenated imports
-#: (``__import__('kiro'+'_crew')``), name-computed imports (``importlib.import_module(...)``),
+#: (``__import__('junc'+'tion')``), name-computed imports (``importlib.import_module(...)``),
 #: and second-stage decode/eval (``exec(base64.b64decode(...))``). ``_SELF_IMPORT_RE`` cannot
 #: see through any of these, so a payload combining an inline-program interpreter with one of
 #: them is treated as opaque and DENIED — the same fail-closed reading as a literal import,
@@ -2651,9 +2612,9 @@ def _is_self_module_invocation(tokens: list[str], i: int) -> bool:
     """True if ``tokens[i]`` is a ``python`` that runs the product IN-PROCESS.
 
     ``python -m junction token`` mints exactly the same signed dashboard token as
-    ``kirocrew token``, but its argv PROGRAM is the interpreter, so neither the
-    command-position regex (which matches ``kiro[-.]?crew``, not the underscored import
-    name) nor ``_is_self_program`` sees it. The escalation is the point: that token
+    ``junction token``, but its argv PROGRAM is the interpreter, so neither the
+    command-position regex (which needs the product name as the PROGRAM word) nor
+    ``_is_self_program`` sees it. The escalation is the point: that token
     authenticates every gateway route, including the ops autonomy-ceiling PUT, so the
     bypass let a prompt-injected agent raise its own security ceiling.
 
@@ -2736,7 +2697,7 @@ def _is_self_program(token: str) -> bool:
     """True if *token* names the Junction CLI itself, bare or via a path.
 
     Also true when the name carries a shell GLOB the shell would expand to the
-    executable -- ``./bin/kiro[c]rew``, ``kiro?rew``, ``kiro*rew``.
+    executable -- ``./bin/junc[t]ion``, ``junc?ion``, ``jun*ion``.
     """
     base = _program_basename(token)
     if _SELF_PROGRAM_RE.match(base):
@@ -2768,7 +2729,7 @@ def _glob_to_regex(pattern: str) -> str:
             i = close + 1
             continue
         if ch == "{":
-            # ``kiro{c..c}rew`` expands to the real name, so a brace group stands for
+            # ``junc{t..t}ion`` expands to the real name, so a brace group stands for
             # whatever it can produce -- same treatment as a bracket class.
             close = pattern.find("}", i + 1)
             if close == -1:
@@ -2793,7 +2754,7 @@ def _self_tokens(text_lower: str) -> "list[str]":
 
     Splitting the raw text into segments first (as the pattern passes do) is
     unsafe for these rules: it cuts on a ``;`` or ``|`` that is INSIDE a quoted
-    argument, so ``pkill -f '[;]*kirocrew'`` loses its own target. ``shlex``
+    argument, so ``pkill -f '[;]*junction'`` loses its own target. ``shlex``
     resolves the quotes first, so a quoted separator stays part of one token.
     """
     try:
@@ -2812,7 +2773,7 @@ _NESTED_SHELL_VERBS = frozenset({"eval", "source", "."})
 _ENV_SPLIT_PROGRAMS = frozenset({"env"})
 # Programs that treat their arguments as DATA rather than executing them, so the
 # product name appearing in their argv is a mention, not an invocation:
-# ``echo kirocrew token`` prints two words.
+# ``echo junction token`` prints two words.
 #
 # This list is deliberately a DENYLIST of data consumers rather than an ALLOWLIST
 # of executors, because the two fail in opposite directions.  Many commands pass
@@ -2870,7 +2831,7 @@ _CONTROL_OPERATOR_RE = re.compile(r"[;&|\n]+")
 # ``normalize_shell_command`` already undoes, but spelled with a substitution and
 # placed MID-WORD, where a prefix-only strip never sees it.
 _EMPTY_SUBST_RE = re.compile(r"\$\(\s*\)|`\s*`|\$\{\s*\}")
-# ``X=kirocrew; $X token`` assigns the program name to a variable and invokes it
+# ``X=junction; $X token`` assigns the program name to a variable and invokes it
 # through the expansion, so neither the literal name nor the expansion alone looks
 # dangerous.  The assignment and the use are in the SAME command text, so the
 # literal can be substituted back before any comparison.
@@ -2959,7 +2920,7 @@ def _resolve_function_aliases(tokens: "list[str]") -> "list[str]":
             if spec and spec.group(2):
                 target = _normalize_operand(spec.group(2))
                 if _is_self_program(target):
-                    aliases[spec.group(1)] = "kirocrew"
+                    aliases[spec.group(1)] = "junction"
                 elif _program_basename(target) in _KILL_BY_NAME_PROGRAMS:
                     aliases[spec.group(1)] = _program_basename(target)
         m = _FUNC_DEF_RE.match(tokens[i])
@@ -2968,7 +2929,7 @@ def _resolve_function_aliases(tokens: "list[str]") -> "list[str]":
             for body_token in tokens[i + 1 :]:
                 base = _program_basename(body_token)
                 if _is_self_program(body_token):
-                    aliases[m.group(1)] = "kirocrew"
+                    aliases[m.group(1)] = "junction"
                     break
                 if base in _KILL_BY_NAME_PROGRAMS:
                     aliases[m.group(1)] = base
@@ -3088,7 +3049,7 @@ def _resolve_local_assignments(tokens: "list[str]") -> "list[str]":
     return out
 
 
-# ``${VAR:-kirocrew}`` / ``${VAR:+kirocrew}`` / ``${VAR-kirocrew}`` carry a LITERAL
+# ``${VAR:-junction}`` / ``${VAR:+junction}`` / ``${VAR-junction}`` carry a LITERAL
 # program name that the shell substitutes in.  The literal is the program that can
 # actually run, so it is what the comparison must see.
 _PARAM_DEFAULT_RE = re.compile(r"\$\{[^{}:+=?-]*(?::?[-+=?])([^{}]*)\}")
@@ -3170,7 +3131,7 @@ def _data_consumer_exempt(
 
     The exemption is refused in two cases:
 
-    * the token itself carries a control operator (``echo foo;kirocrew>/tmp/x``).
+    * the token itself carries a control operator (``echo foo;junction>/tmp/x``).
       ``shlex`` splits on whitespace only, so such a token is attributed to the
       PRECEDING command while the part after the operator is a new command that
       really runs.
@@ -3322,7 +3283,7 @@ def _nested_shell_payloads(tokens: "list[str]") -> "list[str]":
         if replacement:
             payloads.append(replacement)
     # A MULTIWORD alias replacement is a whole command line, not just a program name
-    # (``alias x='kirocrew token'`` then ``x``), so hand it to the payload walk.
+    # (``alias x='junction token'`` then ``x``), so hand it to the payload walk.
     for i, token in enumerate(tokens):
         if token == "alias" and i + 1 < len(tokens):
             spec = _LOCAL_ASSIGN_RE.match(tokens[i + 1])
@@ -3463,7 +3424,7 @@ def _numeric_escape_char(match: "re.Match[str]") -> str:
 def _decode_printf_escapes(text: str) -> str:
     """Turn literal ``\\n``-style escapes into whitespace.
 
-    ``printf 'kirocrew token\\n' | bash`` carries the newline as two characters, so
+    ``printf 'junction token\\n' | bash`` carries the newline as two characters, so
     re-tokenizing the payload glues the escape onto the verb and the comparison misses.
     ``printf`` (and ``echo -e``) expand these before the shell sees them, so the payload
     is decoded the same way first.
@@ -3482,7 +3443,7 @@ def _decode_printf_escapes(text: str) -> str:
 def _self_token_frames(text_lower: str) -> "list[list[str]]":
     """The command's own argv plus the argv of every nested shell payload.
 
-    ``bash -c "kirocrew token"`` tokenizes to ``['bash', '-c', 'kirocrew token']``
+    ``bash -c "junction token"`` tokenizes to ``['bash', '-c', 'junction token']``
     -- the dangerous command is a single opaque token, so the direct scan cannot
     see it.  Re-tokenizing the payload and checking that argv too closes the
     class rather than one spelling of it.
@@ -3505,7 +3466,7 @@ def _self_token_frames(text_lower: str) -> "list[list[str]]":
         # Every substitution body is itself a command line -- command substitution
         # (``$( )``, backticks) and PROCESS substitution (``<( )``, ``>( )``) alike, since
         # bash runs the inner command in all of them.  Walking them here means the
-        # ordinary argv checks see ``cat <(kirocrew token)`` as the inner invocation.
+        # ordinary argv checks see ``cat <(junction token)`` as the inner invocation.
         for payload in list(_nested_shell_payloads(tokens)) + _substitution_bodies(source):
             # Descend through EVERY literal payload, to any depth.  Termination is
             # structural, not a cap: a payload is carried inside one token of its
@@ -3561,7 +3522,7 @@ def _substitution_bodies(text: str) -> "list[str]":
     i = 0
     while i < len(text):
         # PROCESS substitutions run their body as a command just as a command
-        # substitution does -- ``cat <(kirocrew token)`` executes the inner command and
+        # substitution does -- ``cat <(junction token)`` executes the inner command and
         # feeds its output through a pipe.  Same paren-nesting walk.
         if text.startswith("<(", i) or text.startswith(">(", i):
             depth = 1
@@ -3999,11 +3960,11 @@ def _python_reads_stdin(later_tokens: list[str]) -> bool:
 #
 # The gate is a NECESSARY condition, deliberately wider than the issue's
 # proposal of a raw `_SELF_NAME_RE` search. That proposal is UNSOUND: the
-# predicates fire on inputs whose raw text never matches `kiro[-.]?crew` —
-# `python -m junction token` (the underscored import spelling), `[k]irocrew
-# token` (one-char bracket class), `kiro$()crew` (empty substitution),
-# `kiro${x:-crew}` (parameter default), `bash -c "\x6birocrew token"` (printf
-# escapes), `kiro?rew` (glob the shell expands before exec), and a `-c`
+# predicates fire on inputs whose raw text never matches `\bjunction\b` —
+# `python -mjunction token` (the attached module spelling), `[j]unction
+# token` (one-char bracket class), `jun$()ction` (empty substitution),
+# `jun${x:-ction}` (parameter default), `bash -c "\x6aunction token"` (printf
+# escapes), `junc?ion` (glob the shell expands before exec), and a `-c`
 # payload reaching the CLI through `exec`/`b64decode` with no name at all.
 # Every one of those was verified to be denied by the floor today, so a gate
 # that skipped them would be a real bypass, not an optimization.
@@ -4015,11 +3976,11 @@ def _python_reads_stdin(later_tokens: list[str]) -> bool:
 # dynamic-exec primitive stands in for it. Each normalization needs specific
 # MACHINERY characters present in the raw text, so the union below is a
 # superset of every firing path:
-#   * the literal name in any spelling (`kiro[-._]?crew` — underscore included
-#     for the module/import form, which `_SELF_NAME_RE` deliberately omits);
+#   * the literal name, including the attached `-mjunction` module spelling,
+#     which `_SELF_NAME_RE`'s leading word boundary deliberately omits;
 #   * any machinery character that lets a normalization synthesize the name or
 #     a program spelling: glob/brace chars (`? * [ ] { }` — `_glob_could_expand_to`
-#     admits e.g. `k*w` for the program AND `*kill` for the kill verbs),
+#     admits e.g. `j*n` for the program AND `*kill` for the kill verbs),
 #     `$` (substitutions, parameter defaults, ANSI-C quoting), backticks, and
 #     `~` (tilde expansion — the kill predicates expanduser their targets, so
 #     `pkill -f ~` IS a self-kill whenever $HOME lies under the product tree,
@@ -4031,8 +3992,8 @@ def _python_reads_stdin(later_tokens: list[str]) -> bool:
 #     text, because empty-quote glue hides the verb exactly as it hides the
 #     name (`python -c "ex""ec(...)"` carries no name and no other machinery,
 #     yet the floor denies it: pre-merge review finding);
-#   * the literal name after stripping quotes/backslashes (`k""iro""crew`,
-#     `ki\rocrew` — shlex removes those before the predicates compare).
+#   * the literal name after stripping quotes/backslashes (`j""unc""tion`,
+#     `jun\ction` — shlex removes those before the predicates compare).
 # When none of these is present, no predicate can return True, so the descent
 # is skipped. False positives (e.g. any `$VAR` in a command) merely fall back
 # to the full scan — the safe direction.
@@ -4043,7 +4004,7 @@ def _python_reads_stdin(later_tokens: list[str]) -> bool:
 # ``-mjunction`` has no word boundary before the package name (``m`` and ``j``
 # are both word characters), so a ``\b`` in front of ``junction`` would skip
 # the attached ``python -m`` spelling and the floor would never run.
-_SELF_FLOOR_NAME_HINT_RE = re.compile(r"kiro[-._]?crew|-mjunction\b|\bjunction\b|\bacpcrew\b")
+_SELF_FLOOR_NAME_HINT_RE = re.compile(r"-mjunction\b|\bjunction\b")
 _SELF_FLOOR_MACHINERY_RE = re.compile(r"[?*\[\]{}$`~]|\\x[0-9a-f]|\\0?[0-7]{1,3}")
 _SELF_FLOOR_QUOTE_JUNK_RE = re.compile(r"[\"'\\\\]")
 
@@ -4065,7 +4026,7 @@ def _self_floor_can_fire(text_lower: str) -> bool:
         return True
     # Quote/backslash glue is removable by the tokenizer, so the name AND the
     # dynamic-exec verb may only materialize once those come off:
-    # `k""iro""crew token`, `"kirocrew" token`, `python -c "ex""ec(...)"`.
+    # `j""unc""tion token`, `"junction" token`, `python -c "ex""ec(...)"`.
     # Both must be re-checked here -- testing only the name would let a glued
     # `exec(` payload skip the descent while the floor still denies it.
     stripped = _SELF_FLOOR_QUOTE_JUNK_RE.sub("", text_lower)
@@ -4075,19 +4036,19 @@ def _self_floor_can_fire(text_lower: str) -> bool:
 
 
 def _is_credential_mint(text_lower: str) -> bool:
-    """True if *text_lower* invokes the ``kirocrew token`` credential mint.
+    """True if *text_lower* invokes the ``junction token`` credential mint.
 
     The mint prints a signed dashboard access URL, so it is the escalation path
     this rule exists to close.  Matched on argv, which is what makes the
-    ordinary shell forms unbypassable: ``kirocrew "token"`` (quoted verb),
-    ``kiro""crew token`` (empty-string concatenation), ``kirocrew -v --no-jail
-    token`` (global flags) and ``kirocrew >/tmp/out token`` (bash accepts a
+    ordinary shell forms unbypassable: ``junction "token"`` (quoted verb),
+    ``junc""tion token`` (empty-string concatenation), ``junction -v --no-jail
+    token`` (global flags) and ``junction >/tmp/out token`` (bash accepts a
     redirection anywhere in a simple command) all tokenize to an argv whose
     program is the product CLI and one of whose words is exactly ``token``.
 
     Does NOT match the word appearing in a path or another program's arguments:
-    ``cd /workplace/user/kirocrew-wt-x && pytest test/test_token_auth.py`` has no
-    argv whose PROGRAM is the CLI, and ``kirocrew doctor | grep token`` puts the
+    ``cd /workplace/user/junction-wt-x && pytest test/test_token_auth.py`` has no
+    argv whose PROGRAM is the CLI, and ``junction doctor | grep token`` puts the
     word in ``grep``'s argv, not the CLI's.
     """
     # Perf short-circuit (#3603): the tokenize-and-descend below is the deny
@@ -4100,8 +4061,8 @@ def _is_credential_mint(text_lower: str) -> bool:
         for i, token in enumerate(tokens):
             # AN INLINE PROGRAM THAT IMPORTS OUR CLI IS DENIED WITHOUT NEEDING THE VERB, and
             # this is checked FIRST because it does not depend on the self-program/module gate
-            # below. Everywhere else the verb is the trigger, because ``kirocrew doctor`` is
-            # legitimate and only ``kirocrew token`` mints. That reasoning does not survive an
+            # below. Everywhere else the verb is the trigger, because ``junction doctor`` is
+            # legitimate and only ``junction token`` mints. That reasoning does not survive an
             # inline program: ``-c`` and stdin (``python -``) both run arbitrary Python with
             # the interpreter's full authority, so it can BUILD the verb rather than pass it —
             # ``python -c "import sys; sys.argv.append('token'); from junction.cli import main;
@@ -4194,11 +4155,11 @@ def _is_self_kill(text_lower: str) -> bool:
 
     * ``pkill``/``killall`` select processes BY NAME, so the product name in any
       argument IS the target -- including inside a quoted pattern such as
-      ``pkill -f '[;]*kirocrew'``, where a raw-string regex mis-reads the quoted
+      ``pkill -f '[;]*junction'``, where a raw-string regex mis-reads the quoted
       ``;`` as a command separator and stops scanning short of the name.
     * bare ``kill`` takes PIDs, so it can only aim at the product through a
       command substitution that resolves the name to one (``kill $(pgrep -f
-      kirocrew)``, ``kill $(pidof kirocrew)``, ``kill $(cat /run/kirocrew.pid)``,
+      junction)``, ``kill $(pidof junction)``, ``kill $(cat /run/junction.pid)``,
       backticks).  A ``kill <pid>`` alongside a command that merely mentions a
       product path is NOT a self-kill -- that is the false positive this
       replaced.
@@ -4213,22 +4174,22 @@ def _is_self_kill(text_lower: str) -> bool:
         for i, token in enumerate(tokens):
             if not _is_kill_by_name_program(token):
                 continue
-            # ``echo pkill kirocrew`` prints two words; it does not kill anything.
+            # ``echo pkill junction`` prints two words; it does not kill anything.
             if _data_consumer_exempt(i, token, programs, tokens):
                 continue
             # Check each argument for the target BEFORE testing whether it ends the
             # argv, then stop.  Order matters: the target is often a quoted pattern
-            # whose own characters look like separators (``pkill -f '[;]*kirocrew'``),
+            # whose own characters look like separators (``pkill -f '[;]*junction'``),
             # so testing the boundary first would discard the very argument that
             # names the target.  Stopping after it keeps an unrelated later command
-            # out of the match (``pkill other; echo kirocrew`` is not a self-kill).
+            # out of the match (``pkill other; echo junction`` is not a self-kill).
             depth = 0
             for arg in tokens[i + 1 :]:
                 # Search the raw arg AND its normalized form.  Normalizing alone is
                 # not enough: a pkill pattern is an ERE, so a ``>`` inside it is part
-                # of the TARGET (``pkill -f '>kirocrew'``) and stripping it as a
+                # of the TARGET (``pkill -f '>junction'``) and stripping it as a
                 # redirect would discard the name.  Raw alone is not enough either --
-                # an empty substitution (``kiro$()crew``) only reads as the name once
+                # an empty substitution (``jun$()ction``) only reads as the name once
                 # removed.  Either match is a hit.
                 if _SELF_NAME_RE.search(_debracket(arg)) or _SELF_NAME_RE.search(
                     _normalize_operand(arg)
@@ -4250,7 +4211,7 @@ def _is_self_kill(text_lower: str) -> bool:
                 continue
             # Scan only the substitutions in THIS kill's own argv.  Scanning the whole
             # command associated every substitution with any ``kill`` on the line, so
-            # ``kill 123; echo $(cat /tmp/kirocrew)`` was denied for a substitution
+            # ``kill 123; echo $(cat /tmp/junction)`` was denied for a substitution
             # belonging to a different command.
             own = [token]
             depth = 0
@@ -4272,7 +4233,7 @@ def _is_self_kill(text_lower: str) -> bool:
                 if _SELF_NAME_RE.search(_normalize_operand(operand)):
                     return True
             for body in _substitution_bodies(" ".join(own)):
-                # ``kill $(pgrep -f kiro${x:-crew})`` hides the name behind an
+                # ``kill $(pgrep -f jun${x:-ction})`` hides the name behind an
                 # expansion whose literal branch the shell substitutes back in, so
                 # resolve those defaults before searching.
                 if _SELF_NAME_RE.search(_debracket(body)) or _SELF_NAME_RE.search(
@@ -4285,21 +4246,21 @@ def _is_self_kill(text_lower: str) -> bool:
 # ── Self-protection subcommand floor (argv-structural) ──────────────────────
 # ``restart`` / ``update`` / ``gateway restart`` / ``cloud <destructive>`` each
 # run a privileged self-action. The regex tier matches these on raw text, which
-# the shell's own de-escaping defeats: ``kirocrew -\v restart`` (backslash escape
-# -> ``-v``), ``kirocrew \restart`` (escaped subcommand letter) and
-# ``kirocrew -\<newline>v restart`` (line continuation) all reach the shell as the
+# the shell's own de-escaping defeats: ``junction -\v restart`` (backslash escape
+# -> ``-v``), ``junction \restart`` (escaped subcommand letter) and
+# ``junction -\<newline>v restart`` (line continuation) all reach the shell as the
 # plain command but split a token in the raw string the regex sees. Matching on
 # the tokenized argv -- the same de-escaped, de-quoted view the kill/token floors
 # use (``_self_token_frames``) -- resolves every such spelling before the check.
 # The floor is a UNION with the regex tier, never a replacement: the regex still
-# catches a payload the tokenizer cannot see into (``bash -c "kirocrew restart"``)
-# and the ``python -m junction restart`` module form (``kiro.?crew`` + verb) (#4824).
+# catches a payload the tokenizer cannot see into (``bash -c "junction restart"``)
+# and the ``python -m junction restart`` module form (``junction`` + verb) (#4824).
 _SELF_CLOUD_DESTRUCTIVE_VERBS: frozenset[str] = frozenset(
     {"destroy", "stop", "start", "launch", "connect", "tunnel", "login", "logout"}
 )
 
 # A shell removes ``backslash + newline`` while lexing (line continuation), so
-# ``kirocrew \<newline>restart`` runs ``kirocrew restart``. ``shlex`` instead keeps
+# ``junction \<newline>restart`` runs ``junction restart``. ``shlex`` instead keeps
 # the escaped newline as a literal in the token, so the floor pre-joins it to
 # model the shell before tokenizing. Scoped to the floor's own tokenizer input
 # (NOT a catalog-wide rewrite of the matched text): it only shapes the argv the
@@ -4317,7 +4278,7 @@ def _redirect_consumes_next(token: str) -> "tuple[bool, bool]":
 
     Returns ``(is_redirect, expects_separate_target)``. A redirection is removed
     from argv by the shell and may appear ANYWHERE in a simple command, so it is
-    never a CLI operand: ``kirocrew 2>/tmp/x restart`` and ``kirocrew > /tmp/x
+    never a CLI operand: ``junction 2>/tmp/x restart`` and ``junction > /tmp/x
     restart`` both run ``restart``, and the residue (the fd ``2``, or the target
     ``/tmp/x``) must not be mistaken for the leading subcommand.
 
@@ -4341,7 +4302,7 @@ def _self_cli_operands(tokens: "list[str]", i: int) -> "list[str]":
     valueless (``-v``/``--verbose`` count, ``--no-jail`` bool), so a skipped flag
     never hides an operand behind it. A shell redirection (and its separate
     target, if any) is removed from argv by the shell and is skipped too, so
-    ``kirocrew 2>/tmp/x restart`` still reads ``restart`` as the leading operand.
+    ``junction 2>/tmp/x restart`` still reads ``restart`` as the leading operand.
     Quoting is resolved by ``_normalize_operand``; the walk stops at the argv
     boundary so a chained later command's words are not attributed here.
     """
@@ -4416,7 +4377,7 @@ def _self_module_name_index(tokens: "list[str]", i: int) -> "int | None":
 
 def _self_program_index(tokens: "list[str]", i: int) -> "int | None":
     """The argv index whose trailing operands the product CLI receives when the token
-    at *i* launches it: *i* itself for the direct ``kirocrew`` form, or the module-name
+    at *i* launches it: *i* itself for the direct ``junction`` form, or the module-name
     index for ``python -m junction``; else None.
     """
     if _is_self_program(tokens[i]):
@@ -4429,7 +4390,7 @@ def _self_program_index(tokens: "list[str]", i: int) -> "int | None":
 def _matches_self_subcommand(text_lower: str, spec: "tuple[object, ...]") -> bool:
     """True if the product CLI is invoked with leading operand words *spec*.
 
-    Covers the direct form (``kirocrew`` as the argv program) and the module form
+    Covers the direct form (``junction`` as the argv program) and the module form
     (``python -m junction``), collecting operands after the CLI/module so the same
     shell de-escaping the regex tier cannot see is caught for both -- e.g.
     ``python -m junction -\\v restart``, which the interpreter-position regex misses.
@@ -4442,7 +4403,7 @@ def _matches_self_subcommand(text_lower: str, spec: "tuple[object, ...]") -> boo
             prog_idx = _self_program_index(tokens, i)
             if prog_idx is None:
                 continue
-            # ``echo kirocrew restart`` / ``echo python -m junction restart`` print words.
+            # ``echo junction restart`` / ``echo python -m junction restart`` print words.
             if _data_consumer_exempt(prog_idx, tokens[prog_idx], programs, tokens):
                 continue
             if _operands_lead_with(_self_cli_operands(tokens, prog_idx), spec):
@@ -4451,22 +4412,22 @@ def _matches_self_subcommand(text_lower: str, spec: "tuple[object, ...]") -> boo
 
 
 def _is_self_restart(text_lower: str) -> bool:
-    """``kirocrew restart`` behind any shell dressing of interposed flags."""
+    """``junction restart`` behind any shell dressing of interposed flags."""
     return _matches_self_subcommand(text_lower, ("restart",))
 
 
 def _is_self_update(text_lower: str) -> bool:
-    """``kirocrew update`` behind any shell dressing of interposed flags."""
+    """``junction update`` behind any shell dressing of interposed flags."""
     return _matches_self_subcommand(text_lower, ("update",))
 
 
 def _is_self_gateway_restart(text_lower: str) -> bool:
-    """``kirocrew gateway restart`` behind any shell dressing of interposed flags."""
+    """``junction gateway restart`` behind any shell dressing of interposed flags."""
     return _matches_self_subcommand(text_lower, ("gateway", "restart"))
 
 
 def _is_self_cloud_destructive(text_lower: str) -> bool:
-    """``kirocrew cloud <destructive>`` behind any shell dressing of interposed flags."""
+    """``junction cloud <destructive>`` behind any shell dressing of interposed flags."""
     return _matches_self_subcommand(text_lower, ("cloud", _SELF_CLOUD_DESTRUCTIVE_VERBS))
 
 
@@ -4785,7 +4746,7 @@ def _emit_push_allow_event(command: str) -> None:
                 timestamp=datetime.now(tz=timezone.utc).isoformat(),
                 event_type="push_allowed",
                 caller_identity="",
-                agent="kirocrew",
+                agent="junction",
                 source="security",
                 operation="git_push",
                 outcome="allowed",
@@ -4810,8 +4771,11 @@ def _emit_push_allow_event(command: str) -> None:
 _SENSITIVE_HOME_DIRS: list[str] = [
     # Gateway-owned Kiro auth staging. Owner-only filesystem mode does not
     # isolate another process running as the same UID, so every agent sandbox
-    # and the shared read/write hook floor hide this fixed parent.
-    ".kiro/crew-auth-staging",
+    # and the shared read/write hook floor hide this fixed parent. The staging
+    # root earlier builds created stays covered too: it persists on an upgraded
+    # machine and can still hold staged credential copies.
+    ".kiro/junction-auth-staging",
+    RETIRED_AUTH_STAGING_NAME,
     ".aws",
     ".ssh",
     ".gnupg",
@@ -4824,10 +4788,9 @@ _SENSITIVE_HOME_DIRS: list[str] = [
     ".pypirc",
     ".netrc",
     ".git-credentials",
-    # (The Notes builtin's GitHub PAT lives under the crew data-home at
+    # (The Notes builtin's GitHub PAT lives under the data home at
     # ``<prefix>/workspace/md-notebook/pat``; it is added below via
-    # ``_CREW_SECRET_LEAVES`` so BOTH ``.kiro/crew`` and the legacy ``.kirocrew``
-    # data-home are covered — ``config_dir()`` can resolve to either.)
+    # ``_DATA_HOME_SECRET_LEAVES``.)
     # Enterprise SSO cookie store. The public core ships no bundled SSO
     # integration, but the browser-auth layer already references this cookie
     # path (browser/auth.py), an edition CredentialPolicy redacts its session
@@ -4903,12 +4866,21 @@ _SENSITIVE_HOME_DIRS: list[str] = [
 # sel.py, apps/admission.py, governance.py, cli_commands.py, mcp_core.py, …)
 # opens these directly (NOT via this gate), so real functionality is unaffected.
 #
-# Each leaf is expanded under EVERY known data-home prefix so the secret is
-# gated identically in the current home (``~/.junction``), the previous
-# ``~/.kiro/crew``, and an older ``~/.kirocrew`` directory still on disk.
-# One leaf list means a new secret is added once and covered in each location.
-_CREW_HOME_PREFIXES: tuple[str, ...] = (".junction", ".kiro/crew", ".kirocrew")
-_CREW_SECRET_LEAVES: list[str] = [
+# Each leaf is expanded under the data-home prefix (``~/.junction``), and
+# ``_home_dir_targets_uncached`` re-anchors it under a ``JUNCTION_HOME`` override,
+# so one leaf list means a new secret is added once and covered wherever the
+# data home lives.
+#
+# The leaves are ALSO expanded under each retired data home
+# (``config.paths.RETIRED_DATA_HOME_NAMES``). Junction no longer reads those
+# directories, but a machine upgraded in place can still hold a live ``.env``,
+# vault key or signing key in one, and dropping the entries would hand an agent
+# read access to credentials that were fenced the day before the upgrade. Only
+# the secret leaves are expanded there: the write-protected leaves below guard
+# inputs to a live decision, and nothing reads a retired home's copy.
+_DATA_HOME_PREFIXES: tuple[str, ...] = (CONFIG_DIR_NAME,)
+_RETIRED_DATA_HOME_PREFIXES: tuple[str, ...] = RETIRED_DATA_HOME_NAMES
+_DATA_HOME_SECRET_LEAVES: list[str] = [
     ".env",
     # The Notes builtin stores a GitHub Personal Access Token here so it can
     # push a vault. Owner-only mode (0600) does not isolate another process
@@ -4916,12 +4888,9 @@ _CREW_SECRET_LEAVES: list[str] = [
     # user's repositories, so it belongs behind the shared floor like every other
     # credential store. The app's own backend opens it directly rather than
     # through this gate, so it keeps working. It is a leaf here (not a flat
-    # ``~/.kiro/crew`` entry) so it is generated for BOTH ``_CREW_HOME_PREFIXES``:
-    # a user may still have a pre-move legacy ``.kirocrew`` home on disk holding a
-    # live PAT, so it must be protected there too. A vault relocated with
-    # ``MD_NOTEBOOK_HOME`` falls
-    # outside a home-relative entry; the default path is what ships and what an
-    # agent would find.
+    # ``~/.junction`` entry) so a ``JUNCTION_HOME`` override re-anchors it too. A
+    # vault relocated with ``MD_NOTEBOOK_HOME`` falls outside a home-relative
+    # entry; the default path is what ships and what an agent would find.
     "workspace/md-notebook/pat",
     # The WhatsApp channel's linked-device session store (whatsmeow's sqlite
     # keys). It IS the credential: anything that can read it can act as the
@@ -5106,7 +5075,7 @@ _CREW_SECRET_LEAVES: list[str] = [
     # fenced too: the file names the account id and caller ARN that a profile
     # resolves to, which is reconnaissance an agent should not get for free from
     # the shared gate. The authenticated dashboard ``/api/aws/consent`` handler
-    # and the ``kirocrew aws-consent`` CLI are the only writers and open the
+    # and the ``junction aws-consent`` CLI are the only writers and open the
     # path directly, not through this gate, so both keep working.
     "aws_service_consent.json",
     "token_signing.key",
@@ -5172,7 +5141,7 @@ _CREW_SECRET_LEAVES: list[str] = [
     "mcp-apps",
     # Runtime exec dir. ``run/`` holds paths the gateway executes OUTSIDE the
     # agent sandbox: the sandbox launcher scripts (``sandbox.py`` execs
-    # ``python <home>/run/kirocrew_sandbox_*.py``) and the remote-instance
+    # ``python <home>/run/junction_sandbox_*.py``) and the remote-instance
     # run-marker ``gateway-<port>.bin`` (``instances/run_marker.py``), whose
     # contents the SSH token-mint reads and ``exec``s on the remote host. A
     # prompt-injected / sandboxed agent that could WRITE into this dir could point
@@ -5187,11 +5156,13 @@ _CREW_SECRET_LEAVES: list[str] = [
     # the key file, ciphertext store, lock, and atomic-write temp files are all
     # unreadable to the agent through any Junction-mediated channel (PR 1 of
     # #2351). The verb-independent sensitive-path backstop covers a scripted
-    # ``python -c "open('~/.kiro/crew/.vault/...')"`` too.
+    # ``python -c "open('~/.junction/.vault/...')"`` too.
     ".vault",
 ]
 _SENSITIVE_HOME_DIRS += [
-    f"{prefix}/{leaf}" for prefix in _CREW_HOME_PREFIXES for leaf in _CREW_SECRET_LEAVES
+    f"{prefix}/{leaf}"
+    for prefix in (*_DATA_HOME_PREFIXES, *_RETIRED_DATA_HOME_PREFIXES)
+    for leaf in _DATA_HOME_SECRET_LEAVES
 ]
 
 # ── Write-protected paths (block modification, allow reads) ──
@@ -5226,7 +5197,7 @@ _SENSITIVE_HOME_DIRS += [
 # redaction has no policy key.
 _WRITE_PROTECTED_HOME_PATHS: list[str] = [
     f"{prefix}/{leaf}"
-    for prefix in _CREW_HOME_PREFIXES
+    for prefix in _DATA_HOME_PREFIXES
     # config.json / config.local.json: security-relevant resource ceilings.
     # playwright-cli-config.json: the browse launch config
     # (browser_cli/launch.py). It holds no secret and the CLI must READ it on
@@ -5257,7 +5228,7 @@ _WRITE_PROTECTED_HOME_PATHS: list[str] = [
     # a direct `git checkout` on the merge path, not through this gate, so team
     # sync still converges.
     f"{prefix}/apps/ops-mission-control/data/rotation.yaml"
-    for prefix in _CREW_HOME_PREFIXES
+    for prefix in _DATA_HOME_PREFIXES
 ]
 _WRITE_PROTECTED_HOME_PATHS += [
     # The Ops Mission Control incident INDEX, for the same reason as the schedule above and
@@ -5280,7 +5251,7 @@ _WRITE_PROTECTED_HOME_PATHS += [
     # this path directly and do not route through this gate, so the app keeps working; only
     # the agent's file-edit and shell tools are refused.
     f"{prefix}/apps/ops-mission-control/data/incidents/index.json"
-    for prefix in _CREW_HOME_PREFIXES
+    for prefix in _DATA_HOME_PREFIXES
 ]
 _WRITE_PROTECTED_HOME_PATHS += [
     # The Connections tool-alias OWNERSHIP RECORD, third instance of the same class as the
@@ -5303,7 +5274,7 @@ _WRITE_PROTECTED_HOME_PATHS += [
     # through this gate, so both record writes still work; only the agent's own file-edit and
     # shell tools are refused.
     f"{prefix}/connections-tool-aliases.json"
-    for prefix in _CREW_HOME_PREFIXES
+    for prefix in _DATA_HOME_PREFIXES
 ]
 
 # ── kiro-cli agent-spec directory (~/.kiro/agents) ──
@@ -5335,12 +5306,12 @@ _WRITE_PROTECTED_HOME_PATHS += [
 # ``KIRO_HOME`` (kiro-cli's own home override, which ``kiro_agents_dir()``
 # honours) is re-anchored in ``_home_dir_targets_uncached`` so an instance that
 # relocates its agents dir is covered the same way ``JUNCTION_HOME`` re-anchors
-# the crew secrets.
+# the data-home secrets.
 _KIRO_AGENTS_DIR = ".kiro/agents"
 _WRITE_PROTECTED_HOME_PATHS += [_KIRO_AGENTS_DIR]
 
 # ── Bash-layer protection for write-protected leaves ──
-# Leaf files under the crew home that a bash command must not be able to
+# Leaf files under the data home that a bash command must not be able to
 # CREATE/MODIFY/DELETE. The file-edit tool gate already blocks tool writes to
 # these via ``is_sensitive_write_path``; this closes the SHELL path, which the
 # sensitive-command regex below otherwise only enforces for
@@ -5354,7 +5325,7 @@ _WRITE_PROTECTED_HOME_PATHS += [_KIRO_AGENTS_DIR]
 # denies bash READS of these leaves too, which is harmless: they carry no secret
 # (so this is NOT in ``_SENSITIVE_HOME_DIRS`` — file-read tools and
 # ``is_sensitive_path`` stay unaffected), and the legitimate readers
-# (``kirocrew doctor``, Junction's own writers) use Python ``os`` calls, not bash.
+# (``junction doctor``, Junction's own writers) use Python ``os`` calls, not bash.
 #
 # SCOPE NOTE (please do NOT flag incremental regex gaps as new HIGHs): this
 # bash gate is DEFENSE-IN-DEPTH, not the primary control. The primary control
@@ -5386,8 +5357,8 @@ _WRITE_PROTECTED_HOME_PATHS += [_KIRO_AGENTS_DIR]
 # every teammate's instance must read the file to answer "am I on call?", and it holds no
 # secret. ``ledger_sync`` converges the file with a direct ``git checkout``, not through this
 # gate, so team sync is unaffected.
-# Entries are HOME-RELATIVE PATHS under the crew home, not bare filenames: the matcher
-# builds ``<home>/<crew-prefix>/<entry>``. `rotation.yaml` therefore carries its
+# Entries are HOME-RELATIVE PATHS under the data home, not bare filenames: the matcher
+# builds ``<home>/<data-home-prefix>/<entry>``. `rotation.yaml` therefore carries its
 # ``apps/.../data/`` subpath — spelling it as a bare leaf silently matched nothing, which is
 # the failure mode where a security addition reads as done and enforces nothing.
 #
@@ -5405,7 +5376,7 @@ _WRITE_PROTECTED_HOME_PATHS += [_KIRO_AGENTS_DIR]
 # spec on disk (readable, so computable), and the next rebuild deletes the user's alias as
 # its own emission. Nothing downstream neutralizes the forgery, since the fingerprint check
 # reads the same spec the forger does. The tool-path gate above is the primary control; this
-# closes the shell path so a redirect (``echo … > ~/.kiro/crew/connections-tool-aliases.json``)
+# closes the shell path so a redirect (``echo … > ~/.junction/connections-tool-aliases.json``)
 # cannot reach what the file-edit tool is already refused. ``alias_record._write`` writes the
 # path directly through ``atomic_write`` in Python, not via bash, so both record writes are
 # unaffected. Reads stay allowed on the tool path for the same reason as the two entries
@@ -5432,8 +5403,8 @@ _WRITE_PROTECTED_BASH_LEAVES: tuple[str, ...] = (
 
 # ── Anchor-INDEPENDENT leaf matching ──
 # Every pattern above (POSIX and Windows alike) is HOME-ANCHORED, so one ``cd``
-# defeats all of them: ``cd ~/.kiro/crew && echo forged >
-# connections-tool-aliases.json`` names no home, no crew prefix and no
+# defeats all of them: ``cd ~/.junction && echo forged >
+# connections-tool-aliases.json`` names no home, no data-home prefix and no
 # separator, and reaches the very file the anchored entry exists to fence.
 #
 # For the alias ownership record that gap is not a residual limit to accept, the
@@ -5466,8 +5437,8 @@ _READ_CMDS = r"(?:cat|head|tail|less|more|strings|xxd|base64|cp|scp|open|vi|vim|
 # Regex for bash commands that WRITE/MODIFY a path argument.  Reads alone were
 # not enough: a prompt-injected agent could rewrite the governance trust-root
 # (or plant a credential) with a write verb that carries no redirect char and
-# is not a read verb — e.g. ``tee ~/.kirocrew/security_policy.json``,
-# ``mv evil ~/.kirocrew/profiles/x.json``, ``sed -i ... ~/.aws/credentials``,
+# is not a read verb — e.g. ``tee ~/.junction/security_policy.json``,
+# ``mv evil ~/.junction/profiles/x.json``, ``sed -i ... ~/.aws/credentials``,
 # ``dd of=...``, ``truncate``, ``ln -sf``, ``install``, plus archive-extraction
 # and VCS-checkout verbs that materialise a file at a destination
 # (``tar -xf … -C``, ``unzip -d``, ``git checkout/restore -- <path>``).  This
@@ -5502,11 +5473,11 @@ def _build_sensitive_regex() -> re.Pattern[str]:
          already blocked by is_sensitive_path on the file-read title, so flagging
          any command that *names* the trust-root/credential path is correct and
          fail-safe.
-      3. a write-protected LEAF under the crew home, in POSIX and in
+      3. a write-protected LEAF under the data home, in POSIX and in
          Windows-native spelling, matched verb-independently;
       4. an anchor-INDEPENDENT bare path SEGMENT for the distinctive leaves in
          ``_BARE_TOKEN_PROTECTED_LEAVES`` — the only strategy that survives a
-         ``cd`` into the crew home followed by a relative filename.
+         ``cd`` into the data home followed by a relative filename.
     The home anchor accepts ``~`` / ``$HOME`` / the literal ``Path.home()`` AND a
     generic ``/home/<user>`` / ``/Users/<user>`` literal so an unexpanded
     ``/home/$USER/...`` or another user's literal path is still caught.
@@ -5525,10 +5496,10 @@ def _build_sensitive_regex() -> re.Pattern[str]:
     # path to a specific leaf file, matched verb-INDEPENDENTLY (below) so no
     # write form can bypass it. See _WRITE_PROTECTED_BASH_LEAVES for why reads
     # are blocked too (harmless: no secret; legitimate readers use Python).
-    wp_prefixes = "|".join(re.escape(p) for p in _CREW_HOME_PREFIXES)
+    wp_prefixes = "|".join(re.escape(p) for p in _DATA_HOME_PREFIXES)
     wp_leaves = "|".join(re.escape(leaf) for leaf in _WRITE_PROTECTED_BASH_LEAVES)
     write_protected_path = (
-        # trailing ``/`` is included so a ``mkdir -p <home>/<crew-prefix>/<leaf>/x``
+        # trailing ``/`` is included so a ``mkdir -p <home>/<data-home-prefix>/<leaf>/x``
         # (which also MATERIALISES the leaf as a directory) is caught, not just
         # the exact-leaf forms.
         rf"{home_alts}/(?:{wp_prefixes})/(?:{wp_leaves})(?:/|\s|$|['\"])"
@@ -5634,13 +5605,13 @@ def _build_sensitive_regex() -> re.Pattern[str]:
     # Windows-native spelling of the write-protected leaves. The POSIX leaf
     # branch above anchors on ``/`` separators, so on Windows the resolved home
     # literal (``C:\Users\u``) never matches it and ``echo forged >
-    # C:\Users\u\.kiro\crew\connections-tool-aliases.json`` reaches the very file
+    # C:\Users\u\.junction\connections-tool-aliases.json`` reaches the very file
     # the leaf list exists to fence — the same bypass the fenced DIRS already
     # close through ``win_sensitive_path``. Built from the same anchors and
     # generalized separator, so both spellings of every leaf are gated
     # identically and a leaf added to the tuple is covered in both.
     win_wp_prefixes = "|".join(
-        win_gsep.join(re.escape(part) for part in p.split("/")) for p in _CREW_HOME_PREFIXES
+        win_gsep.join(re.escape(part) for part in p.split("/")) for p in _DATA_HOME_PREFIXES
     )
     win_wp_leaves = "|".join(
         win_gsep.join(re.escape(part) for part in leaf.split("/"))
@@ -5674,7 +5645,7 @@ def _build_sensitive_regex() -> re.Pattern[str]:
     # ``KIRO_HOME`` (honoured by ``kiro_agents_dir()``) relocates the dir to
     # ``$KIRO_HOME/agents``, so ``tee $KIRO_HOME/agents/x`` must be caught too
     # (found in review). An already-expanded absolute override path carries no
-    # anchor and is the accepted residual — the same limit the crew leaves have —
+    # anchor and is the accepted residual — the same limit the data-home leaves have —
     # but the tool gate resolves and covers it. ``_KIRO_HOME_LEAF`` is the segment
     # under the override (``agents``), sliced from the same literal so the two
     # spellings cannot drift.
@@ -5699,7 +5670,7 @@ def _build_sensitive_regex() -> re.Pattern[str]:
         rf"|{win_kiro_home_var}{win_gsep}(?:{agents_leaf_alt}))(?:{win_sep}|\s|$|['\"])"
     )
     # Bare path-SEGMENT match for the globally distinctive leaves. Both branches
-    # above require a home anchor and a crew prefix, so both are defeated by a
+    # above require a home anchor and a data-home prefix, so both are defeated by a
     # single ``cd``; this one requires neither, which is the whole point — the
     # filename authorizes deletion, so naming it is the signal regardless of how
     # the command spells the way there.
@@ -5821,7 +5792,7 @@ def _home_dir_targets_uncached(
     """Anchor the ``$HOME``-relative *home_dirs* entries into absolute, casefolded
     on-disk targets.
 
-    *roots* optionally supplies the ``(home, crew_home, kiro_home)`` anchors
+    *roots* optionally supplies the ``(home, data_root, kiro_home)`` anchors
     already resolved by the caller. The TTL cache in :func:`_home_dir_targets` MUST pass
     it: resolving the roots here as well would read the filesystem a second
     time, and a root symlink repointed between the two reads would file this
@@ -5835,7 +5806,7 @@ def _home_dir_targets_uncached(
     either spelling is still matched.
 
     ``home_dirs`` entries are authored with POSIX "/" separators, and some are
-    multi-segment now (e.g. ".kiro/crew/security_policy.json"). Split on "/"
+    multi-segment now (e.g. ".junction/security_policy.json"). Split on "/"
     and re-join with ``os.path.join`` so the target uses the running OS's
     separator — otherwise on Windows the target keeps a literal "/" in the
     leaf while the candidate forms (realpath/normpath) are all-backslash, they
@@ -5844,9 +5815,9 @@ def _home_dir_targets_uncached(
     this is a no-op there.
     """
     if roots is not None:
-        home, crew_home, kiro_home_override = roots
+        home, data_root, kiro_home_override = roots
     else:
-        home, crew_home, kiro_home_override = _resolved_root_key()
+        home, data_root, kiro_home_override = _resolved_root_key()
 
     def _anchor(root: str, d: str) -> str:
         return os.path.join(root, *d.split("/")).casefold()
@@ -5857,23 +5828,22 @@ def _home_dir_targets_uncached(
         sensitive_targets |= {_anchor(home_real, d) for d in home_dirs}
     # When JUNCTION_HOME points to a non-default path, the keystone secrets
     # (token_signing.key, refresh_chains.json, .local_secret, sel_hmac.key,
-    # security_policy.json etc.) live directly under it — NOT under either of
-    # the default crew home prefixes (~/.kiro/crew, ~/.kirocrew). Without this
-    # expansion any "<crew-prefix>/X" entry in the home_dirs list would miss
-    # the real file location, letting the agent read/write its own signing key
-    # or governance ceiling via the custom JUNCTION_HOME. Strip whichever crew
+    # security_policy.json etc.) live directly under it — NOT under the default
+    # data-home prefix (~/.junction). Without this expansion any
+    # "<data-home-prefix>/X" entry in the home_dirs list would miss the real
+    # file location, letting the agent read/write its own signing key or
+    # governance ceiling via the custom JUNCTION_HOME. Strip the data-home
     # prefix an entry carries and re-anchor the leaf under the env-override
     # root ADDITIONALLY (the ~/-rooted default forms stay, so every location is
     # always covered).
-    if crew_home:
-        kiro_home = crew_home
+    if data_root:
         for d in home_dirs:
-            for _prefix in _CREW_HOME_PREFIXES:
+            for _prefix in _DATA_HOME_PREFIXES:
                 # Compare with POSIX separators (home_dirs entries are authored
                 # that way) so this matches regardless of the running os.sep.
                 if d == _prefix or d.startswith(_prefix + "/"):
                     leaf = d[len(_prefix) :].lstrip("/")
-                    full = os.path.join(kiro_home, *leaf.split("/")) if leaf else kiro_home
+                    full = os.path.join(data_root, *leaf.split("/")) if leaf else data_root
                     sensitive_targets.add(full.casefold())
                     # Also add the resolved form in case the env value itself has
                     # symlinks (matches the home/home_real duality above).
@@ -5930,7 +5900,7 @@ def _home_dir_targets_uncached(
 # Resolving the roots costs ~2 realpath calls (~0.06ms) against the ~1.14ms
 # rebuild it replaces, so the win survives.
 #
-# Residual, accepted: a symlink swapped DEEPER inside the crew home (an
+# Residual, accepted: a symlink swapped DEEPER inside the data home (an
 # individual keystone leaf, or an intermediate directory on the way to one) can
 # still be served stale for up to the TTL. Detecting that needs the per-leaf
 # realpath calls that ARE the expense — measured 45 realpath calls per build,
@@ -5951,7 +5921,7 @@ _home_targets_cache: dict[tuple[object, ...], tuple[float, set[str]]] = {}
 
 
 def _resolved_root_key() -> tuple[str, str | None, str | None]:
-    """Return the (home, crew_home, kiro_home) roots the target set is anchored on.
+    """Return the (home, data_root, kiro_home) roots the target set is anchored on.
 
     Mirrors how :func:`_home_dir_targets_uncached` derives its anchors, so the
     cache key changes exactly when the anchors would. Falls back to the
@@ -5968,14 +5938,14 @@ def _resolved_root_key() -> tuple[str, str | None, str | None]:
         home = str(Path.home().resolve())
     except (OSError, ValueError):
         home = str(Path.home())
-    crew_env = os.environ.get("JUNCTION_HOME")
-    if crew_env:
+    data_env = os.environ.get("JUNCTION_HOME")
+    if data_env:
         try:
-            crew: str | None = str(Path(crew_env).expanduser().resolve())
+            data: str | None = str(Path(data_env).expanduser().resolve())
         except (OSError, ValueError):
-            crew = os.path.abspath(os.path.expanduser(crew_env))
+            data = os.path.abspath(os.path.expanduser(data_env))
     else:
-        crew = None
+        data = None
     kiro_env = os.environ.get("KIRO_HOME")
     if kiro_env:
         try:
@@ -5984,13 +5954,13 @@ def _resolved_root_key() -> tuple[str, str | None, str | None]:
             kiro = os.path.abspath(os.path.expanduser(kiro_env))
     else:
         kiro = None
-    return home, crew, kiro
+    return home, data, kiro
 
 
 def _home_dir_targets(home_dirs: list[str]) -> set[str]:
     """TTL-cached :func:`_home_dir_targets_uncached`.
 
-    Keyed on the *home_dirs* list plus the RESOLVED home and crew-home roots
+    Keyed on the *home_dirs* list plus the RESOLVED home and data-home roots
     (see the note above the constant for why the raw env vars are not enough).
 
     ponytail: the returned set is the cached instance, not a copy — both
@@ -6056,7 +6026,7 @@ def _path_in_home_dirs(path_str: str, home_dirs: list[str], base_dir: str | None
 
     # Case-fold both sides for the membership test.  On a case-insensitive
     # filesystem (macOS APFS/HFS+ default — a supported platform) the OS opens
-    # ``~/.kirocrew/Security_Policy.json`` and ``~/.kirocrew/security_policy.json``
+    # ``~/.junction/Security_Policy.json`` and ``~/.junction/security_policy.json``
     # as the SAME file, so a byte-exact comparison would let the agent write its
     # own governance ceiling via an alternate-case path. Folding is strictly more
     # protective (it can only ever over-match an alternate-case variant of an
@@ -6094,7 +6064,7 @@ def path_contains_sensitive(dir_str: str, base_dir: str | None = None) -> bool:
     credentials wholesale even though the root is not itself a sensitive path.
 
     List-based, no filesystem walk: the known sensitive roots
-    (:data:`_SENSITIVE_HOME_DIRS`, including the crew data-home secret leaves
+    (:data:`_SENSITIVE_HOME_DIRS`, including the data-home secret leaves
     and any ``JUNCTION_HOME`` re-anchoring) are prefix-compared against the
     directory's candidate forms, so the check is O(sensitive entries) even when
     *dir_str* is a huge tree. Shares :func:`_candidate_forms` and
@@ -6156,13 +6126,13 @@ def write_protected_home_paths() -> tuple[str, ...]:
     return tuple(_WRITE_PROTECTED_HOME_PATHS)
 
 
-def crew_home_prefixes() -> tuple[str, ...]:
-    """Public view of the known crew data-home prefixes.
+def data_home_prefixes() -> tuple[str, ...]:
+    """Public view of the data-home prefixes.
 
     Used to classify a sensitive path as a Junction trust root vs. a third-party
     credential store when describing the posture.
     """
-    return tuple(_CREW_HOME_PREFIXES)
+    return tuple(_DATA_HOME_PREFIXES)
 
 
 def exfil_query_min_len() -> int:
@@ -6171,18 +6141,17 @@ def exfil_query_min_len() -> int:
 
 
 # Archive/extraction destination flags (tar -C, unzip -d, rsync dest) pointing
-# INTO the governance trust-root parent (the crew data home) — an extraction
+# INTO the governance trust-root parent (the data home) — an extraction
 # there can drop/overwrite ``security_policy.json`` or a ``profiles/`` entry even
 # though the bare home dir is not itself a sensitive-path entry.  Match the
 # destination-dir form specifically so normal home access (sessions.db,
-# config.json) is not over-blocked.  Covers every crew home root: the current
-# ``~/.kiro/crew`` and a pre-move legacy ``~/.kirocrew``.
-_CREW_HOME_ALT = "|".join(re.escape("/" + p) for p in _CREW_HOME_PREFIXES)
+# config.json) is not over-blocked.  Covers the data-home root ``~/.junction``.
+_DATA_HOME_ALT = "|".join(re.escape("/" + p) for p in _DATA_HOME_PREFIXES)
 _EXTRACT_INTO_TRUST_ROOT_RE = re.compile(
     r"-(?:C|d)\s+(?:~|\$HOME|/home/[^/\s]+|/Users/[^/\s]+|"
     + re.escape(str(Path.home()))
     + r")(?:"
-    + _CREW_HOME_ALT
+    + _DATA_HOME_ALT
     + r")(?:/[^\s]*)?(?:\s|$|['\"])",
     re.IGNORECASE,
 )
@@ -6335,9 +6304,9 @@ def is_sensitive_bash_command(command: str) -> str | None:
 #: ``=`` meant the whole ``NAME+=`` token failed to match, so the segment was read
 #: as a command word rather than an assignment::
 #:
-#:     V=$HOME/.kiro; V+=/crew; cd "$V"; cat token_signing.key
+#:     V=$HOME; V+=/.junction; cd "$V"; cat token_signing.key
 #:
-#: left the tracked value on ``$HOME/.kiro`` while bash held ``$HOME/.kiro/crew``,
+#: left the tracked value on ``$HOME`` while bash held ``$HOME/.junction``,
 #: so the read after the ``cd`` resolved against the wrong directory.
 _SHELL_ASSIGN_RE = re.compile(r"^([A-Za-z_][A-Za-z0-9_]*)(\+?)=(.*)$", re.DOTALL)
 
@@ -6375,7 +6344,7 @@ _MAX_TRACKED_BASES = 64
 #: of the cd-then-relative chain was unmodelled and read clean::
 #:
 #:     Set-Location ~; Get-Content .aws/credentials
-#:     chdir %USERPROFILE%; type .kiro/crew/token_signing.key
+#:     chdir %USERPROFILE%; type .junction/token_signing.key
 #:
 #: ``sl`` is also a real (joke) program on some Linux boxes. Reading it as a
 #: chdir there can only ADD a base directory, and a base only ever produces more
@@ -6441,7 +6410,7 @@ def _is_chdir_switch(token: str) -> bool:
 
     * Classifying it as a switch reads ``cd /d %USERPROFILE%`` correctly, but a
       single-letter absolute path is also a perfectly real POSIX directory -- and
-      one that can be the crew home, so discarding it turned
+      one that can be the data home, so discarding it turned
       ``JUNCTION_HOME=/d`` + ``cd /d; cat token_signing.key`` from denied into
       allowed. That is a keystone read, so the classification cost more than it
       bought.
@@ -6507,13 +6476,13 @@ def _rewrite_windows_home_anchor(token: str) -> str:
 
 # A command substitution, in both spellings. Its value needs the command to run,
 # so it is unresolvable from the text in exactly the way an unassigned variable
-# is -- and it can carry a `cd` target: `cd "$(printf %s ~)/.kiro/crew"`.
+# is -- and it can carry a `cd` target: `cd "$(printf %s ~)/.junction"`.
 _SHELL_SUBST_RE = re.compile(r"\$\((?:[^()]|\([^()]*\))*\)|`[^`]*`")
 
 # Stand-in for a masked command substitution. Deliberately shaped like a variable
 # reference: the substitution is unresolvable for the same reason an unassigned
 # variable is, so the existing unresolved-value machinery then handles it.
-_SUBST_PLACEHOLDER = "$__kc_subst"
+_SUBST_PLACEHOLDER = "$__jn_subst"
 #: The bare NAME of the placeholder, for refusing to record an assignment to it.
 _SUBST_PLACEHOLDER_NAME = _SUBST_PLACEHOLDER.lstrip("$")
 #: Every spelling of that reserved name, including the numbered ones
@@ -6546,11 +6515,11 @@ def _substitution_path_guess(substitution: str) -> str | None:
     already resolved. ``$HOME`` and ``~`` are expanded before this pass runs, so
     the credential directory sits in plain sight *inside* the parentheses::
 
-        cd "$(printf %s "$HOME/.kiro")/crew"; cat token_signing.key
+        cd "$(printf %s "$HOME/.junction")/trust"; cat sel_hmac.key
 
-    The masked target is ``$__kc_subst/crew``, and the home hypothesis rewrites
-    that to ``~/crew`` -- benign -- while bash enters ``~/.kiro/crew`` and the
-    signing key is read. The hypothesis is not wrong to exist; it is just blind to
+    The masked target is ``$__jn_subst/trust``, and the home hypothesis rewrites
+    that to ``~/trust`` -- benign -- while bash enters ``~/.junction/trust`` and the
+    audit-chain signing key is read. The hypothesis is not wrong to exist; it is just blind to
     a value the command spelled out.
 
     So vouch for ONE reading and only when the text says so: the LAST word the
@@ -6645,11 +6614,11 @@ def _split_shell_segments(command: str) -> list[str]:
     The split has to respect quoting. A separator inside a quoted argument is
     data, and splitting on it lets that data be read as shell syntax::
 
-        cd ~/.kiro/crew && echo 'x; cd /tmp' && cat token_signing.key
+        cd ~/.junction && echo 'x; cd /tmp' && cat token_signing.key
 
     A naive split treats the quoted ``;`` as a separator, so ``cd /tmp'``
     becomes a segment and retargets the tracked base directory. The shell never
-    left ``~/.kiro/crew``, but the bare filename then resolves against ``/tmp``
+    left ``~/.junction``, but the bare filename then resolves against ``/tmp``
     and the signing key reads clean. Splitting only outside quotes keeps the
     tracked directory in step with the shell.
 
@@ -6818,9 +6787,9 @@ def _expansion_readings(token: str, assignments: dict[str, str]) -> list[str]:
     # hypothesis then treats a literal brace as one opaque unresolved unit -- which
     # throws away a path spelled out inside it:
     #
-    #     X=x; D=${X:+$HOME/.kiro/crew}; cd $D; cat token_signing.key
+    #     X=x; D=${X:+$HOME/.junction}; cd $D; cat token_signing.key
     #
-    # `$HOME` is expanded before this pass runs, so `/…/.kiro/crew` is right there
+    # `$HOME` is expanded before this pass runs, so `/…/.junction` is right there
     # in the text, while the hypothesis rewrote the whole brace as `~` and the read
     # joined onto the home directory instead. Same blindness as a masked command
     # substitution had, and the same answer: add the reading rather than decide
@@ -6874,7 +6843,7 @@ def _unresolved_home_hypothesis(token: str) -> str | None:
 
     Rather than let such a token through unchecked, test the hypothesis that the
     unresolved part names a home directory -- `$V/.aws/credentials` and
-    `$(printf %s ~)/.kiro/crew` both become a `~`-anchored path. Any further
+    `$(printf %s ~)/.junction` both become a `~`-anchored path. Any further
     unresolved parts drop out, since `~` only expands at the start.
 
     Returns the hypothesis, or None when the token carries nothing unresolved or
@@ -6894,7 +6863,7 @@ def _unresolved_home_hypothesis(token: str) -> str | None:
 #: whose sensitivity lives in their leaves rather than in themselves.
 #:
 #: ``~/.aws`` is sensitive as a whole directory, so `is_sensitive_path` answers
-#: "yes" for it. ``~/.kiro/crew`` is not: only ``~/.kiro/crew/token_signing.key``
+#: "yes" for it. ``~/.junction`` is not: only ``~/.junction/token_signing.key``
 #: and its siblings are. Any check that asked `is_sensitive_path` about a
 #: DIRECTORY therefore answered "no" for the keystone -- and ``~/.aws`` hid it,
 #: because every test written against that spelling passed.
@@ -6930,12 +6899,12 @@ def _dir_holds_sensitive_leaf(directory: str) -> bool:
     For a ``cd`` target the useful question is the other one, and asking the
     first left every check that guards a *move* inert for the keystone::
 
-        bash -c "cd ~/.kiro/crew; cat token_signing.key"
-        cd ~/.kiro/crew; false && cd /tmp; cat token_signing.key
+        bash -c "cd ~/.junction; cat token_signing.key"
+        cd ~/.junction; false && cd /tmp; cat token_signing.key
 
     Neither is resolvable by the segment walk -- the first is one opaque quoted
     argument, the second moves away again before the read -- so both depend on the
-    taint pass, which tainted nothing because ``~/.kiro/crew`` is not itself
+    taint pass, which tainted nothing because ``~/.junction`` is not itself
     sensitive.
     """
     probe = os.path.expanduser(directory) if directory.startswith("~") else directory
@@ -6963,7 +6932,7 @@ def _sensitive_under_unresolved_var(token: str) -> bool:
       `$BUILD/out.txt` stays clean because its remainder is not sensitive under
       any value. This is the home-hypothesis test.
     * The unresolved part is the LEAF and the literal directory before it holds a
-      protected file: `~/.kiro/crew/$F` is caught because the crew directory
+      protected file: `~/.junction/$F` is caught because the data-home directory
       holds the keystone (`token_signing.key`), so the variable could name it.
       `is_sensitive_path` answers "no" for that directory itself -- only its
       leaves are sensitive -- so this shape needs `_dir_holds_sensitive_leaf`
@@ -6987,7 +6956,7 @@ def _sensitive_under_unresolved_var(token: str) -> bool:
     # The variable sits in the leaf: block when the literal directory prefix --
     # everything up to the first unresolved expansion -- is a directory whose
     # sensitivity lives in its leaves, since the variable could name one. This
-    # runs even when the home hypothesis is None, because `${HOME}/.kiro/crew/$F`
+    # runs even when the home hypothesis is None, because `${HOME}/.junction/$F`
     # normalizes to an ABSOLUTE prefix (not `~`-anchored) yet is the same attack.
     literal_prefix = marked.split("\x00", 1)[0]
     directory = literal_prefix.rsplit("/", 1)[0] if "/" in literal_prefix else ""
@@ -7039,7 +7008,7 @@ def _check_sensitive_via_normalizer(command: str) -> str | None:
     - Indirection through a variable the command itself assigned:
       ``V=$HOME; awk 1 $V/.aws/credentials``
     - A bare filename read after a ``cd``:
-      ``cd ~/.kiro/crew && cat token_signing.key``
+      ``cd ~/.junction && cat token_signing.key``
 
     Runs VERB-INDEPENDENTLY, matching the posture the regex first-pass already
     ships: :func:`_build_sensitive_regex`'s catch-all branch blocks any command
@@ -7048,8 +7017,8 @@ def _check_sensitive_via_normalizer(command: str) -> str | None:
     :data:`_NORMALIZER_READ_VERBS`, so normalization — the only layer that can
     decide path equivalence — ran on the read path alone. A single dot segment
     then turned the keystone fence off for every write verb: ``tee
-    ~/.kiro/crew/live_target.json`` was blocked while ``echo x >
-    ~/.kiro/crew/./live_target.json`` was not, on a default install. The verb
+    ~/.junction/live_target.json`` was blocked while ``echo x >
+    ~/.junction/./live_target.json`` was not, on a default install. The verb
     allowlist is now used only to skip the command name itself, never to decide
     whether operands get checked.
 
@@ -7068,7 +7037,7 @@ def _check_sensitive_via_normalizer(command: str) -> str | None:
     # later relative operand is denied if it is sensitive under ANY of them.
     # Choosing one reading necessarily lost the other:
     #
-    #     D=$HOME/.kiro/crew; cd ${D:-/tmp}; cat token_signing.key   needs the value
+    #     D=$HOME/.junction; cd ${D:-/tmp}; cat token_signing.key   needs the value
     #     D=x;                cd ${D:+$HOME}; cat .aws/credentials    needs the tail
     #
     # Empty means the walk does not know where it is, which is the initial state.
@@ -7081,9 +7050,9 @@ def _check_sensitive_via_normalizer(command: str) -> str | None:
     # Tracking only the current directory made a later `cd` ERASE the fact that a
     # sensitive one had been entered, and the erasing `cd` does not have to run:
     #
-    #     H=$HOME; D=$H/.kiro/crew; cd $D; false && cd /tmp; cat token_signing.key
+    #     H=$HOME; D=$H/.junction; cd $D; false && cd /tmp; cat token_signing.key
     #
-    # `false &&` short-circuits, so bash never leaves the crew directory and reads
+    # `false &&` short-circuits, so bash never leaves the data-home directory and reads
     # the signing key, while the walk had already moved its only base to /tmp and
     # resolved the read against nothing. Deciding whether a `cd` executes means
     # evaluating the command, so instead nothing is forgotten -- the same monotone
@@ -7114,7 +7083,7 @@ def _check_sensitive_via_normalizer(command: str) -> str | None:
     # Run TWICE, over the masked text and the RAW text, because masking a
     # substitution is a trade and each spelling needs the opposite side of it:
     #
-    #   * masked   — `cd "$(printf %s ~)/.kiro/crew"` keeps the target as ONE
+    #   * masked   — `cd "$(printf %s ~)/.junction"` keeps the target as ONE
     #     token, so the tail still joins onto the home hypothesis. Unmasked,
     #     shlex splits it on the spaces inside `$( )` and the fragments match
     #     nothing.
@@ -7194,7 +7163,7 @@ def _check_sensitive_via_normalizer(command: str) -> str | None:
         # place made the segment "a command word followed by an operand", so the
         # assignment-prefix run ended before it started and nothing was recorded:
         #
-        #     export D=$HOME/.kiro/crew; cd $D; cat token_signing.key
+        #     export D=$HOME/.junction; cd $D; cat token_signing.key
         #
         # left `D` unresolved, the `cd` fell back to the home hypothesis, and the
         # read joined onto the wrong directory. The sibling keywords are unwrapped
@@ -7211,7 +7180,7 @@ def _check_sensitive_via_normalizer(command: str) -> str | None:
         # Only the LEADING run counts, exactly as a shell reads it: once the
         # command word is seen, a later `NAME=value` is an argument, not an
         # assignment. Treating one as an assignment let a decoy overwrite a real
-        # value -- `V=$HOME; echo V=/tmp; cd $V/.kiro/crew` recorded `V=/tmp`
+        # value -- `V=$HOME; echo V=/tmp; cd $V/.junction` recorded `V=/tmp`
         # from the `echo` argument and resolved the `cd` under `/tmp`, while the
         # shell kept `V=$HOME` and entered the protected directory.
         operands: list[str] = []
@@ -7233,10 +7202,10 @@ def _check_sensitive_via_normalizer(command: str) -> str | None:
                 # the operand form is still readable in the text. Collapsing eagerly
                 # is one-way and picked the wrong side --
                 #
-                #     X=x; D=${X:+$HOME/.kiro/crew}; cd $D; cat token_signing.key
+                #     X=x; D=${X:+$HOME/.junction}; cd $D; cat token_signing.key
                 #
                 # recorded `D` as `x`, because `${X:+…}` names X and X is `x`. bash
-                # yields the OPERAND for `:+`, so it entered the crew directory and
+                # yields the OPERAND for `:+`, so it entered the data-home directory and
                 # read the signing key while the walk tracked a base of `x`.
                 value = _expand_plain_vars_only(assign.group(3), {**readings, **prefix_locals})
                 if assign.group(2) == "+":
@@ -7264,7 +7233,7 @@ def _check_sensitive_via_normalizer(command: str) -> str | None:
         # rewrites every substitution to it, so a command that ASSIGNS that name
         # chooses what the masked pass resolves those placeholders to:
         #
-        #     __kc_subst=/tmp; cd $(printf %s ~); cat .aws/credentials
+        #     __jn_subst=/tmp; cd $(printf %s ~); cat .aws/credentials
         #
         # made the scanner read the `cd` target as /tmp while bash entered $HOME.
         # It is this module's private sentinel, not a variable a real command has
@@ -7331,7 +7300,7 @@ def _check_sensitive_via_normalizer(command: str) -> str | None:
                         # Carries a variable or command substitution this command
                         # cannot resolve. Fail closed on the hypothesis that it names
                         # a home directory, so the reads that follow still join onto
-                        # the literal tail: `cd "$(printf %s ~)/.kiro/crew"` otherwise
+                        # the literal tail: `cd "$(printf %s ~)/.junction"` otherwise
                         # left the base on a literal that matched nothing.
                         resolved = [os.path.expanduser(hypothesis)]
                     elif reading.startswith("~"):
@@ -7722,7 +7691,7 @@ def _fenced_relative_prefix(shape: _PathShape) -> str | None:
     """Which fenced directory a RELATIVE path names, if any.
 
     Read from `_SENSITIVE_HOME_DIRS` at call time, not folded into a pattern at
-    import, so leaves appended to that list later (the crew data-home secrets) are
+    import, so leaves appended to that list later (the data-home secrets) are
     covered with no second edit. Segments are compared whole, which is what keeps
     ``x.aws/credentials`` and ``.npmrcnotes`` out.
     """
@@ -8197,7 +8166,7 @@ _OAUTH_QUERY_PARAMS = frozenset(
 # heuristic and the gate fails closed. The extension below restores an
 # OPERATOR-owned escape hatch without weakening the ceiling for the agent:
 #
-# * the file lives on ``_CREW_SECRET_LEAVES`` (read+write keystone), so the
+# * the file lives on ``_DATA_HOME_SECRET_LEAVES`` (read+write keystone), so the
 #   agent can neither read nor author its own trust widening;
 # * a missing/unreadable/corrupt/non-object file yields the EMPTY set — a
 #   mangled file must never widen trust (same posture as
@@ -8371,7 +8340,7 @@ def _emit_oauth_extension_used_event(host: str, path: str) -> None:
                 timestamp=datetime.now(tz=timezone.utc).isoformat(),
                 event_type="oauth_endpoint_extension_used",
                 caller_identity="",
-                agent="kirocrew",
+                agent="junction",
                 source="security",
                 operation="oauth_banner_check",
                 outcome="allowed",
@@ -8576,7 +8545,7 @@ def _exfil_exempt_hosts() -> frozenset[str]:
 
 
 # ── Junction's own Slack app-create deep link ──
-# ``kirocrew manifest --url`` and ``GET /api/slack/manifest`` both hand the user
+# ``junction manifest --url`` and ``GET /api/slack/manifest`` both hand the user
 # Slack's new-app deep link carrying the bundled app manifest percent-encoded
 # into ``manifest_yaml``. That payload is ~1.9 KB, so the aggregate query-length
 # heuristic classifies it as exfiltration and the user is shown
@@ -8649,7 +8618,7 @@ def _slack_manifest_payload_re() -> re.Pattern[str] | None:
     return compiled
 
 
-def _kirocrew_slack_app_link_alias(
+def _junction_slack_app_link_alias(
     domain: str,
     path: str,
     query: str,
@@ -8788,7 +8757,7 @@ def _exfil_url_warning(
             if segment.partition("=")[0] not in _OAUTH_QUERY_PARAMS
         )
     elif (
-        _slack_alias := _kirocrew_slack_app_link_alias(
+        _slack_alias := _junction_slack_app_link_alias(
             _dom,
             path_and_query.split("?", 1)[0],
             query,
@@ -9690,7 +9659,7 @@ def redact_local_paths(text: str) -> tuple[str, list[str]]:
 
     Complements :func:`redact_credentials`, which matches credential *patterns*
     and leaves a bare path such as
-    ``[Errno 2] No such file or directory: '/home/alice/.kiro/crew/vaults/v1'``
+    ``[Errno 2] No such file or directory: '/home/alice/.junction/vaults/v1'``
     untouched. That string is the common shape of an OS or subprocess error, and
     on an error surface that reaches a browser it discloses the account name and
     on-disk layout of the host (CWE-209).
@@ -10074,12 +10043,12 @@ def is_denied(
     regex_patterns = [p for p in regex_patterns if p not in _GIT_PUBLISH_RULE_PATTERNS]
     # The two self-protection rules get an ADDITIONAL argv-structural floor
     # below, for the reason documented on ``_SELF_PROTECTION_FLOOR_PATTERNS``:
-    # only a tokenized view can tell ``kirocrew "token"`` from
-    # ``kirocrew-wt-x/test_token_auth.py``.  The floor is a UNION with the regex
+    # only a tokenized view can tell ``junction "token"`` from
+    # ``junction-wt-x/test_token_auth.py``.  The floor is a UNION with the regex
     # tier, never a replacement -- the patterns deliberately stay in
     # ``regex_patterns``.  Two independent reasons:
     #   1. The regex still matches raw text, so a payload the tokenizer cannot
-    #      see into (``bash -c "kirocrew token"``, ``eval "$CMD"``) is caught.
+    #      see into (``bash -c "junction token"``, ``eval "$CMD"``) is caught.
     #   2. The tokenizer can fail (unbalanced quotes, or a platform bug like the
     #      one fixed in ``normalize_shell_command`` above), and a floor that
     #      REPLACED the regex would then fail OPEN.
@@ -10137,7 +10106,7 @@ def is_denied(
     # rule is still in the effective set, so an operator-disabled rule stays
     # disabled.
     for rule_id, predicate in (
-        ("credential-exfil-kirocrew-token", _is_credential_mint),
+        ("credential-exfil-junction-token", _is_credential_mint),
         ("self-protection-kill", _is_self_kill),
         ("self-protection-restart", _is_self_restart),
         ("self-protection-update", _is_self_update),
@@ -10317,7 +10286,7 @@ def _emit_deny_event(tool_name: str, deny_pattern: str, segment: str) -> None:
                 timestamp=datetime.now(tz=timezone.utc).isoformat(),
                 event_type="deny_event",
                 caller_identity="",
-                agent="kirocrew",
+                agent="junction",
                 source="security",
                 operation=tool_name,
                 outcome="denied",
@@ -10351,7 +10320,7 @@ def _emit_deny_exception_event(tool_name: str, deny_pattern: str) -> bool:
                 timestamp=datetime.now(tz=timezone.utc).isoformat(),
                 event_type="deny_exception",
                 caller_identity="",
-                agent="kirocrew",
+                agent="junction",
                 source="security",
                 operation=tool_name,
                 outcome="allowed",
@@ -10588,7 +10557,7 @@ def audit_injection_dropped(
     session_key: str = "",
     channel_id: str = "",
     thread_ts: str = "",
-    agent: str = "kirocrew",
+    agent: str = "junction",
     sample: str = "",
 ) -> None:
     """Emit an SEL audit event when injection-screened content is dropped.
@@ -10760,9 +10729,9 @@ def _win_anchor_roots() -> tuple[str, ...]:
     filesystem or network is touched deciding whether to recognize a token.
     """
     roots = [str(Path.home())]
-    crew_env = os.environ.get("JUNCTION_HOME")
-    if crew_env:
-        roots.append(os.path.expanduser(crew_env))
+    data_env = os.environ.get("JUNCTION_HOME")
+    if data_env:
+        roots.append(os.path.expanduser(data_env))
     return tuple(roots)
 
 
@@ -10788,7 +10757,7 @@ def _is_path_like(token: str) -> bool:
     # is recognized directly; anything else FALLS THROUGH to
     # the generic checks below rather than being rejected here. That keeps two
     # properties at once: a forward-slash spelling on another drive
-    # (``D:/kirocrew/security_policy.json`` under a cross-drive
+    # (``D:/junction/security_policy.json`` under a cross-drive
     # ``JUNCTION_HOME``) stays path-like exactly as it was before these shapes
     # were recognized, so the keystone fence is not narrowed — while a
     # pure-backslash foreign-drive token gains no NEW recognition, since

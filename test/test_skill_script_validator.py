@@ -191,7 +191,7 @@ def test_rejects_expanded_sensitive_paths():
         "~/.npmrc",
         "~/.pypirc",
         "~/.docker/config.json",
-        "/home/u/.kiro/crew/security_policy.json",
+        "/home/u/.junction/security_policy.json",
     ):
         ok, findings = validate_skill_script("run.py", f"open('{path}').read()\n")
         assert ok is False and any("sensitive path" in f for f in findings), path

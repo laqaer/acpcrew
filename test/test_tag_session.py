@@ -141,7 +141,7 @@ class TestAutoTagDerivation:
     async def test_trivial_workspace_basenames_are_noop(self, patch_save_slot, name):
         """Default/generic workspace dir names carry no signal — suppress them."""
         state = _make_state()
-        slot = _make_slot(project=f"/home/user/.kiro/crew/{name}")
+        slot = _make_slot(project=f"/home/user/.junction/{name}")
 
         await maybe_auto_tag(state, slot)
 

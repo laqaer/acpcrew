@@ -20,8 +20,8 @@ These MCP tools are provided by Junction — call them as tools, never via bash.
 - `cron_add` — schedule recurring or one-shot jobs. Use when user says "every", "daily", "remind me", "check regularly"
 - `cron_list` — show all scheduled jobs
 - `cron_remove` / `cron_remove_all` / `cron_pause` / `cron_resume` — manage jobs
-- `spawn_run` — spawn subagent(s) to run tasks. Pass `tasks` array for parallel work. Pass `agent` or `agents` to route to a specialist crew (pick the crew with `select_crew` first). A sub-agent inherits your full injected context by default; turn a group off with `include_memory` / `include_lessons` / `include_project` when you can name why the sub-agent cannot need it. For stage fan-out over work you fully specified in the task text, `include_memory=false` is the norm — put any single memory fact the sub-agent needs into the task text. Keep `include_lessons=true` whenever it writes code, edits files, or runs git.
-- `select_crew` — choose the specialist crew for a task. Call with no argument to list the crews and their routing guidance; call `select_crew(crew="<name>")` to bind one (returns its workspace/memory/kiro-agent/model), then delegate with `spawn_run(agent="<name>", …)`. You are the default crew — only route when a crew clearly fits; otherwise handle it yourself.
+- `spawn_run` — spawn subagent(s) to run tasks. Pass `tasks` array for parallel work. Pass `agent` or `agents` to route to a specialist agent (pick it with `select_agent` first). A sub-agent inherits your full injected context by default; turn a group off with `include_memory` / `include_lessons` / `include_project` when you can name why the sub-agent cannot need it. For stage fan-out over work you fully specified in the task text, `include_memory=false` is the norm — put any single memory fact the sub-agent needs into the task text. Keep `include_lessons=true` whenever it writes code, edits files, or runs git.
+- `select_agent` — choose the specialist agent for a task. Call with no argument to list the agents and their routing guidance; call `select_agent(agent="<name>")` to bind one (returns its workspace/memory/kiro-agent/model), then delegate with `spawn_run(agent="<name>", …)`. You are the default agent — only route when another agent clearly fits; otherwise handle it yourself.
 - `spawn_list` — list running subagents
 - `learn_add` — save a correction or preference that persists across sessions. Use when user corrects you or says "always", "never", "remember"
 - `learn_list` / `learn_remove` — view or delete saved lessons
@@ -208,7 +208,7 @@ Results are written to disk files. You receive a lightweight notification:
 [Subagent completion event]
 Agent `abc12345` (reviewer) completed ✅
 Task: Review PR-123 for security issues
-Result: ~/.kiro/crew/sessions/{session_id}/agent-abc12345.md (2341 bytes)
+Result: ~/.junction/sessions/{session_id}/agent-abc12345.md (2341 bytes)
 Summary: Found 2 security issues in auth.py...
 ```
 
@@ -260,7 +260,7 @@ Heartbeat is a self-cleaning task queue that runs every few minutes, survives ga
 - You need to poll an external system until a condition is met (CR analysis, deployment, ticket resolution)
 
 **Writing a heartbeat task:**
-1. Append the checklist entry by calling `junction.heartbeat.append_heartbeat_task(entry)` from Python; never edit or append `~/.kiro/crew/workspace/HEARTBEAT.md` directly. The helper shares the service's cross-process lock, preventing a cycle-end rewrite from losing the entry:
+1. Append the checklist entry by calling `junction.heartbeat.append_heartbeat_task(entry)` from Python; never edit or append `~/.junction/workspace/HEARTBEAT.md` directly. The helper shares the service's cross-process lock, preventing a cycle-end rewrite from losing the entry:
    `- [ ] Check CR-XXXXX for new code-review comments. If found, fix them, push a new revision, and respond with HEARTBEAT_KEEP. If none, notify user "CR-XXXXX passed ✅"`
 2. Tell the user it's been added to heartbeat monitoring
 3. End the session — heartbeat re-processes retained tasks on the next cycle, creating a monitor-until-done loop

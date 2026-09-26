@@ -1,6 +1,6 @@
 """Cron service for scheduling agent tasks.
 
-Jobs are stored in the config directory (``~/.kiro/crew/crons.json`` by default,
+Jobs are stored in the config directory (``~/.junction/crons.json`` by default,
 overridden by ``JUNCTION_HOME``) and executed by a background
 asyncio timer.  Each job fires a callback (typically delivering the result to
 the dashboard and, when configured, the owner's Slack DM).
@@ -111,8 +111,8 @@ def _validate_cron_string_fields(
 
 
 # Resolved per call, never captured at import: an import-time binding freezes
-# the data home and defeats pod isolation, the lazy legacy-home migration and
-# test isolation. The name below is an opt-in override (None = live home) so
+# the data home and defeats pod isolation and test
+# isolation. The name below is an opt-in override (None = live home) so
 # existing monkeypatch call sites keep working. See config.md "Data Home";
 # dashboard/handlers/usage.py is the reference implementation.
 _DEFAULT_DIR: Path | None = None

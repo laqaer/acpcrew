@@ -6,15 +6,14 @@
  * response actually carries catalog builtin rows. A half-stubbed app shell
  * renders its error boundary, which is worse evidence than none.
  *
- * WHAT IS FAITHFUL: the component is the real `AppListRow`, and both row shapes
- * carry values taken VERBATIM from the two real sources —
+ * WHAT IS FAITHFUL: the component is the real `AppListRow`, and the two row
+ * shapes model the two sources a built-in row can come from —
  *   - "before" = what local synthesis produces from this wheel's
  *     `src/junction/apps/builtins/<name>/app.json`
- *   - "after"  = what the live catalog publishes for the same app
- *     (https://apps.crew.kiro.dev/official-registry.json)
- * Nothing here is invented: artwork, tags and version are byte-identical across
- * the two sources (measured), so `author` is the whole visible delta and these
- * frames show exactly that.
+ *   - "after"  = what the app catalog's official registry document
+ *     (`official-registry.json`) states for the same app
+ * Artwork, tags and version are identical across the two sources, so `author`
+ * is the whole visible delta and these frames show exactly that.
  *
  * Scene + theme come from the query string: ?scene=before&theme=dark
  */
@@ -71,13 +70,12 @@ const shared = {
 
 /**
  * Four rows spanning both outcomes. `author` is the only field that differs
- * between the two scenes, because artwork, tags and version are byte-identical
- * across the two sources (measured against the live catalog).
+ * between the two scenes, because artwork, tags and version are identical
+ * across the two sources.
  *
- * `catalogAuthor` is what the published document states AFTER
- * KiroCrewApps PR #21 restored the four person-authored built-ins: the org
- * spelling is corrected for org-authored apps, and an individual's attribution
- * is preserved rather than flattened.
+ * `catalogAuthor` is what the registry document states for the four
+ * person-authored built-ins: the org spelling is corrected for org-authored
+ * apps, and an individual's attribution is preserved rather than flattened.
  */
 const ROWS: {
   name: string

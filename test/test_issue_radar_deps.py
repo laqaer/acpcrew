@@ -32,10 +32,11 @@ from unittest import mock
 from aiohttp import web
 from aiohttp.test_utils import make_mocked_request
 
-from junction.apps.builtins.issue_radar.backend import crew_runtime as cr
-from junction.apps.builtins.issue_radar.backend import crew_store as cs
 from junction.apps.builtins.issue_radar.backend import github_client as gh
-from junction.apps.builtins.issue_radar.backend import provider, routes, store
+from junction.apps.builtins.issue_radar.backend import provider, routes
+from junction.apps.builtins.issue_radar.backend import steward_runtime as cr
+from junction.apps.builtins.issue_radar.backend import steward_store as cs
+from junction.apps.builtins.issue_radar.backend import store
 
 OWNER, REPO = "o", "r"
 
@@ -871,7 +872,7 @@ class FingerprintOpenBlockersTest(unittest.TestCase):
 class _FakeSlot:
     """Stand-in for a chat slot; records prompts, never runs a real turn."""
 
-    def __init__(self, key="crew-x", agent="", model="", workspace=""):
+    def __init__(self, key="steward-x", agent="", model="", workspace=""):
         self.key = key
         self.title = ""
         self._titled = False
@@ -922,7 +923,7 @@ class _FakeState:
 
 
 class SweepDepUnblockTest(unittest.IsolatedAsyncioTestCase):
-    """End-to-end through ``sweep_repo``: the last blocker closing wakes the crew
+    """End-to-end through ``sweep_repo``: the last blocker closing wakes the steward
     exactly once, and a still-open blocker does not."""
 
     def setUp(self):
@@ -942,7 +943,7 @@ class SweepDepUnblockTest(unittest.IsolatedAsyncioTestCase):
         with (
             mock.patch.object(provider, "client_for", return_value=client),
             mock.patch.object(cr.provider, "client_for", return_value=client),
-            mock.patch.object(cr, "wake_crew", new=mock.AsyncMock(return_value=True)) as wake,
+            mock.patch.object(cr, "wake_steward", new=mock.AsyncMock(return_value=True)) as wake,
         ):
             woken = await cr.sweep_repo(app, self.key, self.root)
         return woken, wake
@@ -957,8 +958,12 @@ class SweepDepUnblockTest(unittest.IsolatedAsyncioTestCase):
         )
 
     async def test_fires_once_when_the_last_blocker_closes(self):
-        crew = cs.create_crew(OWNER, REPO, {"name": "Andromeda", "unattended": True}, self.root)
-        cs.upsert_work_item(OWNER, REPO, crew["id"], 2201, {"phase": "awaiting-reply"}, self.root)
+        steward = cs.create_steward(
+            OWNER, REPO, {"name": "Andromeda", "unattended": True}, self.root
+        )
+        cs.upsert_work_item(
+            OWNER, REPO, steward["id"], 2201, {"phase": "awaiting-reply"}, self.root
+        )
 
         # Seed: the blocker is still open.
         self._write_graph("open")
@@ -969,25 +974,29 @@ class SweepDepUnblockTest(unittest.IsolatedAsyncioTestCase):
 
         # Make the item due again, then close the blocker.
         stored = cr.read_signals(OWNER, REPO, self.root)
-        stored[f"{crew['id']}:2201"]["checked_at"] = 0
+        stored[f"{steward['id']}:2201"]["checked_at"] = 0
         cr.write_signals(OWNER, REPO, stored, self.root)
         self._write_graph("closed")
 
         woken, wake = await self._sweep(client)
-        self.assertEqual(woken, {crew["id"]: [cr.SIG_DEP_UNBLOCKED]})
+        self.assertEqual(woken, {steward["id"]: [cr.SIG_DEP_UNBLOCKED]})
         wake.assert_awaited_once()
 
         # A THIRD sweep with the blocker still closed must NOT re-fire.
         stored = cr.read_signals(OWNER, REPO, self.root)
-        stored[f"{crew['id']}:2201"]["checked_at"] = 0
+        stored[f"{steward['id']}:2201"]["checked_at"] = 0
         cr.write_signals(OWNER, REPO, stored, self.root)
         woken, wake2 = await self._sweep(client)
         self.assertEqual(woken, {})
         wake2.assert_not_awaited()
 
     async def test_does_not_fire_while_a_blocker_remains_open(self):
-        crew = cs.create_crew(OWNER, REPO, {"name": "Andromeda", "unattended": True}, self.root)
-        cs.upsert_work_item(OWNER, REPO, crew["id"], 2201, {"phase": "awaiting-reply"}, self.root)
+        steward = cs.create_steward(
+            OWNER, REPO, {"name": "Andromeda", "unattended": True}, self.root
+        )
+        cs.upsert_work_item(
+            OWNER, REPO, steward["id"], 2201, {"phase": "awaiting-reply"}, self.root
+        )
         # Two blockers; only one closes.
         store.write_deps_cache(
             OWNER,
@@ -1005,7 +1014,7 @@ class SweepDepUnblockTest(unittest.IsolatedAsyncioTestCase):
         client = self._client()
         await self._sweep(client)
         stored = cr.read_signals(OWNER, REPO, self.root)
-        stored[f"{crew['id']}:2201"]["checked_at"] = 0
+        stored[f"{steward['id']}:2201"]["checked_at"] = 0
         cr.write_signals(OWNER, REPO, stored, self.root)
 
         store.write_deps_cache(

@@ -1,7 +1,7 @@
 import type { ReactNode } from 'react'
 import { Building2, Brain, Wand2, Waves, Rocket, Sparkles, TreePine } from 'lucide-react'
 
-export type SceneKey = 'office' | 'panda' | 'neural' | 'wizard' | 'underwater' | 'mission' | 'serengeti' | 'ghost'
+export type SceneKey = 'office' | 'panda' | 'neural' | 'wizard' | 'underwater' | 'mission' | 'serengeti'
 
 export interface SceneMeta {
   key: SceneKey
@@ -10,9 +10,7 @@ export interface SceneMeta {
   desc: string
 }
 
-/** Worlds picker. `ghost` stays a SceneKey so GhostScene tests still type-check,
- *  but it is not a Junction chrome option — those sprites are another product's
- *  mascot. */
+/** Worlds picker, in display order. Every `SceneKey` has exactly one entry. */
 export const SCENES: SceneMeta[] = [
   { key: 'office', label: 'Office', icon: <Building2 className="lucide-inline" />, desc: 'Classic pixel office' },
   { key: 'panda', label: 'Panda Den', icon: <Sparkles className="lucide-inline" />, desc: 'Bamboo forest workspace, all pandas' },
@@ -23,6 +21,13 @@ export const SCENES: SceneMeta[] = [
   { key: 'serengeti', label: 'Watering Hole', icon: <TreePine className="lucide-inline" />, desc: 'Serengeti savanna with giraffes, warthogs, and elephants' },
 ]
 
+/**
+ * The scene a stored or broadcast value names, or `office` when it names none.
+ *
+ * Validated against `SCENES` rather than cast, because the stored value can name
+ * a scene this build does not ship: it must land on a real scene instead of an
+ * empty stage.
+ */
 export function resolveSceneKey(raw: string | null): SceneKey {
   for (const scene of SCENES) {
     if (scene.key === raw) return scene.key

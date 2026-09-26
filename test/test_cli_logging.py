@@ -46,19 +46,19 @@ def _pristine_logging():
     tmpdir cleanup).
     """
     root = logging.getLogger()
-    kc = logging.getLogger("junction")
+    pkg = logging.getLogger("junction")
     saved_root = (root.handlers[:], root.level)
-    saved_kc = (kc.handlers[:], kc.level)
+    saved_pkg = (pkg.handlers[:], pkg.level)
     root.handlers[:] = []
-    kc.handlers[:] = []
+    pkg.handlers[:] = []
     yield
-    for logger, (handlers, _) in ((root, saved_root), (kc, saved_kc)):
+    for logger, (handlers, _) in ((root, saved_root), (pkg, saved_pkg)):
         for handler in logger.handlers[:]:
             if handler not in handlers:
                 logger.removeHandler(handler)
                 handler.close()
     root.handlers[:], root.level = saved_root
-    kc.handlers[:], kc.level = saved_kc
+    pkg.handlers[:], pkg.level = saved_pkg
 
 
 class TestFdTargetsFile:
@@ -240,12 +240,12 @@ class TestSetupCliLoggingDetached:
         root_fhs = [h for h in logging.getLogger().handlers if isinstance(h, RotatingFileHandler)]
         assert len(root_fhs) == 1
         assert Path(root_fhs[0].baseFilename) == config_dir() / "gateway.log"
-        kc_fhs = [
+        jn_fhs = [
             h
             for h in logging.getLogger("junction").handlers
             if isinstance(h, RotatingFileHandler)
         ]
-        assert kc_fhs == []
+        assert jn_fhs == []
 
     def test_junction_record_written_exactly_once(self):
         _setup_cli_logging("gateway", 1)
@@ -306,13 +306,13 @@ class TestSetupCliLoggingForeground:
 
     def test_file_handler_on_junction_logger(self):
         _setup_cli_logging("gateway", 1)
-        kc_fhs = [
+        jn_fhs = [
             h
             for h in logging.getLogger("junction").handlers
             if isinstance(h, RotatingFileHandler)
         ]
-        assert len(kc_fhs) == 1
-        assert kc_fhs[0].level == logging.INFO
+        assert len(jn_fhs) == 1
+        assert jn_fhs[0].level == logging.INFO
         root_fhs = [h for h in logging.getLogger().handlers if isinstance(h, RotatingFileHandler)]
         assert root_fhs == []
 

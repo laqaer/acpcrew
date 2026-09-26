@@ -12,7 +12,7 @@
  *      dropdown either animates or pops, and only motion tells the two apart.
  *
  * Runs the REAL built SPA (website/dist) behind the shared in-process static
- * server, answering /api/** from the same fixtures capture-crews-list-modal.mjs
+ * server, answering /api/** from the same fixtures capture-agents-list-modal.mjs
  * uses — gateway-free, no kiro-cli, no dashboard auth. Rebuild dist first: the
  * change under test is CSS the build emits, so a stale bundle records the wrong
  * side.
@@ -29,7 +29,7 @@ import { join, resolve } from 'node:path'
 import { spawnSync } from 'node:child_process'
 import { serveDist } from './lib/serve-dist.mjs'
 import { logPageProblems, stubDashboardApi } from './lib/stub-dashboard-api.mjs'
-import { crewsApi } from './lib/crews-fixtures.mjs'
+import { agentsApi } from './lib/agents-fixtures.mjs'
 
 const OUT = resolve(process.argv[2] || '../temp-screenshots/dialog-animation')
 const PREFIX = process.argv[3] || 'after'
@@ -48,7 +48,7 @@ mkdirSync(OUT, { recursive: true })
 // below is downscaled anyway.
 const SIZE = { width: 1280, height: 800 }
 
-const CREWS = [
+const AGENTS = [
   { name: 'junction', kiro_agent: 'junction', workspace: 'core-ws', memory_store: 'core-mem' },
   { name: 'oncall', kiro_agent: 'junction', workspace: 'oncall', memory_store: 'oncall-mem' },
   { name: 'research', kiro_agent: 'junction', workspace: 'research', memory_store: 'research-mem' },
@@ -56,7 +56,7 @@ const CREWS = [
 
 /** One dialog open, held long enough to read, then dismissed. */
 async function openAndClose(page, { withSelect } = {}) {
-  await page.getByRole('button', { name: 'Edit crew oncall' }).click()
+  await page.getByRole('button', { name: 'Edit agent oncall' }).click()
   const dialog = page.getByRole('dialog')
   await dialog.waitFor({ state: 'visible', timeout: 15000 })
   await page.waitForTimeout(1300)
@@ -95,10 +95,10 @@ async function main() {
   })
   const page = await context.newPage()
   logPageProblems(page)
-  await stubDashboardApi(page, { extra: crewsApi({ crews: CREWS, defaultAgent: 'junction' }) })
+  await stubDashboardApi(page, { extra: agentsApi({ agents: AGENTS, defaultAgent: 'junction' }) })
 
   await page.goto(`${base}/capabilities`, { waitUntil: 'domcontentloaded' })
-  await page.locator('[data-testid="crew-card"]').first()
+  await page.locator('[data-testid="agent-card"]').first()
     .waitFor({ state: 'visible', timeout: 20000 })
   // Let the roster's own entrance settle so the first frames show a populated
   // page rather than a skeleton — this is evidence, not a loading demo.
@@ -106,7 +106,7 @@ async function main() {
 
   // A single mid-animation still, taken while the entrance is in flight. The
   // video is the evidence; this is the one frame worth linking on its own.
-  await page.getByRole('button', { name: 'Edit crew oncall' }).click()
+  await page.getByRole('button', { name: 'Edit agent oncall' }).click()
   await page.waitForTimeout(70)
   await page.screenshot({ path: `${OUT}/${PREFIX}-midflight.png`, animations: 'allow' })
   await page.getByRole('dialog').waitFor({ state: 'visible', timeout: 15000 })

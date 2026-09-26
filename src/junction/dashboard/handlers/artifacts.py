@@ -2699,7 +2699,7 @@ async def api_artifact_relocate(request: web.Request) -> web.Response:
                 status=403,
             )
         # Sensitive-path denylist still applies inside the allowed roots (e.g.
-        # ~/.aws, ~/.ssh, ~/.kirocrew keystone).
+        # ~/.aws, ~/.ssh, ~/.junction keystone).
         if is_sensitive_path(str(resolved_path)):
             _audit(
                 tool="artifact_relocate",

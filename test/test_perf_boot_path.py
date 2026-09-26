@@ -217,7 +217,7 @@ class TestConfigDirMemo:
         second = paths.config_dir()
 
         assert second != first
-        assert second == (tmp_path / "h2" / ".kiro" / "crew")
+        assert second == (tmp_path / "h2" / ".junction")
 
 
 # ── dashboard package: lazy exports + stdlib-only URL leaf ────────────────

@@ -192,7 +192,7 @@ ACP_BACKENDS_STEER = frozenset({ACP_BACKEND_KIRO, ACP_BACKEND_KAS})
 
 # Backends carrying their OWN internal OS sandbox, which on macOS cannot nest
 # inside Junction's seatbelt (kernel EPERM) — so ``sandbox.wrap_argv`` skips
-# Crew's own layer for them. This is the one membership test that fails OPEN:
+# Junction's own layer for them. This is the one membership test that fails OPEN:
 # claiming it for a harness with no internal sandbox hands isolation to a layer
 # that never starts and leaves the agent process unconfined. Only kiro-cli
 # qualifies; a Node or Python harness does not, however it is spawned.

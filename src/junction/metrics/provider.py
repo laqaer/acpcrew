@@ -5,7 +5,7 @@ Consent + local-first:
     a no-op recorder, so adding metric call sites is a zero-runtime-effect change
     until a host opts in (mirrors the ``mcp_gateway.enabled`` /
     ``skills.lazy_load`` default-off convention).
-  * Easy opt-in: set ``telemetry.enabled: true`` in ``~/.kiro/crew/config.json``
+  * Easy opt-in: set ``telemetry.enabled: true`` in ``~/.junction/config.json``
     OR export the ``JUNCTION_TELEMETRY`` env var (``1``/``true``/``on`` to enable,
     ``0``/``false``/``off`` to force-disable). The env var overrides the config
     flag and gates LOCAL collection only — it never enables network egress.
@@ -16,7 +16,7 @@ Consent + local-first:
     A caller that changed the setting itself can call ``shutdown()`` to apply it on
     the very next metric instead of waiting out the window.
   * When on, a ``PeriodicExportingMetricReader`` drains aggregated metrics to the
-    local JSONL exporter under ``~/.kiro/crew/metrics``. Nothing egresses the host.
+    local JSONL exporter under ``~/.junction/metrics``. Nothing egresses the host.
   * Remote / OTLP egress is a separate opt-in exporter (deferred; not wired here).
 
 OSS-CLEAN: depends only on ``opentelemetry`` (Apache-2.0 / CNCF) + the stdlib +
@@ -269,7 +269,7 @@ _ever_built = False
 _check_in_flight = False
 
 # Env-var opt-in. ``JUNCTION_TELEMETRY`` lets a host turn
-# LOCAL metrics on (or force them off) without editing ~/.kiro/crew/config.json —
+# LOCAL metrics on (or force them off) without editing ~/.junction/config.json —
 # handy for CI, containers, and one-off debugging. Truthy => enable, falsy =>
 # disable, unset/blank => defer to the ``telemetry.enabled`` config flag (itself
 # default False). This gates LOCAL collection ONLY: external OTLP egress still

@@ -1305,23 +1305,25 @@ async def _remove_slot_for_history_key(state: DashboardState, key: str) -> None:
         slot = state._slots.pop(normalized, None)
     if slot:
         pin_slot_keys.add(slot.key)
-    # Crew persists independently of the transcript, so a permanent delete has to
-    # reach into it too: its durable queue holds the user's own request texts and
-    # its dispatched subagents keep running whether or not a tab is open. Purging
+    # Multitask Mode persists independently of the transcript, so a permanent delete
+    # has to reach into it too: its durable queue holds the user's own request texts
+    # and its dispatched subagents keep running whether or not a tab is open. Purging
     # every candidate key rather than just the slot's, because the slot may already
     # be gone (closed tab, restart) while the store on disk is not.
-    crew = getattr(state, "crew", None)
-    if crew is not None:
+    multitask = getattr(state, "multitask", None)
+    if multitask is not None:
         # Deferred: `handlers.sessions` loads with the dashboard package, which the
-        # gateway imports on its boot path. Crew is dashboard-only, and a delete
-        # with no live crew never needs the class at all.
-        from junction.crew_chat import CrewOrchestrator
-    if crew is not None and isinstance(crew, CrewOrchestrator):
+        # gateway imports on its boot path. Multitask Mode is dashboard-only, and a
+        # delete with no live multitask manager never needs the class at all.
+        from junction.multitask_chat import MultitaskManager
+    if multitask is not None and isinstance(multitask, MultitaskManager):
         for candidate in pin_slot_keys:
             try:
-                await crew.purge_slot(candidate)
+                await multitask.purge_slot(candidate)
             except Exception:
-                logger.warning("History delete: crew purge failed for %s", candidate, exc_info=True)
+                logger.warning(
+                    "History delete: multitask purge failed for %s", candidate, exc_info=True
+                )
     try:
         await state.remove_chat_pins_for_slots(pin_slot_keys)
     except Exception:
@@ -1653,9 +1655,8 @@ def _service_wait_ping(
     # user is looking at, so track neither, and stay that way for the rest of the
     # turn (see the latch below -- a self-expiring window flapped the hole back
     # open). Deliberately a containment, not a cure: the cure is per-session
-    # identity, which this cannot synthesize.
-    # Tracked in https://github.com/kirodotdev/KiroCrew/issues/2347, which also
-    # lists this guard among the things to delete once identity is fixed.
+    # identity, which this cannot synthesize; delete this guard once that
+    # identity exists.
     if slot._wait_contested:
         # Latched for the REST OF THE TURN, not for a fixed window. An expiring
         # window reopened the hole it was built to close: both sleeps keep

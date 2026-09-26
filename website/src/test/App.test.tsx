@@ -446,8 +446,7 @@ describe('App routing', () => {
     expect(screen.getByText('Explore')).toBeInTheDocument()
     // The bottom-pinned community row: the GitHub mark fronts a "Star us" link
     // plus a "Report issue" BUTTON (it opens the diagnostics flow rather than
-    // navigating to the issue list), and the icon-only Discord link. The
-    // kiro.dev link was removed.
+    // navigating to the issue list).
     expect(screen.getByText('Star us')).toBeInTheDocument()
     expect(screen.getByText('Report issue')).toBeInTheDocument()
     expect(screen.getByLabelText('Star Junction on GitHub')).toBeInTheDocument()
@@ -459,7 +458,9 @@ describe('App routing', () => {
     // The old bare link to the issue list is gone — reporting now goes through
     // the collector so triage gets logs instead of an empty issue form.
     expect(screen.queryByLabelText('Report an issue on GitHub')).not.toBeInTheDocument()
-    expect(screen.getByLabelText('Kiro Discord community')).toBeInTheDocument()
+    // The rail carries no chat-community link: GitHub is the one community
+    // destination, and the row's leading mark and "Star us" already point there.
+    expect(screen.queryByRole('link', { name: /discord/i })).not.toBeInTheDocument()
     expect(screen.queryByLabelText('Kiro website (kiro.dev)')).not.toBeInTheDocument()
   })
 

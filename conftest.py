@@ -23,7 +23,7 @@ this" contract failed at least once:
   paths that production binds at IMPORT time (which the env var cannot reach) are
   pinned with it. Without this, the ~108 test modules that ship inside the package
   under ``src/junction/apps/builtins/*/tests/`` -- which see this conftest and no
-  other -- write the operator's live ``~/.kiro/crew`` the moment they touch
+  other -- write the operator's live ``~/.junction`` the moment they touch
   ``config_dir()``.
 * **Credential environment.** Recognised fixed credentials and validated
   ``JIRA_TOKEN_<HEX>`` keys are restored after every test, so a fabricated
@@ -1209,18 +1209,18 @@ def platform_compat_or_none():
 
 #: Prefix for the run's own temp base, a sibling of the platform temp root.
 #:
-#: The name is ``kc-pytest-<user>-<pid>``. The pid is what lets a later run tell an
+#: The name is ``jn-pytest-<user>-<pid>``. The pid is what lets a later run tell an
 #: ABANDONED root (its process is gone) from one a concurrent run is still using. The
 #: user segment is not decoration: on POSIX the platform temp root is SHARED between
 #: accounts, so a bare pid collides across users -- two accounts can hold the same pid
 #: at the same time, and the second would try to reuse a directory it cannot write.
 #: Windows gives each account its own temp root, so there the segment is redundant and
 #: harmless.
-_TMP_ROOT_PREFIX = "kc-pytest-"
+_TMP_ROOT_PREFIX = "jn-pytest-"
 
 
 def _tmp_root_prefix_for_run() -> str:
-    """``kc-pytest-<user>-<pid>-`` -- the stem this run's temp root is created under.
+    """``jn-pytest-<user>-<pid>-`` -- the stem this run's temp root is created under.
 
     The user segment is not decoration: on POSIX the platform temp root is SHARED between
     accounts, so a bare pid collides across users -- two accounts can hold the same pid at
@@ -1405,7 +1405,7 @@ def _isolate_tempfile_base(tmp_path_factory):
     path at 260 unless long paths are enabled, and a macOS ``AF_UNIX`` ``sun_path``
     is capped at ~104 bytes, so that nesting would trade an inode leak for a
     platform-specific path-length failure. A sibling of the platform temp root named
-    ``kc-pytest-<pid>`` is SHORTER than what pytest's own ``tmp_path`` already
+    ``jn-pytest-<pid>`` is SHORTER than what pytest's own ``tmp_path`` already
     hands out, so no existing path gets longer on any platform.
 
     Two things deliberately stay outside the redirect:
@@ -1593,9 +1593,8 @@ def _isolate_junction_home(_isolation_dirs, monkeypatch):
     modules under ``src/junction/apps/builtins/*/tests/`` ship inside the package and
     see only this file, so before this fixture existed here any of them that touched
     ``config_dir()`` resolved the operator's live data home -- and that resolution is
-    not read-only: ``config_dir()`` CREATES the home and its marker on first use, and
-    can run the one-time ``~/.kirocrew`` -> ``~/.kiro/crew`` migration as a side
-    effect. Two of the eight app suites had grown their own redirect fixture; the
+    not read-only: ``config_dir()`` CREATES the home and its marker on first use.
+    Two of the eight app suites had grown their own redirect fixture; the
     other six had not, which is exactly the "remember to" contract this file exists to
     delete.
 
@@ -1711,7 +1710,7 @@ _SHARED_KIRO_PATHS: tuple[tuple[str, str, str], ...] = (
     ("junction.agent", "_KIRO_MCP_JSON", ".kiro/settings/mcp.json"),
     ("junction.agent", "_CC_MCP_JSON", ".claude.json"),
     ("junction.agent", "_DEFAULT_KIRO_HOOKS_DIR", ".kiro/hooks"),
-    ("junction.learn", "_DEFAULT_DIR", ".kiro/crew"),
+    ("junction.learn", "_DEFAULT_DIR", ".junction"),
     ("junction.apps.bridges", "_LEGACY_SHARED_MCP_PATH", ".kiro/settings/mcp.json"),
     ("junction.dashboard.handlers.mcp", "_GLOBAL_MCP_JSON", ".kiro/settings/mcp.json"),
     # A DERIVED sibling (`_GLOBAL_MCP_JSON.with_suffix(".lock")`), and it has to move
@@ -1779,7 +1778,7 @@ def _isolate_subagents_dir(_isolation_dirs, monkeypatch):
     ``config_dir() / "subagents"``, so the ``JUNCTION_HOME`` safety net above
     cannot retroactively redirect it. Any test that calls ``SubagentManager.spawn``
     or ``create_agent_folder`` without isolating this global itself would write
-    stub agent folders into the operator's real ``~/.kirocrew/subagents/``. On the
+    stub agent folders into the operator's real ``~/.junction/subagents/``. On the
     next gateway start, orphan reconciliation sweeps those stubs and floods the
     logs with "lost to gateway restart" warnings (e.g. tasks ``t`` / ``ls /tmp``).
     Redirecting the module global gives every test an isolated, empty registry.
@@ -1981,7 +1980,7 @@ def _isolate_agent_state_sidecar(_isolation_dirs, monkeypatch):
     """Pin the agent_state sidecar to a tmp dir for the whole suite.
 
     ``junction.agent_state`` stores per-agent bookkeeping (model_managed,
-    cc_model) in ``~/.kirocrew/agent_model_state.json`` via ``config_dir()``.
+    cc_model) in ``~/.junction/agent_model_state.json`` via ``config_dir()``.
     Tests that exercise the install / refresh / migration / PATCH paths would
     otherwise read and write the operator's real sidecar. Redirect
     ``config_dir`` — referenced as a module attribute at call time — to a fresh

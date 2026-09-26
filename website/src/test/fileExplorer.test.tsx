@@ -126,12 +126,12 @@ describe('file-explorer/utils', () => {
     })
 
     it('returns null for invalid JSON', () => {
-      localStorage.setItem('kc:file-explorer:state:v2', 'not json')
+      localStorage.setItem('jn:file-explorer:state:v2', 'not json')
       expect(utils.loadState()).toBeNull()
     })
 
     it('returns null when folderTabs is not array', () => {
-      localStorage.setItem('kc:file-explorer:state:v2', JSON.stringify({ folderTabs: 'not array' }))
+      localStorage.setItem('jn:file-explorer:state:v2', JSON.stringify({ folderTabs: 'not array' }))
       expect(utils.loadState()).toBeNull()
     })
 

@@ -17,8 +17,8 @@ const FAMILIES: FontFamily[] = ['sans', 'mono', 'system', 'opendyslexic']
 // utils/fontFamilyOptions.ts so the ESLint i18n exemption covers only that one
 // file rather than this hook.
 const FAMILY_MAP: Record<FontFamily, string> = {
-  sans: "var(--theme-font-sans, var(--script-fallbacks),'Space Grotesk',-apple-system,BlinkMacSystemFont,sans-serif)",
-  mono: "var(--theme-font-mono, var(--script-fallbacks-mono),'JetBrains Mono',ui-monospace,SFMono-Regular,monospace)",
+  sans: "var(--theme-font-sans, var(--script-fallbacks),'Overpass',-apple-system,BlinkMacSystemFont,sans-serif)",
+  mono: "var(--theme-font-mono, var(--script-fallbacks-mono),'Overpass Mono',ui-monospace,SFMono-Regular,monospace)",
   system: "var(--script-fallbacks),-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif",
   opendyslexic: OPENDYSLEXIC_BODY_STACK,
 }
@@ -112,7 +112,7 @@ export function useZoom() {
     // OpenDyslexic also overrides --mono to OpenDyslexicMono: when selected,
     // the --mono token is inline-set on <html> so code blocks and diffs pick
     // it up. Leaving that family removes the inline override so the CSS :root
-    // default (JetBrains Mono) takes over again. Written as an explicit
+    // default (Overpass Mono) takes over again. Written as an explicit
     // `family === 'opendyslexic'` check rather than a lookup table because
     // OpenDyslexic is the only family that does this today — a future a11y
     // font becomes a second condition in the same branch.
@@ -121,7 +121,7 @@ export function useZoom() {
       const ui = html.dataset.ui
       // Auto-resolve to mono in CLI mode for the default family ('sans').
       // OpenDyslexic in CLI mode also flips its body to the mono variant, using
-      // its own OpenDyslexicMono face rather than falling into JetBrains Mono.
+      // its own OpenDyslexicMono face rather than falling into Overpass Mono.
       // Explicit 'mono' / 'system' choices are always honoured as-is.
       const isDefaultFamily = family === 'sans'
       const cliDefaultAutoMono = ui === 'cli' && isDefaultFamily
@@ -138,9 +138,9 @@ export function useZoom() {
       html.style.setProperty('--font-body', bodyStack)
 
       // Publish the RESOLVED family as a data attribute so CSS can react to it.
-      // The sans→mono auto-resolve reports "mono" so the JetBrains-Mono-tuned
+      // The sans→mono auto-resolve reports "mono" so the Overpass-Mono-tuned
       // rail letter-spacing rule in index.css fires. OpenDyslexic in CLI mode
-      // stays as "opendyslexic" — that rule is calibrated for JetBrains Mono's
+      // stays as "opendyslexic" — that rule is calibrated for Overpass Mono's
       // narrower glyphs and would harm OpenDyslexicMono's wider, dyslexia-
       // friendly design if inherited.
       const effectiveDataAttr: FontFamily = cliDefaultAutoMono ? 'mono' : family
@@ -150,7 +150,7 @@ export function useZoom() {
       // today, so the branch is explicit rather than table-driven — a future
       // a11y font with its own mono variant becomes a second `||` in the
       // condition. Removing the inline value on switch-away lets the CSS :root
-      // default (JetBrains Mono) take over again.
+      // default (Overpass Mono) take over again.
       if (family === 'opendyslexic') {
         html.style.setProperty('--mono', OPENDYSLEXIC_MONO_STACK)
       } else {

@@ -45,7 +45,7 @@ import { MochiInstancesList } from '../panel/MochiInstances'
 function inst(over: Partial<CoreInstance> = {}): CoreInstance {
   return {
     id: 'zzq-a',
-    name: 'Crew A',
+    name: 'Instance A',
     local_port: 7778,
     status: { state: 'connected' },
     ...over,
@@ -85,7 +85,7 @@ describe('MochiInstancesList list states', () => {
     listInstances.mockResolvedValue({ state: 'inactive', instances: [inst()] })
     render(<MochiInstancesList value="self" onChange={() => {}} />)
     await waitFor(() => expect(screen.getByText(/restart the gateway/)).toBeTruthy())
-    expect(screen.getByRole('button', { name: /Crew A/ })).toBeTruthy()
+    expect(screen.getByRole('button', { name: /Instance A/ })).toBeTruthy()
   })
 })
 
@@ -94,7 +94,7 @@ describe('MochiInstancesList rows', () => {
     const onChange = vi.fn()
     listInstances.mockResolvedValue({ state: 'ready', instances: [inst()] })
     render(<MochiInstancesList value="self" onChange={onChange} />)
-    const row = await screen.findByRole('button', { name: /Crew A/ })
+    const row = await screen.findByRole('button', { name: /Instance A/ })
 
     fireEvent.click(row)
     expect(onChange).toHaveBeenLastCalledWith('zzq-a')
@@ -107,7 +107,7 @@ describe('MochiInstancesList rows', () => {
     const onChange = vi.fn()
     listInstances.mockResolvedValue({ state: 'ready', instances: [inst()] })
     render(<MochiInstancesList value="self" onChange={onChange} />)
-    const row = await screen.findByRole('button', { name: /Crew A/ })
+    const row = await screen.findByRole('button', { name: /Instance A/ })
 
     fireEvent.keyDown(row, { key: 'Enter' })
     fireEvent.keyDown(row, { key: ' ' })
@@ -122,21 +122,21 @@ describe('MochiInstancesList rows', () => {
     listInstances.mockResolvedValue({
       state: 'ready',
       // Listed only because it is the SAVED choice; no port, so it cannot host.
-      instances: [inst({ id: 'zzq-gone', name: 'Crew Gone', local_port: 0, status: { state: 'disconnected' } })],
+      instances: [inst({ id: 'zzq-gone', name: 'Instance Gone', local_port: 0, status: { state: 'disconnected' } })],
     })
     render(<MochiInstancesList value="zzq-other" onChange={onChange} />)
     // Not the saved value, not usable → not listed at all.
     await waitFor(() => expect(listInstances).toHaveBeenCalled())
-    expect(screen.queryByRole('button', { name: /Crew Gone/ })).toBeNull()
+    expect(screen.queryByRole('button', { name: /Instance Gone/ })).toBeNull()
   })
 
   it('keeps the saved-but-absent choice listed, highlighted and labelled', async () => {
     listInstances.mockResolvedValue({
       state: 'ready',
-      instances: [inst({ id: 'zzq-gone', name: 'Crew Gone', local_port: 0, status: { state: 'disconnected' } })],
+      instances: [inst({ id: 'zzq-gone', name: 'Instance Gone', local_port: 0, status: { state: 'disconnected' } })],
     })
     render(<MochiInstancesList value="zzq-gone" onChange={() => {}} />)
-    const row = await screen.findByRole('button', { name: /Crew Gone/ })
+    const row = await screen.findByRole('button', { name: /Instance Gone/ })
     expect(row.getAttribute('aria-pressed')).toBe('true')
     expect(row.textContent).toContain('not connected')
     // A remote choice: the host-boundary note only makes sense then.
@@ -147,9 +147,9 @@ describe('MochiInstancesList rows', () => {
     listInstances.mockResolvedValue({
       state: 'ready',
       instances: [
-        inst({ id: 'c', name: 'Crew Connecting', local_port: 0, status: { state: 'connecting' } }),
-        inst({ id: 'e', name: 'Crew Errored', local_port: 0, status: { state: 'error' } }),
-        inst({ id: 'n', name: 'Crew Nothing', local_port: 0, status: undefined }),
+        inst({ id: 'c', name: 'Instance Connecting', local_port: 0, status: { state: 'connecting' } }),
+        inst({ id: 'e', name: 'Instance Errored', local_port: 0, status: { state: 'error' } }),
+        inst({ id: 'n', name: 'Instance Nothing', local_port: 0, status: undefined }),
       ],
     })
     // Every row is unusable, so each must be listed as the SAVED choice to be
@@ -184,7 +184,7 @@ describe('MochiInstancesList rows', () => {
     listInstances.mockResolvedValue({ state: 'ready', instances: [inst()] })
     instancesEnabledMap = vi.fn().mockRejectedValue(new Error('zzq no token'))
     render(<MochiInstancesList value="self" onChange={() => {}} />)
-    const row = await screen.findByRole('button', { name: /Crew A/ })
+    const row = await screen.findByRole('button', { name: /Instance A/ })
     await waitFor(() => expect(instancesEnabledMap).toHaveBeenCalled())
     expect(row.getAttribute('aria-disabled')).toBeNull()
   })
@@ -192,10 +192,10 @@ describe('MochiInstancesList rows', () => {
   it('prefers the shell answer over the same-origin fetch', async () => {
     instancesList = vi.fn().mockResolvedValue({
       state: 'ready',
-      instances: [inst({ id: 'zzq-shell', name: 'Crew Shell' })],
+      instances: [inst({ id: 'zzq-shell', name: 'Instance Shell' })],
     })
     render(<MochiInstancesList value="self" onChange={() => {}} />)
-    expect(await screen.findByRole('button', { name: /Crew Shell/ })).toBeTruthy()
+    expect(await screen.findByRole('button', { name: /Instance Shell/ })).toBeTruthy()
     expect(listInstances).not.toHaveBeenCalled()
   })
 
@@ -203,10 +203,10 @@ describe('MochiInstancesList rows', () => {
     instancesList = vi.fn().mockResolvedValue(null)
     listInstances.mockResolvedValue({
       state: 'ready',
-      instances: [inst({ id: 'zzq-web', name: 'Crew Web' })],
+      instances: [inst({ id: 'zzq-web', name: 'Instance Web' })],
     })
     render(<MochiInstancesList value="self" onChange={() => {}} />)
-    expect(await screen.findByRole('button', { name: /Crew Web/ })).toBeTruthy()
+    expect(await screen.findByRole('button', { name: /Instance Web/ })).toBeTruthy()
     expect(listInstances).toHaveBeenCalled()
   })
 
@@ -222,13 +222,13 @@ describe('MochiInstancesList rows', () => {
 
       listInstances.mockResolvedValue({
         state: 'ready',
-        instances: [inst({ id: 'zzq-late', name: 'Crew Late' })],
+        instances: [inst({ id: 'zzq-late', name: 'Instance Late' })],
       })
       await act(async () => {
         await vi.advanceTimersByTimeAsync(5000)
       })
       expect(listInstances).toHaveBeenCalledTimes(2)
-      expect(screen.getByRole('button', { name: /Crew Late/ })).toBeTruthy()
+      expect(screen.getByRole('button', { name: /Instance Late/ })).toBeTruthy()
     } finally {
       vi.useRealTimers()
     }

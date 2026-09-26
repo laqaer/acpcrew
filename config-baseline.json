@@ -137,6 +137,76 @@
       "defaultValue": {}
     },
     {
+      "path": "agent.role_models.orchestration",
+      "kind": "core",
+      "type": "string",
+      "required": false,
+      "deprecated": false,
+      "sensitive": false,
+      "tags": [],
+      "label": "Orchestration model",
+      "help": "Model pinned for this class of work. Empty or 'auto' defers to the provider default.",
+      "hasChildren": false,
+      "enumValues": null,
+      "defaultValue": ""
+    },
+    {
+      "path": "agent.role_models.planning",
+      "kind": "core",
+      "type": "string",
+      "required": false,
+      "deprecated": false,
+      "sensitive": false,
+      "tags": [],
+      "label": "Planning model",
+      "help": "Model pinned for this class of work. Empty or 'auto' defers to the provider default.",
+      "hasChildren": false,
+      "enumValues": null,
+      "defaultValue": ""
+    },
+    {
+      "path": "agent.role_models.execution",
+      "kind": "core",
+      "type": "string",
+      "required": false,
+      "deprecated": false,
+      "sensitive": false,
+      "tags": [],
+      "label": "Execution model",
+      "help": "Model pinned for this class of work. Empty or 'auto' defers to the provider default.",
+      "hasChildren": false,
+      "enumValues": null,
+      "defaultValue": ""
+    },
+    {
+      "path": "agent.role_models.background",
+      "kind": "core",
+      "type": "string",
+      "required": false,
+      "deprecated": false,
+      "sensitive": false,
+      "tags": [],
+      "label": "Background model",
+      "help": "Model pinned for this class of work. Empty or 'auto' defers to the provider default.",
+      "hasChildren": false,
+      "enumValues": null,
+      "defaultValue": ""
+    },
+    {
+      "path": "agent.role_models.subagent",
+      "kind": "core",
+      "type": "string",
+      "required": false,
+      "deprecated": false,
+      "sensitive": false,
+      "tags": [],
+      "label": "Subagent model",
+      "help": "Model pinned for this class of work. Empty or 'auto' defers to the provider default.",
+      "hasChildren": false,
+      "enumValues": null,
+      "defaultValue": ""
+    },
+    {
       "path": "agent.role_models.*",
       "kind": "core",
       "type": "string",
@@ -163,6 +233,76 @@
       "hasChildren": true,
       "enumValues": null,
       "defaultValue": {}
+    },
+    {
+      "path": "agent.role_efforts.orchestration",
+      "kind": "core",
+      "type": "string",
+      "required": false,
+      "deprecated": false,
+      "sensitive": false,
+      "tags": [],
+      "label": "Orchestration reasoning effort",
+      "help": "Reasoning effort for this class of work. Empty inherits the chat default, then the provider/model default.",
+      "hasChildren": false,
+      "enumValues": null,
+      "defaultValue": ""
+    },
+    {
+      "path": "agent.role_efforts.planning",
+      "kind": "core",
+      "type": "string",
+      "required": false,
+      "deprecated": false,
+      "sensitive": false,
+      "tags": [],
+      "label": "Planning reasoning effort",
+      "help": "Reasoning effort for this class of work. Empty inherits the chat default, then the provider/model default.",
+      "hasChildren": false,
+      "enumValues": null,
+      "defaultValue": ""
+    },
+    {
+      "path": "agent.role_efforts.execution",
+      "kind": "core",
+      "type": "string",
+      "required": false,
+      "deprecated": false,
+      "sensitive": false,
+      "tags": [],
+      "label": "Execution reasoning effort",
+      "help": "Reasoning effort for this class of work. Empty inherits the chat default, then the provider/model default.",
+      "hasChildren": false,
+      "enumValues": null,
+      "defaultValue": ""
+    },
+    {
+      "path": "agent.role_efforts.background",
+      "kind": "core",
+      "type": "string",
+      "required": false,
+      "deprecated": false,
+      "sensitive": false,
+      "tags": [],
+      "label": "Background reasoning effort",
+      "help": "Reasoning effort for this class of work. Empty inherits the chat default, then the provider/model default.",
+      "hasChildren": false,
+      "enumValues": null,
+      "defaultValue": ""
+    },
+    {
+      "path": "agent.role_efforts.subagent",
+      "kind": "core",
+      "type": "string",
+      "required": false,
+      "deprecated": false,
+      "sensitive": false,
+      "tags": [],
+      "label": "Subagent reasoning effort",
+      "help": "Reasoning effort for this class of work. Empty inherits the chat default, then the provider/model default.",
+      "hasChildren": false,
+      "enumValues": null,
+      "defaultValue": ""
     },
     {
       "path": "agent.role_efforts.*",
@@ -2219,7 +2359,7 @@
       "sensitive": false,
       "tags": [],
       "label": "Extra Skill Paths",
-      "help": "Additional directories to scan for skills. Supports ~ expansion. Skills from extra_paths are read-only (trigger matching + loading). Local ~/.kiro/crew/skills/ takes precedence for duplicate names.",
+      "help": "Additional directories to scan for skills. Supports ~ expansion. Skills from extra_paths are read-only (trigger matching + loading). Local ~/.junction/skills/ takes precedence for duplicate names.",
       "hasChildren": true,
       "enumValues": null,
       "defaultValue": []
@@ -2377,7 +2517,7 @@
         "max_total_mb": 0,
         "otlp_endpoint": "",
         "beacon_enabled": true,
-        "beacon_endpoint": "https://d175o3ylxqum0e.cloudfront.net"
+        "beacon_endpoint": ""
       }
     },
     {
@@ -2389,7 +2529,7 @@
       "sensitive": false,
       "tags": [],
       "label": "Enabled",
-      "help": "Main switch for Junction metrics telemetry. Off by default: metric call sites are no-ops and nothing is written. When on, a local-first JSONL sink under ~/.kiro/crew/metrics is enabled (no network egress).",
+      "help": "Main switch for Junction metrics telemetry. Off by default: metric call sites are no-ops and nothing is written. When on, a local-first JSONL sink under ~/.junction/metrics is enabled (no network egress).",
       "hasChildren": false,
       "enumValues": null,
       "defaultValue": false
@@ -2403,7 +2543,7 @@
       "sensitive": false,
       "tags": [],
       "label": "Local Metrics Dir",
-      "help": "Directory for local JSONL metric shards. Empty = ~/.kiro/crew/metrics. Supports ~ expansion.",
+      "help": "Directory for local JSONL metric shards. Empty = ~/.junction/metrics. Supports ~ expansion.",
       "hasChildren": false,
       "enumValues": null,
       "defaultValue": ""
@@ -2487,10 +2627,10 @@
       "sensitive": false,
       "tags": [],
       "label": "Beacon Endpoint",
-      "help": "HTTPS base URL that receives the anonymous heartbeat. EMPTY = no beacon is ever sent, regardless of the toggle above. Must be https:// (a plaintext heartbeat would reveal which hosts run this software to any on-path observer); a non-https value is cleared.",
+      "help": "HTTPS base URL that receives the anonymous heartbeat. Empty by default: Junction ships without a collector, so no beacon is ever sent, regardless of the toggle above, until you set one. Must be https:// (a plaintext heartbeat would reveal which hosts run this software to any on-path observer); a non-https value is cleared.",
       "hasChildren": false,
       "enumValues": null,
-      "defaultValue": "https://d175o3ylxqum0e.cloudfront.net"
+      "defaultValue": ""
     },
     {
       "path": "stt",
@@ -3116,7 +3256,7 @@
       "sensitive": false,
       "tags": [],
       "label": "Response Spill Threshold",
-      "help": "Tool-call responses larger than this (bytes) have their text content written to ~/.kiro/crew/mcp_spill/ and truncated inline to 16 KiB + a file path marker. Default 256 KiB. Set 0 to disable spilling. Env override: JUNCTION_MCP_SPILL_THRESHOLD.",
+      "help": "Tool-call responses larger than this (bytes) have their text content written to ~/.junction/mcp_spill/ and truncated inline to 16 KiB + a file path marker. Default 256 KiB. Set 0 to disable spilling. Env override: JUNCTION_MCP_SPILL_THRESHOLD.",
       "hasChildren": false,
       "enumValues": null,
       "defaultValue": 262144
@@ -3813,7 +3953,7 @@
         "artifacts"
       ],
       "label": "Artifact Relocate Roots",
-      "help": "Extra absolute filesystem roots an artifact may be relocated into, beyond your home directory. Empty = home-only (the secure default). The sensitive-path denylist (~/.aws, ~/.ssh, ~/.kiro/crew, …) still applies inside every allowed root.",
+      "help": "Extra absolute filesystem roots an artifact may be relocated into, beyond your home directory. Empty = home-only (the secure default). The sensitive-path denylist (~/.aws, ~/.ssh, ~/.junction, …) still applies inside every allowed root.",
       "hasChildren": true,
       "enumValues": null,
       "defaultValue": []
@@ -6843,7 +6983,7 @@
       "sensitive": false,
       "tags": [],
       "label": "Triggers",
-      "help": "Routing intent for orchestrator crew selection: free-text 'when to use this crew' guidance the main agent reads via select_crew. A crew with no triggers is not offered for selection.",
+      "help": "Routing intent for orchestrator agent selection: free-text 'when to use this agent' guidance the main agent reads via select_agent. An agent with no triggers is not offered for selection.",
       "hasChildren": false,
       "enumValues": null,
       "defaultValue": ""
@@ -7084,7 +7224,7 @@
       "sensitive": false,
       "tags": [],
       "label": "Snapshot Directory",
-      "help": "Directory for junction snapshot output. Defaults to ~/.kiro/crew/snapshots if empty.",
+      "help": "Directory for junction snapshot output. Defaults to ~/.junction/snapshots if empty.",
       "hasChildren": false,
       "enumValues": null,
       "defaultValue": ""

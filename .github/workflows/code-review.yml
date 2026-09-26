@@ -52,13 +52,14 @@ jobs:
           HEAD: ${{ github.event.pull_request.head.sha }}
         run: |
           echo "::group::use-lucide-icons — no inline SVGs"
-          # Brand-asset components (mascot / logo) are exempt: they render a
-          # bespoke brand SVG that has no lucide-react equivalent. The rule still
-          # blocks inline SVGs in every other component.
+          # Third-party brand-logo components (*Logo.tsx: GitHub, Telegram,
+          # WhatsApp, the connection providers) are exempt: a vendor mark has no
+          # lucide-react equivalent. Junction's own glyph needs no exemption: it
+          # ships as an asset file (src/assets/junction-glyph.svg) rendered through
+          # BrandGlyph, never as inline SVG. The rule still blocks inline SVGs in
+          # every other component.
           if git diff "$BASE".."$HEAD" -- 'src/**/*.tsx' \
-               ':(exclude)src/components/KiroGhost.tsx' \
                ':(exclude)src/**/*Logo.tsx' \
-               ':(exclude)src/**/*Ghost.tsx' \
              | grep -n '^\+.*<svg[^>]*viewBox'; then
             echo "::error::Use lucide-react icons instead of inline SVGs"
             exit 1
@@ -124,7 +125,7 @@ jobs:
           HEAD: ${{ github.event.pull_request.head.sha }}
         run: |
           echo "::group::sensitive-path reads must go through is_sensitive_path()"
-          SENSITIVE_PATHS='\.aws/|\.ssh/|\.gnupg/|\.docker/|\.kube/|\.npmrc|\.pypirc|\.netrc|\.git-credentials|\.kirocrew/security_policy|\.kirocrew/admission_policy'
+          SENSITIVE_PATHS='\.aws/|\.ssh/|\.gnupg/|\.docker/|\.kube/|\.npmrc|\.pypirc|\.netrc|\.git-credentials|\.junction/security_policy|\.junction/admission_policy'
           # Best-effort: covers open()/Path.open()/read_text()/os.open()/aiofiles.
           # The authoritative control is security.py/hooks.py + their unit tests;
           # this grep is a fast pre-filter, not the guarantee.
@@ -142,16 +143,16 @@ jobs:
           # required tuple. Fast tripwire — the authoritative controls are
           # security.py + governance.py + their unit tests.
           #
-          # The data home moved to ~/.kiro/crew, so security.py now GENERATES the
-          # sensitive floor by expanding each secret leaf (denied_commands.json
-          # among them, in _CREW_SECRET_LEAVES) under every crew-home prefix
-          # (_CREW_HOME_PREFIXES). Assert the leaf is in that list; the governance
-          # boot tuple carries the resolved ".kiro/crew/denied_commands.json".
+          # security.py GENERATES the sensitive floor by expanding each secret
+          # leaf (denied_commands.json among them, in _DATA_HOME_SECRET_LEAVES)
+          # under the single data-home prefix, ~/.junction (_DATA_HOME_PREFIXES).
+          # Assert the leaf is in that list; the governance boot tuple carries the
+          # resolved ".junction/denied_commands.json".
           if ! grep -q '"denied_commands.json"' src/junction/security.py; then
-            echo "::error::denied_commands.json must be in security._SENSITIVE_HOME_DIRS (via _CREW_SECRET_LEAVES; agent must not read/write its own deny ceiling)"
+            echo "::error::denied_commands.json must be in security._SENSITIVE_HOME_DIRS (via _DATA_HOME_SECRET_LEAVES; agent must not read/write its own deny ceiling)"
             exit 1
           fi
-          if ! grep -q '".kiro/crew/denied_commands.json"' src/junction/platform/governance.py; then
+          if ! grep -q '".junction/denied_commands.json"' src/junction/platform/governance.py; then
             echo "::error::denied_commands.json must be in the governance boot-integrity required tuple"
             exit 1
           fi

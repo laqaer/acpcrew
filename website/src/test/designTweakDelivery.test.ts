@@ -11,7 +11,7 @@ const RID = '1754350412345-a1b2c3'
 /** A prompt shaped like the real one: the id appears in the payload path. */
 const promptFor = (id: string) =>
   'Apply 2 visual edits from Design Tweak request 3.\n' +
-  `The full payload is at /Users/x/.kiro/crew/apps/design-tweak/data/queue/${id}.json`
+  `The full payload is at /Users/x/.junction/apps/design-tweak/data/queue/${id}.json`
 
 describe('design-tweak delivery verification', () => {
   describe('needsDeliveryRetry', () => {

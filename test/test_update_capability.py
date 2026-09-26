@@ -63,7 +63,7 @@ class TestIsGitWorktree:
         # else's checkout must not be treated as a git install, or the git apply
         # path would reset a tree that has nothing to do with this install.
         _init_repo(tmp_path)
-        nested = tmp_path / "venvs" / "crew-venv"
+        nested = tmp_path / "venvs" / "junction-venv"
         nested.mkdir(parents=True)
         assert is_git_worktree(str(nested)) is False
 
@@ -223,7 +223,7 @@ class TestIsGitWorktree:
         # The fallback stays ANCHORED at the root, so the nested case it exists to
         # reject is rejected on that path too.
         _init_repo(tmp_path)
-        nested = tmp_path / "venvs" / "crew-venv"
+        nested = tmp_path / "venvs" / "junction-venv"
         nested.mkdir(parents=True)
 
         def _missing(*_a, **_k):

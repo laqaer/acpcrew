@@ -424,7 +424,7 @@ capability check it never had.
   the default when pipx is absent — is a fixed-path managed venv
   (`${JUNCTION_HOME}-venv`, `cli.sh:331`) upgraded **in place** today. For that
   shape the promising direction is *versioned trees with atomic promotion*:
-  build `crew-venv-<version>` completely while the old gateway keeps serving,
+  build `junction-venv-<version>` completely while the old gateway keeps serving,
   then promote a stable path to point at it, then restart. (Precedent:
   Claude Code's native installer keeps per-version binaries under
   `~/.local/share/claude/versions/` behind one symlink; Codex CLI instead
@@ -458,13 +458,13 @@ capability check it never had.
     anyway. Instead the stable path is a **new name** that has always been a
     symlink:
 
-    1. The helper builds `crew-venv-<version>` fresh and verifies it
+    1. The helper builds `junction-venv-<version>` fresh and verifies it
        (provenance per this section, hash-pinned dependencies, import check).
-    2. It creates `crew-venv-current → crew-venv-<version>` atomically
+    2. It creates `junction-venv-current → junction-venv-<version>` atomically
        (sibling symlink + `rename(2)`; trivially safe because the name did not
        previously exist).
     3. The installer rewrites **all four persisted launch paths** (above) to
-       resolve through `crew-venv-current`, re-rendering the service unit and
+       resolve through `junction-venv-current`, re-rendering the service unit and
        the generated macOS launcher.
     4. Drain per §5, restart via the supervisor, then the post-restart
        health + version handshake.
@@ -479,7 +479,7 @@ capability check it never had.
     ever moved or deleted**, and the atomicity problem of replacing a real
     directory with a symlink is dodged entirely by putting the symlink at a
     fresh name. Subsequent updates are pure symlink flips on
-    `crew-venv-current` and never revisit this protocol.
+    `junction-venv-current` and never revisit this protocol.
   - **A fresh venv re-resolves the dependency graph.** `setup.cfg` carries wide
     ranges; a rebuilt environment downloads packages covered by nobody's
     signature. The install step needs locked, hash-pinned constraints (or a

@@ -13,7 +13,7 @@ This module provides:
 3. Newest-dump detection for doctor/startup surfacing.
 
 Dump directory: ``<data home>/logs/crash-dumps/`` (data home = ``config_dir()``,
-i.e. ``~/.kiro/crew`` or ``$JUNCTION_HOME``)
+i.e. ``~/.junction`` or ``$JUNCTION_HOME``)
 Filename pattern: ``loopstall-<ISO timestamp>.txt``
 
 **fd lifetime guarantee (issue #1571):**
@@ -134,7 +134,7 @@ class DumpFile:
 def get_dumps_dir() -> Path:
     """Resolve the crash-dumps directory under the data home's ``logs/``.
 
-    ``config_dir()`` resolves to ``~/.kiro/crew`` (or ``$JUNCTION_HOME`` when
+    ``config_dir()`` resolves to ``~/.junction`` (or ``$JUNCTION_HOME`` when
     set), so dumps land in ``<data home>/logs/crash-dumps/``.
     """
     d = config_dir() / "logs" / _DUMP_DIR_NAME

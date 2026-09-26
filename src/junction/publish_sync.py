@@ -345,7 +345,7 @@ def _ext_for(art: Artifact) -> str:
 
 
 def _write_tempfile(text: str, ext: str) -> str:
-    fd, path = tempfile.mkstemp(suffix=ext, prefix="kc-artifact-")
+    fd, path = tempfile.mkstemp(suffix=ext, prefix="jn-artifact-")
     try:
         with os.fdopen(fd, "w", encoding="utf-8") as fh:
             fh.write(text)

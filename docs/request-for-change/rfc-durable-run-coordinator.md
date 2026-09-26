@@ -147,7 +147,7 @@ that event.
   high-availability deployment.
 - Moving full result text or ACP transcripts into SQLite. `result.txt` remains
   the canonical full-output artifact.
-- Replacing `SessionManager`, TaskRunner, workflows, cron, or Crew Mode with the
+- Replacing `SessionManager`, TaskRunner, workflows, cron, or Multitask Mode with the
   coordinator in this stack.
 - Changing the user-visible run ID or the public `spawn_*` MCP contracts.
 - Automatically replaying an attempt whose side effects are uncertain.
@@ -733,7 +733,7 @@ run ledger exists and gives completion a complete durable contract.
 There are no unresolved decisions blocking PR 2. The following are deliberately
 deferred beyond this stack:
 
-- whether TaskRunner, workflows, or Crew Mode should adopt the coordinator port;
+- whether TaskRunner, workflows, or Multitask Mode should adopt the coordinator port;
 - when compatibility evidence is sufficient to stop metadata mirrors;
 - whether a future distributed implementation should use SQLite replication, a
   service database, or a queue-backed coordinator.

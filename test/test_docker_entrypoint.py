@@ -6,13 +6,12 @@ The entrypoint owns three container-boundary behaviors:
   genuine first run — the inner namespace sandbox stays ON when the runtime
   permits it; the unsandboxed opt-out is seeded only when no backend works.
   "First run" means ``config.json`` is absent: an EMPTY mounted volume is
-  still a first run, while any existing config is operator-owned and a
-  legacy ``~/.kirocrew`` is owned by the product's migrator.
+  still a first run, while any existing config is operator-owned.
 * Channel credentials arriving as container env are moved into the
   product's credential file (``.env``, 0600) and scrubbed from the
   environment BEFORE the gateway is exec'd, so the gateway's
   ``/proc/<pid>/environ`` snapshot never carries a credential.
-* Explicit ``JUNCTION_HOME`` / legacy-home resolution mirrors the backend.
+* Explicit ``JUNCTION_HOME`` resolution mirrors the backend.
 
 These tests execute the REAL script with stubbed ``junction`` and
 ``python3`` binaries on PATH (the python3 stub makes the sandbox probe
@@ -64,8 +63,8 @@ def _run_entrypoint(
     The ``python3`` stub DISPATCHES on the ``-c`` code: the data-home
     resolver call (``ensure_data_home``) runs the REAL product code via the
     test process's interpreter (genuine integration coverage of override
-    validation, tilde expansion, and legacy migration — hermetic under the
-    throwaway ``$HOME``), while the sandbox probe (``detect_backend``)
+    validation and tilde expansion — hermetic under the throwaway
+    ``$HOME``), while the sandbox probe (``detect_backend``)
     returns a scripted exit so posture tests are deterministic on any host.
     ``resolver_python`` overrides the resolver interpreter (e.g.
     ``/usr/bin/false`` to simulate a broken install). The ``junction`` shim
@@ -127,7 +126,7 @@ def test_first_run_with_backend_seeds_sandbox_auto(tmp_path: Path) -> None:
     result = _run_entrypoint(tmp_path, probe_backend_available=True)
     assert result.returncode == 0, result.stderr
 
-    config = tmp_path / ".kiro" / "crew" / "config.json"
+    config = tmp_path / ".junction" / "config.json"
     assert config.is_file(), "backend available must seed sandbox=auto"
     assert json.loads(config.read_text(encoding="utf-8")) == SEED_AUTO_JSON
     assert "sandbox=auto" in result.stdout
@@ -143,7 +142,7 @@ def test_first_run_without_backend_stays_fail_closed_without_consent(tmp_path: P
     result = _run_entrypoint(tmp_path, probe_backend_available=False)
     assert result.returncode == 0, result.stderr
 
-    config = tmp_path / ".kiro" / "crew" / "config.json"
+    config = tmp_path / ".junction" / "config.json"
     assert config.is_file(), (
         "config MUST be seeded — an absent config means mode 'off', which "
         "bypasses the fail-closed guard instead of engaging it"
@@ -167,7 +166,7 @@ def test_first_run_without_backend_seeds_opt_out_with_explicit_consent(tmp_path:
     )
     assert result.returncode == 0, result.stderr
 
-    config = tmp_path / ".kiro" / "crew" / "config.json"
+    config = tmp_path / ".junction" / "config.json"
     assert config.is_file(), "explicit consent must seed the opt-out"
     assert json.loads(config.read_text(encoding="utf-8")) == SEED_CONSENT_JSON
     assert "JUNCTION_ALLOW_UNSANDBOXED=1 given" in result.stdout
@@ -178,7 +177,7 @@ def test_empty_mounted_home_is_still_a_first_run(tmp_path: Path) -> None:
     still a first run: seeding must key on config.json absence, not on the
     directory's existence, or a fresh `-v` mount ships with agent exec
     unusable AND no opt-out."""
-    (tmp_path / ".kiro" / "crew").mkdir(parents=True)
+    (tmp_path / ".junction").mkdir(parents=True)
     result = _run_entrypoint(
         tmp_path,
         probe_backend_available=False,
@@ -186,7 +185,7 @@ def test_empty_mounted_home_is_still_a_first_run(tmp_path: Path) -> None:
     )
     assert result.returncode == 0, result.stderr
 
-    config = tmp_path / ".kiro" / "crew" / "config.json"
+    config = tmp_path / ".junction" / "config.json"
     assert config.is_file(), "empty mounted home must still seed"
     assert json.loads(config.read_text(encoding="utf-8")) == SEED_CONSENT_JSON
 
@@ -197,7 +196,7 @@ def test_existing_config_is_preserved_byte_identical(tmp_path: Path) -> None:
     an operator who deliberately re-enabled the inner sandbox (e.g. running
     with a permissive seccomp profile) must not have that choice reverted
     on restart."""
-    home_dir = tmp_path / ".kiro" / "crew"
+    home_dir = tmp_path / ".junction"
     home_dir.mkdir(parents=True)
     config = home_dir / "config.json"
     operator_state = (
@@ -216,7 +215,7 @@ def test_existing_config_is_preserved_byte_identical(tmp_path: Path) -> None:
 
 def test_existing_config_without_key_gets_note_but_no_write(tmp_path: Path) -> None:
     """Existing config missing the sandbox key: advise, never write."""
-    home_dir = tmp_path / ".kiro" / "crew"
+    home_dir = tmp_path / ".junction"
     home_dir.mkdir(parents=True)
     config = home_dir / "config.json"
     config.write_text('{"dashboard": {"bot_name": "Custom"}}\n', encoding="utf-8")
@@ -243,11 +242,11 @@ def test_explicit_junction_home_env_is_honored(tmp_path: Path) -> None:
     assert result.returncode == 0, result.stderr
     assert (custom / "config.json").is_file()
     # Default location untouched.
-    assert not (tmp_path / ".kiro" / "crew").exists()
+    assert not (tmp_path / ".junction").exists()
 
 
 def test_junction_home_tilde_is_expanded_like_the_backend(tmp_path: Path) -> None:
-    """A tilde override (docker -e JUNCTION_HOME=~/crew-data arrives
+    """A tilde override (docker -e JUNCTION_HOME=~/junction-data arrives
     unexpanded) must land under $HOME exactly as the backend resolves it —
     the resolver delegation makes this the REAL product expansion, not a
     shell reimplementation."""
@@ -255,20 +254,20 @@ def test_junction_home_tilde_is_expanded_like_the_backend(tmp_path: Path) -> Non
         tmp_path,
         probe_backend_available=False,
         extra_env={
-            "JUNCTION_HOME": "~/crew-data",
+            "JUNCTION_HOME": "~/junction-data",
             "SLACK_BOT_TOKEN": "tilde-secret",
             "JUNCTION_ALLOW_UNSANDBOXED": "1",
         },
     )
     assert result.returncode == 0, result.stderr
-    expanded = tmp_path / "crew-data"
-    assert (expanded / "config.json").is_file(), "seed must land under $HOME/crew-data"
+    expanded = tmp_path / "junction-data"
+    assert (expanded / "config.json").is_file(), "seed must land under $HOME/junction-data"
     assert "tilde-secret" in (expanded / ".env").read_text(encoding="utf-8")
     assert not (tmp_path / "~").exists(), "no literal tilde directory may be created"
     # The override passes through VERBATIM — the gateway applies the
     # identical product expansion at boot, so both resolve the same dir.
     captured = (tmp_path / "captured-env").read_text(encoding="utf-8")
-    assert "JUNCTION_HOME=~/crew-data" in captured
+    assert "JUNCTION_HOME=~/junction-data" in captured
 
 
 def test_system_dir_override_is_rejected_like_the_backend(tmp_path: Path) -> None:
@@ -288,7 +287,7 @@ def test_system_dir_override_is_rejected_like_the_backend(tmp_path: Path) -> Non
         },
     )
     assert result.returncode == 0, result.stderr
-    config = tmp_path / ".kiro" / "crew" / "config.json"
+    config = tmp_path / ".junction" / "config.json"
     assert config.is_file(), (
         "rejected override must fall through to the default home, same as "
         "the backend"
@@ -307,7 +306,7 @@ def test_broken_resolver_falls_back_to_default_home(tmp_path: Path) -> None:
     )
     assert result.returncode == 0, result.stderr
     assert "could not resolve the data home" in result.stderr
-    assert (tmp_path / ".kiro" / "crew" / "config.json").is_file()
+    assert (tmp_path / ".junction" / "config.json").is_file()
 
 
 # ── Credential env -> .env sync + scrub ─────────────────────────────────
@@ -327,7 +326,7 @@ def test_channel_credentials_move_to_env_file_and_leave_environ(tmp_path: Path) 
     )
     assert result.returncode == 0, result.stderr
 
-    env_file = tmp_path / ".kiro" / "crew" / ".env"
+    env_file = tmp_path / ".junction" / ".env"
     assert env_file.is_file()
     assert stat.S_IMODE(env_file.stat().st_mode) == 0o600
     content = env_file.read_text(encoding="utf-8")
@@ -349,7 +348,7 @@ def test_credential_sync_replaces_key_and_preserves_other_lines(tmp_path: Path) 
     """Re-delivering a credential updates its line in place (env wins —
     same precedence the product applies) without clobbering operator-added
     lines or comments in .env, and without duplicating the key."""
-    home_dir = tmp_path / ".kiro" / "crew"
+    home_dir = tmp_path / ".junction"
     home_dir.mkdir(parents=True)
     env_file = home_dir / ".env"
     env_file.write_text(
@@ -376,7 +375,7 @@ def test_credential_sync_replaces_key_and_preserves_other_lines(tmp_path: Path) 
 def test_empty_credential_env_vars_touch_nothing(tmp_path: Path) -> None:
     """Compose maps every channel var with `${VAR:-}` — empty strings must
     not create .env entries or an empty .env file."""
-    home_dir = tmp_path / ".kiro" / "crew"
+    home_dir = tmp_path / ".junction"
     home_dir.mkdir(parents=True)
     (home_dir / "config.json").write_text("{}", encoding="utf-8")
 
@@ -395,7 +394,7 @@ def test_unreadable_env_file_is_preserved_not_replaced(tmp_path: Path) -> None:
     replace the whole file with only the current key, destroying every
     other stored credential. On failure the file stays untouched and the
     variable stays in the environment (the gateway reads env directly)."""
-    home_dir = tmp_path / ".kiro" / "crew"
+    home_dir = tmp_path / ".junction"
     home_dir.mkdir(parents=True)
     (home_dir / "config.json").write_text("{}", encoding="utf-8")
     env_file = home_dir / ".env"

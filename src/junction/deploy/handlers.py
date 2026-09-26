@@ -281,7 +281,7 @@ def _allowed_local_roots() -> list[Path]:
                     roots.append(cand.resolve())
             except OSError:
                 pass
-    # Always allow the agent's own config-dir workspace (e.g. ~/.kiro/crew/workspace).
+    # Always allow the agent's own config-dir workspace (e.g. ~/.junction/workspace).
     try:
         cdir_ws = config_dir() / "workspace"
         if cdir_ws.exists() and cdir_ws.resolve() not in roots:
@@ -1019,7 +1019,7 @@ async def _do_deploy(params: dict[str, Any]) -> tuple[int, dict[str, Any]]:
         result = await asyncio.to_thread(engine.deploy, site_id, src_dir, profile, region)
         _audit("deploy", site_id, "ok")
 
-        # Write the .kirocrew-deploy.json manifest (same shape that deploy.sh
+        # Write the .junction-deploy.json manifest (same shape that deploy.sh
         # writes) so the reaper knows the TTL. Dashboard deploys persist
         # ttl_hours here.
         now_utc = datetime.now(timezone.utc)
@@ -1054,7 +1054,7 @@ async def _do_deploy(params: dict[str, Any]) -> tuple[int, dict[str, Any]]:
                         f.close()
                         rc, _, _ = engine.run_aws(
                             ["s3", "cp", f.name,
-                             f"s3://{target_bucket}/{site_id}/.kirocrew-deploy.json",
+                             f"s3://{target_bucket}/{site_id}/.junction-deploy.json",
                              "--content-type", "application/json",
                              "--region", region],
                             profile, 15,
@@ -1805,7 +1805,7 @@ async def _expire_manifest_best_effort(art: Any) -> str:
     try:
         rc_m, out_m, _ = await asyncio.to_thread(
             engine.run_aws,
-            ["s3", "cp", f"s3://{bucket}/{slug}/.kirocrew-deploy.json", "-",
+            ["s3", "cp", f"s3://{bucket}/{slug}/.junction-deploy.json", "-",
              "--region", region],
             profile, 15,
         )
@@ -1861,7 +1861,7 @@ async def _expire_manifest_best_effort(art: Any) -> str:
         rc, _, err = await asyncio.to_thread(
             engine.run_aws,
             ["s3", "cp", tmp_path,
-             f"s3://{bucket}/{slug}/.kirocrew-deploy.json",
+             f"s3://{bucket}/{slug}/.junction-deploy.json",
              "--content-type", "application/json",
              "--region", region],
             profile, 15,

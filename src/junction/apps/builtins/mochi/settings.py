@@ -68,12 +68,11 @@ SELF_INSTANCE = "self"
 #: Personality now follows the active pack (see ``soul_loader``), so the art and
 #: the persona cannot diverge.
 PACK_MOCHI = "default-mochi"
-PACK_GHOST = "kiro-ghost"
-BUILTIN_PACKS = (PACK_MOCHI, PACK_GHOST)
+BUILTIN_PACKS = (PACK_MOCHI,)
 
 #: Legacy ``avatar`` values, mapped to the pack that replaced them. Mirrors the
 #: original's own ``CHARACTER_TO_PACK`` migration table.
-_LEGACY_AVATAR_PACKS = {"mochi": PACK_MOCHI, "ghost": PACK_GHOST}
+_LEGACY_AVATAR_PACKS = {"mochi": PACK_MOCHI}
 
 #: Longest accepted pet name. The name is rendered in a 320px-wide chat panel
 #: and in speech bubbles, so an unbounded string would break the layout — and it

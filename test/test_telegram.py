@@ -4623,7 +4623,7 @@ class TestUserSafeFailureReason:
         assert _user_safe_failure_reason(exc) == "⚠️ line one line two tail"
 
     def test_local_paths_are_redacted(self) -> None:
-        exc = AcpError("failed reading /home/alice/.kiro/crew/creds", transient=False)
+        exc = AcpError("failed reading /home/alice/.junction/creds", transient=False)
         out = _user_safe_failure_reason(exc)
         assert out is not None
         assert "/home/alice" not in out

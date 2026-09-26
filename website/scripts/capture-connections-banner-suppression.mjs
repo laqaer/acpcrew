@@ -177,7 +177,7 @@ async function main() {
   await page.getByRole('button', { name: 'Agent Capabilities' }).first().click()
   const connectionsTab = page.locator('#main-content').getByRole('button', { name: 'Connections', exact: true })
   // Wait for the capabilities panel to mount before clicking its tab -- clicking
-  // into a still-rendering panel lands on the default Crews tab and the shot
+  // into a still-rendering panel lands on the default Agents tab and the shot
   // times out on a card that was never asked for.
   await connectionsTab.first().waitFor({ state: 'visible', timeout: 20000 })
   await page.waitForTimeout(800)

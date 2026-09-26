@@ -3,8 +3,8 @@
 // be imported from tests and from the page without pulling in the page itself.
 import { loadColumnCollapsed, loadColumnWidth } from '../lib/columnWidth'
 
-export const RAIL_WIDTH_KEY = 'kc:task-runner:rail-width'
-export const RAIL_COLLAPSED_KEY = 'kc:task-runner:rail-collapsed'
+export const RAIL_WIDTH_KEY = 'jn:task-runner:rail-width'
+export const RAIL_COLLAPSED_KEY = 'jn:task-runner:rail-collapsed'
 
 /** Default rail width, matching the rail's fixed baseline so first load has no
  * layout jump. */

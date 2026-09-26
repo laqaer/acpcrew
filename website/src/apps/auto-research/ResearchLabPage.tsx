@@ -301,7 +301,7 @@ function SetupWizard({ onDone, onCancel }: { onDone: () => void; onCancel: () =>
         <div className="flex items-center gap-2"><span className="text-sm">{i18nT('apps.autoResearch.researchLabPage.parallel_workers')}</span><input type="number" aria-label={i18nT('apps.autoResearch.researchLabPage.parallel_workers_2')} min={1} max={5} value={parallelWorkers} className="w-16 text-sm px-3 py-2 rounded-md bg-bg-elevated border border-border text-text outline-none focus-ring" onChange={e => setParallelWorkers(Math.min(5, Math.max(1, Number(e.target.value))))} /><span className="text-xs text-muted">{parallelWorkers > 1 ? `${parallelWorkers} sub-questions investigated in parallel each cycle` : 'sequential (default)'}</span></div>
         {/* Explicit model pick — agent mode only (the workflow engine resolves
             its own models, and the backend rejects a pick there). '' = inherit.
-            'auto' is filtered out, mirroring issue-radar's CrewEditor: it would
+            'auto' is filtered out, mirroring issue-radar's StewardEditor: it would
             sit next to the clearLabel row as a second "default" with different
             mechanics ('' inherits the research agent's pin; 'auto' overrides it
             with an explicit pin subject to the availability withhold). */}

@@ -16,9 +16,8 @@ def test_product_name_is_junction() -> None:
 def test_pyproject_declares_junction_console_script() -> None:
     text = (_REPO_ROOT / "pyproject.toml").read_text(encoding="utf-8")
     assert 'junction = "junction._bootstrap:main"' in text
-    assert 'acpcrew = "junction._bootstrap:main"' in text
-    assert "kirocrew =" not in text
+    scripts = text.split("[project.scripts]", 1)[1].split("\n[", 1)[0]
+    declared = [line.split("=", 1)[0].strip() for line in scripts.splitlines() if "=" in line]
+    assert declared == ["junction"]
     assert CLI_BIN == "junction"
-    assert CLI_CONSOLE_STEMS[0] == CLI_BIN
-    assert "junction" in CLI_CONSOLE_STEMS
-    assert "acpcrew" in CLI_CONSOLE_STEMS
+    assert CLI_CONSOLE_STEMS == (CLI_BIN,)

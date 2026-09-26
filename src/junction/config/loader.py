@@ -1,7 +1,7 @@
 """Configuration loader for Junction.
 
-Config location: ~/.kiro/crew/config.json (overridden by JUNCTION_HOME)
-Credentials:    ~/.kiro/crew/.env (overridden by JUNCTION_HOME)
+Config location: ~/.junction/config.json (overridden by JUNCTION_HOME)
+Credentials:    ~/.junction/.env (overridden by JUNCTION_HOME)
 
 Junction is KiroACP-only: the sole provider is the ACP adapter driving the
 kiro-cli backend. This module handles session timeouts, hook rules, and the
@@ -345,6 +345,26 @@ def coerce_role_efforts(raw: object) -> dict[str, str]:
     return out
 
 
+def _role_key_properties(noun: str, help: str) -> dict[str, dict]:
+    """Declared schema sub-keys for a per-role map, one per :data:`ROLE_MODEL_KEYS`.
+
+    Declaring them makes ``agent.role_models.<role>`` and
+    ``agent.role_efforts.<role>`` exact schema entries, so a Settings control can
+    carry one as its ``configKey`` and a misspelled role (which the coercers
+    above silently drop) fails the settings-registry drift test rather than
+    matching the ``.*`` wildcard. Built from the role tuple itself so the schema
+    cannot name a role the router does not serve.
+    """
+    return {
+        role: {
+            "type": "string",
+            "default": "",
+            "x-meta": {"label": f"{role.capitalize()} {noun}", "help": help},
+        }
+        for role in ROLE_MODEL_KEYS
+    }
+
+
 def coerce_fallback_model(raw: object) -> str:
     """Normalize the throttle-fallback model (agent.fallback_model).
 
@@ -670,7 +690,7 @@ def computer_use_state_path() -> Path:
     """Return path to computer_use.json — the computer-use primary enable.
 
     Same KEYSTONE reasoning as :func:`denied_commands_path`, and the leaf is on
-    ``security._CREW_SECRET_LEAVES`` for the same reason: enabling computer use
+    ``security._DATA_HOME_SECRET_LEAVES`` for the same reason: enabling computer use
     grants full desktop observation plus input synthesis into the operator's real
     applications, which is a security ceiling, not a preference. Keeping it out
     of the agent-readable ``config.json`` is what makes it un-flippable by a
@@ -696,7 +716,7 @@ def oauth_endpoints_path() -> Path:
 
     Same KEYSTONE reasoning as :func:`denied_commands_path` and
     :func:`computer_use_state_path`, and the leaf is on
-    ``security._CREW_SECRET_LEAVES`` for the same reason: each listed endpoint
+    ``security._DATA_HOME_SECRET_LEAVES`` for the same reason: each listed endpoint
     widens the banner-only OAuth entropy carve-out (``security.py``'s
     ``_OAUTH_AUTHORIZATION_ENDPOINTS``), so an agent that could write this file
     could exempt an attacker-controlled host from the exfiltration heuristics —
@@ -715,7 +735,7 @@ def aws_consent_path() -> Path:
     """Return path to aws_service_consent.json — paid-AWS-service consent.
 
     Same KEYSTONE reasoning as :func:`computer_use_state_path`, and the leaf is
-    on ``security._CREW_SECRET_LEAVES`` for the same reason: a recorded consent
+    on ``security._DATA_HOME_SECRET_LEAVES`` for the same reason: a recorded consent
     to call a PAID AWS service is an authorization, not a preference. Storing it
     in ``config.json`` would leave it writable by any auto-approved agent shell,
     so a prompt-injected agent could mint the grant and consent, on the
@@ -1251,7 +1271,7 @@ def workspace_dir_for(workspace: str | None = None) -> Path:
     format) or falls back to raw string values (legacy flat format).
 
     Values starting with ``/`` or ``~`` are treated as absolute paths.
-    Otherwise the value is relative to ``config_dir()`` (``~/.kiro/crew/``).
+    Otherwise the value is relative to ``config_dir()`` (``~/.junction/``).
     Unmapped workspace names fall back to ``"workspace"``.
     """
     data = _raw_config()
@@ -1392,8 +1412,9 @@ _BOT_NAME_RE = _re.compile(r"[^a-zA-Z0-9 _\-.]")
 
 # Default endpoint for the anonymous usage beacon (see junction/beacon.py).
 # Lives here with the other config defaults so beacon.py adds no import edge
-# into the config package. Setting the field to "" disables the beacon outright.
-_DEFAULT_BEACON_ENDPOINT = "https://d175o3ylxqum0e.cloudfront.net"
+# into the config package. Empty: Junction ships without a collector, so no
+# beacon is sent until an operator points telemetry.beacon_endpoint at one.
+_DEFAULT_BEACON_ENDPOINT = ""
 
 
 def _sanitize_bot_name(raw: str) -> str:
@@ -1470,6 +1491,11 @@ class AgentConfig:
             "to the provider default, so an unpinned role stays usable on every "
             "subscription tier. Pin a namespaced catalog slug or a served id "
             "to spend tokens where they return the most work.",
+            properties=_role_key_properties(
+                "model",
+                "Model pinned for this class of work. Empty or 'auto' defers to the "
+                "provider default.",
+            ),
         ),
     )
     role_efforts: dict[str, str] = field(
@@ -1481,6 +1507,11 @@ class AgentConfig:
             "Empty for a role inherits the chat default (agent.reasoning_effort) "
             "and then the provider/model default. Only applies on "
             "reasoning-capable models.",
+            properties=_role_key_properties(
+                "reasoning effort",
+                "Reasoning effort for this class of work. Empty inherits the chat "
+                "default, then the provider/model default.",
+            ),
         ),
     )
     fallback_model: str = field(
@@ -2788,7 +2819,7 @@ class PublishConfig:
             "Artifact Relocate Roots",
             "Extra absolute filesystem roots an artifact may be relocated into, "
             "beyond your home directory. Empty = home-only (the secure default). "
-            "The sensitive-path denylist (~/.aws, ~/.ssh, ~/.kiro/crew, …) still "
+            "The sensitive-path denylist (~/.aws, ~/.ssh, ~/.junction, …) still "
             "applies inside every allowed root.",
             tags=["artifacts"],
         ),
@@ -3439,9 +3470,9 @@ class JunctionAgentConfig:
         default="",
         metadata=_meta(
             "Triggers",
-            "Routing intent for orchestrator crew selection: free-text 'when to "
-            "use this crew' guidance the main agent reads via select_crew. A crew "
-            "with no triggers is not offered for selection.",
+            "Routing intent for orchestrator agent selection: free-text 'when to "
+            "use this agent' guidance the main agent reads via select_agent. An "
+            "agent with no triggers is not offered for selection.",
         ),
     )
     source: str = field(
@@ -3686,7 +3717,7 @@ class SkillsConfig:
             "Extra Skill Paths",
             "Additional directories to scan for skills. Supports ~ expansion. "
             "Skills from extra_paths are read-only (trigger matching + loading). "
-            "Local ~/.kiro/crew/skills/ takes precedence for duplicate names.",
+            "Local ~/.junction/skills/ takes precedence for duplicate names.",
         ),
     )
     project_skills_enabled: bool = field(
@@ -3841,7 +3872,7 @@ class TelemetryConfig:
     Default OFF: when disabled, metric call sites are cheap no-ops and nothing is
     written or exported (byte-identical to no telemetry), mirroring the
     ``mcp_gateway.enabled`` / ``skills.lazy_load`` opt-in convention. When
-    enabled, a local-first JSONL sink under ``~/.kiro/crew/metrics`` is activated;
+    enabled, a local-first JSONL sink under ``~/.junction/metrics`` is activated;
     remote / OTLP egress is a separate opt-in requiring ``junction[otlp]``.
     """
 
@@ -3851,14 +3882,14 @@ class TelemetryConfig:
             "Enabled",
             "Main switch for Junction metrics telemetry. Off by default: metric "
             "call sites are no-ops and nothing is written. When on, a local-first "
-            "JSONL sink under ~/.kiro/crew/metrics is enabled (no network egress).",
+            "JSONL sink under ~/.junction/metrics is enabled (no network egress).",
         ),
     )
     local_dir: str = field(
         default="",
         metadata=_meta(
             "Local Metrics Dir",
-            "Directory for local JSONL metric shards. Empty = ~/.kiro/crew/metrics. "
+            "Directory for local JSONL metric shards. Empty = ~/.junction/metrics. "
             "Supports ~ expansion.",
         ),
     )
@@ -3928,8 +3959,9 @@ class TelemetryConfig:
         default=_DEFAULT_BEACON_ENDPOINT,
         metadata=_meta(
             "Beacon Endpoint",
-            "HTTPS base URL that receives the anonymous heartbeat. EMPTY = no "
-            "beacon is ever sent, regardless of the toggle above. Must be "
+            "HTTPS base URL that receives the anonymous heartbeat. Empty by "
+            "default: Junction ships without a collector, so no beacon is ever "
+            "sent, regardless of the toggle above, until you set one. Must be "
             "https:// (a plaintext heartbeat would reveal which hosts run this "
             "software to any on-path observer); a non-https value is cleared.",
         ),
@@ -5039,7 +5071,7 @@ class McpGatewayConfig:
         metadata=_meta(
             "Response Spill Threshold",
             "Tool-call responses larger than this (bytes) have their text content "
-            "written to ~/.kiro/crew/mcp_spill/ and truncated inline to 16 KiB + "
+            "written to ~/.junction/mcp_spill/ and truncated inline to 16 KiB + "
             "a file path marker. Default 256 KiB. Set 0 to disable spilling. "
             "Env override: JUNCTION_MCP_SPILL_THRESHOLD.",
         ),
@@ -5279,7 +5311,7 @@ class InstancesConfig:
 
 @dataclass
 class HeartbeatConfig:
-    """Heartbeat background task queue (~/.kiro/crew/workspace/HEARTBEAT.md)."""
+    """Heartbeat background task queue (~/.junction/workspace/HEARTBEAT.md)."""
 
     default_deliver: str = field(
         default="slack",
@@ -6853,7 +6885,7 @@ class JunctionConfig:
         metadata=_meta(
             "Snapshot Directory",
             "Directory for junction snapshot output. "
-            "Defaults to ~/.kiro/crew/snapshots if empty.",
+            "Defaults to ~/.junction/snapshots if empty.",
         ),
     )
     registries: list[ExternalRegistryConfig] = field(
@@ -6892,7 +6924,7 @@ class JunctionConfig:
 
     @classmethod
     def load(cls) -> JunctionConfig:
-        """Load config from ~/.kiro/crew/config.json, falling back to defaults.
+        """Load config from ~/.junction/config.json, falling back to defaults.
 
         If ``config.local.json`` exists alongside ``config.json``, it is
         deep-merged on top. User overrides in the local file survive
@@ -7145,7 +7177,7 @@ class JunctionConfig:
                     # being ignored.
                     raw_model = entry.get("model", "")
                     # Same guard as model: a non-string triggers (e.g. `1`) must
-                    # not survive load — select_crew's roster calls .strip() on it.
+                    # not survive load — select_agent's roster calls .strip() on it.
                     raw_triggers = entry.get("triggers", "")
                     agents[name] = JunctionAgentConfig(
                         kiro_agent=entry.get("kiro_agent", ""),
@@ -8225,7 +8257,7 @@ class JunctionConfig:
         return d
 
     def save(self) -> None:
-        """Write current config to ~/.kiro/crew/config.json.
+        """Write current config to ~/.junction/config.json.
 
         Stamps a ``meta`` block with the current version and timestamp
         so we can tell which build last touched the file.
@@ -8310,7 +8342,7 @@ class JunctionConfig:
         return ""
 
     def load_credentials(self) -> dict[str, str]:
-        """Load credentials from ~/.kiro/crew/.env and environment variables.
+        """Load credentials from ~/.junction/.env and environment variables.
 
         .env format: KEY=VALUE (one per line, # comments, no quotes required).
         Environment variables override .env values.
@@ -8367,7 +8399,7 @@ class JunctionConfig:
         # Propagate credentials into the process environment so spawned children
         # (sandboxed agents, MCP servers, cron-fired subprocesses) inherit them
         # via Popen's default env=os.environ.copy() — even when their view of
-        # ~/.kiro/crew/.env is a bind-mounted empty file. setdefault() preserves
+        # ~/.junction/.env is a bind-mounted empty file. setdefault() preserves
         # any value the caller already set explicitly.
         #
         # EXCEPTION: when the Docker entrypoint has deliberately scrubbed
@@ -8440,14 +8472,14 @@ class JunctionConfig:
             cwd: str | None = None,
             extra_env: dict[str, str] | None = None,
             reasoning_effort_override: str | None = None,
-            crew_agent: str | None = None,
+            canonical_agent: str | None = None,
             **_kwargs: object,
         ) -> AcpProvider:
             wdir = Path(cwd) if cwd else _session_work_dir(session_key)
-            # Canonical crew identity for the session (keys per-agent watchdog
+            # Canonical agent identity for the session (keys per-agent watchdog
             # windows on the handle) — one shared resolution rule, see
-            # resolve_crew_identity.
-            crew_agent = resolve_crew_identity(self, agent, crew_agent)
+            # resolve_agent_identity.
+            canonical_agent = resolve_agent_identity(self, agent, canonical_agent)
             # Resolve the model, highest tier first:
             #   1. model_override — the caller's explicit pick. The dashboard
             #      passes the slot's own model, else the Junction agent's
@@ -8505,7 +8537,7 @@ class JunctionConfig:
                 work_dir=wdir,
                 model=m,
                 agent=agent,
-                crew_agent=crew_agent,
+                canonical_agent=canonical_agent,
                 sandbox_mode=sandbox,
                 session_key=session_key,
                 channel_id=channel_id,
@@ -8695,15 +8727,15 @@ def refresh_materialized_agents() -> None:
         _MATERIALIZED_AGENTS_READY = True
         _MATERIALIZED_REFRESH_APPLIED = my_ticket
     # An app install/upgrade that rewrote agent JSON just landed in the snapshot;
-    # drop the context builder's per-agent includeCrewContext cache so the next
-    # build re-reads the flag rather than serving a value cached before the write
-    # (otherwise a flipped flag heals only on gateway restart).
+    # drop the context builder's per-agent includeJunctionContext cache so the
+    # next build re-reads the flag rather than serving a value cached before the
+    # write (otherwise a flipped flag heals only on gateway restart).
     try:
-        from junction.context import invalidate_include_crew_context_cache
+        from junction.context import invalidate_include_junction_context_cache
 
-        invalidate_include_crew_context_cache()
+        invalidate_include_junction_context_cache()
     except Exception:  # noqa: BLE001 — best-effort; a stale flag is not fatal
-        logger.debug("Failed to invalidate includeCrewContext cache", exc_info=True)
+        logger.debug("Failed to invalidate includeJunctionContext cache", exc_info=True)
 
 
 def publish_materialized_agents(names: Iterable[str]) -> None:
@@ -8919,29 +8951,29 @@ def _project_declares_agent(agent_name: str, project_dir: str) -> bool:
         return False
 
 
-def resolve_crew_identity(
-    config: "JunctionConfig", agent: str | None, crew_agent: str | None
+def resolve_agent_identity(
+    config: "JunctionConfig", agent: str | None, canonical_agent: str | None
 ) -> str:
     """Canonical Junction identity (a ``config.agents`` key) for a session.
 
     One rule shared by every session-granting path (provider factory, warm-pool
     claim) so cold starts and claims can never disagree. An explicit
-    ``crew_agent`` wins verbatim — including "" ("no crew"), which is how the
-    dashboard, the one kiro-name-passing surface, opts out of the fallback.
+    ``canonical_agent`` wins verbatim — including "" ("no agent"), which is how
+    the dashboard, the one kiro-name-passing surface, opts out of the fallback.
     When absent, the surface convention documented on
-    :func:`_resolve_model_for_agent` applies: Slack threads, cron jobs and
-    spawned agents pass a CREW name as ``agent``, so crew-namespace membership
-    makes it canonical — a membership check on names the surface owns, not a
-    cross-namespace match.
+    :func:`junction.session._session_model` applies: Slack threads, cron jobs and
+    spawned agents pass a JUNCTION agent name (a ``config.agents`` key) as
+    ``agent``, so membership in that namespace makes it canonical — a
+    membership check on names the surface owns, not a cross-namespace match.
     """
-    if crew_agent is not None:
-        return crew_agent
+    if canonical_agent is not None:
+        return canonical_agent
     if agent and agent in config.agents:
         # DEBUG, not INFO: every Slack/cron session resolves here routinely.
-        # The line exists so a kiro-template name that collides with a crew
-        # key (which would silently inherit that crew's watchdog windows) is
+        # The line exists so a kiro-template name that collides with an agent
+        # key (which would silently inherit that agent's watchdog windows) is
         # diagnosable from logs.
-        logger.debug("crew_agent %r resolved by crew-namespace fallback", agent)
+        logger.debug("canonical_agent %r resolved by agent-namespace fallback", agent)
         return agent
     return ""
 

@@ -62,7 +62,7 @@ export function isLegacySlackSlotKey(slotKey?: string): boolean {
 /**
  * Whether a slot's `surface` (falling back to `mode`) is one `ChatPage`
  * actually renders — the unified chat view shows the default surface plus
- * `orchestrator` and `crew` slots together; everything else (e.g.
+ * `orchestrator` and `multitask` slots together; everything else (e.g.
  * `dashboard`) belongs to a different page entirely.
  *
  * Single source of truth for that set: `ChatPage.tsx`'s `filteredSlots` and
@@ -74,7 +74,7 @@ export function isLegacySlackSlotKey(slotKey?: string): boolean {
  */
 export function isChatPageSurface(surfaceOrMode?: string): boolean {
   const sk = surfaceOrMode ?? ''
-  return sk === '' || sk === 'orchestrator' || sk === 'crew'
+  return sk === '' || sk === 'orchestrator' || sk === 'multitask'
 }
 
 /**

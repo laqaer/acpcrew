@@ -1,239 +1,136 @@
 #!/usr/bin/env bash
-# Sign a Junction .app bundle via the enterprise signing service.
+# Developer ID sign a Junction .app bundle in place, inside-out, with the
+# hardened runtime and a secure timestamp: everything Apple notarization
+# requires of the code itself.
 #
 # Usage:
-#   bash packaging/signing/sign.sh <app-path> <channel> <version>
+#   bash packaging/signing/sign.sh <app-path>
 #
 # Example:
-#   bash packaging/signing/sign.sh website/electron/dist/mac-arm64/Junction.app nightly 0.2.0-nightly.20260708
+#   SIGNING_IDENTITY="Developer ID Application: Example Corp (ABCDE12345)" \
+#     bash packaging/signing/sign.sh "work/unsigned-app/Junction Nightly.app"
 #
-# Environment variables (required):
-#   AWS_SIGNING_BUCKET     — S3 bucket for signing artifacts
-#   AWS_SIGNER_ROLE_ARN    — Role ARN the signing service assumes to read/write S3
-#   CDSIGNER_API_ENDPOINT  — signing service API Gateway endpoint URL
+# Environment:
+#   SIGNING_IDENTITY  (required) the codesign identity: its SHA-1 hash or its
+#                     full "Developer ID Application: <Name> (<TEAMID>)" name
+#   SIGNING_KEYCHAIN  (optional) the keychain holding that identity. Pinning it
+#                     stops codesign from resolving a same-named identity in
+#                     some other keychain on the search list.
 #
-# The script:
-#   1. Packages the .app into a tar.gz with entitlements metadata
-#   2. Uploads to pre-signed/{channel}/{version}/ in S3
-#   3. Submits a signing request to the signing service API
-#   4. Polls until signing completes (the service signs only; notarization is a
-#      separate post-signing step via notarytool)
-#   5. Downloads the signed artifact to signed/ locally
-#   6. Verifies the signature
+# signing-plan.py derives the order from the bundle itself -- every nested
+# Mach-O, then every nested code bundle, deepest first -- and the app is signed
+# last, because codesign seals a bundle over the signatures of the code inside
+# it. Executables and app bundles get Entitlements.entitlements; loadable code
+# (dylibs, Python extensions, frameworks) gets none.
 #
 # Exit codes:
-#   0 — success, signed artifact at signed/{app-name}.zip
-#   1 — usage error or missing env
-#   2 — packaging failed
-#   3 — upload failed
-#   4 — signing request failed
-#   5 — signing timed out (>15 min)
-#   6 — verification failed
+#   0 -- success, the bundle at <app-path> is signed and verified
+#   1 -- usage error, missing environment, or not running on macOS
+#   2 -- the signing plan could not be derived
+#   4 -- codesign failed
+#   6 -- verification failed
 set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+ENTITLEMENTS="$SCRIPT_DIR/Entitlements.entitlements"
 
-# ── Args ────────────────────────────────────────────────────────────────────
+# A timestamp-server blip fails a single codesign call; the bundle holds
+# hundreds of nested objects, so one transient failure must not sink the run.
+CODESIGN_ATTEMPTS=3
+CODESIGN_RETRY_DELAY_SECONDS=5
+
 APP_PATH="${1:-}"
-CHANNEL="${2:-}"
-VERSION="${3:-}"
-
-if [ -z "$APP_PATH" ] || [ -z "$CHANNEL" ] || [ -z "$VERSION" ]; then
-  echo "Usage: $0 <app-path> <channel> <version>" >&2
+if [ -z "$APP_PATH" ]; then
+  echo "Usage: $0 <app-path>" >&2
   exit 1
 fi
-
 if [ ! -d "$APP_PATH" ]; then
   echo "ERROR: .app not found at $APP_PATH" >&2
   exit 1
 fi
-
-# ── Env ─────────────────────────────────────────────────────────────────────
-: "${AWS_SIGNING_BUCKET:?Set AWS_SIGNING_BUCKET}"
-: "${AWS_SIGNER_ROLE_ARN:?Set AWS_SIGNER_ROLE_ARN}"
-: "${CDSIGNER_API_ENDPOINT:?Set CDSIGNER_API_ENDPOINT}"
-
-APP_NAME="$(basename "$APP_PATH" .app)"
-# Space-free slug for bucket keys: the nightly bundle is "Junction Nightly.app"
-# and these keys flow into the CDSigner request JSON and URL paths.
-APP_SLUG="${APP_NAME// /-}"
-WORK_DIR="$(mktemp -d)"
-trap 'rm -rf "$WORK_DIR"' EXIT
-
-INPUT_KEY="pre-signed/${CHANNEL}/${VERSION}/${APP_SLUG}.tar.gz"
-OUTPUT_KEY="signed/${CHANNEL}/${VERSION}/${APP_SLUG}.zip"
+if [ "$(uname -s)" != "Darwin" ]; then
+  echo "ERROR: codesign is macOS-only; run this on a macOS host" >&2
+  exit 1
+fi
+: "${SIGNING_IDENTITY:?Set SIGNING_IDENTITY}"
 
 log() { printf '\033[1;36m▶ %s\033[0m\n' "$*"; }
 
-# ── 1. Package ──────────────────────────────────────────────────────────────
-log "Packaging ${APP_NAME}.app for signing..."
-
-PACKAGE_DIR="$WORK_DIR/package"
-mkdir -p "$PACKAGE_DIR/SIGNING_METADATA"
-
-# Copy the .app
-cp -R "$APP_PATH" "$PACKAGE_DIR/${APP_NAME}.app"
-
-# Strip pre-existing ad-hoc signatures from nested Mach-Os (macOS only --
-# codesign is unavailable elsewhere). electron-builder and the Python
-# runtime ship arm64 binaries with mandatory linker ad-hoc signatures;
-# stripping them first lets the signing service apply clean Developer ID signatures
-# to every explicitly-listed embedded binary.
-if [ "$(uname -s)" = "Darwin" ]; then
-  STRIPPED=0
-  while IFS= read -r MACHO; do
-    codesign --remove-signature "$MACHO" 2>/dev/null && STRIPPED=$((STRIPPED + 1)) || true
-  done < <(python3 "$SCRIPT_DIR/generate-manifest.py" --list-machos "$PACKAGE_DIR/${APP_NAME}.app")
-  log "Stripped ad-hoc signatures from ${STRIPPED} nested Mach-O binaries"
+CODESIGN_ARGS=(--force --options runtime --timestamp --sign "$SIGNING_IDENTITY")
+if [ -n "${SIGNING_KEYCHAIN:-}" ]; then
+  CODESIGN_ARGS+=(--keychain "$SIGNING_KEYCHAIN")
 fi
 
-# Copy entitlements
-cp "$SCRIPT_DIR/Entitlements.entitlements" "$PACKAGE_DIR/SIGNING_METADATA/Entitlements.entitlements"
-
-# Create tar.gz. On macOS, suppress AppleDouble (._*) entries and
-# xattr/ACL/flag metadata -- bsdtar embeds them by default and the signing
-# service's artifact security scan rejects archives containing them. GNU tar on the
-# Linux CI runners never emits this metadata (flags kept Darwin-only since
-# GNU tar does not know --no-mac-metadata).
-TAR_PATH="$WORK_DIR/${APP_NAME}.tar.gz"
-TAR_FLAGS=()
-if [ "$(uname -s)" = "Darwin" ]; then
-  TAR_FLAGS=(--no-xattrs --no-mac-metadata --no-acls --no-fflags)
-fi
-( cd "$PACKAGE_DIR" && COPYFILE_DISABLE=1 tar "${TAR_FLAGS[@]+"${TAR_FLAGS[@]}"}" -czf "$TAR_PATH" "${APP_NAME}.app" SIGNING_METADATA/ )
-
-TAR_SIZE=$(du -h "$TAR_PATH" | cut -f1)
-log "Package created: ${TAR_SIZE}"
-
-# ── 2. Upload ───────────────────────────────────────────────────────────────
-log "Uploading to s3://${AWS_SIGNING_BUCKET}/${INPUT_KEY}..."
-
-aws s3 cp "$TAR_PATH" "s3://${AWS_SIGNING_BUCKET}/${INPUT_KEY}" --quiet || {
-  echo "ERROR: S3 upload failed" >&2
-  exit 3
+# codesign_one <path> [extra codesign args...]
+# Output is kept quiet on success (it is one "replacing existing signature"
+# line per object) and printed in full on the final failed attempt.
+codesign_one() {
+  local target="$1"
+  shift
+  local attempt out
+  for attempt in $(seq 1 "$CODESIGN_ATTEMPTS"); do
+    if out=$(codesign "${CODESIGN_ARGS[@]}" "$@" "$target" 2>&1); then
+      return 0
+    fi
+    if [ "$attempt" -lt "$CODESIGN_ATTEMPTS" ]; then
+      echo "  codesign attempt ${attempt}/${CODESIGN_ATTEMPTS} failed for ${target}; retrying" >&2
+      sleep "$CODESIGN_RETRY_DELAY_SECONDS"
+    fi
+  done
+  echo "$out" >&2
+  return 1
 }
 
-# ── 3. Submit signing request ───────────────────────────────────────────────
-log "Submitting signing request..."
+WORK_DIR="$(mktemp -d)"
+trap 'rm -rf "$WORK_DIR"' EXIT
+PLAN="$WORK_DIR/plan.tsv"
 
-# Build the manifest with full nested Mach-O coverage. Notarization requires
-# every nested binary (embedded Python backend, Squirrel ShipIt) to be
-# Developer-ID signed; generate-manifest.py enumerates them from the actual
-# .app so the list never goes stale as backend dependencies change.
-MANIFEST=$(SIGNER_ACCESS_ROLE_ARN="${AWS_SIGNER_ROLE_ARN}" \
-  SIGNING_BUCKET="${AWS_SIGNING_BUCKET}" \
-  INPUT_KEY="${INPUT_KEY}" \
-  OUTPUT_KEY="${OUTPUT_KEY}" \
-  python3 "$SCRIPT_DIR/generate-manifest.py" \
-    "$SCRIPT_DIR/manifest-template.json" \
-    "$PACKAGE_DIR/${APP_NAME}.app") || {
-  echo "ERROR: manifest generation failed" >&2
-  exit 4
+# ── 1. Plan ─────────────────────────────────────────────────────────────────
+log "Planning the signing order for $(basename "$APP_PATH")..."
+python3 "$SCRIPT_DIR/signing-plan.py" "$APP_PATH" > "$PLAN" || {
+  echo "ERROR: could not derive the signing plan" >&2
+  exit 2
 }
 
-# Signing service ad-hoc signing API v2: POST /v2/sign-tasks. awscurl SigV4-signs
-# from the AWS credential chain (env vars, incl. AWS_SESSION_TOKEN) -- no
-# credentials on the command line. The full response body is surfaced on
-# failure so auth/manifest errors stay diagnosable.
-if ! command -v awscurl >/dev/null 2>&1; then
-  echo "ERROR: awscurl not found (required for SigV4 signing)" >&2
-  exit 1
-fi
-
-RESPONSE=$(awscurl --service signer-builder-tools --region us-west-2 \
-  -X POST -H "Content-Type: application/json" -d "$MANIFEST" \
-  "${CDSIGNER_API_ENDPOINT}/v2/sign-tasks" 2>&1) || {
-  echo "ERROR: sign-task submission failed" >&2
-  echo "$RESPONSE" >&2
-  exit 4
-}
-
-SIGN_TASK_ID=$(echo "$RESPONSE" | python3 -c "import json,sys; print(json.load(sys.stdin)['signTaskId'])" 2>/dev/null) || {
-  echo "ERROR: submission returned no signTaskId:" >&2
-  echo "$RESPONSE" >&2
-  exit 4
-}
-
-log "Sign task submitted: ${SIGN_TASK_ID}"
-
-# ── 4. Poll for completion ──────────────────────────────────────────────────
-log "Polling for completion (timeout: 15 min)..."
-
-MAX_WAIT=900  # 15 minutes
-POLL_INTERVAL=30
-ELAPSED=0
-SIGNED_OK=0
-
-while [ "$ELAPSED" -lt "$MAX_WAIT" ]; do
-  sleep "$POLL_INTERVAL"
-  ELAPSED=$((ELAPSED + POLL_INTERVAL))
-
-  STATUS_RESPONSE=$(awscurl --service signer-builder-tools --region us-west-2 \
-    -X GET "${CDSIGNER_API_ENDPOINT}/v2/sign-tasks/${SIGN_TASK_ID}" \
-    2>/dev/null) || continue
-
-  STATUS=$(echo "$STATUS_RESPONSE" | python3 -c "import json,sys; print(json.load(sys.stdin).get('status',''))" 2>/dev/null)
-
-  case "$STATUS" in
-    success)
-      log "Signing completed! (${ELAPSED}s)"
-      SIGNED_OK=1
-      break
-      ;;
-    failure)
-      echo "ERROR: Signing failed" >&2
-      echo "$STATUS_RESPONSE" >&2
-      exit 4
-      ;;
-    created|processing|inProgress)
-      printf "  [%ds] status: %s\n" "$ELAPSED" "$STATUS"
-      ;;
+# ── 2. Nested code, inside-out ──────────────────────────────────────────────
+SIGNED=0
+while IFS=$'\t' read -r KIND REL; do
+  [ -n "$REL" ] || continue
+  case "$KIND" in
+    exec|app) EXTRA=(--entitlements "$ENTITLEMENTS") ;;
+    code|bundle) EXTRA=() ;;
     *)
-      printf "  [%ds] status: %s\n" "$ELAPSED" "${STATUS:-<none>}"
+      echo "ERROR: unknown signing-plan entry kind '$KIND' for $REL" >&2
+      exit 2
       ;;
   esac
-done
+  codesign_one "$APP_PATH/$REL" "${EXTRA[@]+"${EXTRA[@]}"}" || {
+    echo "ERROR: codesign failed on $REL" >&2
+    exit 4
+  }
+  SIGNED=$((SIGNED + 1))
+done < "$PLAN"
+log "Signed ${SIGNED} nested code objects"
 
-# Gate on the explicit success flag, not elapsed time: success arriving
-# exactly on the final poll tick must not be misread as a timeout.
-if [ "$SIGNED_OK" -ne 1 ]; then
-  echo "ERROR: Signing timed out after ${MAX_WAIT}s (sign task: ${SIGN_TASK_ID})" >&2
-  exit 5
-fi
-
-# ── 5. Download signed artifact ─────────────────────────────────────────────
-log "Downloading signed artifact..."
-
-SIGNED_DIR="signed"
-mkdir -p "$SIGNED_DIR"
-SIGNED_PATH="${SIGNED_DIR}/${APP_NAME}.zip"
-
-aws s3 cp "s3://${AWS_SIGNING_BUCKET}/${OUTPUT_KEY}" "$SIGNED_PATH" --quiet || {
-  echo "ERROR: Failed to download signed artifact" >&2
-  exit 3
+# ── 3. The app itself ───────────────────────────────────────────────────────
+codesign_one "$APP_PATH" --entitlements "$ENTITLEMENTS" || {
+  echo "ERROR: codesign failed on the app bundle" >&2
+  exit 4
 }
 
-log "Signed artifact: ${SIGNED_PATH} ($(du -h "$SIGNED_PATH" | cut -f1))"
-
-# ── 6. Verify (macOS only) ──────────────────────────────────────────────────
-if [ "$(uname -s)" = "Darwin" ]; then
-  log "Verifying signature..."
-  VERIFY_DIR="$WORK_DIR/verify"
-  mkdir -p "$VERIFY_DIR"
-  SIGNED_PATH_ABS="$(cd "$(dirname "$SIGNED_PATH")" && pwd)/$(basename "$SIGNED_PATH")"
-  ( cd "$VERIFY_DIR" && unzip -q "$SIGNED_PATH_ABS" )
-
-  VERIFY_APP=$(find "$VERIFY_DIR" -name "*.app" -maxdepth 1 | head -1)
-  if [ -n "$VERIFY_APP" ]; then
-    codesign --verify --deep --strict "$VERIFY_APP" && log "codesign: VALID" || {
-      echo "WARNING: codesign verification failed" >&2
-      exit 6
-    }
-    spctl --assess --type execute "$VERIFY_APP" && log "spctl: ACCEPTED" || {
-      echo "WARNING: spctl assessment failed (notarization may not be stapled)" >&2
-    }
-  fi
+# ── 4. Verify ───────────────────────────────────────────────────────────────
+# --deep --strict walks every nested signature, so an object the plan missed
+# fails here rather than as an Invalid notarization later. Authority lines are
+# only emitted at -dvvv verbosity; plain -dv omits them entirely.
+if ! codesign --verify --deep --strict --verbose=2 "$APP_PATH"; then
+  echo "ERROR: signed app failed codesign verification" >&2
+  exit 6
+fi
+AUTHORITY=$(codesign -dvvv "$APP_PATH" 2>&1 | grep "^Authority=" | head -1 || true)
+log "App signature: ${AUTHORITY:-<none>}"
+if ! echo "$AUTHORITY" | grep -q "Developer ID Application"; then
+  echo "ERROR: the app does not carry a Developer ID Application signature" >&2
+  exit 6
 fi
 
-log "Done. Signed artifact: ${SIGNED_PATH}"
-echo "$SIGNED_PATH"
+log "Done. Signed in place: ${APP_PATH}"

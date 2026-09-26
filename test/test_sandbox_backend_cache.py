@@ -685,7 +685,7 @@ class TestNoBackendGuidanceNamesTheRightRemedy:
         msg = sb._no_backend_guidance()
 
         assert "junction sandbox install-profile" in msg
-        assert "while Kiro Crew is open" not in msg
+        assert "while Junction is open" not in msg
 
     def test_an_unaffected_host_keeps_the_original_text(self, monkeypatch):
         """macOS, Debian, and a relaxed sysctl must be untouched by this change."""

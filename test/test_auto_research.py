@@ -3785,13 +3785,13 @@ class TestResearchBackendInfra:
 
     def test_nudge_dir_tracks_campaign_dir(self):
         # The per-cycle nudge must point the agent at the real campaign dir
-        # (resolves via config_dir()/JUNCTION_HOME), NOT a hardcoded ~/.kirocrew
+        # (resolves via config_dir()/JUNCTION_HOME), NOT a hardcoded ~/.junction
         # literal — otherwise a dev gateway is aimed at the prod home.
         from junction.apps.builtins.auto_research.handlers import (
             _RESEARCH_NUDGE,
             _campaign_dir,
         )
-        assert "~/.kirocrew" not in _RESEARCH_NUDGE
+        assert "~/.junction" not in _RESEARCH_NUDGE
         cid = "abc12345"
         msg = _RESEARCH_NUDGE.format(cid=cid, dir=_campaign_dir(cid))
         assert str(_campaign_dir(cid)) in msg

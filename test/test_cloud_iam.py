@@ -656,9 +656,9 @@ class TestAgentDenyListForCloudVerbs:
         # string, so it must be blocked in its own right or the agent bypasses
         # the raw-CLI teardown block.
         for cmd in (
-            "junction cloud destroy --yes --tag kc-1",
+            "junction cloud destroy --yes --tag jn-1",
             "junction cloud stop",
-            "kiro-crew cloud launch",
+            "junction cloud launch",
             "junction cloud connect",  # mints/prints a dashboard token
             "junction cloud tunnel",
             "junction cloud login",

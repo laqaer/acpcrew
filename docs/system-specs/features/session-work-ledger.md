@@ -20,7 +20,7 @@ for loop state.
 
 The pattern already exists in this repo — three times, hand-rolled per app:
 
-- Issue Radar's crew ledger (`apps/builtins/issue_radar/backend/crew_store.py`):
+- Issue Radar's steward ledger (`apps/builtins/issue_radar/backend/steward_store.py`):
   work items with `phase` / `next` / `tried[]`, an append-only content-addressed
   event log, and the rule that a phase never moves without a logged event.
 - Ops Mission Control's knowledge ledger
@@ -102,7 +102,7 @@ read; a malformed or oversized file is treated as absent, never fatal.
 | `events` | list | bounded tail of `{ts, kind, text}` progress lines, oldest aged out |
 | `created_at` / `last_progress_at` / `finished_at` | str | ISO timestamps |
 
-### Write discipline (carried over from the crew ledger)
+### Write discipline (carried over from the steward ledger)
 
 - A `phase` change **requires** an event (`event` + a recognized `event_kind`)
   in the same call. Because state and event land in the same atomic write,
@@ -128,7 +128,7 @@ Registered as a core domain module (`mcp_tools/ledger.py`, listed in
 handlers reach the gateway over the loopback HTTP API with the session-resolved
 identity header. There is no slot-key argument — the backend resolves the
 calling session and refuses requests that carry no session identity, exactly
-like the Issue Radar crew routes (raw HTTP gets 403).
+like the Issue Radar steward routes (raw HTTP gets 403).
 
 - `session_ledger_read` — no arguments. Returns the state record plus the tail
   of the event log. The tool description tells the agent this is its own

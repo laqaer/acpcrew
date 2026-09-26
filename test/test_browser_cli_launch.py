@@ -206,11 +206,10 @@ def test_the_launch_config_is_write_protected_from_the_agent(
     assert security.is_sensitive_write_path(path) is True
     # 2. the shell gate, across the spellings it does cover
     for command in (
-        "echo x > ~/.kiro/crew/playwright-cli-config.json",
-        "echo x > $HOME/.kiro/crew/playwright-cli-config.json",
-        "echo x > ~/.kirocrew/playwright-cli-config.json",  # legacy data home
-        "tee ~/.kiro/crew/playwright-cli-config.json",
-        "cp /tmp/evil.json ~/.kiro/crew/playwright-cli-config.json",
+        "echo x > ~/.junction/playwright-cli-config.json",
+        "echo x > $HOME/.junction/playwright-cli-config.json",
+        "tee ~/.junction/playwright-cli-config.json",
+        "cp /tmp/evil.json ~/.junction/playwright-cli-config.json",
     ):
         assert security.is_sensitive_bash_command(command) is not None, command
     # Readable through Python: the CLI opens it on every invocation.
@@ -235,11 +234,10 @@ def test_launch_config_shell_protection_matches_an_existing_protected_leaf() -> 
     ours = "playwright-cli-config.json"
     existing = "apps/ops-mission-control/data/rotation.yaml"
     for form in (
-        "echo x > ~/.kiro/crew/{leaf}",
-        "echo x > $HOME/.kiro/crew/{leaf}",
-        "echo x > ~/.kirocrew/{leaf}",
-        "tee ~/.kiro/crew/{leaf}",
-        "cd ~/.kiro/crew && printf x > {leaf}",
+        "echo x > ~/.junction/{leaf}",
+        "echo x > $HOME/.junction/{leaf}",
+        "tee ~/.junction/{leaf}",
+        "cd ~/.junction && printf x > {leaf}",
     ):
         assert (
             security.is_sensitive_bash_command(form.format(leaf=ours)) is not None

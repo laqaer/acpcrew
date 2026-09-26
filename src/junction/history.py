@@ -1,6 +1,6 @@
 """Persistent conversation history — JSONL per session + LLM consolidation.
 
-Session files: ~/.kiro/crew/sessions/{safe_key}.jsonl
+Session files: ~/.junction/sessions/{safe_key}.jsonl
 Each entry tracks provenance (source_thread, source_user) for citation.
 Files auto-rotate at 512KB, keeping last 200 lines.
 """
@@ -5633,11 +5633,9 @@ _SENSITIVE_TOOL_PATTERNS: tuple[str, ...] = (
     ".pypirc",
     ".netrc",
     ".git-credentials",
-    # Junction's own credential file. The data home moved to ~/.kiro/crew, so the
-    # LIVE secret is ~/.kiro/crew/.env; cover the pre-move legacy home too
-    # (substring match, so bare "/.env"-suffixed forms).
-    ".kiro/crew/.env",
-    ".kirocrew/.env",
+    # Junction's own credential file under the default data home (substring
+    # match, so bare "/.env"-suffixed forms).
+    ".junction/.env",
     "169.254.169.254",  # IMDS
 )
 

@@ -94,7 +94,7 @@ def home(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> Path:
     """Redirect ``JUNCTION_HOME`` so the keystone lands in a tmp dir.
 
     Mandatory, not hygiene: without it a developer's real
-    ``~/.kiro/crew/computer_use.json`` would decide whether these tests see the
+    ``~/.junction/computer_use.json`` would decide whether these tests see the
     feature as enabled.
     """
     monkeypatch.setenv("JUNCTION_HOME", str(tmp_path))
@@ -139,7 +139,7 @@ def ceiling(home: Path, monkeypatch: pytest.MonkeyPatch):
     context and swap in a parsed ceiling, so the dispatcher's calls into
     ``gate.apply_observation_ceiling`` / ``permitted_observation_channels`` see a
     real policy. ``_PROFILES_DIR`` is pinned under the tmp home so a developer's own
-    ``~/.kiro/crew/profiles`` cannot decide the outcome, and the profile store cache
+    ``~/.junction/profiles`` cannot decide the outcome, and the profile store cache
     is dropped on both sides.
     """
     import dataclasses
@@ -1819,7 +1819,7 @@ class TestDragTool:
         ours = AppRef(
             name="Junction",
             pid=4109,
-            bundle_id="dev.kiro.crew",
+            bundle_id="dev.junction.desktop",
             window_id=8810,
             window_title="Settings",
         )

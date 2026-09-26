@@ -14,7 +14,7 @@ superseded-by: []
 ---
 # RFC: Orchestrator Chat Sessions — an engineered pipeline with a decision-only agent
 
-Status: partial — v5 was accepted as design of record in PR #1280 and Crew Mode
+Status: partial — v5 was accepted as design of record in PR #1280 and Multitask Mode
 shipped in PR #1295. The implementation has since received store and routing fixes,
 but it deliberately diverges from this proposal: it has no snapshot-generation CAS,
 the decision action set omits `release`, and completed results are delivered
@@ -23,7 +23,8 @@ routing-quality probe was zero-core by design and left no repo artifact, so it
 cannot be confirmed either way.
 Disambiguation: main's existing `orchestrator` symbols (`channel.py:121 is_orchestrator`,
 `config/prompt-orchestrator.md`) are a **pre-existing channel-level feature** that predates this RFC,
-and "Crews" (agent templates, #1331/#1335) is not "Crew Mode". Neither counts as implementation.
+and the agent roster (agent templates, #1331/#1335) is a separate feature from Multitask Mode.
+Neither counts as implementation.
 Councils: round 1 (v1 draft, 4-member cross-vendor, REVISE — every structural
 BLOCKER traced to simulating engineering in a prompt) → v4 architecture rewrite
 (heavy engineering, light agent) → round 2 (v4, same roster, unanimous REVISE:

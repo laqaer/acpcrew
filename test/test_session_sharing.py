@@ -80,7 +80,7 @@ def _mock_sessions(*, sharing_eligible: bool = True) -> MagicMock:
     sessions.record_success = MagicMock()
     sessions.release = MagicMock()
     sessions.reset = AsyncMock()
-    sessions._pool_cwd = "/home/user/.kirocrew/workspace"
+    sessions._pool_cwd = "/home/user/.junction/workspace"
 
     # Legacy get_or_create path
     legacy_provider = AsyncMock()

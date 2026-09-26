@@ -9,7 +9,7 @@ gets the same treatment.
 
 The mechanics that make it un-flippable by the agent:
 
-* the leaf is on ``security._CREW_SECRET_LEAVES``, so ``is_sensitive_path``
+* the leaf is on ``security._DATA_HOME_SECRET_LEAVES``, so ``is_sensitive_path``
   blocks agent reads AND writes on the tool path, and
   ``is_sensitive_bash_command`` blocks the shell forms (``cat``, ``>``,
   ``tar -x`` into the trust root);

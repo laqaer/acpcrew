@@ -43,8 +43,8 @@ logger = logging.getLogger(__name__)
 SESSION_MAP_FILENAME = "session_map.json"
 
 # Resolved per call, never captured at import: an import-time binding freezes
-# the data home and defeats pod isolation, the lazy legacy-home migration and
-# test isolation. The name below is an opt-in override (None = live home) so
+# the data home and defeats pod isolation and test
+# isolation. The name below is an opt-in override (None = live home) so
 # existing monkeypatch call sites keep working. See config.md "Data Home" and
 # issue #874; dashboard/handlers/usage.py is the reference implementation.
 _KIRO_SESSIONS_DIR: Path | None = None
@@ -203,7 +203,7 @@ class ConversationOwnershipConflict(RuntimeError):
 class SessionMap:
     """Persistent mapping of session_key → kiro-cli session ID.
 
-    Stored as ``~/.kiro/crew/session_map.json``. Atomic write via tmp+rename.
+    Stored as ``~/.junction/session_map.json``. Atomic write via tmp+rename.
     Only used for long-lived conversational sessions (channel DMs, dashboard).
     Stateless sessions (cron, subagent, taskrunner) are excluded.
 

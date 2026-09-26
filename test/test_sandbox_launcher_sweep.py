@@ -1,7 +1,7 @@
 """Regression tests for namespace launcher file placement and cleanup sweep.
 
 Verifies:
-  (a) namespace_argv() writes the launcher to ~/.kirocrew/run/ with PID in name
+  (a) namespace_argv() writes the launcher to ~/.junction/run/ with PID in name
   (b) cleanup_stale_sandbox_profiles() removes dead-PID files (.py and .sb)
   (c) cleanup_stale_sandbox_profiles() removes old-mtime live-PID files (age-based)
   (d) cleanup_stale_sandbox_profiles() sweeps legacy /tmp files (age threshold only)
@@ -30,18 +30,17 @@ from junction.sandbox import (
 
 @pytest.fixture()
 def fake_home(tmp_path: Path, monkeypatch: pytest.MonkeyPatch):
-    """Redirect HOME so the sandbox run dir resolves under ``tmp_path/.kirocrew``.
+    """Redirect HOME so the sandbox run dir resolves under ``tmp_path/.junction``.
 
-    The run dir moved from ``os.path.expanduser("~")/".kirocrew"/"run"`` to
-    ``config_dir()/run`` (data home now ``~/.kiro/crew``). ``config_dir()`` reads
-    ``JUNCTION_HOME`` (pinned to a different tmp dir by conftest), so also
-    redirect ``sandbox.config_dir`` to ``tmp_path/".kirocrew"`` — keeping the
-    ``.kirocrew/run`` layout these tests assert. ``expanduser``/``HOME`` are still
+    The run dir is ``config_dir()/run``. ``config_dir()`` reads ``JUNCTION_HOME``
+    (pinned to a different tmp dir by conftest), so also redirect
+    ``sandbox.config_dir`` to ``tmp_path/".junction"`` — keeping the
+    ``.junction/run`` layout these tests assert. ``expanduser``/``HOME`` are still
     patched for the non-run-dir ``~`` lookups in this module.
     """
     monkeypatch.setenv("HOME", str(tmp_path))
     monkeypatch.setattr("os.path.expanduser", lambda p: str(tmp_path) + p[1:] if p.startswith("~") else p)
-    monkeypatch.setattr("junction.sandbox.config_dir", lambda: tmp_path / ".kirocrew")
+    monkeypatch.setattr("junction.sandbox.config_dir", lambda: tmp_path / ".junction")
     return tmp_path
 
 
@@ -60,11 +59,11 @@ def _isolated_legacy_dir(tmp_path: Path, monkeypatch: pytest.MonkeyPatch):
 
 
 class TestNamespaceArgvPlacement:
-    """namespace_argv() launcher lands in ~/.kirocrew/run/ with PID."""
+    """namespace_argv() launcher lands in ~/.junction/run/ with PID."""
 
     @patch("junction.sandbox.detect_backend", return_value="namespace")
     def test_launcher_in_run_dir(self, _mock_detect, fake_home: Path):
-        run_dir = fake_home / ".kirocrew" / "run"
+        run_dir = fake_home / ".junction" / "run"
         result = namespace_argv(["kiro-cli", "--version"])
 
         # Result should be [python, launcher_path, *real_argv]
@@ -98,7 +97,7 @@ class TestRunDirMode:
 
     def test_run_dir_mode_enforced_on_existing(self, fake_home: Path):
         """Even if the dir already exists with wrong perms, chmod fixes it."""
-        run_dir = fake_home / ".kirocrew" / "run"
+        run_dir = fake_home / ".junction" / "run"
         run_dir.mkdir(parents=True, mode=0o755)
         result = _ensure_run_dir()
         stat = os.stat(result)
@@ -107,7 +106,7 @@ class TestRunDirMode:
     def test_makedirs_failure_falls_back(self, fake_home: Path, monkeypatch: pytest.MonkeyPatch):
         """If makedirs raises, fall back to system tmpdir."""
         # Create a regular file at the expected dir path to cause makedirs failure
-        junction_dir = fake_home / ".kirocrew"
+        junction_dir = fake_home / ".junction"
         junction_dir.mkdir(parents=True, exist_ok=True)
         # Put a regular file where "run" dir should be
         (junction_dir / "run").write_text("blocker")
@@ -121,7 +120,7 @@ class TestCleanupSweep:
     """cleanup_stale_sandbox_profiles() sweeps both .py and .sb dead-PID files."""
 
     def test_removes_dead_pid_py(self, fake_home: Path):
-        run_dir = fake_home / ".kirocrew" / "run"
+        run_dir = fake_home / ".junction" / "run"
         run_dir.mkdir(parents=True)
         # PID 99999999 is almost certainly dead
         dead_file = run_dir / "junction_sandbox_99999999_abc123.py"
@@ -132,7 +131,7 @@ class TestCleanupSweep:
         assert removed == 1
 
     def test_removes_dead_pid_sb(self, fake_home: Path):
-        run_dir = fake_home / ".kirocrew" / "run"
+        run_dir = fake_home / ".junction" / "run"
         run_dir.mkdir(parents=True)
         dead_file = run_dir / "junction_sandbox_99999999_xyz789.sb"
         dead_file.write_text("(version 1)")
@@ -143,7 +142,7 @@ class TestCleanupSweep:
 
     def test_removes_old_mtime_live_pid(self, fake_home: Path):
         """Age-based reaping: old file removed even if tagged PID is alive."""
-        run_dir = fake_home / ".kirocrew" / "run"
+        run_dir = fake_home / ".junction" / "run"
         run_dir.mkdir(parents=True)
         # Use our own PID — definitely alive
         live_file = run_dir / f"junction_sandbox_{os.getpid()}_old123.py"
@@ -158,7 +157,7 @@ class TestCleanupSweep:
 
     def test_keeps_fresh_live_pid(self, fake_home: Path):
         """Fresh file with live PID is kept."""
-        run_dir = fake_home / ".kirocrew" / "run"
+        run_dir = fake_home / ".junction" / "run"
         run_dir.mkdir(parents=True)
         live_file = run_dir / f"junction_sandbox_{os.getpid()}_fresh123.py"
         live_file.write_text("# fresh launcher")
@@ -168,7 +167,7 @@ class TestCleanupSweep:
         assert removed == 0
 
     def test_keeps_live_pid_sb(self, fake_home: Path):
-        run_dir = fake_home / ".kirocrew" / "run"
+        run_dir = fake_home / ".junction" / "run"
         run_dir.mkdir(parents=True)
         live_file = run_dir / f"junction_sandbox_{os.getpid()}_live456.sb"
         live_file.write_text("(version 1)")
@@ -179,7 +178,7 @@ class TestCleanupSweep:
 
     def test_overflow_error_resilience(self, fake_home: Path):
         """Absurdly long digit string doesn't crash the sweep."""
-        run_dir = fake_home / ".kirocrew" / "run"
+        run_dir = fake_home / ".junction" / "run"
         run_dir.mkdir(parents=True)
         # PID that exceeds sys.maxsize causing OverflowError in os.kill
         huge_pid = "9" * 30  # 30 digits > sys.maxsize on 64-bit
@@ -226,7 +225,7 @@ class TestCleanupSweep:
         assert removed == 0
 
     def test_ignores_nonconforming_filenames(self, fake_home: Path):
-        run_dir = fake_home / ".kirocrew" / "run"
+        run_dir = fake_home / ".junction" / "run"
         run_dir.mkdir(parents=True)
         # Wrong prefix
         f1 = run_dir / "other_file_99999999_abc.py"
@@ -249,6 +248,6 @@ class TestCleanupSweep:
         assert removed == 0
 
     def test_no_run_dir_is_noop(self, fake_home: Path):
-        """If ~/.kirocrew/run/ doesn't exist, no crash."""
+        """If ~/.junction/run/ doesn't exist, no crash."""
         removed = cleanup_stale_sandbox_profiles()  # should not raise
         assert removed == 0

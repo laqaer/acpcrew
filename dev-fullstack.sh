@@ -1,6 +1,6 @@
 #!/bin/bash
 # Start the full Junction dev stack in ONE terminal:
-#   1. Backend gateway from live source (dev-backend.sh, port 6777, .kirocrew-dev home)
+#   1. Backend gateway from live source (dev-backend.sh, port 6777, .junction-dev home)
 #   2. Vite dev server (hot reload) proxying to it
 #   3. Mint a dashboard token and print the ready-to-open Vite URL
 #
@@ -42,10 +42,10 @@ if curl -fsS -o /dev/null --max-time 2 "http://127.0.0.1:$GATEWAY_PORT/" 2>/dev/
 fi
 # One EFFECTIVE data home for the whole stack. dev-backend.sh honors a
 # caller-provided JUNCTION_HOME, so the token mint below must use the same
-# home the backend booted with — hardcoding .kirocrew-dev for one of them
+# home the backend booted with — hardcoding .junction-dev for one of them
 # yields a token signed with a different secret (auth silently fails).
 # Same default + relative-path handling as dev-backend.sh.
-JUNCTION_HOME="${JUNCTION_HOME:-.kirocrew-dev}"
+JUNCTION_HOME="${JUNCTION_HOME:-.junction-dev}"
 case "$JUNCTION_HOME" in
     /*) ;;
     *) JUNCTION_HOME="$SCRIPT_DIR/$JUNCTION_HOME" ;;
@@ -84,7 +84,7 @@ cleanup() {
 }
 trap cleanup INT TERM EXIT
 
-echo "[dev] starting backend (port $GATEWAY_PORT, home .kirocrew-dev) -> $BACKEND_LOG"
+echo "[dev] starting backend (port $GATEWAY_PORT, home .junction-dev) -> $BACKEND_LOG"
 # --no-open: the gateway would otherwise auto-open its OWN url (:6777) — the
 # bundled-snapshot surface. The live surface is the Vite url printed below.
 #

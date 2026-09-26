@@ -260,12 +260,12 @@ async function main() {
   const { srv, base } = await serveDist()
   const browser = await chromium.launch()
 
-  // Boot fixtures, with branding corrected to the backend's own two-word default.
-  // boot-api.mjs ships `bot_name: 'Kiro'`, and a single-word name silently drops
-  // the accented "CREW" from the nav brand and renders a "Message Kiro…"
-  // composer — wrong chrome in every frame of the recording.
+  // Boot fixtures, with branding corrected to the backend's own default name.
+  // boot-api.mjs ships `bot_name: 'Kiro'`, which puts that name in the nav brand
+  // and renders a "Message Kiro…" composer — wrong chrome in every frame of the
+  // recording.
   const fixedApi = makeFixedApi(PROJECT)
-  fixedApi.set('/api/dashboard/branding', { bot_name: 'Kiro Crew', avatar: '/logo.png' })
+  fixedApi.set('/api/dashboard/branding', { bot_name: 'Junction', avatar: '/logo.png' })
 
   /**
    * Mount one scene: stub the API around `waitState`, boot the SPA, then push the

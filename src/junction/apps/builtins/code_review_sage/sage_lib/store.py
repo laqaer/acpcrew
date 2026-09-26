@@ -3,7 +3,7 @@
 
 This module is the deterministic, token-free backbone of the app. It owns the
 on-disk layout under ``<config_dir>/apps/code-review-sage/data/`` (i.e.
-``~/.kiro/crew/apps/code-review-sage/data/`` by default) and is safe to run on
+``~/.junction/apps/code-review-sage/data/`` by default) and is safe to run on
 every action (idempotent self-heal).
 
 Layout:
@@ -33,7 +33,7 @@ from pathlib import Path
 
 # Canonical Junction data-root accessor. Imported at module top but kept guarded
 # so the store stays importable standalone (outside the Junction runtime) — the
-# fallback mirrors ``config_dir()``'s default of ``~/.kiro/crew``, honoring
+# fallback mirrors ``config_dir()``'s default of ``~/.junction``, honoring
 # ``JUNCTION_HOME`` when it is set.
 try:
     from junction.config.paths import config_dir as _config_dir
@@ -50,18 +50,18 @@ except ImportError:  # pragma: no cover - standalone fallback
 APP_NAME = "code-review-sage"
 
 
-def crew_home() -> Path:
+def data_home() -> Path:
     """Resolve the active Junction data root.
 
     Delegates to ``junction.config.paths.config_dir()`` when the runtime is
-    importable (so it follows the ``~/.kiro/crew`` root and honors
-    ``JUNCTION_HOME`` uniformly, including the one-time legacy-home migration).
-    Falls back to a standalone resolution when run outside the Junction package.
+    importable (so it follows the ``~/.junction`` root and honors
+    ``JUNCTION_HOME`` uniformly). Falls back to a standalone resolution when run
+    outside the Junction package.
     """
     if _config_dir is not None:
         return _config_dir()
     home = os.environ.get("JUNCTION_HOME")
-    return Path(home) if home else Path.home() / ".kiro" / "crew"
+    return Path(home) if home else Path.home() / ".junction"
 
 
 # Sensitive-path globs feed the deterministic blast-radius extractor. Kept here
@@ -125,10 +125,10 @@ DEFAULT_CONFIG: dict[str, object] = {
 def app_root() -> Path:
     """Resolve the installed app root under the Junction home dir.
 
-    Derives from ``crew_home()`` (``config_dir()`` → ``~/.kiro/crew`` by
-    default, honoring ``JUNCTION_HOME``); ``crew_home`` keeps a standalone
+    Derives from ``data_home()`` (``config_dir()`` → ``~/.junction`` by
+    default, honoring ``JUNCTION_HOME``); ``data_home`` keeps a standalone
     fallback so the store stays importable outside the Junction runtime."""
-    return crew_home() / "apps" / APP_NAME
+    return data_home() / "apps" / APP_NAME
 
 
 def restrict_to_owner(path: str | os.PathLike) -> None:

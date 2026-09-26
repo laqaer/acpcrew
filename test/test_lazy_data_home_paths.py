@@ -6,7 +6,7 @@ freezes whichever home happened to be active when that module was first
 imported, which silently breaks:
 
 * **pod isolation** -- a pod exports its own ``JUNCTION_HOME``;
-* **the lazy default-home resolution** (``~/.kiro/crew``), which is deliberately
+* **the lazy default-home resolution** (``~/.junction``), which is deliberately
   resolved late and cached;
 * **test isolation** -- the autouse ``_isolate_junction_home`` fixture in
   ``conftest.py`` runs *after* collection has already imported the module under

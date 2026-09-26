@@ -215,7 +215,7 @@ try {
     // Frames land in the OS temp dir, NOT under `${OUT}`: they are the GIF's raw
     // material, and a `frames/` subdirectory inside the committed screenshot dir
     // would ride along in the PR with no consumer.
-    const FRAMES = join(tmpdir(), 'kc-session-move-undo-frames')
+    const FRAMES = join(tmpdir(), 'jn-session-move-undo-frames')
     mkdirSync(FRAMES, { recursive: true })
     let n = 0
     const frame = async () => {

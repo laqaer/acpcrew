@@ -183,7 +183,7 @@ class TestReadEndpoints:
 
 class TestPluginInstallCommand:
     """The remedy must match the GATEWAY's platform. A hardcoded Homebrew line is
-    wrong for every Linux host — and Linux is the common case for a remote crew."""
+    wrong for every Linux host — and Linux is the common case for a remote instance."""
 
     def _cmd(self, monkeypatch, system, arch, present):
         from junction.cloud import ssm
@@ -491,33 +491,33 @@ class TestInstanceMutations:
         monkeypatch.setattr(hc.ec2, "wait_for_delete", lambda *a, **k: True)
         monkeypatch.setattr(hc.ec2, "describe", lambda *a, **k: {"instance_id": "i-0abc"})
 
-        st = _req("POST", "/api/cloud/kc-3f9a/stop?profile=dev&region=us-east-1",
-                  state=_state(tmp_path), match_info={"tag": "kc-3f9a"})
+        st = _req("POST", "/api/cloud/jn-3f9a/stop?profile=dev&region=us-east-1",
+                  state=_state(tmp_path), match_info={"tag": "jn-3f9a"})
         r1 = await hc.api_cloud_stop(st)
         assert r1.status == 200
-        assert seen["stop"] == {"tag": "kc-3f9a", "profile": "dev", "region": "us-east-1", "kw": {}}
+        assert seen["stop"] == {"tag": "jn-3f9a", "profile": "dev", "region": "us-east-1", "kw": {}}
 
         r2 = await hc.api_cloud_start(
-            _req("POST", "/api/cloud/kc-7b21/start", state=_state(tmp_path),
-                 match_info={"tag": "kc-7b21"})
+            _req("POST", "/api/cloud/jn-7b21/start", state=_state(tmp_path),
+                 match_info={"tag": "jn-7b21"})
         )
         assert r2.status == 200
-        assert seen["start"]["tag"] == "kc-7b21"
+        assert seen["start"]["tag"] == "jn-7b21"
 
         r3 = await hc.api_cloud_destroy(
-            _req("DELETE", "/api/cloud/kc-7b21", state=_state(tmp_path),
-                 match_info={"tag": "kc-7b21"})
+            _req("DELETE", "/api/cloud/jn-7b21", state=_state(tmp_path),
+                 match_info={"tag": "jn-7b21"})
         )
         assert r3.status == 200
-        assert seen["destroy"]["tag"] == "kc-7b21"
+        assert seen["destroy"]["tag"] == "jn-7b21"
         assert seen["destroy"]["kw"].get("wait") is False
 
     async def test_destroy_cleans_up_local_state_after_deletion_confirms(
         self, tmp_path, monkeypatch
     ):
         """Confirmed deletion is what licenses dropping local state: without the
-        cleanup the crew stays in the Instances registry and keeps showing in the
-        crew list, where connecting to it fails because the box is gone."""
+        cleanup the instance stays in the Instances registry and keeps showing in the
+        instance list, where connecting to it fails because the box is gone."""
         calls = {}
 
         def _unregister(iid):
@@ -537,19 +537,19 @@ class TestInstanceMutations:
         monkeypatch.setattr(hc.source_mod, "delete_source", _delete_source)
 
         resp = await hc.api_cloud_destroy(
-            _req("DELETE", "/api/cloud/kc-3f9a?instance_id=i-0abc123456789def0",
-                 state=_state(tmp_path), match_info={"tag": "kc-3f9a"})
+            _req("DELETE", "/api/cloud/jn-3f9a?instance_id=i-0abc123456789def0",
+                 state=_state(tmp_path), match_info={"tag": "jn-3f9a"})
         )
 
         assert resp.status == 200
         assert _body(resp)["cleanup"] == "pending"  # the request only acks the delete
         assert calls["unregistered"] == "i-0abc123456789def0"
-        assert calls["source"] == "kc-3f9a"
+        assert calls["source"] == "jn-3f9a"
 
     async def test_destroy_keeps_local_state_when_deletion_does_not_confirm(
         self, tmp_path, monkeypatch
     ):
-        """DELETE_FAILED means the crew is still there. Dropping its registration
+        """DELETE_FAILED means the instance is still there. Dropping its registration
         and source archive then would strand a live, billing instance the user can
         no longer see in the dashboard — so both must survive."""
         calls = {}
@@ -566,8 +566,8 @@ class TestInstanceMutations:
         )
 
         resp = await hc.api_cloud_destroy(
-            _req("DELETE", "/api/cloud/kc-3f9a?instance_id=i-0abc", state=_state(tmp_path),
-                 match_info={"tag": "kc-3f9a"})
+            _req("DELETE", "/api/cloud/jn-3f9a?instance_id=i-0abc", state=_state(tmp_path),
+                 match_info={"tag": "jn-3f9a"})
         )
 
         assert resp.status == 200
@@ -577,7 +577,7 @@ class TestInstanceMutations:
         self, tmp_path, monkeypatch
     ):
         """instance_id is an optional query param, so a caller that omits it would
-        silently skip the unregister and leave a deleted crew listed. The route
+        silently skip the unregister and leave a deleted instance listed. The route
         resolves it from the stack itself — before the delete, since the outputs
         are unreadable once the stack is gone."""
         calls = {}
@@ -593,8 +593,8 @@ class TestInstanceMutations:
         monkeypatch.setattr(hc.source_mod, "delete_source", lambda *a, **k: {"removed": True})
 
         resp = await hc.api_cloud_destroy(
-            _req("DELETE", "/api/cloud/kc-3f9a", state=_state(tmp_path),
-                 match_info={"tag": "kc-3f9a"})  # no instance_id
+            _req("DELETE", "/api/cloud/jn-3f9a", state=_state(tmp_path),
+                 match_info={"tag": "jn-3f9a"})  # no instance_id
         )
 
         assert resp.status == 200
@@ -620,12 +620,12 @@ class TestInstanceMutations:
         assert resp.status == 400
         assert _body(resp)["code"] == "invalid_cloud_parameter"
 
-    async def test_a_mismatched_instance_id_query_cannot_unregister_another_crew(
+    async def test_a_mismatched_instance_id_query_cannot_unregister_another_instance(
         self, tmp_path, monkeypatch
     ):
         """`unregister_instance` matches its needle against every registered box with
         no cross-check against the tag, so honouring a caller-supplied id would let a
-        mismatched value drop a still-living crew's registration. The id is derived
+        mismatched value drop a still-living instance's registration. The id is derived
         from the stack being deleted; the query value is ignored."""
         calls = {}
         monkeypatch.setattr(hc.ec2, "describe", lambda tag, p, r: {"instance_id": "i-mine"})
@@ -638,8 +638,8 @@ class TestInstanceMutations:
         monkeypatch.setattr(hc.source_mod, "delete_source", lambda *a, **k: {"removed": True})
 
         resp = await hc.api_cloud_destroy(
-            _req("DELETE", "/api/cloud/kc-3f9a?instance_id=i-someone-elses",
-                 state=_state(tmp_path), match_info={"tag": "kc-3f9a"})
+            _req("DELETE", "/api/cloud/jn-3f9a?instance_id=i-someone-elses",
+                 state=_state(tmp_path), match_info={"tag": "jn-3f9a"})
         )
 
         assert resp.status == 200
@@ -649,7 +649,7 @@ class TestInstanceMutations:
     async def test_a_failed_id_lookup_still_deletes_the_stack(self, tmp_path, monkeypatch):
         """The id lookup shells out to AWS. If it throws — including non-AWSError
         types like a sandbox/exec failure — the delete must still go through, or the
-        user is stranded with a crew they cannot remove."""
+        user is stranded with an instance they cannot remove."""
         def _explode(*a, **k):
             raise RuntimeError("no sandbox backend available")
 
@@ -660,8 +660,8 @@ class TestInstanceMutations:
         monkeypatch.setattr(hc.source_mod, "delete_source", lambda *a, **k: {"removed": True})
 
         resp = await hc.api_cloud_destroy(
-            _req("DELETE", "/api/cloud/kc-9", state=_state(tmp_path),
-                 match_info={"tag": "kc-9"})  # no instance_id -> forces the lookup
+            _req("DELETE", "/api/cloud/jn-9", state=_state(tmp_path),
+                 match_info={"tag": "jn-9"})  # no instance_id -> forces the lookup
         )
 
         assert resp.status == 200
@@ -676,12 +676,12 @@ class TestInstanceMutations:
         calls = {}
         state = _state(tmp_path)
         job = state.cloud_launch_store.create(profile="", region="us-east-1", size_key="balanced")
-        job.tag = "kc-3f9a"
+        job.tag = "jn-3f9a"
         job.instance_id = "i-fromjob"
         state.cloud_launch_store.save(job)
 
         def _gone(*a, **k):
-            raise hc.AWSError("Stack with id junction-kc-3f9a does not exist")
+            raise hc.AWSError("Stack with id junction-jn-3f9a does not exist")
 
         monkeypatch.setattr(hc.ec2, "describe", _gone)
         monkeypatch.setattr(hc.ec2, "destroy", lambda tag, p, r, **kw: {"destroyed": True})
@@ -693,7 +693,7 @@ class TestInstanceMutations:
         monkeypatch.setattr(hc.source_mod, "delete_source", lambda *a, **k: {"removed": True})
 
         resp = await hc.api_cloud_destroy(
-            _req("DELETE", "/api/cloud/kc-3f9a", state=state, match_info={"tag": "kc-3f9a"})
+            _req("DELETE", "/api/cloud/jn-3f9a", state=state, match_info={"tag": "jn-3f9a"})
         )
 
         assert resp.status == 200
@@ -708,6 +708,6 @@ class TestInstanceMutations:
         monkeypatch.setattr(hc.ec2, "describe", lambda *a, **k: {"instance_id": "i-0abc"})
         monkeypatch.setattr(hc.ec2, "destroy", _boom)
         resp = await hc.api_cloud_destroy(
-            _req("DELETE", "/api/cloud/kc-1/", state=_state(tmp_path), match_info={"tag": "kc-1"})
+            _req("DELETE", "/api/cloud/jn-1/", state=_state(tmp_path), match_info={"tag": "jn-1"})
         )
         assert resp.status == 403

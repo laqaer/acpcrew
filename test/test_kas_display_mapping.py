@@ -1,4 +1,4 @@
-"""KAS session/update discriminant → Crew display mapping (Group A).
+"""KAS session/update discriminant → Junction display mapping (Group A).
 
 KAS folds signals that kiro-cli sends as separate top-level ``_kiro.dev/*``
 methods (agent switch, per-turn metadata, compaction status) into

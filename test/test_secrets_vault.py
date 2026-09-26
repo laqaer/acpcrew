@@ -124,9 +124,9 @@ def test_secret_value_opacity() -> None:
 
 def test_denylist_coverage() -> None:
     """The .vault directory is in the agent denylist."""
-    from junction.security import _CREW_SECRET_LEAVES
+    from junction.security import _DATA_HOME_SECRET_LEAVES
 
-    assert ".vault" in _CREW_SECRET_LEAVES
+    assert ".vault" in _DATA_HOME_SECRET_LEAVES
 
 
 # ── Atomic write ──
@@ -213,21 +213,21 @@ def test_restrict_to_owner_called_on_read(tmp_path, monkeypatch):
 # same UID can `import SecretVault` / `open('.vault/...')` and read plaintext,
 # so "revert until .vault is hidden by every agent OS sandbox". This is a false
 # positive for the Junction agent path: `.vault` is registered as a keystone
-# leaf in `security._CREW_SECRET_LEAVES`, expanded into `_SENSITIVE_HOME_DIRS`,
+# leaf in `security._DATA_HOME_SECRET_LEAVES`, expanded into `_SENSITIVE_HOME_DIRS`,
 # and enforced by the verb-independent `is_sensitive_path` backstop that every
 # agent file-access surface (hooks.on_tool_call, validate_file_path, artifacts,
 # dashboard file I/O, knowledge indexing) routes through — including a scripted
-# `python -c "open('~/.kiro/crew/.vault/...')"`. These tests prove that narrower
+# `python -c "open('~/.junction/.vault/...')"`. These tests prove that narrower
 # scope is sufficient: the OS-mediated control already denies the exact vectors
 # the finding describes, so no in-process guard (the FP-rejected theater) is
 # needed here and no revert is warranted.
 
 
 def test_vault_dir_is_a_registered_keystone_leaf() -> None:
-    """The `.vault` directory is a keystone leaf in security._CREW_SECRET_LEAVES."""
+    """The `.vault` directory is a keystone leaf in security._DATA_HOME_SECRET_LEAVES."""
     from junction import security
 
-    assert ".vault" in security._CREW_SECRET_LEAVES
+    assert ".vault" in security._DATA_HOME_SECRET_LEAVES
 
 
 def test_keystone_denies_agent_reads_of_the_vault(tmp_path, monkeypatch) -> None:
@@ -235,17 +235,17 @@ def test_keystone_denies_agent_reads_of_the_vault(tmp_path, monkeypatch) -> None
 
     Covers the exact vectors GPT flagged: the AES key file, the ciphertext
     store, and a scripted open() of an arbitrary file under .vault. Anchor a
-    crew home via JUNCTION_HOME so the keystone-leaf expansion applies, then
+    data home via JUNCTION_HOME so the keystone-leaf expansion applies, then
     assert the enforced predicate returns True for each.
     """
     from junction import security
 
-    crew_home = tmp_path / "crew"
-    (crew_home / ".vault").mkdir(parents=True)
-    monkeypatch.setenv("JUNCTION_HOME", str(crew_home))
+    data_home = tmp_path / "data"
+    (data_home / ".vault").mkdir(parents=True)
+    monkeypatch.setenv("JUNCTION_HOME", str(data_home))
 
     # The vault writes secrets.enc + .vault_key under <config_dir>/.vault.
-    vault_dir = crew_home / ".vault"
+    vault_dir = data_home / ".vault"
     for leaf in (".vault_key", "secrets.enc", ".secrets.enc.lock"):
         target = vault_dir / leaf
         assert security.is_sensitive_path(
@@ -262,15 +262,15 @@ def test_keystone_allows_a_non_vault_sibling(tmp_path, monkeypatch) -> None:
     """Negative control: a sibling path outside .vault is NOT denied.
 
     Guards against the assertion above passing because is_sensitive_path()
-    returns True for everything under the crew home.
+    returns True for everything under the data home.
     """
     from junction import security
 
-    crew_home = tmp_path / "crew"
-    (crew_home / ".vault").mkdir(parents=True)
-    monkeypatch.setenv("JUNCTION_HOME", str(crew_home))
+    data_home = tmp_path / "data"
+    (data_home / ".vault").mkdir(parents=True)
+    monkeypatch.setenv("JUNCTION_HOME", str(data_home))
 
-    assert not security.is_sensitive_path(str(crew_home / "notes" / "todo.txt"))
+    assert not security.is_sensitive_path(str(data_home / "notes" / "todo.txt"))
 
 
 def test_vault_dir_is_hidden_by_the_os_sandbox() -> None:
@@ -291,6 +291,5 @@ def test_vault_dir_is_hidden_by_the_os_sandbox() -> None:
         sandbox._CC_DIRS,
     ):
         assert (
-            ".kiro/crew/.vault" in mode_list
+            ".junction/.vault" in mode_list
         ), "the vault dir must be OS-sandbox-hidden in every mode"
-        assert ".kirocrew/.vault" in mode_list, "the legacy vault dir path must also be hidden"

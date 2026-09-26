@@ -85,8 +85,8 @@ logger = logging.getLogger(__name__)
 
 # Optional override slot for the profiles dir. Left ``None`` at import — NOT a
 # module-level ``config_dir()`` capture — so importing this trust-root module
-# never fires ``config_dir()`` (and thus the one-time data-home migration) as an
-# import side effect; the migration must run only at the single chosen point
+# never fires ``config_dir()`` (and thus data-home creation) as an import side
+# effect; creation must run only at the single chosen point
 # (``ensure_data_home()`` in the CLI prologue). ``_profiles_dir()`` resolves the
 # real path lazily; tests set this attribute to redirect it.
 _PROFILES_DIR: "Path | None" = None
@@ -346,7 +346,7 @@ def _fallback_token() -> bool:
 
 
 class ProfileStore:
-    """Loads + caches profiles from ``~/.kiro/crew/profiles`` with mtime hot-reload.
+    """Loads + caches profiles from ``~/.junction/profiles`` with mtime hot-reload.
 
     A schema-invalid profile is recorded as a deny-all sentinel (never the
     ceiling) so a broken file fails closed.  ``extends`` is resolved by

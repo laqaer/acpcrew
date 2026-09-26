@@ -397,7 +397,7 @@ class AcpSessionProvider(LLMProvider):
         self,
         session_key: str,
         channel_id: str | None = None,
-        crew_agent: str = "",
+        canonical_agent: str = "",
         watchdog: WatchdogSettings | None = None,
     ) -> None:
         """Re-key for a different session on warm-pool claim (parity with
@@ -407,18 +407,18 @@ class AcpSessionProvider(LLMProvider):
         keys and refreshes runtime activity so the just-claimed process is not
         idle-reaped.
 
-        ``crew_agent`` is the claiming session's canonical crew identity: the
-        pooled runtime was spawned before any crew claimed it, so both the
+        ``canonical_agent`` is the claiming session's canonical agent identity:
+        the pooled runtime was spawned before any agent claimed it, so both the
         runtime default (future sessions, e.g. new_conversation) and the live
         handle's watchdog snapshot are rebound here — the identity travels
-        with the session, not the pool key. Empty means "no crew" and rebinds
-        to the globals, so a recycled runtime never carries a previous crew's
+        with the session, not the pool key. Empty means "no agent" and rebinds
+        to the globals, so a recycled runtime never carries a previous agent's
         windows. ``watchdog`` is the pre-resolved snapshot from the async
         caller (resolved off-loop); None makes rebind load it synchronously."""
         self._session_key = session_key
         self._channel_id = channel_id
-        self._runtime._crew_agent = crew_agent
-        self._handle.rebind_watchdog(crew_agent, settings=watchdog)
+        self._runtime._canonical_agent = canonical_agent
+        self._handle.rebind_watchdog(canonical_agent, settings=watchdog)
         self._runtime._last_activity = time.monotonic()
         # Parity with AcpClient.rekey: the handle's prompt stats describe the
         # session this runtime served BEFORE the handoff; leaking them lets

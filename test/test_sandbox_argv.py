@@ -319,9 +319,9 @@ class TestBuildLauncherScript:
     @_POSIX_ONLY
     def test_auth_staging_is_hidden_except_for_trusted_auth_spawn(self):
         home = Path.home()
-        staging = home / ".kiro" / "crew-auth-staging"
+        staging = home / ".kiro" / "junction-auth-staging"
         workspace = staging / "auth-123"
-        data_home = home / ".kiro" / "crew"
+        data_home = home / ".junction"
 
         regular_script = _build_launcher_script("standard")
         auth_script = _build_launcher_script(
@@ -354,7 +354,7 @@ class TestBuildLauncherScript:
         got no error, and the file stayed readable.
 
         Not hypothetical: ``security.sensitive_home_dirs()`` is not all directories
-        (``sel_hmac.key``, ``token_signing.key``, ``.kiro/crew/.env`` are files), and
+        (``sel_hmac.key``, ``token_signing.key``, ``.junction/.env`` are files), and
         Papyrus passes that whole list as ``extra_hidden_dirs`` so a ``.tex`` cannot
         ``\\input`` the gateway's own secrets into a rendered PDF.
 
@@ -458,7 +458,7 @@ class TestBuildLauncherScript:
 
     @_POSIX_ONLY
     def test_launcher_has_no_unimportable_junction_refs(self):
-        """The launcher runs as a standalone ~/.kirocrew/run script with the
+        """The launcher runs as a standalone ~/.junction/run script with the
         launcher dir scrubbed from sys.path, so it CANNOT import junction.
         Referencing a module-level helper like ``platform_compat`` NameErrors at
         runtime and crashed every command cron. Guard: chmod is inlined, the
@@ -974,12 +974,12 @@ class TestCleanupStaleSandboxProfiles:
         """Profile file whose PID is dead gets removed."""
         from junction.sandbox import cleanup_stale_sandbox_profiles
 
-        run_dir = tmp_path / ".kirocrew" / "run"
+        run_dir = tmp_path / ".junction" / "run"
         run_dir.mkdir(parents=True)
         stale_file = run_dir / "junction_sandbox_99999_abc123.sb"
         stale_file.write_text("(version 1)")
 
-        with patch("junction.sandbox.config_dir", return_value=tmp_path / ".kirocrew"):
+        with patch("junction.sandbox.config_dir", return_value=tmp_path / ".junction"):
             with patch("junction.sandbox.platform_compat.pid_exists", return_value=False):
                 removed = cleanup_stale_sandbox_profiles(legacy_dir=str(tmp_path / "nonexistent"))
 
@@ -997,7 +997,7 @@ class TestCleanupStaleSandboxProfiles:
         """
         from junction.sandbox import cleanup_stale_sandbox_profiles
 
-        home = tmp_path / ".kirocrew"
+        home = tmp_path / ".junction"
         holder = home / "run" / "kiro-cli-snapshots" / "kiro-cli-acp-abc123"
         holder.mkdir(parents=True)
         (holder / "kiro-cli").write_bytes(b"orphaned copy")
@@ -1015,12 +1015,12 @@ class TestCleanupStaleSandboxProfiles:
         """Profile file whose PID is alive (current process) is preserved."""
         from junction.sandbox import cleanup_stale_sandbox_profiles
 
-        run_dir = tmp_path / ".kirocrew" / "run"
+        run_dir = tmp_path / ".junction" / "run"
         run_dir.mkdir(parents=True)
         live_file = run_dir / f"junction_sandbox_{os.getpid()}_xyz789.sb"
         live_file.write_text("(version 1)")
 
-        with patch("junction.sandbox.config_dir", return_value=tmp_path / ".kirocrew"):
+        with patch("junction.sandbox.config_dir", return_value=tmp_path / ".junction"):
             removed = cleanup_stale_sandbox_profiles(legacy_dir=str(tmp_path / "nonexistent"))
 
         assert live_file.exists()
@@ -1030,12 +1030,12 @@ class TestCleanupStaleSandboxProfiles:
         """Files not matching junction_sandbox_*.sb pattern are left alone."""
         from junction.sandbox import cleanup_stale_sandbox_profiles
 
-        run_dir = tmp_path / ".kirocrew" / "run"
+        run_dir = tmp_path / ".junction" / "run"
         run_dir.mkdir(parents=True)
         other_file = run_dir / "something_else.txt"
         other_file.write_text("keep me")
 
-        with patch("junction.sandbox.config_dir", return_value=tmp_path / ".kirocrew"):
+        with patch("junction.sandbox.config_dir", return_value=tmp_path / ".junction"):
             removed = cleanup_stale_sandbox_profiles(legacy_dir=str(tmp_path / "nonexistent"))
 
         assert other_file.exists()
@@ -2162,7 +2162,7 @@ class TestKiroInternalSandboxExclusion:
             )
 
     def test_windows_kiro_with_extra_path_policy_fails_closed(self, monkeypatch):
-        """Delegation cannot silently discard Crew-specific path restrictions."""
+        """Delegation cannot silently discard Junction-specific path restrictions."""
         monkeypatch.setattr("junction.sandbox.sys.platform", "win32")
         monkeypatch.setattr("junction.sandbox._allow_unsandboxed_exec", lambda: False)
         with (

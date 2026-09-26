@@ -271,8 +271,8 @@ which traces the rendered alpha, so one asset serves every palette:
 }
 ```
 
-That is how the bundled Kiro poses get their light-palette outline; see
-`src/components/GhostPoses.tsx` and `src/assets/onboarding/GhostIcons.tsx`.
+The same technique gives any light-coloured mark a visible edge on a pale
+palette without a second copy of the art.
 
 One implementation constraint if you write a custom `loader`: the carousel's
 cross-fade animation lives on a persistent `.lyr` wrapper rather than on the icon,

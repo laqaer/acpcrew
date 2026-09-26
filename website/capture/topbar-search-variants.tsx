@@ -6,8 +6,8 @@
  * names against reproduced content and lets the real stylesheet do the layout.
  * That is deliberate: booting <App/> needs a live gateway session, and the thing
  * under test is the stylesheet, not the data flow. The content mirrors the
- * shipped header (home + crew chip · search · readout capsule + feedback + bell)
- * so the container-query rungs trip at realistic group widths.
+ * shipped header (home + instance chip · search · readout capsule + feedback +
+ * bell) so the container-query rungs trip at realistic group widths.
  *
  * The header must span the WINDOW, because the centre track is a vw function —
  * so drive width through the browser viewport, one screenshot per width.
@@ -22,7 +22,7 @@
  * ?theme=dark   ?form=mobile|desktop
  * ?count=11     the unread count to render in the badge
  * ?fix=off      strip the gutter that admits the badge's overhang (before state)
- * ?pins=N       render N pinned-crew chips in the identity group's chip row
+ * ?pins=N       render N pinned-instance chips in the identity group's chip row
  *               (default 0 — the group renders exactly as it did without them)
  * ?unread=N     unread count carried by the LAST pinned chip, the one a cut reaches
  * ?roww=N       pin the chip row's clip width to N px, to photograph one cut
@@ -42,7 +42,7 @@ const count = params.get('count') || '99+'
 const pins = Number(params.get('pins') || '0')
 const unread = Number(params.get('unread') || '0')
 const rowW = params.get('roww')
-document.documentElement.setAttribute('data-theme', theme === 'light' ? 'kiro-light' : 'kiro-dark')
+document.documentElement.setAttribute('data-theme', theme === 'light' ? 'junction-light' : 'junction-dark')
 initI18n('zh-CN')
 
 // The retired cue: an alpha mask over the row's last 18px. Injected verbatim so
@@ -50,9 +50,9 @@ initI18n('zh-CN')
 if (params.get('fade') === 'on') {
   const s = document.createElement('style')
   s.textContent =
-    '.crew-chip-row{-webkit-mask-image:linear-gradient(to right,#000 calc(100% - 18px),transparent 100%);' +
+    '.instance-chip-row{-webkit-mask-image:linear-gradient(to right,#000 calc(100% - 18px),transparent 100%);' +
     'mask-image:linear-gradient(to right,#000 calc(100% - 18px),transparent 100%)}' +
-    ".crew-chip-row[data-cut='true']::after{content:none}"
+    ".instance-chip-row[data-cut='true']::after{content:none}"
   document.head.appendChild(s)
 }
 
@@ -69,9 +69,9 @@ if (params.get('fix') === 'off') {
 
 const seg = 'flex items-center gap-1 px-1.5 py-0.5 rounded-md text-muted'
 
-/** The pinned-crew chip row, verbatim from InstanceTabBar's `CrewChipRow` +
- *  `SwitcherChip` + `UnreadBadge` class strings, so the real stylesheet decides
- *  what a cut looks like.
+/** The pinned-instance chip row, verbatim from InstanceTabBar's
+ *  `InstanceChipRow` + `SwitcherChip` + `UnreadBadge` class strings, so the real
+ *  stylesheet decides what a cut looks like.
  *
  *  `?roww` pins the CLIP width. In production that width is whatever flex-shrink
  *  leaves the row after the active chip and the trailing dropdown, i.e. a
@@ -83,9 +83,9 @@ function PinnedChipRow() {
   const names = ['prod-us-east-1', 'staging-eu-west-1', 'sandbox'].slice(0, pins)
   return (
     <div
-      data-testid="crew-chip-row"
+      data-testid="instance-chip-row"
       data-cut="true"
-      className="crew-chip-row relative flex flex-nowrap items-center gap-1 min-w-0 overflow-hidden"
+      className="instance-chip-row relative flex flex-nowrap items-center gap-1 min-w-0 overflow-hidden"
       style={rowW ? { width: Number(rowW), flex: 'none' } : undefined}
     >
       {names.map((name, i) => (
@@ -97,7 +97,7 @@ function PinnedChipRow() {
           className="flex items-center gap-1.5 h-6 px-2 rounded-md text-[12px] whitespace-nowrap transition-colors shrink-0 border focus-ring border-border text-text"
         >
           <span className="w-1.5 h-1.5 rounded-full shrink-0 bg-[var(--ok)]" aria-hidden />
-          <span className="tb-drop-crew-name truncate max-w-[140px]">{name}</span>
+          <span className="tb-drop-instance-name truncate max-w-[140px]">{name}</span>
           {i === names.length - 1 && unread > 0 ? (
             <span
               data-badge-chip
@@ -191,12 +191,12 @@ function TopBar() {
  *  centre track, exactly as App.tsx renders it -- not a member of the actions
  *  group, which would put three action controls in one horizontal row.
  *
- *  The identity group carries the nav button AND the crew switcher, which is what
- *  its own collapse ladder acts on (`tb-drop-crew-name`, `tb-crew-active-chip` in
- *  index.css): the chip's name goes first, then the chip, so the trailing
- *  dropdown -- the only route to another crew -- never leaves the clip box. Chip
- *  and trigger classes are verbatim from InstanceTabBar's SwitcherChip and
- *  SwitcherMenu, so the rungs trip at the real content widths. */
+ *  The identity group carries the nav button AND the instance switcher, which is
+ *  what its own collapse ladder acts on (`tb-drop-instance-name`,
+ *  `tb-instance-active-chip` in index.css): the chip's name goes first, then the
+ *  chip, so the trailing dropdown -- the only route to another instance -- never
+ *  leaves the clip box. Chip and trigger classes are verbatim from InstanceTabBar's
+ *  SwitcherChip and SwitcherMenu, so the rungs trip at the real content widths. */
 function TopBarMobile() {
   return (
     <header className="topbar topbar-glass relative pl-3 pr-3" data-topbar style={{ height: 42 }}>
@@ -214,15 +214,15 @@ function TopBarMobile() {
               type="button"
               aria-current="true"
               aria-label="本地"
-              className="tb-crew-active-chip flex items-center gap-1.5 h-6 px-2 rounded-md text-[12px] whitespace-nowrap shrink-0 border bg-accent-subtle text-accent font-bold border-transparent"
+              className="tb-instance-active-chip flex items-center gap-1.5 h-6 px-2 rounded-md text-[12px] whitespace-nowrap shrink-0 border bg-accent-subtle text-accent font-bold border-transparent"
             >
               <Home className="lucide-inline shrink-0" />
-              <span className="tb-drop-crew-name truncate max-w-[140px]">本地</span>
+              <span className="tb-drop-instance-name truncate max-w-[140px]">本地</span>
             </button>
             {pins > 0 ? <PinnedChipRow /> : null}
             <button
               type="button"
-              aria-label="切换 crew"
+              aria-label="切换实例"
               className="relative flex items-center justify-center h-6 w-6 shrink-0 rounded-md border border-transparent text-muted"
             >
               <ChevronDown className="lucide-inline shrink-0" />

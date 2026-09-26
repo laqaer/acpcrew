@@ -38,23 +38,11 @@ done
 # ── Constants ──
 # Repo root = directory containing this script (run from a local clone).
 JUNCTION_APP_DIR="$(cd "$(dirname "$0")" && pwd)"
-# Data home: same choice as junction.config.paths._select_default_home.
-# A new install uses ~/.junction. An existing previous directory is kept.
+# Data home: same choice as junction.config.paths._select_default_home,
+# JUNCTION_HOME when set, otherwise ~/.junction.
 _select_data_home() {
     if [ -n "${JUNCTION_HOME:-}" ]; then
         printf '%s\n' "$JUNCTION_HOME"
-        return
-    fi
-    if [ -d "$HOME/.junction" ]; then
-        printf '%s\n' "$HOME/.junction"
-        return
-    fi
-    if [ -d "$HOME/.kiro/crew" ]; then
-        printf '%s\n' "$HOME/.kiro/crew"
-        return
-    fi
-    if [ -d "$HOME/.kirocrew" ]; then
-        printf '%s\n' "$HOME/.kirocrew"
         return
     fi
     printf '%s\n' "$HOME/.junction"
@@ -389,7 +377,7 @@ if has node && [ -d "$JUNCTION_APP_DIR/website" ]; then
     if [ "$_fe_ok" != "1" ]; then
         # The build did not produce a usable bundle. For a local CLI install this is
         # non-fatal — the dashboard falls back to a legacy page and the CLI still
-        # works. For a cloud crew the dashboard IS the product, so
+        # works. For a cloud gateway the dashboard IS the product, so
         # JUNCTION_REQUIRE_FRONTEND=1 makes it FATAL: dump the build log and exit
         # non-zero. That lets the cloud bootstrap RETRY the whole install on the warm
         # box (first-boot contention — the common cause — self-heals), and if it still
@@ -512,11 +500,10 @@ step "PATH Configuration"
 # The public CLI is linked at ~/.local/bin/junction.
 export PATH="$HOME/.local/bin:$JUNCTION_APP_DIR/bin:$PATH"
 
-# Persist to shell rc files. Re-runs replace the block this script owns,
-# including the marker previous installs wrote, so PATH is not appended twice.
+# Persist to shell rc files. Re-runs replace the block this script owns, so
+# PATH is not appended twice.
 _path_line="export PATH=\"\$HOME/.local/bin:\$PATH\""
 _marker="# Junction"
-_legacy_marker="# Junction"  # brand-ok: previous shell-rc marker to remove
 
 _strip_rc_block() {
     local rc="$1" marker="$2"
@@ -531,7 +518,6 @@ _add_to_rc() {
     local rc="$1"
     [ ! -f "$rc" ] && return
     _strip_rc_block "$rc" "$_marker"
-    _strip_rc_block "$rc" "$_legacy_marker"
     echo "" >> "$rc"
     echo "$_marker" >> "$rc"
     echo "$_path_line" >> "$rc"
@@ -573,7 +559,6 @@ if [ -f "$_fish_config" ] || [ "$(basename "${SHELL:-}")" = "fish" ]; then
         fi
     }
     _strip_fish "$_marker"
-    _strip_fish "$_legacy_marker"
     {
         echo "$_marker"
         echo "fish_add_path -g ~/.local/bin"

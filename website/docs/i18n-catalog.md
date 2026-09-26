@@ -110,11 +110,12 @@ Authoring rules that follow:
   stay byte-identical to the Python-side `app.json` prose (`[manifest-sync]`
   is a hard zero), so they keep the literal English name.
 - **Repo-attribution copy keeps the literal too.** A string naming this
-  project as the star/fork/issue target (`app.star_junction_on_github`) wraps
-  a hardcoded upstream URL, so interpolating the product name would make an
-  edition render its own name linking to the upstream repository.
+  project as the star/fork/issue target (`app.star_junction_on_github`,
+  `app.junction_on_github`) wraps a hardcoded upstream URL, so interpolating
+  the product name would make an edition render its own name linking to the
+  upstream repository.
 - **A call-time variable of the same name wins** over the default, per
-  i18next's merge order — useful when a string names a *different* crew.
+  i18next's merge order — useful when a string names a *different* instance.
 - German compounds hyphenate through the placeholder
   (`{{productName}}-Katalog`), matching how the literal compound was written.
 
@@ -199,7 +200,7 @@ allowlist you can forget to extend:
 - every key whose **name** matches `/confirm/i` and whose English value
   interpolates a placeholder must be on `QUOTED_OPERAND_CONFIRM_KEYS`, **or**
 - listed in `CONFIRM_OPERAND_KEY_EXEMPTIONS` with a reason (today: the #4657
-  kind-word forms, where "template" / "crew" already sit next to the name), **or**
+  kind-word forms, where "template" / "agent" already sit next to the name), **or**
 - interpolate **only** placeholder names in `EXEMPT_CONFIRM_PLACEHOLDER_NAMES`
   (numerals, closed-set schedule fragments, version ids, and system error
   text — they cannot parse as prose). The set lives next to the pin; do not
@@ -364,11 +365,12 @@ Regional Han faces are scoped with `html:lang(zh-CN)`, `html:lang(ja)`, and
 locale-aware cascade instead of being forced through Simplified Chinese glyph
 forms. A bare `:lang(zh)` is not used: it also matches Traditional tags
 (`zh-TW`, `zh-HK`, `zh-Hant`). Under `html:lang(zh-CN)` the tokens switch to
-`KC Han Fallback` and `KC Han Mono Fallback`; under `html:lang(ja)` they switch
-to `KC Japanese Fallback` and `KC Japanese Mono Fallback`, whose ranges include
-Kana as well as shared ideographs; under `html:lang(ko)` they switch to
-`KC Korean Fallback` and `KC Korean Mono Fallback`, whose ranges add the Hangul
-syllable and Jamo blocks. Keep every other locale's aliases out of these tokens:
+`Junction Han Fallback` and `Junction Han Mono Fallback`; under `html:lang(ja)`
+they switch to `Junction Japanese Fallback` and
+`Junction Japanese Mono Fallback`, whose ranges include Kana as well as shared
+ideographs; under `html:lang(ko)` they switch to `Junction Korean Fallback` and
+`Junction Korean Mono Fallback`, whose ranges add the Hangul syllable and Jamo
+blocks. Keep every other locale's aliases out of these tokens:
 if the named face is unavailable, the browser must reach its language-aware
 fallback for that script instead of being forced through a foreign Han alias —
 which for Korean cannot draw Hangul at all. The rules set only the fallback

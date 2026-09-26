@@ -16,8 +16,8 @@ import pytest
 from junction import platform_compat
 from junction.mcp_discovery import (
     SCOPE_CC_GLOBAL,
-    SCOPE_KIRO_GLOBAL,
     SCOPE_JUNCTION,
+    SCOPE_KIRO_GLOBAL,
     McpServerInfo,
     _cache_probe,
     _get_cached,
@@ -3246,7 +3246,7 @@ class TestProbeServerStderrCapture:
             "Sandbox backend unavailable, token=AKIAIOSFODNN7EXAMPLEXXX. "
             "Probe detail: not Linux. "
             + ("x" * 300)
-            + " set agent.sandbox_allow_unsandboxed_exec=true in ~/.kiro/crew/config.json"
+            + " set agent.sandbox_allow_unsandboxed_exec=true in ~/.junction/config.json"
         )
         assert len(long_msg) > 200  # the old cap would have chopped this
 

@@ -181,7 +181,7 @@ class GatewayServiceBackend(Protocol):
     async def restart_detached(self) -> tuple[bool, str]:
         """Schedule a restart that survives our own death. ``(ok, error)``."""
 
-    def plan(self, worktree: Path, kcbin: Path) -> dict:
+    def plan(self, worktree: Path, cli_bin: Path) -> dict:
         """Describe — without mutating anything — what staging *worktree* does."""
 
     def snapshot(self) -> str | None:
@@ -194,7 +194,7 @@ class GatewayServiceBackend(Protocol):
         the cutover before staging anything.
         """
 
-    async def stage(self, worktree: Path, kcbin: Path) -> tuple[bool, str, str]:
+    async def stage(self, worktree: Path, cli_bin: Path) -> tuple[bool, str, str]:
         """Point the service at *worktree*. ``(ok, code, error)``."""
 
     async def reload(self) -> None:
@@ -289,11 +289,11 @@ class SystemdBackend:
         )
         return (rc == 0, "" if rc == 0 else (stderr.strip()[:200] or "systemd-run failed"))
 
-    def plan(self, worktree: Path, kcbin: Path) -> dict:
+    def plan(self, worktree: Path, cli_bin: Path) -> dict:
         return {
             "unit": self._unit(),
             "dropin_path": str(self._dropin_path()),
-            "dropin_content": self._dropin_content(worktree, kcbin),
+            "dropin_content": self._dropin_content(worktree, cli_bin),
         }
 
     def snapshot(self) -> str | None:
@@ -305,10 +305,10 @@ class SystemdBackend:
         except FileNotFoundError:
             return None
 
-    async def stage(self, worktree: Path, kcbin: Path) -> tuple[bool, str, str]:
+    async def stage(self, worktree: Path, cli_bin: Path) -> tuple[bool, str, str]:
         dropin = self._dropin_path()
         try:
-            content = self._dropin_content(worktree, kcbin)
+            content = self._dropin_content(worktree, cli_bin)
         except _UnsafeTargetValue as exc:
             return False, "unsafe_path", f"unsafe value in unit directive: {exc}"
         try:
@@ -498,21 +498,21 @@ class LaunchdBackend:
         return (rc == 0, "" if rc == 0 else (stderr.strip()[:200] or "launchctl kill failed"))
 
     # -- staging --
-    def plan(self, worktree: Path, kcbin: Path) -> dict:
+    def plan(self, worktree: Path, cli_bin: Path) -> dict:
         # Validate here, not only in stage(): a dry-run plan must reject an
         # unrepresentable path on macOS exactly as it does on Linux, or the
         # preview would promise a cutover the real call then refuses.
         reject_unsafe(str(worktree))
-        reject_unsafe(str(kcbin))
+        reject_unsafe(str(cli_bin))
         return {
             "label": self._label(),
             "live_program": str(self.live_program()),
             # The exact script the cutover will write, so the preview shows what
             # will really run — the launchd counterpart of dropin_content.
-            "live_program_content": self._render(worktree, kcbin),
+            "live_program_content": self._render(worktree, cli_bin),
         }
 
-    def _render(self, worktree: Path, kcbin: Path) -> str:
+    def _render(self, worktree: Path, cli_bin: Path) -> str:
         """The launcher a cutover to *worktree* installs.
 
         Sets the working directory and a venv-first PATH as well as the binary,
@@ -521,7 +521,7 @@ class LaunchdBackend:
         OLD install while the gateway ran the new one.
         """
         return render_live_program(
-            str(kcbin),
+            str(cli_bin),
             working_dir=str(worktree),
             path_prefix=[
                 str(worktree / ".venv" / "bin"),
@@ -537,9 +537,9 @@ class LaunchdBackend:
         except FileNotFoundError:
             return None
 
-    async def stage(self, worktree: Path, kcbin: Path) -> tuple[bool, str, str]:
+    async def stage(self, worktree: Path, cli_bin: Path) -> tuple[bool, str, str]:
         try:
-            content = self._render(worktree, kcbin)
+            content = self._render(worktree, cli_bin)
         except _UnsafeTargetValue as exc:
             return False, "unsafe_path", f"unsafe value in live target: {exc}"
         try:
@@ -827,19 +827,19 @@ class ForegroundBackend:
         if located is None:
             return False, "no single live foreground gateway to restart"
         port, _pid = located
-        kcbin = self._resolve_binary(port)
-        if kcbin is None:
+        cli_bin = self._resolve_binary(port)
+        if cli_bin is None:
             return False, "junction binary could not be resolved"
         # --port pins the restart to the gateway the marker names, exactly as
         # cli_server passes the resolved port to its own detached spawn — the
         # child must not re-resolve and disagree.
         try:
-            self._spawn([kcbin, "restart", "--port", str(port)])
+            self._spawn([cli_bin, "restart", "--port", str(port)])
         except OSError as exc:
             return False, f"could not establish detached restart: {exc}"[:200]
         return True, ""
 
-    def plan(self, worktree: Path, kcbin: Path) -> dict:
+    def plan(self, worktree: Path, cli_bin: Path) -> dict:
         """Describe — without mutating anything — how the restart would run."""
         located = self._locate()
         port = located[0] if located is not None else None

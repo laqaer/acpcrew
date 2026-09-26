@@ -79,7 +79,7 @@ describe('stub-dashboard-api config fixture', () => {
     expect(Object.values(JUNCTION_CONFIG_FIXTURE.workspaces)[0]).toHaveProperty('dir')
     renderWithProviders(<JunctionCfgTab />)
     await screen.findByText('Junction Agents')
-    expect(screen.getByText('~/.kiro/crew/workspace')).toBeInTheDocument()
+    expect(screen.getByText('~/.junction/workspace')).toBeInTheDocument()
   })
 
   it('carries the nested objects the tab dereferences unguarded', () => {

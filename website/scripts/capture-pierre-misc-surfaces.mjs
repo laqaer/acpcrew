@@ -85,9 +85,9 @@ mkdirSync(OUT, { recursive: true })
 const USER_LINKS = [
   'Before you start, context on the migration:',
   '',
-  '- [PR #843 — Replace Monaco with Pierre](https://github.com/kirodotdev/KiroCrew/pull/843)',
+  '- [PR #843 — Replace Monaco with Pierre](https://github.com/laqaer/junction/pull/843)',
   '- [MR !12 — Pierre worker pool sizing](https://gitlab.com/kiro/dashboard/-/merge_requests/12)',
-  '- [Issue #2418 — Monaco worker 404s on file open](https://github.com/kirodotdev/KiroCrew/issues/2418)',
+  '- [Issue #2418 — Monaco worker 404s on file open](https://github.com/laqaer/junction/issues/2418)',
   '- [Issue #77 — .tex highlighting regressed after the swap](https://gitlab.com/kiro/dashboard/-/issues/77)',
 ].join('\n')
 
@@ -96,14 +96,14 @@ const AGENT_LINKS = [
   '',
   '- [Shiki bundled language list](https://shiki.style/languages)',
   '- [@pierre/diffs option reference](https://docs.pierre.co/diffs/options)',
-  '- [Architecture overview](https://github.com/kirodotdev/KiroCrew/blob/main/docs/architecture/overview.md)',
-  '- [dashboard-iframe-hosts.md](https://github.com/kirodotdev/KiroCrew/blob/main/src/junction/docs/dashboard-iframe-hosts.md)',
+  '- [Architecture overview](https://github.com/laqaer/junction/blob/main/docs/architecture/overview.md)',
+  '- [dashboard-iframe-hosts.md](https://github.com/laqaer/junction/blob/main/src/junction/docs/dashboard-iframe-hosts.md)',
 ].join('\n')
 
 /* Frame 23's source. An ASSISTANT mention makes this a Changes source (and, being
  * a source, it is excluded from the Links tab — which is why frame 20 uses a
  * different, user-pasted pull request). */
-const PR_URL = 'https://github.com/kirodotdev/KiroCrew/pull/861'
+const PR_URL = 'https://github.com/laqaer/junction/pull/861'
 
 /* Frame 24's tool input: a bare patch, NOT JSON. PayloadView's
  * `tryParseJsonObject` declines it, so it reaches ToolInputText verbatim, where
@@ -661,7 +661,7 @@ async function main() {
     localStorage.setItem('mc-onboarded', '1')
     // The page's own last-open-project key: seeded so it lands in the workspace
     // rather than the project list, and opens main_file on its own.
-    localStorage.setItem('kc:papyrus:project', project)
+    localStorage.setItem('jn:papyrus:project', project)
   }, PAPYRUS_PROJECT)
   await page.goto(base + '/papyrus', { waitUntil: 'domcontentloaded' })
   await page.waitForSelector('[data-testid="papyrus-editor"]', { timeout: 20000 })

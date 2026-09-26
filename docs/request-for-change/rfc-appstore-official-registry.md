@@ -15,7 +15,7 @@ superseded-by: []
 
 **Author:** Junction contributors
 **Date:** 2026-07-29
-**Status:** partial, **and diverged** — this document's failure mode is the first one the [directory README](README.md) names: *the plan was overtaken.* Rollout step R1 shipped **in the sibling `kirodotdev/KiroCrewApps` repo**, but §4 was reversed on four decisions while it did, so §4 is now a record of what was decided rather than a description of the contract. **Read the note at the head of §4 before trusting anything below about categories.** The schema files in that repository are the current source of truth.
+**Status:** partial, **and diverged** — this document's failure mode is the first one the [directory README](README.md) names: *the plan was overtaken.* Rollout step R1 shipped **in the sibling app-registry repo (`JunctionApps`)**, but §4 was reversed on four decisions while it did, so §4 is now a record of what was decided rather than a description of the contract. **Read the note at the head of §4 before trusting anything below about categories.** The schema files in that repository are the current source of truth.
 
 On the Junction side, R3 and R4 are no longer unstarted as this line previously said, but neither is finished. The official **fetch** is live and so is editorial-driven Discover (`apps/official_catalog.py`, `apps/official_editorial.py`). The **signature gate is not**: that module's own header lists three deliberate omissions, and the first is "No signature verification" — the `.sig` sidecar is published and nothing checks it, so trust is TLS to our own domain, and the consequence is enforced rather than ignored (a curated author does not mint the verified mark while that holds). **Tombstone resolution is absent** on the same terms: a document carrying a non-empty `removed` or `reinstated` list is refused outright rather than half-resolved. The rail order's own document is published but not yet read by any client — the client still resolves category order from the editorial document, so that one URL exists ahead of its consumer by design.
 
@@ -95,9 +95,9 @@ mechanism*):
 
 | Layer | Home | Contents |
 |-------|------|----------|
-| **Contract (schema)** | `KiroCrewApps` *(now; migrates to `KiroCrewAppSDK` later)* | JSON Schema + generated TS types for the registry entry and the editorial document. Starts co-located with the data it validates; extracted to the SDK once there are external consumers (published app-author tooling). |
-| **Data (source of truth)** | `KiroCrewApps` | `official-registry.json` + `editorial.json`, hand-curated. A publish CI workflow validates against the co-located schema and pushes to the distribution CDN. |
-| **Client + fallback** | `Junction` | Fetch / validate / layered-fallback code, **plus** the bundled fallback snapshot `junction/apps/app-registry.json`, which is **generated** from `KiroCrewApps` at build time (or a bot sync PR) — never hand-authored, so the offline floor cannot drift from canonical. |
+| **Contract (schema)** | `JunctionApps` *(now; migrates to `JunctionAppSDK` later)* | JSON Schema + generated TS types for the registry entry and the editorial document. Starts co-located with the data it validates; extracted to the SDK once there are external consumers (published app-author tooling). |
+| **Data (source of truth)** | `JunctionApps` | `official-registry.json` + `editorial.json`, hand-curated. A publish CI workflow validates against the co-located schema and pushes to the distribution CDN. |
+| **Client + fallback** | `Junction` | Fetch / validate / layered-fallback code, **plus** the bundled fallback snapshot `junction/apps/app-registry.json`, which is **generated** from `JunctionApps` at build time (or a bot sync PR) — never hand-authored, so the offline floor cannot drift from canonical. |
 
 Rationale: the entire premise of goal 1 is to decouple catalog + merchandising
 cadence from app releases. Co-locating the data in `Junction` re-couples them —
@@ -106,11 +106,11 @@ CODEOWNERS, review, and commit history, and force curators (PM/devrel) to hold
 product-code write access. A dedicated catalog repo gives a separate write/trust
 boundary and a clean audit trail. Precedent: Obsidian's `obsidian-releases`
 holds `community-plugins.json` + featured lists separate from the app; Homebrew
-taps; Raycast's extensions repo. `KiroCrewApps` already exists (currently an
-empty stub) as the intended home.
+taps; Raycast's extensions repo. A dedicated `JunctionApps` repo is the
+intended home.
 
-The schema **starts in `KiroCrewApps`, co-located with the data it validates**,
-and migrates to `KiroCrewAppSDK` later. Its only consumer at launch is the
+The schema **starts in `JunctionApps`, co-located with the data it validates**,
+and migrates to `JunctionAppSDK` later. Its only consumer at launch is the
 catalog's own validate-and-publish workflow; the client read-path and published
 app-author tooling that would justify a separately-versioned SDK package aren't
 wired yet. Keeping it next to the data avoids a premature cross-repo release
@@ -124,10 +124,10 @@ published doc has to change when the schema's *home* changes.
 
 The CDN artifact is **generated by CI from the curated files**, not the curated
 file copied verbatim. Curators edit a human-friendly source of truth in
-`KiroCrewApps`; the publish workflow emits the machine-facing document:
+`JunctionApps`; the publish workflow emits the machine-facing document:
 
 ```
-KiroCrewApps (authored, reviewed)
+JunctionApps (authored, reviewed)
    → CI: validate against schema · normalize · resolve · stamp · integrity · SIGN
       → published document on the CDN (generated, immutable per revision)
          → client fetch  /  generated bundled snapshot in Junction
@@ -596,7 +596,7 @@ checks).
 
 > **Diverged from what shipped. Read this before §4.**
 >
-> Four of §4's decisions were reversed in `kirodotdev/KiroCrewApps` after this
+> Four of §4's decisions were reversed in the app-registry repo after this
 > document was accepted. The reasoning below is kept as the record of what was
 > decided and why; it is no longer a description of the contract. The schema
 > files in that repository are the current source of truth.
@@ -683,8 +683,8 @@ clients is the **tolerant reader** with **additive-only** evolution:
    `md`) is dropped individually; the rest of the page still renders.
 
 The contract (allowed `type`s, required/optional fields per type, the tolerant-
-reader + additive rules) is the JSON Schema in `KiroCrewApps` (co-located with
-the data now, migrating to `KiroCrewAppSDK` later — §2), so
+reader + additive rules) is the JSON Schema in `JunctionApps` (co-located with
+the data now, migrating to `JunctionAppSDK` later — §2), so
 client, curator tooling, and validator share one definition.
 
 ### Fail-safe fallback ladder
@@ -865,7 +865,7 @@ two documents must not be read as using one shared tier vocabulary.
 
 ## 7. Rollout
 
-1. **Contract + data + generated publish.** In `KiroCrewApps`, land the two JSON
+1. **Contract + data + generated publish.** In `JunctionApps`, land the two JSON
    Schemas (co-located, versioned from `schemaVersion: 1`, `source` as a closed
    discriminated union with `git` only) and populate the authored catalog (seeded
    from the current bundled entries) + an initial `editorial.json`. Build the
@@ -885,7 +885,7 @@ two documents must not be read as using one shared tier vocabulary.
    floor. Ship the first curated layout.
 5. **Schema → SDK migration (later).** Once published app-author tooling or the
    client consume the schema directly, move the schema files to
-   `KiroCrewAppSDK`, publish them from there, and repoint the validator import.
+   `JunctionAppSDK`, publish them from there, and repoint the validator import.
    The wire `schemaVersion` is unchanged, so no published-doc consumer is
    affected.
 
@@ -896,12 +896,12 @@ two documents must not be read as using one shared tier vocabulary.
 Cross-references to these use **names, not numbers**, so resolving one never
 leaves a stale pointer elsewhere in the document.
 
-1. **Editorial cadence & authoring UX** — hand-edited JSON in `KiroCrewApps`
+1. **Editorial cadence & authoring UX** — hand-edited JSON in `JunctionApps`
    with schema validation in CI (proposed) vs a small authoring tool. Who
    curates, and how often?
 2. **Snapshot-sync mechanism** — build-time generation vs scheduled bot PR into
    `Junction`. Trade-off: build-time is always fresh but couples the Junction
-   build to a `KiroCrewApps` fetch; a bot PR keeps the build hermetic but can
+   build to a `JunctionApps` fetch; a bot PR keeps the build hermetic but can
    lag. *(This is why §2's table marks that row open rather than settled.)*
 3. **Schema version scheme** — integer majors (proposed, matches the installed-
    app `schemaVersion: int`) vs semver on the schema. Integer is simpler for the
@@ -959,7 +959,7 @@ relitigated):
 
 ## 9. Success criteria
 
-- Adding/removing/re-featuring an app is a `KiroCrewApps` PR that reaches
+- Adding/removing/re-featuring an app is a `JunctionApps` PR that reaches
   clients within one cache TTL — **no app release**.
 - A new editorial section `type` renders on new clients and is invisible (not
   broken) on old ones.

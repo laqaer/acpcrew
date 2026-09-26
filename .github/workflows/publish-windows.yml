@@ -105,10 +105,14 @@ jobs:
       # what manualDownloadUrl() hands a user whose in-app update failed, so it
       # can carry neither the version nor electron-builder's spaces.
       PUBLISHED_BASENAME: Junction-Setup
-      # The leaf certificate the signing profile issues. Pinned as the expected
-      # publisher so a misconfigured signing profile is caught here rather than
-      # by every client's fail-closed update check.
-      EXPECT_SUBJECT_CN: "Amazon Web Services, Inc."
+      # The subject CN of the certificate build-windows.yml signs with, set as
+      # the repository variable WINDOWS_SIGNING_SUBJECT_CN. It is the expected
+      # publisher so an installer signed by the wrong certificate is caught here
+      # rather than by every client's fail-closed update check (app-update.yml
+      # pins the CN of the certificate that actually signed the build). Unset,
+      # it is empty and the verify step refuses to publish, exactly as it
+      # refuses an unsigned installer.
+      EXPECT_SUBJECT_CN: ${{ vars.WINDOWS_SIGNING_SUBJECT_CN }}
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 
@@ -269,6 +273,10 @@ jobs:
         if: env.HAS_SIGNING_SECRETS && steps.locate.outputs.staged
         run: |
           set -euo pipefail
+          if [ -z "${EXPECT_SUBJECT_CN}" ]; then
+            echo "::error::the repository variable WINDOWS_SIGNING_SUBJECT_CN is not set, so there is no expected publisher to check the installer against. Refusing to publish; set it to the subject CN of the Windows signing certificate."
+            exit 1
+          fi
           python3 scripts/verify_windows_installer.py \
             --installer "${INSTALLER_PATH}" \
             --expect-subject-cn "${EXPECT_SUBJECT_CN}"

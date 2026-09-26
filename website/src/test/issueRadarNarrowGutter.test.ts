@@ -2,7 +2,7 @@
  * Issue Radar's own page gutters, narrow-first.
  *
  * Every full-width surface in this app ran an unconditional desktop gutter while
- * the issue, PR and crew list columns beside them ran 8px at every width, so the app
+ * the issue, PR and steward list columns beside them ran 8px at every width, so the app
  * disagreed with itself about how far content sits from a phone's edge. The lists now
  * carry the same 16px as the pages, at every width -- their own footer rows were
  * already `px-3` (12px), so within one column two left edges disagreed too.
@@ -32,7 +32,7 @@ const read = async (p: string): Promise<string> =>
 const CONVERTED: [string, string][] = [
   ['views/OverviewView.tsx', 'px-4 md:px-6'],
   ['views/TaggingView.tsx', 'px-4 md:px-6'],
-  ['views/CrewPageView.tsx', 'px-4 md:px-6'],
+  ['views/StewardPageView.tsx', 'px-4 md:px-6'],
   ['components/DetailHeader.tsx', 'px-4 md:px-6'],
   ['components/IssueDetail.tsx', 'px-4 md:px-6'],
   ['components/PrDetail.tsx', 'px-4 md:px-6'],
@@ -78,10 +78,10 @@ describe('issue-radar page gutters are narrow-first', () => {
       .toHaveLength(3)
   })
 
-  it('gives a crew page the same gutter while loading, on error, and loaded', async () => {
+  it('gives a steward page the same gutter while loading, on error, and loaded', async () => {
     // A gutter that changed as the read landed would shift the content sideways
     // on arrival.
-    const s = await read('views/CrewPageView.tsx')
+    const s = await read('views/StewardPageView.tsx')
     expect(s.match(/px-4 md:px-6/g) ?? [], 'loading, error and loaded must agree')
       .toHaveLength(3)
   })
@@ -104,8 +104,8 @@ describe('issue-radar page gutters are narrow-first', () => {
       expect([...gutters].sort(), `${file}: one column must not hold two left edges`)
         .toEqual(['4'])
     }
-    const crew = await read('components/CrewList.tsx')
-    expect(crew, 'the crew roster is the third list column and shares the gutter')
+    const stewards = await read('components/StewardList.tsx')
+    expect(stewards, 'the steward roster is the third list column and shares the gutter')
       .toContain('scrollbar-none px-4 pt-2 pb-2')
   })
 

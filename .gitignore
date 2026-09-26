@@ -79,8 +79,8 @@ Thumbs.db
 .git.old
 
 # Dev mode data directory
-.kirocrew-dev/
-.kirocrew-dev2/
+.junction-dev/
+.junction-dev2/
 
 # Potential task progress files
 *.TASK_PROGRESS.md

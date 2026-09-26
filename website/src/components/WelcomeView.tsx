@@ -1,9 +1,11 @@
 import { useState, useRef, useEffect } from 'react'
 import { createPortal } from 'react-dom'
-import { Droplet, EyeOff, GitMerge, RefreshCw, Undo2, VenetianMask } from 'lucide-react'
+import { Droplet, EyeOff, RefreshCw, Undo2, VenetianMask } from 'lucide-react'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { useTheme } from '../hooks/useTheme'
 import { getThemeBranding } from '../themeBranding'
+import { BrandGlyph } from './BrandIcon'
+import junctionGlyphUrl from '../assets/junction-glyph.svg'
 import { api } from '../api/client'
 
 import { i18nT } from '../i18n/t'
@@ -102,16 +104,15 @@ export default function WelcomeView({
 
   // Per-theme brand mark: a registered theme (via the themeBranding seam) may
   // supply its own logo — render it here too, not just in the App shell, so the
-  // welcome screen matches the active theme. Falls back to the Junction track
-  // mark when the theme registers no logo.
+  // welcome screen matches the active theme. Falls back to the Junction mark
+  // (the J glyph on an accent plate) when the theme registers no logo.
   const { colorTheme } = useTheme()
   const brandLogo = getThemeBranding(colorTheme)?.logo
   const brandMark = brandLogo
     ? <img src={brandLogo} alt="" aria-hidden="true" className="w-16 h-16 drop-shadow-lg shrink-0 animate-float rounded-md object-contain" />
     : (
-      <span className="relative flex h-16 w-16 shrink-0 items-center justify-center animate-float" aria-hidden="true">
-        <span className="absolute inset-0 rounded-xl bg-accent/15 ring-1 ring-accent/40" />
-        <GitMerge className="lucide-inline relative h-9 w-9 text-accent" />
+      <span className="flex h-16 w-16 shrink-0 items-center justify-center rounded-2xl bg-accent text-accent-fg shadow-lg animate-float" aria-hidden="true" data-testid="welcome-junction-mark">
+        <BrandGlyph url={junctionGlyphUrl} size={40} />
       </span>
     )
 

@@ -321,12 +321,12 @@ class TestWorkspaceScoping:
         chess_main = store.ledger_path()
         _cfg(target_display="Zedmor/chess_test", branch="origin/dev")
         chess_dev = store.ledger_path()
-        _cfg(target_display="kirodotdev/KiroCrew", branch="origin/main")
-        kc_main = store.ledger_path()
+        _cfg(target_display="laqaer/junction", branch="origin/main")
+        jn_main = store.ledger_path()
 
         # All three differ, and each lives under a per-repo subtree.
-        assert len({chess_main, chess_dev, kc_main}) == 3
-        assert all("repos" in str(p) for p in (chess_main, chess_dev, kc_main))
+        assert len({chess_main, chess_dev, jn_main}) == 3
+        assert all("repos" in str(p) for p in (chess_main, chess_dev, jn_main))
         # origin/ prefix does not create a separate workspace from a bare name.
         _cfg(target_display="Zedmor/chess_test", branch="main")
         assert store.ledger_path() == chess_main

@@ -30,7 +30,7 @@ import { json, makeFixedApi, handleBootRoute } from './lib/boot-api.mjs'
 
 const OUT = process.argv[2] || '../temp-screenshots/i18n-labels'
 const SLOT = 'i18n-labels'
-const PROJECT = '/home/user/.kiro/crew/workspace'
+const PROJECT = '/home/user/.junction/workspace'
 const VIEW = { width: 1500, height: 1000 }
 // `fileURLToPath`, not `.pathname`: the latter yields `/C:/…` on Windows and
 // leaves percent-encoding in place, so the catalog read fails there.
@@ -155,7 +155,7 @@ async function main() {
     }
     if (path === '/api/agents') {
       return json(route, {
-        agents: [{ name: 'default', kiro_agent: 'junction', description: 'Default crew agent' }],
+        agents: [{ name: 'default', kiro_agent: 'junction', description: 'Default agent' }],
         default_agent: 'default',
       })
     }

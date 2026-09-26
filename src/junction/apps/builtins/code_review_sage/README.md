@@ -74,7 +74,7 @@ code_review_sage/
 └── tests/                   # unit tests
 ```
 
-App-local runtime data lives under `~/.kiro/crew/apps/code-review-sage/data/`
+App-local runtime data lives under `~/.junction/apps/code-review-sage/data/`
 (honors `JUNCTION_HOME`; created on first use, never committed).
 
 ## Enable
@@ -95,7 +95,7 @@ gh auth login --hostname github.com
 ### GitHub Enterprise Server
 
 GitHub Enterprise hosts are opt-in. Add each instance to `github_hosts` in
-`~/.kiro/crew/apps/code-review-sage/data/config.json` (the list replaces the
+`~/.junction/apps/code-review-sage/data/config.json` (the list replaces the
 default, so keep `github.com` if you still review there) and authenticate `gh`
 for it:
 

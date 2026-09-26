@@ -10,7 +10,7 @@ booleans and non-integral, malformed, or non-finite values. Imported settings ar
 type-validated before they are written, and the CLI converts typed values before
 writing.
 
-The config module (`junction/config/loader.py`) loads runtime configuration from `~/.kiro/crew/config.json` using stdlib dataclasses with sensible defaults.
+The config module (`junction/config/loader.py`) loads runtime configuration from `~/.junction/config.json` using stdlib dataclasses with sensible defaults.
 
 A feature whose section spends tokens on the user's behalf defaults to off and
 documents its knobs in its own spec — `session_summary` is the current example
@@ -22,25 +22,20 @@ gateway from starting.
 
 ## Data Home Location
 
-Junction's data root nests **under kiro-cli's own `~/.kiro/` base** so all
-Kiro-family apps share a single directory a user can secure. `config_dir()`
-(in `junction/config/paths.py`, re-exported from `junction/config/loader.py`)
-is the single accessor and resolves to:
+Junction has exactly one data home. `config_dir()` (in
+`junction/config/paths.py`, re-exported from `junction/config/loader.py`) is the
+single accessor and resolves to:
 
 1. `$JUNCTION_HOME` when set (used as-is; refuses system directories like `/`,
    `/usr`, `/System`, `/etc`), else
-2. `~/.kiro/crew` (the default).
+2. `~/.junction` (the default, `CONFIG_DIR_NAME`).
 
-**No migration — net-new users only.** All supported installs start directly in
-`~/.kiro/crew`; there is no `~/.kirocrew` to relocate, so `config_dir()` simply
-resolves and `mkdir`s the home above. The one-time `~/.kirocrew` → `~/.kiro/crew`
-data-home migration that earlier releases carried has been **removed** (see
-`docs/system-specs/post-launch-removals.md`). A leftover top-level `~/.kirocrew`
-from an old install is never read, migrated, or deleted; it is left in place —
-still credential-gated by the `.kirocrew` security-path spelling — and `junction
-doctor` reports it, warning rather than advising deletion when it still holds a
-virtual environment (`venv`/`.venv`/`venvs`), since that may be the running
-interpreter.
+The default is one path segment under the user home, so it does not sit inside
+kiro-cli's own `~/.kiro/` directory (`KIRO_BASE_DIR_NAME`) or any other
+product's. There is no fallback to another directory and no migration:
+`config_dir()` resolves the path above and `mkdir`s it. `default_home_paths()`
+returns the one default so a caller comparing an explicit `JUNCTION_HOME`
+against "the default" still recognizes a spelled-out `~/.junction`.
 
 **Repository-controlled uninstall contract.** Every uninstall path owned by this
 repository preserves the Junction data home by default. `junction service
@@ -55,48 +50,18 @@ app's `data/` subtree unless the dedicated `purge_data=true` API action (CLI
 for the literal boolean `true`; absent, legacy, or malformed values fail closed
 to preservation. A whole-home purge is never coupled to uninstall.
 
-**Uninstaller consideration (external dependency).** Because the data home now
-lives under `~/.kiro/`, a hypothetical Kiro-family uninstaller that removes
-`~/.kiro/` would also remove `~/.kiro/crew` and take Junction's data — config,
-credentials, memory DB, session history, and the SEL audit chain — with it. This
-is a persisted-data one-way door, and — unlike when an archived rollback copy
-existed — there is now no `~/.kirocrew.archived` fallback for ANY install
-(upgrader or fresh), so such a wipe is unrecoverable total data loss.
-
-Any Kiro-family uninstaller spec **MUST** either explicitly exclude
-`~/.kiro/crew` from a `~/.kiro/`-wide wipe, or prompt before deleting it.
-Independently, a user who wants the data home entirely outside `~/.kiro/` can set
-`JUNCTION_HOME` to relocate it.
-
-**Technical hedge — recovery-pointer breadcrumb.** `config_dir()` writes a small,
-non-secret `~/.kirocrew.breadcrumb` pointer file at the top-level home
-(`RECOVERY_BREADCRUMB_NAME`), deliberately **outside** `~/.kiro/`, recording the
+**Recovery-pointer breadcrumb.** `config_dir()` writes a small, non-secret
+`~/.junction.breadcrumb` pointer file (`RECOVERY_BREADCRUMB_NAME`) recording the
 data-home path (see `_write_recovery_breadcrumb`). It is idempotent (rewritten
 only when the recorded path changes), best-effort (never blocks startup), and
-written only on the default path (a `JUNCTION_HOME` override carries no `~/.kiro/`
-wipe risk). It is **not a backup** — just a durable signpost that survives a
-`~/.kiro/`-wide uninstaller wipe so a user or support script can find any
-surviving data or understand what was removed. This narrows, but does not
-eliminate, the one-way-door risk above; the release gate still stands.
-
-> **Release gate (UNINSTALLER-EXCLUDE-CREW).** This is a pre-release,
-> human-sign-off dependency, NOT a code change in this repo: the code cannot
-> constrain another product's uninstaller. Before the first release that ships
-> data under `~/.kiro/`, the Junction product owner MUST confirm the
-> Kiro-family uninstaller either excludes `~/.kiro/crew` or prompts — because
-> there is no `~/.kirocrew.archived` fallback for any install, so a
-> `~/.kiro/`-wide wipe would be unrecoverable total data loss. Until confirmed,
-> the placement decision is acknowledged-but-owned here under this name so it is
-> not lost. **Tracked as release-blocking in
-> [issue #355](https://github.com/kirodotdev/KiroCrew/issues/355)** (label
-> `release-blocker`); the sign-off must be recorded there and the issue closed
-> before tagging the first release containing this change.
+written only on the default path (a `JUNCTION_HOME` override is the user's own
+location). It is **not a backup** — just a durable signpost so a user or support
+script can find the data home.
 
 **Paths are resolved per call, never captured at import.** Because
-`config_dir()` re-reads `$JUNCTION_HOME` on every call and the migration above
-is deliberately lazy, the resolved value is only correct at the moment it is
-needed. Modules therefore MUST NOT bind a path factory result to a module-level
-constant:
+`config_dir()` re-reads `$JUNCTION_HOME` on every call, the resolved value is
+only correct at the moment it is needed. Modules therefore MUST NOT bind a path
+factory result to a module-level constant:
 
 ```python
 _SOME_DIR = config_dir() / "some"        # WRONG -- frozen at import
@@ -166,7 +131,7 @@ handlers.
 
 Resolution order:
 1. `JUNCTION_WORKSPACE` env var — used as-is (no `junction-workspace` subdirectory appended)
-2. Saved path in `~/.kiro/crew/workspace_dir` (written by `junction setup`; re-running setup preserves the existing value as the prompt default)
+2. Saved path in `~/.junction/workspace_dir` (written by `junction setup`; re-running setup preserves the existing value as the prompt default)
 3. Platform default:
 
 | Platform | Path |
@@ -189,7 +154,7 @@ The parent directory is created on first call if it doesn't exist.
 
 1. Env var `JUNCTION_PROJECT_DIR` (if set and valid)
 2. CWD walk-up — CLI walks up from CWD looking for `skills/` + `src/junction/` (the `agents/` dir was removed in commit bbbc1f6e when agent config moved into `src/junction/config/`)
-3. Saved path in `~/.kiro/crew/project_dir` (written by `junction setup`)
+3. Saved path in `~/.junction/project_dir` (written by `junction setup`)
 4. Bundled fallback — `config/defaults.json` and `builtin_skills/` inside the package
 
 The CLI (`cli.py:main()`) auto-detects and sets the env var at startup.
@@ -242,7 +207,7 @@ does not have.
 
 ## Config Overlay (config.local.json)
 
-User overrides can be placed in `~/.kiro/crew/config.local.json`. This file is
+User overrides can be placed in `~/.junction/config.local.json`. This file is
 deep-merged on top of `config.json` at load time and is never touched by
 `junction setup` or package upgrades.
 
@@ -262,7 +227,7 @@ junction config set agent.yolo true
 ```
 
 ### `config_local_path() -> Path`
-Returns `~/.kiro/crew/config.local.json` (or `$JUNCTION_HOME/config.local.json`).
+Returns `~/.junction/config.local.json` (or `$JUNCTION_HOME/config.local.json`).
 
 ### `_deep_merge(base: dict, overlay: dict) -> dict`
 Recursively merges overlay into base. Dict values merge recursively; all other
@@ -504,7 +469,7 @@ Serializes config to the JSON structure used by `config.json`. Uses `_configured
 env var) to avoid clobbering the saved port on write-back.
 
 ### `JunctionConfig.save() -> None`
-Writes current config to `~/.kiro/crew/config.json` via `to_dict()`, through
+Writes current config to `~/.junction/config.json` via `to_dict()`, through
 `write_config_atomically()` (see below). Invalidates the `load()` validated-data
 cache so the next load reflects the write immediately.
 
@@ -574,13 +539,12 @@ typed an explicit command and sees the result on stdout. Pinned by
 `test_config_overlay.py::TestCliConfigSetLocal`.
 
 ### `config_dir() -> Path`
-Returns `~/.kiro/crew/` (nested under kiro-cli's `~/.kiro/` base). Overridden by
-`JUNCTION_HOME` env var (refuses system directories like `/`, `/usr`, `/System`,
-`/etc`). On the default (non-override) path, a pre-move `~/.kirocrew` is migrated
-once into `~/.kiro/crew` — see "Data Home Location & Migration" above.
+Returns `~/.junction/`. Overridden by `JUNCTION_HOME` env var (refuses system
+directories like `/`, `/usr`, `/System`, `/etc`). There is no other location and
+no migration — see "Data Home Location" above.
 
 ### `config_path() -> Path`
-Returns `~/.kiro/crew/config.json` (or `$JUNCTION_HOME/config.json` if overridden).
+Returns `~/.junction/config.json` (or `$JUNCTION_HOME/config.json` if overridden).
 
 ### Agent Bookkeeping Sidecar (`agent_model_state.json`)
 
@@ -592,7 +556,7 @@ Code model). kiro-cli validates `~/.kiro/agents/*.json` with serde
 silently falls back to the default agent (`--agent <name>` resolves to default
 with only a stderr "no agent with name X found" line). To keep every spec
 schema-valid, this state lives in a Junction-owned sidecar
-`~/.kiro/crew/agent_model_state.json` (honoring `JUNCTION_HOME`), keyed by agent
+`~/.junction/agent_model_state.json` (honoring `JUNCTION_HOME`), keyed by agent
 name:
 
 ```json
@@ -729,7 +693,7 @@ class SkillsConfig:
 @dataclass
 class TelemetryConfig:
     enabled: bool = False          # main switch; off = metric call sites are no-ops, nothing written
-    local_dir: str = ""            # local JSONL shard dir; empty = ~/.kiro/crew/metrics
+    local_dir: str = ""            # local JSONL shard dir; empty = ~/.junction/metrics
     export_interval_seconds: int = 60  # local-exporter flush interval (>=1)
 
 @dataclass
@@ -775,7 +739,7 @@ class JunctionConfig:
     hooks_data: dict               # raw hooks from config.json
     dashboard_url: str = ""        # e.g. "http://my-host.example.com:8080"
     auto_update: bool = True
-    snapshot_dir: str = ""         # snapshot output dir (default ~/.kiro/crew/snapshots)
+    snapshot_dir: str = ""         # snapshot output dir (default ~/.junction/snapshots)
     slack_channels: dict[str, ChannelConfig]  # per-channel config keyed by channel ID
     slack_dm_activation: str = "always"       # activation mode for DMs (D-prefix channels)
 ```
@@ -784,8 +748,8 @@ class JunctionConfig:
 
 `ComputerUseConfig` carries display and limits only. The switch for native desktop
 GUI automation lives **outside `config.json`**, on the keystone at
-`~/.kiro/crew/computer_use.json` (path via `config.loader.computer_use_state_path()`,
-leaf on `security._CREW_SECRET_LEAVES`):
+`~/.junction/computer_use.json` (path via `config.loader.computer_use_state_path()`,
+leaf on `security._DATA_HOME_SECRET_LEAVES`):
 
 ```json
 {
@@ -796,8 +760,8 @@ leaf on `security._CREW_SECRET_LEAVES`):
 ```
 
 The absence is deliberate and the precedent is `denied_commands.json`:
-`is_sensitive_write_path("~/.kiro/crew/config.json")` is `True` (the *tool* path is
-protected), but `is_sensitive_bash_command("echo x > ~/.kiro/crew/config.json")` is
+`is_sensitive_write_path("~/.junction/config.json")` is `True` (the *tool* path is
+protected), but `is_sensitive_bash_command("echo x > ~/.junction/config.json")` is
 `None` — `config.json` is not among `_WRITE_PROTECTED_BASH_LEAVES` (which fences
 only a few specific control files elsewhere under the home). A config
 toggle would therefore be flippable by a prompt-injected agent through any shell
@@ -1111,7 +1075,7 @@ Returns the effective config for a channel:
 
 | Variable | Purpose | Default |
 |----------|---------|---------|
-| `JUNCTION_HOME` | Override config/data directory | `~/.kiro/crew` |
+| `JUNCTION_HOME` | Override config/data directory | `~/.junction` |
 | `JUNCTION_PORT` | Override dashboard port (dev mode — run dev + prod side by side) | `5476` |
 | `JUNCTION_WORKSPACE` | Override workspace root directory | Platform-dependent |
 | `JUNCTION_PROJECT_DIR` | Override agent config/skills directory | Auto-detected |

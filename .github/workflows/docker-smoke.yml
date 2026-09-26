@@ -124,8 +124,8 @@ jobs:
           set -euo pipefail
           # The credential passed via -e must have landed in the data
           # home's .env (mode 600) ...
-          docker exec smoke sh -c 'grep -q "^SLACK_BOT_TOKEN=smoke-placeholder-cred$" "$HOME/.kiro/crew/.env"'
-          docker exec smoke sh -c 'test "$(stat -c %a "$HOME/.kiro/crew/.env")" = "600"'
+          docker exec smoke sh -c 'grep -q "^SLACK_BOT_TOKEN=smoke-placeholder-cred$" "$HOME/.junction/.env"'
+          docker exec smoke sh -c 'test "$(stat -c %a "$HOME/.junction/.env")" = "600"'
           # ... and must be ABSENT from every long-lived process environ
           # (tini, gateway, workers). The probe shell itself is excluded:
           # `docker exec` re-injects the container's env config into the

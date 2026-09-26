@@ -191,7 +191,7 @@ describe('isPathCandidate — path chip pre-filter', () => {
   it('accepts rooted, home-relative and explicitly relative paths', () => {
     expect(isPathCandidate('/Users/me/project/Junction')).toBe(true)
     expect(isPathCandidate('/home/user/reports/2026-05-17T05:46.md')).toBe(true)
-    expect(isPathCandidate('~/.kiro/crew/workspace')).toBe(true)
+    expect(isPathCandidate('~/.junction/workspace')).toBe(true)
     expect(isPathCandidate('./src/index.ts')).toBe(true)
     expect(isPathCandidate('../sibling/file.json')).toBe(true)
   })
@@ -210,7 +210,7 @@ describe('isPathCandidate — path chip pre-filter', () => {
 
   it('rejects other slash-separated identifiers that are not paths', () => {
     expect(isPathCandidate('owner/repo')).toBe(false)
-    expect(isPathCandidate('kirodotdev/KiroCrew')).toBe(false)
+    expect(isPathCandidate('laqaer/junction')).toBe(false)
     expect(isPathCandidate('text/plain')).toBe(false)
     expect(isPathCandidate('@scope/pkg')).toBe(false)
     expect(isPathCandidate('2026/08/02')).toBe(false)

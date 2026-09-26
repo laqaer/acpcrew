@@ -1,7 +1,7 @@
 """Junction One-Click Deploy - in-account reaper Lambda.
 
 Triggered by an EventBridge schedule (see reaper.yaml). Each run scans the
-shared deploy bucket for per-slug `.kirocrew-deploy.json` manifests and, for any
+shared deploy bucket for per-slug `.junction-deploy.json` manifests and, for any
 NON-persistent deploy whose `expires_at` is in the past, reaps it:
   1. delete its /<slug>/ static objects (+ its _backends/<slug>/*.zip)
   2. detach its `<slug>/api/*` CloudFront behavior + origin (if any)
@@ -68,7 +68,7 @@ def _slugs():
 
 def _manifest(slug):
     try:
-        obj = s3.get_object(Bucket=BUCKET, Key=f"{slug}/.kirocrew-deploy.json")
+        obj = s3.get_object(Bucket=BUCKET, Key=f"{slug}/.junction-deploy.json")
         return json.loads(obj["Body"].read())
     except Exception:
         return None
@@ -143,12 +143,12 @@ def _quarantine_manifest(slug):
     path so the reaper stops re-processing it every run. The manifest content
     is preserved under _quarantine/ for forensics; the mismatched
     infrastructure itself is left untouched."""
-    key = f"{slug}/.kirocrew-deploy.json"
+    key = f"{slug}/.junction-deploy.json"
     try:
         obj = s3.get_object(Bucket=BUCKET, Key=key)
         s3.put_object(
             Bucket=BUCKET,
-            Key=f"_quarantine/{slug}.kirocrew-deploy.json",
+            Key=f"_quarantine/{slug}.junction-deploy.json",
             Body=obj["Body"].read(),
             ContentType="application/json",
         )
@@ -227,7 +227,7 @@ def _reap_engine_arch(man, slug, now):
                     return "reaping"
         # OAC deleted (or already gone) — clean up manifest.
         try:
-            s3.delete_object(Bucket=BUCKET, Key=f"{slug}/.kirocrew-deploy.json")
+            s3.delete_object(Bucket=BUCKET, Key=f"{slug}/.junction-deploy.json")
         except Exception as exc:
             print(json.dumps({"engine_reap_manifest_delete_error": slug, "error": str(exc)}))
         return "reaped"
@@ -301,7 +301,7 @@ def _reap_engine_arch(man, slug, now):
                 _reaping_manifest = json.dumps({**man, "reaping": True})
                 s3.put_object(
                     Bucket=BUCKET,
-                    Key=f"{slug}/.kirocrew-deploy.json",
+                    Key=f"{slug}/.junction-deploy.json",
                     Body=_reaping_manifest.encode(),
                     ContentType="application/json",
                 )
@@ -319,7 +319,7 @@ def _reap_engine_arch(man, slug, now):
                         _reaping_manifest = json.dumps({**man, "reaping": True})
                         s3.put_object(
                             Bucket=BUCKET,
-                            Key=f"{slug}/.kirocrew-deploy.json",
+                            Key=f"{slug}/.junction-deploy.json",
                             Body=_reaping_manifest.encode(),
                             ContentType="application/json",
                         )
@@ -443,7 +443,7 @@ def _reap_engine_arch(man, slug, now):
                                 "arch": "engine"}
                     s3.put_object(
                         Bucket=BUCKET,
-                        Key=f"{slug}/.kirocrew-deploy.json",
+                        Key=f"{slug}/.junction-deploy.json",
                         Body=json.dumps(man_body).encode(),
                         ContentType="application/json",
                     )
@@ -459,7 +459,7 @@ def _reap_engine_arch(man, slug, now):
                                 "arch": "engine"}
                     s3.put_object(
                         Bucket=BUCKET,
-                        Key=f"{slug}/.kirocrew-deploy.json",
+                        Key=f"{slug}/.junction-deploy.json",
                         Body=json.dumps(man_body).encode(),
                         ContentType="application/json",
                     )
@@ -470,7 +470,7 @@ def _reap_engine_arch(man, slug, now):
 
     # Delete the manifest from the shared bucket.
     try:
-        s3.delete_object(Bucket=BUCKET, Key=f"{slug}/.kirocrew-deploy.json")
+        s3.delete_object(Bucket=BUCKET, Key=f"{slug}/.junction-deploy.json")
     except Exception as exc:
         print(json.dumps({"engine_reap_manifest_delete_error": slug, "error": str(exc)}))
 
@@ -622,7 +622,7 @@ def handler(event, context):
             try:
                 s3.put_object(
                     Bucket=BUCKET,
-                    Key=f"{slug}/.kirocrew-deploy.json",
+                    Key=f"{slug}/.junction-deploy.json",
                     Body=reaping_manifest.encode(),
                     ContentType="application/json",
                 )

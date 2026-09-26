@@ -12,9 +12,9 @@ import time
 
 # A leading "~" is expanded because Docker `ENV` and systemd `Environment=`
 # pass one through unexpanded, and os.environ.get does not expand it -- without
-# this, JUNCTION_HOME='~/crew-data' would create a directory literally named
+# this, JUNCTION_HOME='~/junction-data' would create a directory literally named
 # "~" under the cwd. Matches Path(override).expanduser() in config/paths.py.
-_DATA_HOME = os.path.expanduser(os.environ.get("JUNCTION_HOME") or "~/.kiro/crew")
+_DATA_HOME = os.path.expanduser(os.environ.get("JUNCTION_HOME") or "~/.junction")
 COOKIE_JAR_PATH = os.path.join(_DATA_HOME, "browser-cookies.txt")
 STORAGE_STATE_PATH = os.path.join(_DATA_HOME, "playwright-storage-state.json")
 

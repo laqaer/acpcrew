@@ -16,7 +16,7 @@ logger = logging.getLogger(__name__)
 _SKILLS_DIR = Path(__file__).resolve().parent / "skills"
 
 
-_MANAGED_MARKER = ".kirocrew-managed"
+_MANAGED_MARKER = ".junction-managed"
 
 
 def _register_core_skills() -> None:
@@ -28,7 +28,7 @@ def _register_core_skills() -> None:
 
     Called at gateway startup. Uses config_dir() so pods/tests isolate correctly.
 
-    Safety: only removes/replaces directories that contain a `.kirocrew-managed`
+    Safety: only removes/replaces directories that contain a `.junction-managed`
     marker file (written by us on creation). User-placed directories with the
     same name are left untouched with a warning.
     """

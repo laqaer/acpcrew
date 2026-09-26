@@ -8,6 +8,7 @@ from unittest.mock import patch
 import pytest
 
 import junction.sandbox as _sb_mod
+from junction.config.paths import RETIRED_AUTH_STAGING_NAME, RETIRED_DATA_HOME_NAMES
 from junction.sandbox import (
     _AGENT_DENIED_ENV_KEYS,
     _CC_DIRS,
@@ -79,17 +80,29 @@ class TestCcFilesList:
         assert ".git-credentials" in _CC_FILES
 
     def test_has_junction_env(self):
-        assert ".kirocrew/.env" in _CC_FILES
+        assert ".junction/.env" in _CC_FILES
+
+    @pytest.mark.parametrize("retired", RETIRED_DATA_HOME_NAMES)
+    def test_hides_retired_data_home_secrets_in_every_mode(self, retired):
+        """An upgraded machine can still hold a retired home's ``.env`` or vault.
+
+        A spawned subprocess opens files without routing through the hook gate,
+        so the retired copies must be hidden here as well as fenced there.
+        """
+        assert f"{retired}/.env" in _CC_FILES
+        for dirs in (_sb_mod._STRICT_DIRS, _STANDARD_DIRS, _CC_DIRS):
+            assert f"{retired}/.vault" in dirs
+            assert RETIRED_AUTH_STAGING_NAME in dirs
 
 
 class TestBuildLauncherScriptCcMode:
     def test_extra_hidden_directory_is_bound_over(self):
         script = _build_launcher_script(
             "strict",
-            extra_hidden_dirs=("/private/kiro/crew",),
+            extra_hidden_dirs=("/private/junction",),
         )
 
-        assert "/private/kiro/crew" in script
+        assert "/private/junction" in script
 
     def test_cc_mode_uses_cc_dirs(self):
         script = _build_launcher_script("cc")
@@ -133,12 +146,12 @@ class TestBuildSeatbeltProfileCcMode:
     def test_extra_hidden_directory_denies_reads_and_writes(self):
         profile = _build_seatbelt_profile(
             "strict",
-            extra_hidden_dirs=("/private/kiro/crew",),
+            extra_hidden_dirs=("/private/junction",),
         )
 
-        assert '(deny file-read* (subpath "/private/kiro/crew"))' in profile
-        assert '(deny file-write* (subpath "/private/kiro/crew"))' in profile
-        assert '(deny file-link (subpath "/private/kiro/crew"))' in profile
+        assert '(deny file-read* (subpath "/private/junction"))' in profile
+        assert '(deny file-write* (subpath "/private/junction"))' in profile
+        assert '(deny file-link (subpath "/private/junction"))' in profile
 
     def test_cc_does_not_deny_aws(self):
         """CC seatbelt does NOT deny .aws — macOS needs full .aws access for
@@ -156,7 +169,7 @@ class TestBuildSeatbeltProfileCcMode:
         assert ".npmrc" in profile
         assert ".netrc" in profile
         assert ".git-credentials" in profile
-        assert ".kirocrew/.env" in profile
+        assert ".junction/.env" in profile
         assert "literal" in profile
 
     def test_cc_does_not_deny_ssh(self):

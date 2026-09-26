@@ -98,16 +98,16 @@ evaluator edits.
 1. `JUNCTION_SECURITY_POLICY` env path — fleet hot-override, highest.
 2. companion-bundled resource (the `amazon` edition packages it; the public core
    passes `None`).
-3. `~/.kiro/crew/security_policy.json` — standalone operator-authored.
+3. `~/.junction/security_policy.json` — standalone operator-authored.
 4. none → `None` → editable secure-defaults (ungoverned ceiling).
 
 The home path (step 3) is resolved through the **lazy `_policy_home_path()`
 accessor**, never a module-level `config_dir()` capture — so importing
 `platform.governance` (or `platform.admission`, whose `_policy_default_path()` /
 `_seed_marker_path()` / `_checksum_path()` follow the same pattern) never
-triggers `config_dir()` and thus never fires the one-time data-home migration as
-an import side effect. The migration runs only at the single chosen point
-(`ensure_data_home()` in the CLI prologue, before any `asyncio.run`), keeping the
+triggers `config_dir()` — which creates the data home and writes its recovery
+breadcrumb — as an import side effect. Resolution runs only at the single chosen
+point (`ensure_data_home()` in the CLI prologue, before any `asyncio.run`), keeping the
 platform layer side-effect-free load-bearing infrastructure. Tests patch these
 accessors, not captured constants.
 
@@ -319,8 +319,8 @@ Under *"secure by default, not by mandate"* there is **no compiled-in floor** �
 the entire posture is operator-editable. The only invariant is the
 **agent-vs-operator split**: the agent cannot edit the policy/profile files.
 This is enforced solely by adding them to `security._SENSITIVE_HOME_DIRS`
-(`~/.kiro/crew/security_policy.json`, `~/.kiro/crew/profiles`,
-`~/.kiro/crew/admission_policy.json`) — `is_sensitive_path` is the shared
+(`~/.junction/security_policy.json`, `~/.junction/profiles`,
+`~/.junction/admission_policy.json`) — `is_sensitive_path` is the shared
 read+write gate across every surface. `assert_governance_paths_protected()` is a
 boot integrity check that fails closed if a refactor ever drops them.
 
@@ -661,8 +661,7 @@ read-your-writes should add it deliberately, with its own tests.
 > backstops Plane A's soft fail-open. The spool capability tokens
 > themselves sit on the sensitive-path floor (`mcp-apps` in
 > `security._SENSITIVE_HOME_DIRS`) so the agent cannot harvest them.
-> Remaining Plane A parity refinements are tracked in
-> [issue #418](https://github.com/kirodotdev/KiroCrew/issues/418) — see
+> Remaining Plane A parity refinements are still open — see
 > [mcp-apps.md](mcp-apps.md).
 
 - **Plane A — the host gate** (`HookManager.on_tool_call`, the primary
@@ -1304,8 +1303,8 @@ row** (`capability_default=True`): standalone it defaults to allow, but an
 enterprise POLICY can force-disable **installed-pack persona injection** —
 the scope this row enforces today. (It does NOT gate L2 asset serving —
 overlays/topbar/audio keep working under a denying policy; if wholesale L2
-disablement is wanted it will be its own row or an extension of this one,
-tracked with kirodotdev/KiroCrew#312.) The decision is consulted at the
+disablement is wanted it will be its own row or an extension of this one.)
+The decision is consulted at the
 injection site
 (`chat_runner.py`, via `governance_permits("capabilities.theme_persona",
 "", session_key=...)`); a denying policy skips injection silently (info log).
@@ -1334,7 +1333,7 @@ ungoverned):
   agent makes still passes the full PreToolUse gate, so the Level-1 POLICY
   ceiling continues to bind all agent *actions* regardless of persona.
 - Activation requires a locally installed pack (filesystem access to
-  `~/.kiro/crew/themes/`) plus a per-content sha grant — an actor with that
+  `~/.junction/themes/`) plus a per-content sha grant — an actor with that
   access is already inside the trust boundary the POLICY ceiling models.
 - The persona-injection force-disable that a plain in-boundary actor could
   not otherwise get is now available to an enterprise POLICY via the
@@ -1350,12 +1349,13 @@ tone-only, content-bound (sha256), and enterprise-disableable via the row
 above — while a default-off would make every installed persona silently dead
 on arrival. The considered stronger alternatives (server-recorded grants,
 default-off until a headless consent story exists) were explicitly declined
-for v1; server-side grant persistence remains the optional half of
-kirodotdev/KiroCrew#312 and MAY tighten the model later without breaking this
-contract (a stricter server is backward-compatible with consenting clients).
-**Revisit trigger:** #312 MUST be revisited before any persona-scope
-expansion (longer length bound, per-turn injection, or richer pack tiers) —
-scope growth without server-recorded grants is not covered by this decision.
+for v1; server-side grant persistence remains an optional follow-up and MAY
+tighten the model later without breaking this contract (a stricter server is
+backward-compatible with consenting clients).
+**Revisit trigger:** server-side grant persistence MUST be revisited before
+any persona-scope expansion (longer length bound, per-turn injection, or richer
+pack tiers) — scope growth without server-recorded grants is not covered by this
+decision.
 
 ### Anonymous telemetry — `capabilities.telemetry`
 

@@ -22,16 +22,14 @@ interface LottieRendererProps {
  * `_expression_function`), and the dashboard CSP is `script-src 'self'
  * 'unsafe-inline'` with NO `'unsafe-eval'`. So an expression does not merely
  * misbehave under this policy — it THROWS, the clip never finishes building, and
- * the slot paints nothing. That is what made three of the four Kiro Ghost clips
- * render as empty boxes while the fourth (the only one with no expression) was
- * fine: `idle`, `walking`, `thinking`, `working` were blank and `error` /
- * `offline` worked, which reads like "the pack is broken" rather than "one
- * feature is unavailable".
+ * the slot paints nothing. In a pack where only some clips carry an expression,
+ * those slots render as empty boxes while the rest are fine, which reads like
+ * "the pack is broken" rather than "one feature is unavailable".
  *
  * Stripping loses NOTHING that could have run: under this CSP no expression can
  * ever evaluate. A clip whose motion depended on one animates less; a clip whose
  * expression was redundant (`loopOut()` over a track that already spans the comp,
- * which is what the shipped ghost used) is unchanged. Both beat invisible.
+ * which After Effects exports add freely) is unchanged. Both beat invisible.
  *
  * Widening the CSP with `'unsafe-eval'` is the alternative and is rejected: it
  * would hand every script on the page a code-execution primitive to make a

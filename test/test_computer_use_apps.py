@@ -660,7 +660,7 @@ class TestBrowserHostedDashboardIsRefused:
             "(3) Junction",  # the unread-badge prefix (App.tsx)
             "Artifacts — Junction",  # a popout frame's suffix
             "junction",  # the no-space spelling
-            "KIRO CREW",  # case must not matter
+            "JUNCTION",  # case must not matter
         ],
     )
     def test_a_browser_window_titled_like_the_dashboard_is_refused(self, title):
@@ -678,7 +678,7 @@ class TestBrowserHostedDashboardIsRefused:
         title-only rule would have let the native app through.
         """
         native = AppRef(
-            name="Junction", pid=1, bundle_id="dev.kiro.crew", window_title="Settings"
+            name="Junction", pid=1, bundle_id="dev.junction.desktop", window_title="Settings"
         )
         assert policy.check_app(native, PolicyConfig()) is not None
 

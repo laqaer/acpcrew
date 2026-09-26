@@ -23,9 +23,9 @@ from typing import Any
 from junction import mcp_core
 from junction.platform import redact_via_context as redact
 from junction.validation import (
-    _ISSUE_RADAR_CREW_EVENT_KINDS,
-    _ISSUE_RADAR_CREW_PHASES,
-    _ISSUE_RADAR_CREW_SKIP_SCOPES,
+    _ISSUE_RADAR_STEWARD_EVENT_KINDS,
+    _ISSUE_RADAR_STEWARD_PHASES,
+    _ISSUE_RADAR_STEWARD_SKIP_SCOPES,
     OPS_MISSION_CONTROL_ALLOWED_CALLS,
     sanitize_json_values,
 )
@@ -153,20 +153,20 @@ def schemas() -> list[dict[str, Any]]:
             },
         },
         {
-            "name": "issue_radar_crew_read",
+            "name": "issue_radar_steward_read",
             "description": (
-                "Read your Issue Radar crew's ledger: the crew record, the "
+                "Read your Issue Radar steward's ledger: the steward record, the "
                 "repo's protocol settings, and every work item that is not "
                 "finished — each with its phase, its `next` step, what was "
                 "already tried and rejected, its worktree, branch, PR and last "
-                "CI reading. Takes no arguments: the crew is resolved from this "
-                "session, so you cannot read another crew's ledger. "
+                "CI reading. Takes no arguments: the steward is resolved from this "
+                "session, so you cannot read another steward's ledger. "
                 "It also returns `skipped_numbers` and `recent_skips` — the "
-                "SHARED skip index for this repository, written by every crew "
+                "SHARED skip index for this repository, written by every steward "
                 "on it, not just you. CHECK an issue against "
                 "`skipped_numbers` BEFORE you investigate it: a number in that "
                 "list has already been passed on and re-investigating it is "
-                "wasted work that every crew would repeat. `recent_skips` says "
+                "wasted work that every steward would repeat. `recent_skips` says "
                 "why the recent passes happened. "
                 "Your per-turn nudge already carries a snapshot, so call this "
                 "for the two cases a snapshot cannot cover: a turn long enough "
@@ -179,9 +179,9 @@ def schemas() -> list[dict[str, Any]]:
             "inputSchema": {"type": "object", "properties": {}},
         },
         {
-            "name": "issue_radar_crew_record",
+            "name": "issue_radar_steward_record",
             "description": (
-                "Record one step of Issue Radar crew work: it updates the work "
+                "Record one step of Issue Radar steward work: it updates the work "
                 "item AND appends one progress line, in a single call. There is "
                 "deliberately no separate 'append event' tool — a phase must "
                 "never move without a logged reason — so `event` and "
@@ -193,17 +193,17 @@ def schemas() -> list[dict[str, Any]]:
                 "omit are left as an earlier write stored them, so a partial "
                 "update is fine and is never a way to erase state. "
                 "Setting `phase` to `skipped` also writes this repository's "
-                "SHARED skip index, so every other crew sees the pass and none "
+                "SHARED skip index, so every other steward sees the pass and none "
                 "of them re-investigates the issue — pass `skip_scope` to say "
                 "what kind of pass it was (architecture, new-feature, "
                 "needs-design, needs-decision, needs-investigation, duplicate, "
                 "already-fixed, not-reproducible, wrong-root-cause, "
                 "breaking-change, gate-config, other) and put "
-                "the real explanation in `why`, which is what the next crew "
+                "the real explanation in `why`, which is what the next steward "
                 "reads. "
-                "The crew and repo come from this session, not from arguments. "
+                "The steward and repo come from this session, not from arguments. "
                 "WARNING — `event` and `why` BECOME PUBLIC: they are rendered into "
-                "your claim comment on the forge as well as on your crew page. "
+                "your claim comment on the forge as well as on your steward page. "
                 "Never "
                 "put an absolute path, a host name or anything else about the "
                 "machine you run on in them; worktree paths belong in "
@@ -220,7 +220,7 @@ def schemas() -> list[dict[str, Any]]:
                     },
                     "phase": {
                         "type": "string",
-                        "enum": sorted(_ISSUE_RADAR_CREW_PHASES),
+                        "enum": sorted(_ISSUE_RADAR_STEWARD_PHASES),
                         "description": (
                             "Work-item phase. Requires `event` + `event_kind`. "
                             "Only one item may be in `implementing` or "
@@ -229,7 +229,7 @@ def schemas() -> list[dict[str, Any]]:
                     },
                     "skip_scope": {
                         "type": "string",
-                        "enum": sorted(_ISSUE_RADAR_CREW_SKIP_SCOPES),
+                        "enum": sorted(_ISSUE_RADAR_STEWARD_SKIP_SCOPES),
                         "description": (
                             "Only with `phase: skipped`. What kind of pass this "
                             "is, for the repo-wide shared skip index. Optional — "
@@ -305,7 +305,7 @@ def schemas() -> list[dict[str, Any]]:
                     },
                     "event_kind": {
                         "type": "string",
-                        "enum": sorted(_ISSUE_RADAR_CREW_EVENT_KINDS),
+                        "enum": sorted(_ISSUE_RADAR_STEWARD_EVENT_KINDS),
                         "description": "Which kind of step this line records",
                     },
                 },
@@ -315,22 +315,22 @@ def schemas() -> list[dict[str, Any]]:
     ]
 
 
-def _crew_session_key() -> tuple[str, str]:
-    """Strictly-resolved session key for the crew tools, or an error to return.
+def _steward_session_key() -> tuple[str, str]:
+    """Strictly-resolved session key for the steward tools, or an error to return.
 
     Returns ``(key, "")`` on success and ``("", message)`` when identity is not
-    directly attributable. Both crew tools send THIS key rather than resolving
+    directly attributable. Both steward tools send THIS key rather than resolving
     their own, so the identity that passed the gate is the identity on the wire.
     """
-    _crew_sk = mcp_core._resolve_session_key_strict()
-    if not _crew_sk:
+    _steward_sk = mcp_core._resolve_session_key_strict()
+    if not _steward_sk:
         return "", (
             "Error: this tool needs a directly-identified dashboard session. "
             "A subagent resolves to its parent's session, which would read and "
-            "write the parent crew's ledger. Run this from the crew's own "
+            "write the parent steward's ledger. Run this from the steward's own "
             "session." + mcp_core.strict_identity_diagnosis()
         )
-    return _crew_sk, ""
+    return _steward_sk, ""
 
 
 def issue_radar_record_investigation(name: str, args: dict[str, Any]) -> str:
@@ -427,147 +427,147 @@ def ops_mission_control_api(name: str, args: dict[str, Any]) -> str:
     return _omc_text
 
 
-def issue_radar_crew_read(name: str, args: dict[str, Any]) -> str:
-    _crew_sk, _crew_err = _crew_session_key()
-    if _crew_err:
-        return _crew_err
-    _cr_payload = mcp_core._get(mcp_core._CREW_READ_PATH, session_key=_crew_sk)
-    if _cr_payload.get("error"):
-        return f"Error: {_cr_payload['error']}"
-    if mcp_core._crew_identity(_cr_payload) is None:
+def issue_radar_steward_read(name: str, args: dict[str, Any]) -> str:
+    _steward_sk, _steward_err = _steward_session_key()
+    if _steward_err:
+        return _steward_err
+    _sr_payload = mcp_core._get(mcp_core._STEWARD_READ_PATH, session_key=_steward_sk)
+    if _sr_payload.get("error"):
+        return f"Error: {_sr_payload['error']}"
+    if mcp_core._steward_identity(_sr_payload) is None:
         return (
-            "Error: this session is not bound to an Issue Radar crew, so there "
-            "is no ledger to read. Only a crew's own session can use this tool."
+            "Error: this session is not bound to an Issue Radar steward, so there "
+            "is no ledger to read. Only a steward's own session can use this tool."
         )
-    _cr_view = mcp_core._crew_ledger_view(_cr_payload)
+    _sr_view = mcp_core._steward_ledger_view(_sr_payload)
     # Redact the OUTPUT too: the ledger holds LLM prose written from
     # untrusted issue text, and a resume re-reads it into context. Paths in
     # `worktree` survive this pass (it removes credentials and exfil URLs,
     # not paths) — which is required, since the resume needs them.
-    return redact(json.dumps(_cr_view, indent=2, ensure_ascii=False))
+    return redact(json.dumps(_sr_view, indent=2, ensure_ascii=False))
 
 
-def issue_radar_crew_record(name: str, args: dict[str, Any]) -> str:
-    _crew_sk, _crew_err = _crew_session_key()
-    if _crew_err:
-        return _crew_err
-    _cw_payload = mcp_core._get(mcp_core._CREW_READ_PATH, session_key=_crew_sk)
-    if _cw_payload.get("error"):
-        return f"Error: {_cw_payload['error']}"
-    _cw_identity = mcp_core._crew_identity(_cw_payload)
-    if _cw_identity is None:
+def issue_radar_steward_record(name: str, args: dict[str, Any]) -> str:
+    _steward_sk, _steward_err = _steward_session_key()
+    if _steward_err:
+        return _steward_err
+    _sw_payload = mcp_core._get(mcp_core._STEWARD_READ_PATH, session_key=_steward_sk)
+    if _sw_payload.get("error"):
+        return f"Error: {_sw_payload['error']}"
+    _sw_identity = mcp_core._steward_identity(_sw_payload)
+    if _sw_identity is None:
         return (
-            "Error: this session is not bound to an Issue Radar crew, so there "
-            "is no ledger to write. Only a crew's own session can use this tool."
+            "Error: this session is not bound to an Issue Radar steward, so there "
+            "is no ledger to write. Only a steward's own session can use this tool."
         )
-    _cw_owner, _cw_repo, _cw_crew_id = _cw_identity
+    _sw_owner, _sw_repo, _sw_steward_id = _sw_identity
 
-    _cw_body: dict[str, Any] = {
-        "owner": _cw_owner,
-        "repo": _cw_repo,
-        "crew_id": _cw_crew_id,
+    _sw_body: dict[str, Any] = {
+        "owner": _sw_owner,
+        "repo": _sw_repo,
+        "steward_id": _sw_steward_id,
         "number": args["number"],
     }
     # Local-only resume fields, passed through verbatim. NOT scrubbed: an
     # absolute worktree path is the point of the field, and it is never
-    # rendered into a comment (crew_store keeps these local).
-    for _cw_key in ("worktree", "branch", "base_sha"):
-        if args.get(_cw_key):
-            _cw_body[_cw_key] = args[_cw_key]
+    # rendered into a comment (steward_store keeps these local).
+    for _sw_key in ("worktree", "branch", "base_sha"):
+        if args.get(_sw_key):
+            _sw_body[_sw_key] = args[_sw_key]
     # `phase` is an allowlisted enum value (validation rejects anything
     # else), so it is passed verbatim — redacting a closed vocabulary would
     # only obscure where the real sanitizing happens.
     if args.get("phase"):
-        _cw_body["phase"] = args["phase"]
+        _sw_body["phase"] = args["phase"]
     # Classification for the repo-wide shared skip index. Forwarded raw: the
     # store coerces an unrecognised value to `other` rather than refusing, so
-    # a mislabelled pass is still an indexed pass (see crew_store.SKIP_SCOPES).
+    # a mislabelled pass is still an indexed pass (see steward_store.SKIP_SCOPES).
     if args.get("skip_scope"):
-        _cw_body["skip_scope"] = args["skip_scope"]
-    # Prose that is rendered on the crew page. Redacted for the same reason
+        _sw_body["skip_scope"] = args["skip_scope"]
+    # Prose that is rendered on the steward page. Redacted for the same reason
     # the investigation tool redacts its findings — it is LLM prose about an
     # untrusted issue body, stored verbatim and re-displayed on every visit.
-    for _cw_key in ("outcome", "next", "decision", "why"):
-        if args.get(_cw_key):
-            _cw_body[_cw_key] = redact(args[_cw_key])
+    for _sw_key in ("outcome", "next", "decision", "why"):
+        if args.get(_sw_key):
+            _sw_body[_sw_key] = redact(args[_sw_key])
     if args.get("tried_approach"):
-        _cw_body["tried_approach"] = redact(args["tried_approach"])
+        _sw_body["tried_approach"] = redact(args["tried_approach"])
         if args.get("tried_rejected_because"):
-            _cw_body["tried_rejected_because"] = redact(args["tried_rejected_because"])
+            _sw_body["tried_rejected_because"] = redact(args["tried_rejected_because"])
     if args.get("pr_number"):
-        _cw_body["pr_number"] = args["pr_number"]
+        _sw_body["pr_number"] = args["pr_number"]
     if args.get("claim_comment_id"):
-        _cw_body["claim_comment_id"] = args["claim_comment_id"]
-    # Presence, not truthiness: `labels_applied: []` is the crew SAYING it now
-    # holds no labels, which is what it reports after removing its last one.
-    # Gating on the list being non-empty made that indistinguishable from not
-    # mentioning labels at all, so the store kept the previous set and the
-    # crew's record claimed labels it had just taken off the issue.
+        _sw_body["claim_comment_id"] = args["claim_comment_id"]
+    # Presence, not truthiness: `labels_applied: []` is the steward SAYING it
+    # now holds no labels, which is what it reports after removing its last one.
+    # Gating on the list being non-empty would make that indistinguishable from
+    # not mentioning labels at all, so the store would keep the previous set and
+    # the steward's record would claim labels it had just taken off the issue.
     if "labels_applied" in args:
-        _cw_body["labels_applied"] = [
+        _sw_body["labels_applied"] = [
             redact(s) for s in (args.get("labels_applied") or []) if s
         ]
     # The flat ci_* args are re-assembled into the store's `ci_state` dict
-    # (crew_store merges it key-by-key). `ci_state` the ARG is the forge's
+    # (steward_store merges it key-by-key). `ci_state` the ARG is the forge's
     # verdict word and becomes the dict's `state`; an int reading of 0 is
     # meaningful (0/47 green, 0 inherited reds) so these are dropped on
     # "not supplied", not on falsiness.
-    _cw_ci: dict[str, Any] = {}
+    _sw_ci: dict[str, Any] = {}
     if args.get("ci_state"):
-        _cw_ci["state"] = args["ci_state"]
-    for _cw_arg, _cw_field in (
+        _sw_ci["state"] = args["ci_state"]
+    for _sw_arg, _sw_field in (
         ("ci_passed", "passed"),
         ("ci_total", "total"),
         ("ci_round", "round"),
         ("ci_inherited_reds", "inherited_reds"),
     ):
-        if args.get(_cw_arg) is not None:
-            _cw_ci[_cw_field] = args[_cw_arg]
-    if _cw_ci:
-        _cw_body["ci_state"] = _cw_ci
+        if args.get(_sw_arg) is not None:
+            _sw_ci[_sw_field] = args[_sw_arg]
+    if _sw_ci:
+        _sw_body["ci_state"] = _sw_ci
     # The progress line: rendered inside the <details> block of the claim
     # comment on the forge, so it is the strictest string in this payload.
     if args.get("event"):
-        _cw_body["event"] = mcp_core._crew_public_text(args["event"])
-        _cw_body["event_kind"] = args["event_kind"]
+        _sw_body["event"] = mcp_core._steward_public_text(args["event"])
+        _sw_body["event_kind"] = args["event_kind"]
 
-    _cw_resp = mcp_core._put(mcp_core._CREW_WORK_PATH, _cw_body, session_key=_crew_sk)
-    if _cw_resp.get("error"):
-        return f"Error: {_cw_resp['error']}"
-    _cw_raw_item = _cw_resp.get("item")
-    _cw_item: dict[str, Any] = _cw_raw_item if isinstance(_cw_raw_item, dict) else {}
-    _cw_ref = f"{_cw_owner}/{_cw_repo}#{args['number']}"
-    _cw_phase = _cw_item.get("phase") or _cw_body.get("phase") or "(phase unchanged)"
-    _cw_lines = [f"Recorded {_cw_ref}: phase `{_cw_phase}`."]
-    if _cw_body.get("event"):
+    _sw_resp = mcp_core._put(mcp_core._STEWARD_WORK_PATH, _sw_body, session_key=_steward_sk)
+    if _sw_resp.get("error"):
+        return f"Error: {_sw_resp['error']}"
+    _sw_raw_item = _sw_resp.get("item")
+    _sw_item: dict[str, Any] = _sw_raw_item if isinstance(_sw_raw_item, dict) else {}
+    _sw_ref = f"{_sw_owner}/{_sw_repo}#{args['number']}"
+    _sw_phase = _sw_item.get("phase") or _sw_body.get("phase") or "(phase unchanged)"
+    _sw_lines = [f"Recorded {_sw_ref}: phase `{_sw_phase}`."]
+    if _sw_body.get("event"):
         # Echo the stored line, not the argument — if a sanitizer pass
-        # changed it, the crew must see what actually became public.
-        _cw_raw_event = _cw_resp.get("event")
-        _cw_ev: dict[str, Any] = _cw_raw_event if isinstance(_cw_raw_event, dict) else {}
-        _cw_stored_event = _cw_ev.get("text") or _cw_body["event"]
-        _cw_lines.append(f"Logged ({_cw_body['event_kind']}): {_cw_stored_event}")
-    if _cw_item.get("next"):
-        _cw_lines.append(f"Next: {_cw_item['next']}")
+        # changed it, the steward must see what actually became public.
+        _sw_raw_event = _sw_resp.get("event")
+        _sw_ev: dict[str, Any] = _sw_raw_event if isinstance(_sw_raw_event, dict) else {}
+        _sw_stored_event = _sw_ev.get("text") or _sw_body["event"]
+        _sw_lines.append(f"Logged ({_sw_body['event_kind']}): {_sw_stored_event}")
+    if _sw_item.get("next"):
+        _sw_lines.append(f"Next: {_sw_item['next']}")
     # Confirm the SHARED index write. The brief promises that recording
-    # `phase: skipped` is itself what tells every other crew in the repo not to
-    # re-investigate this issue, so the crew has to see that it landed —
+    # `phase: skipped` is itself what tells every other steward in the repo not
+    # to re-investigate this issue, so the steward has to see that it landed —
     # otherwise the one guarantee that stops the fleet looping is invisible to
     # the only party that can act on it. Echoing the STORED scope also shows a
-    # coercion: an unrecognised scope is filed as `other`, and a crew that
+    # coercion: an unrecognised scope is filed as `other`, and a steward that
     # believed it recorded `architecture` should see what was really kept.
-    _cw_raw_skip = _cw_resp.get("skip")
-    if isinstance(_cw_raw_skip, dict) and _cw_raw_skip.get("number") is not None:
-        _cw_lines.append(
-            f"Shared skip index: #{_cw_raw_skip['number']} recorded as "
-            f"`{_cw_raw_skip.get('scope') or 'other'}` — no other crew in this "
+    _sw_raw_skip = _sw_resp.get("skip")
+    if isinstance(_sw_raw_skip, dict) and _sw_raw_skip.get("number") is not None:
+        _sw_lines.append(
+            f"Shared skip index: #{_sw_raw_skip['number']} recorded as "
+            f"`{_sw_raw_skip.get('scope') or 'other'}` — no other steward in this "
             "repository will investigate it now."
         )
-    return redact("\n".join(_cw_lines))
+    return redact("\n".join(_sw_lines))
 
 
 HANDLERS: dict[str, Callable[[str, dict[str, Any]], str]] = {
     "issue_radar_record_investigation": issue_radar_record_investigation,
     "ops_mission_control_api": ops_mission_control_api,
-    "issue_radar_crew_read": issue_radar_crew_read,
-    "issue_radar_crew_record": issue_radar_crew_record,
+    "issue_radar_steward_read": issue_radar_steward_read,
+    "issue_radar_steward_record": issue_radar_steward_record,
 }

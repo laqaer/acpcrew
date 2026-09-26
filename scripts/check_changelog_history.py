@@ -136,7 +136,7 @@ def _load_renderer_source(source: str) -> object:
 
 def _load_module_at(path: Path) -> object:
     """Import a standalone ``changelog.py`` from ``path``."""
-    spec = importlib.util.spec_from_file_location(f"_kc_changelog_renderer_{path.stem}", path)
+    spec = importlib.util.spec_from_file_location(f"_jn_changelog_renderer_{path.stem}", path)
     if spec is None or spec.loader is None:  # pragma: no cover - unreachable in-tree
         raise RuntimeError(f"cannot load the changelog renderer at {path}")
     module = importlib.util.module_from_spec(spec)

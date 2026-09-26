@@ -75,7 +75,7 @@ _LOCK_USERS: dict[tuple[str, str], int] = {}
 #: Marks a ``block_id`` as carrying an OPTIONS staleness token, and versions the
 #: encoding so a control posted by an older build is recognised as untokened
 #: (and therefore honoured) rather than mis-parsed.
-OPTIONS_TOKEN_PREFIX = "kcopt1:"
+OPTIONS_TOKEN_PREFIX = "jnopt1:"
 
 #: Slack rejects a ``block_id`` over 255 characters. A token that would not fit
 #: is not emitted at all, which reads downstream as "cannot prove staleness" and

@@ -82,7 +82,7 @@ const REGISTRY_APPS = [
   },
   {
     name: 'secretary', displayName: 'Secretary', author: 'zezhexu',
-    description: 'Slack inbox manager.', version: '1.1.0', _registry: 'kirodotdev-labs',
+    description: 'Slack inbox manager.', version: '1.1.0', _registry: 'acme-labs',
     tags: ['slack', 'inbox'], installed: true, updateAvailable: true,
   },
 ]
@@ -102,7 +102,7 @@ describe('AppsPage — hybrid Discover', () => {
     sessionStorage.clear()
     listApps.mockResolvedValue(INSTALLED)
     listRegistry.mockResolvedValue({ apps: REGISTRY_APPS, serverPlatform: { os: 'darwin', arch: 'arm64' } })
-    listRegistries.mockResolvedValue({ registries: [{ name: 'kirodotdev-labs', repo: 'https://github.com/kirodotdev-labs/registry', branch: 'main' }] })
+    listRegistries.mockResolvedValue({ registries: [{ name: 'acme-labs', repo: 'https://github.com/acme-labs/registry', branch: 'main' }] })
   })
 
   it('lands on Discover with the top-flagged app as spotlight', async () => {
@@ -127,7 +127,7 @@ describe('AppsPage — hybrid Discover', () => {
     expect(screen.getByRole('button', { name: /On-call & Ops 1/ })).toBeInTheDocument()
     expect(screen.getByRole('button', { name: /Productivity 1/ })).toBeInTheDocument()
     // Sources block: external registry row with its app count
-    expect(screen.getByText('kirodotdev-labs')).toBeInTheDocument()
+    expect(screen.getByText('acme-labs')).toBeInTheDocument()
     expect(screen.getByText('1 app')).toBeInTheDocument()
   })
 
@@ -153,7 +153,7 @@ describe('AppsPage — hybrid Discover', () => {
     await waitFor(() => expect(screen.queryAllByText('FEATURED')).toHaveLength(0))
     const row = screen.getByRole('button', { name: /View details for Secretary/ })
     // Installed app row shows update action; provenance line carries the registry
-    expect(within(row).getByText(/kirodotdev-labs/)).toBeInTheDocument()
+    expect(within(row).getByText(/acme-labs/)).toBeInTheDocument()
     fireEvent.click(row)
     expect(await screen.findByTestId('detail-route')).toBeInTheDocument()
   })
@@ -184,7 +184,7 @@ describe('AppsPage — hero art and provenance trust', () => {
     sessionStorage.clear()
     listApps.mockResolvedValue(INSTALLED)
     listRegistry.mockResolvedValue({ apps: REGISTRY_APPS, serverPlatform: { os: 'darwin', arch: 'arm64' } })
-    listRegistries.mockResolvedValue({ registries: [{ name: 'kirodotdev-labs', repo: 'https://github.com/kirodotdev-labs/registry', branch: 'main' }] })
+    listRegistries.mockResolvedValue({ registries: [{ name: 'acme-labs', repo: 'https://github.com/acme-labs/registry', branch: 'main' }] })
   })
 
   it('renders developer hero art on the editorial surface only, theme-appropriate', async () => {

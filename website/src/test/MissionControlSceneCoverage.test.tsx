@@ -229,7 +229,7 @@ describe('MissionControlScene agent stations', () => {
     expect(painted.colors.has('#fff')).toBe(true)
   })
 
-  it('caps the crew at the eight console stations', () => {
+  it('caps the agents at the eight console stations', () => {
     const ids = Array.from({ length: 11 }, (_, i) => `slot-cap-${i}`)
     markAgentsKnown('missioncontrol', ids)
     renderScene({ agents: ids.map(id => agent(id)) })

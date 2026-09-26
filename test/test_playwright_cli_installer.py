@@ -1636,7 +1636,7 @@ def test_replacing_a_bootstrapped_node_never_leaves_the_prefix_without_one(
     node_dir = tmp_path / "datahome" / "playwright-cli" / "node"
     (node_dir / "bin").mkdir(parents=True)
     _write_stub(node_dir / "bin" / "node", "#!/bin/sh\necho 22.0.0\nexit 0\n")
-    (node_dir / ".kirocrew-playwright-cli-node").write_text("")
+    (node_dir / ".junction-playwright-cli-node").write_text("")
 
     result = _run(
         tmp_path,
@@ -1713,7 +1713,7 @@ def test_a_node_that_does_not_run_here_leaves_the_previous_one_in_place(
     node_dir = tmp_path / "datahome" / "playwright-cli" / "node"
     (node_dir / "bin").mkdir(parents=True)
     _write_stub(node_dir / "bin" / "node", "#!/bin/sh\necho 22.0.0\nexit 0\n")
-    (node_dir / ".kirocrew-playwright-cli-node").write_text("")
+    (node_dir / ".junction-playwright-cli-node").write_text("")
 
     result = _run(
         tmp_path,
@@ -1790,7 +1790,7 @@ def test_an_interrupted_rebootstrap_restores_the_previous_node(
     node_dir = tmp_path / "datahome" / "playwright-cli" / "node"
     (node_dir / "bin").mkdir(parents=True)
     _write_stub(node_dir / "bin" / "node", "#!/bin/sh\necho 22.0.0\nexit 0\n")
-    (node_dir / ".kirocrew-playwright-cli-node").write_text("")
+    (node_dir / ".junction-playwright-cli-node").write_text("")
     sentinel = node_dir / "bin" / "sentinel"
     sentinel.write_text("the tree that must survive")
 
@@ -2147,7 +2147,7 @@ def test_a_node_tree_this_installer_wrote_is_replaced(
     first = _run(tmp_path, stubs, *args, isolated=True)
     assert first.returncode == 0, first.stdout + first.stderr
     node_dir = tmp_path / "datahome" / "playwright-cli" / "node"
-    assert (node_dir / ".kirocrew-playwright-cli-node").exists()
+    assert (node_dir / ".junction-playwright-cli-node").exists()
 
     # Remove the installed node so the second run must bootstrap again and
     # therefore must replace the stamped tree.

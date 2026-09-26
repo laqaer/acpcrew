@@ -101,7 +101,7 @@ class TestCaptureProfile:
         frames that were not measured."""
         # Pin the data home. Unlike its siblings this test does not take the `repo`
         # fixture, so nothing pinned `store.data_dir` and it read the DEVELOPER'S real
-        # `~/.kiro/crew/.../config.json` — writing profile artifacts there, and keying the
+        # `~/.junction/.../config.json` — writing profile artifacts there, and keying the
         # workspace off whatever repo/branch happened to be configured. Order-dependent by
         # construction; it only surfaced when the workspace key started reflecting config.
         monkeypatch.setenv("JUNCTION_HOME", str(tmp_path / "home"))

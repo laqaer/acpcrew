@@ -24,7 +24,7 @@ def _print_headless_auth_warning() -> None:
     login-based or already-configured install.
 
     Non-fatal by construction, like the AppArmor profile message above it. The
-    check resolves the crew home to locate ``.env``, and by the time it runs the
+    check resolves the data home to locate ``.env``, and by the time it runs the
     unit is written and started — so an exception here would print a traceback
     over a successful install and return non-zero for a machine state that is
     actually fine. A diagnostic that cannot fire is strictly better than an

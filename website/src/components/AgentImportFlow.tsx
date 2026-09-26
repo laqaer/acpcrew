@@ -47,7 +47,7 @@ type Stage = 1 | 2 | 3 | 4
 export function setupChapterAside(ariaLabel: string): ShellAsideCopy {
   return {
     ariaLabel,
-    panelHeadline: i18nT('components.agentImportFlow.bring_your_crew_with_you'),
+    panelHeadline: i18nT('components.agentImportFlow.bring_your_setup_with_you'),
     panelBody: i18nT('components.agentImportFlow.bring_your_supported_setup_sessions_memories_wor'),
     panelFootnote: i18nT('components.agentImportFlow.merge_only_setup_credentials_stay_where_they_are'),
   }

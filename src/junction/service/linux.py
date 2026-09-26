@@ -62,7 +62,7 @@ _ENV_FILE_TEMPLATE = """\
 #
 #     sudo systemctl restart junction
 #
-# Bind a non-default dashboard port (e.g. to run a second crew beside the
+# Bind a non-default dashboard port (e.g. to run a second instance beside the
 # default 5476, or when 5476 is already taken):
 #JUNCTION_PORT=5477
 """

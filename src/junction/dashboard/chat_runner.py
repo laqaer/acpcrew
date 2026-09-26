@@ -1856,7 +1856,7 @@ def _native_subagent_sync(state, slot, subagents, tracker, card_output=None) -> 
     """Reconcile per-subagent Activity cards from a kiro-cli
     ``_kiro.dev/subagent/list_update`` notification.
 
-    Native (``use_subagent``) crews run *inside* the parent kiro-cli session, so
+    Native (``use_subagent``) subagents run *inside* the parent kiro-cli session, so
     their internal tool calls are not attributable per sub-agent over standard
     ACP. But kiro-cli also emits this list (the same data its TUI shows) with one
     entry per sub-agent carrying ``sessionId``, ``sessionName``,
@@ -2105,9 +2105,10 @@ def _slot_is_trusted(slot: Any) -> bool:
     takes exactly the decision it took before this existed.
 
     Deliberately does NOT renew the grant. The task runner slides its grant forward
-    on tool activity because the run's own progress is the liveness signal; a crew's
-    signal is its watchdog, and renewing here would let a crew whose watchdog died
-    keep its grant alive off its own tool calls — which is the bound this is for.
+    on tool activity because the run's own progress is the liveness signal; an Issue
+    Radar steward's signal is its watchdog, and renewing here would let a steward
+    whose watchdog died keep its grant alive off its own tool calls — which is the
+    bound this is for.
     """
     if getattr(slot, "_trust", False):
         return True
@@ -2150,7 +2151,7 @@ def _persistable_session_policy(slot: Any, yolo_active: bool) -> str:
 
     A ``SafetyOverride`` SCOPED grant (``slot._trust_scope``) must NOT reach here.
     Its entire value is being re-checked on every approval, so a cached ``"auto"``
-    would outlive it: pause or retire the crew, or disable the app, and a turn
+    would outlive it: pause or retire the steward, or disable the app, and a turn
     already in flight would keep auto-approving subagent tool calls off a policy
     written before the revocation — exactly the property the scoped grant exists to
     provide, defeated by caching it.
@@ -2164,21 +2165,21 @@ def _persistable_session_policy(slot: Any, yolo_active: bool) -> str:
     return ""
 
 
-def _native_crew_should_auto_approve(native_tracker, state, slot) -> bool:
-    """Return True only when a native crew subagent is ACTIVE *and* an
+def _native_subagent_should_auto_approve(native_tracker, state, slot) -> bool:
+    """Return True only when a native subagent is ACTIVE *and* an
     auto-approve condition holds — otherwise deny (CWE-1188 secure default).
 
-    Active-crew is a NECESSARY precondition: with no live native subagent the
-    parent turn is not blocked on a crew tool, so this path must never
+    An active native subagent is a NECESSARY precondition: with none live the
+    parent turn is not blocked on a subagent tool, so this path must never
     auto-approve — regardless of the ``auto_approve_subagent_tools`` hook,
-    the slot's trust, or yolo. Only when a crew is active do those signals grant
+    the slot's trust, or yolo. Only when a subagent is active do those signals grant
     approval; with all three false the tool still falls through to the normal
     interactive/trust gate rather than being silently approved here.
     """
-    has_active_crew = bool(native_tracker) and any(
+    has_active_subagent = bool(native_tracker) and any(
         not info.get("done") for info in native_tracker.values()
     )
-    if not has_active_crew:
+    if not has_active_subagent:
         return False
     return bool(
         (state.context_builder and state.context_builder.hooks.auto_approve_subagent_tools)
@@ -2187,8 +2188,8 @@ def _native_crew_should_auto_approve(native_tracker, state, slot) -> bool:
     )
 
 
-def _safe_native_crew_debug_title(title: str) -> str:
-    """Redact credentials/exfiltration URLs from an LLM-controlled native-crew
+def _safe_native_subagent_debug_title(title: str) -> str:
+    """Redact credentials/exfiltration URLs from an LLM-controlled native-subagent
     tool title before it is logged. Control chars are escaped at the log call
     via %r."""
     safe, _ = redact_exfiltration_urls(title or "")
@@ -3138,18 +3139,18 @@ async def _eager_spawn(
             # switches don't — the snapshot covers them all uniformly.
             _bound = (slot.agent, slot.model, slot.project, slot.reasoning_effort)
             kiro_agent: str | None = None
-            # Canonical crew identity for watchdog overrides. Seeded from the
+            # Canonical agent identity for watchdog overrides. Seeded from the
             # slot, replaced by the resolver's alias below: an EMPTY slot runs
-            # the DEFAULT crew (resolve_agent_bindings step 2), whose overrides
+            # the DEFAULT agent (resolve_agent_bindings step 2), whose overrides
             # would be discarded by passing "" here.
-            crew_alias = slot.agent or ""
+            agent_alias = slot.agent or ""
             agent_model = ""
             resolved_ok = False
             try:
                 cfg = JunctionConfig.load()
                 bindings = resolve_agent_bindings(cfg, slot.agent or None)
                 kiro_agent = bindings.kiro_agent
-                crew_alias = bindings.resolved_alias
+                agent_alias = bindings.resolved_alias
                 agent_model = normalize_agent_model(bindings.model)
                 # SELF-HEAL mirror of the real turn's guard: an app-owned slot
                 # whose agent read cold from the materialized snapshot would bake
@@ -3176,12 +3177,12 @@ async def _eager_spawn(
                         )
                     bindings = resolve_agent_bindings(cfg, slot.agent or None)
                     kiro_agent = bindings.kiro_agent
-                    crew_alias = bindings.resolved_alias
+                    agent_alias = bindings.resolved_alias
                     agent_model = normalize_agent_model(bindings.model)
                     if not bindings.requested_resolved:
                         bindings = await _recover_app_agent_binding(cfg, slot, project=None)
                         kiro_agent = bindings.kiro_agent
-                        crew_alias = bindings.resolved_alias
+                        agent_alias = bindings.resolved_alias
                         agent_model = normalize_agent_model(bindings.model)
                 resolved_ok = bindings.requested_resolved
             except Exception:
@@ -3214,12 +3215,12 @@ async def _eager_spawn(
                 _, is_new, resumed = await sessions.get_or_create(
                     session_key,
                     agent=kiro_agent or slot.agent or None,
-                    # Canonical crew identity — the resolver's alias, which
-                    # covers the default crew on an empty slot; plumbed to the
+                    # Canonical agent identity — the resolver's alias, which
+                    # covers the default agent on an empty slot; plumbed to the
                     # session so per-agent watchdog windows never depend on a
                     # cross-namespace name match. "" is authoritative: no
                     # alias applied, so no override applies.
-                    crew_agent=crew_alias,
+                    canonical_agent=agent_alias,
                     model=slot.model or agent_model or None,
                     cwd=slot.project or None,
                     speculative=True,
@@ -4881,7 +4882,7 @@ async def _run_chat(
         if not prompts:
             slot.append(
                 "assistant",
-                "No prompts found. Create prompts in `~/.kiro/prompts/` (or `~/.kiro/crew/prompts/`).",
+                "No prompts found. Create prompts in `~/.kiro/prompts/` (or `~/.junction/prompts/`).",
                 "msg msg-a",
             )
             sel().log_tool_invocation(
@@ -4988,11 +4989,11 @@ async def _run_chat(
         # guards (`is_claude_backend`, the advertised list) rather than trusting a
         # provider name that could not be read.
         provider_name = ""
-        # Canonical crew identity for watchdog overrides — same seeding rule
+        # Canonical agent identity for watchdog overrides — same seeding rule
         # as the eager-spawn path (the two must agree): slot value until the
-        # resolver supplies its alias, which covers the default crew on an
+        # resolver supplies its alias, which covers the default agent on an
         # empty slot.
-        crew_alias = slot.agent or ""
+        agent_alias = slot.agent or ""
         # An app-owned slot whose agent never resolved (see the fail-loud guard
         # after the resolve block). Captured inside the try so the raise below
         # lives OUTSIDE it and is not swallowed by the resolve except.
@@ -5007,7 +5008,7 @@ async def _run_chat(
             await warm_project_agent_names(slot.project)
             bindings = resolve_agent_bindings(cfg, slot.agent or None, slot.project or None)
             kiro_agent = bindings.kiro_agent
-            crew_alias = bindings.resolved_alias
+            agent_alias = bindings.resolved_alias
             memory_store = bindings.memory_store_name
             agent_model = normalize_agent_model(bindings.model)
             # SELF-HEAL an app-owned slot whose agent did not resolve. An app's
@@ -5041,7 +5042,7 @@ async def _run_chat(
                     )
                 bindings = resolve_agent_bindings(cfg, slot.agent or None, slot.project or None)
                 kiro_agent = bindings.kiro_agent
-                crew_alias = bindings.resolved_alias
+                agent_alias = bindings.resolved_alias
                 memory_store = bindings.memory_store_name
                 agent_model = normalize_agent_model(bindings.model)
                 if not bindings.requested_resolved:
@@ -5049,7 +5050,7 @@ async def _run_chat(
                         cfg, slot, project=slot.project or None
                     )
                     kiro_agent = bindings.kiro_agent
-                    crew_alias = bindings.resolved_alias
+                    agent_alias = bindings.resolved_alias
                     memory_store = bindings.memory_store_name
                     agent_model = normalize_agent_model(bindings.model)
             _app_agent_unresolved = bool(slot._app) and not bindings.requested_resolved
@@ -5088,10 +5089,10 @@ async def _run_chat(
         client, is_new, resumed = await state.sessions.get_or_create(
             session_key,
             agent=kiro_agent or slot.agent or None,
-            # Same canonical crew identity as the eager-spawn path — the two
+            # Same canonical agent identity as the eager-spawn path — the two
             # must agree or an eager session and its real first turn would
             # carry different watchdog windows.
-            crew_agent=crew_alias,
+            canonical_agent=agent_alias,
             model=slot.model or agent_model or None,
             cwd=slot.project or None,
             reasoning_effort_override=slot.reasoning_effort or None,
@@ -6677,19 +6678,19 @@ async def _run_chat(
                         continue
                     _pre_tool_hooks_fired = True
                     # Hooks passed — fall through to patterns/trust-reads/trust/yolo/interactive
-                # Native crew auto-approve: when a native subagent (crew pipeline)
-                # is active and the session is configured to auto-approve subagent
-                # tools, approve immediately to avoid deadlocking the blocked
-                # parent turn. Deny-by-default (CWE-1188): with no active crew this
+                # Native subagent auto-approve: when a native subagent is active
+                # and the session is configured to auto-approve subagent tools,
+                # approve immediately to avoid deadlocking the blocked parent
+                # turn. Deny-by-default (CWE-1188): with no active subagent this
                 # predicate is False no matter the trust flags, so the tool falls
                 # through to the normal interactive/trust gate below.
                 if (
-                    _native_crew_should_auto_approve(_native_tracker, state, slot)
+                    _native_subagent_should_auto_approve(_native_tracker, state, slot)
                     and not _child_low_fidelity
                 ):
                     logger.debug(
-                        "Native crew auto-approve: %r (request_id=%s)",
-                        _safe_native_crew_debug_title(event.title),
+                        "Native subagent auto-approve: %r (request_id=%s)",
+                        _safe_native_subagent_debug_title(event.title),
                         event.request_id,
                     )
                     await client.approve_tool(event.request_id)
@@ -6705,7 +6706,7 @@ async def _run_chat(
                         {
                             "slot": slot.key,
                             "kind": "permission",
-                            "text": f"Auto-approved (crew): {_tool_title}",
+                            "text": f"Auto-approved (subagent): {_tool_title}",
                         },
                     )
                     sel().log_tool_invocation(
@@ -6716,7 +6717,7 @@ async def _run_chat(
                         tool_kind=event.tool_kind,
                         outcome="auto_approved",
                         request_id=event.request_id,
-                        metadata={"reason": "native_crew"},
+                        metadata={"reason": "native_subagent"},
                     )
                     continue
                 # Session-trusted patterns: auto-approve commands matching user globs.
@@ -7433,7 +7434,7 @@ async def _run_chat(
                         {"slot": slot.key, "todo": slot.todo_payload()},
                     )
             elif event.kind == EVENT_SUBAGENT_LIST:
-                # kiro-cli per-subagent state (native use_subagent crews).
+                # kiro-cli per-subagent state (native use_subagent children).
                 # Reconcile one Activity card per sub-agent (spawn/done).
                 logger.debug(
                     "EVENT_SUBAGENT_LIST: %s subagents, slot=%s",

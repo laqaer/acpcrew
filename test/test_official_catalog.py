@@ -128,7 +128,7 @@ class TestResolveRef:
         """NOT against the app's repository -- the whole point of the catalog
         hosting the bytes is that the publisher's repo leaves the render path."""
         assert oc._resolve_ref("assets/icons/abc.png") == (
-            "https://apps.crew.kiro.dev/assets/icons/abc.png"
+            "https://apps.getjunction.dev/assets/icons/abc.png"
         )
 
     @pytest.mark.parametrize(
@@ -229,8 +229,8 @@ class TestAnnotate:
             "iconRefDark": "assets/icons/b.png",
             "heroRef": "/app-assets/demo/hero.svg",
         }])
-        assert rows[0]["iconUrl"] == "https://apps.crew.kiro.dev/assets/icons/a.png"
-        assert rows[0]["iconUrlDark"] == "https://apps.crew.kiro.dev/assets/icons/b.png"
+        assert rows[0]["iconUrl"] == "https://apps.getjunction.dev/assets/icons/a.png"
+        assert rows[0]["iconUrlDark"] == "https://apps.getjunction.dev/assets/icons/b.png"
         assert rows[0]["heroImage"] == "/app-assets/demo/hero.svg"
 
     def test_a_url_shaped_icon_ref_is_not_applied(self):
@@ -243,7 +243,7 @@ class TestAnnotate:
 def test_the_catalog_url_is_https_and_under_the_documented_host():
     """A plaintext or third-party host here would silently move where every
     client's app list comes from."""
-    assert oc.OFFICIAL_CATALOG_BASE.startswith("https://apps.crew.kiro.dev/")
+    assert oc.OFFICIAL_CATALOG_BASE.startswith("https://apps.getjunction.dev/")
     assert oc.OFFICIAL_CATALOG_URL == oc.OFFICIAL_CATALOG_BASE + "official-registry.json"
 
 
@@ -335,9 +335,9 @@ class TestSchemeGuard:
         "url",
         [
             "file:///etc/passwd",
-            "http://apps.crew.kiro.dev/official-registry.json",
+            "http://apps.getjunction.dev/official-registry.json",
             "ftp://example.invalid/x.json",
-            "//apps.crew.kiro.dev/x.json",
+            "//apps.getjunction.dev/x.json",
         ],
     )
     def test_a_non_https_url_is_refused(self, url):
@@ -444,7 +444,7 @@ class TestNameSquattingCannotInheritCuratedCopy:
         "name": "official-app",
         "displayName": "The Real One",
         "summary": "Curated copy that belongs to the official app.",
-        "author": {"name": "Junction", "kind": "org"},  # brand-ok: squat fixture
+        "author": {"name": "Junction", "kind": "org"},
         "iconRef": "assets/icons/abc.png",
     }
 

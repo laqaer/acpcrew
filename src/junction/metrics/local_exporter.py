@@ -2,7 +2,7 @@
 
 An OpenTelemetry ``MetricExporter`` that appends one JSON line per export cycle
 to ``<dir>/metrics-YYYY-MM-DD-<pid>.jsonl``. This is Junction's default metrics
-sink: data stays on the local disk (default ``~/.kiro/crew/metrics``) and never
+sink: data stays on the local disk (default ``~/.junction/metrics``) and never
 leaves the host. Remote / OTLP egress is a separate, opt-in exporter (deferred).
 
 Per-process shards: the filename includes the PID so each shard has a single
@@ -18,7 +18,7 @@ they reach the SDK. That is defence in depth over the call-site requirement to
 pass only low-cardinality constants, not a guarantee that a serialized data
 point carries no secret or PII -- see ``schema.py`` for where redaction reaches.
 The directory (0o700) and shards (0o600) are created private -- matching
-the ``~/.kiro/crew`` file-permission convention -- so no other local user on a
+the ``~/.junction`` file-permission convention -- so no other local user on a
 shared host can read another user's metrics.
 
 RETENTION: age + total-size rotation. Before an append would push the live
@@ -272,7 +272,7 @@ class JsonlMetricExporter(MetricExporter):
             line = _stamp_process_identity(metrics_data.to_json(indent=None))
             encoded = (line + "\n").encode("utf-8")
             self._dir.mkdir(parents=True, exist_ok=True)
-            # ~/.kiro/crew convention: telemetry stays private (dir 0o700, file
+            # ~/.junction convention: telemetry stays private (dir 0o700, file
             # 0o600). mkdir/open modes are masked by umask, so chmod explicitly.
             self._chmod(self._dir, 0o700)
             # Per-PID shards have one writer, so append + rotation need no

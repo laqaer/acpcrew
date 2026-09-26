@@ -41,7 +41,7 @@ class TestCatalog:
         assert len(set(ids)) == 140
 
     def test_token_mint_is_blocked_in_both_the_cli_and_module_forms(self):
-        """`kirocrew token` mints a signed dashboard token that authenticates to EVERY gateway
+        """`junction token` mints a signed dashboard token that authenticates to EVERY gateway
         route — including the ops-mission-control autonomy-ceiling PUT — so a prompt-injected
         agent that shells out to it raises its own security ceiling.
 
@@ -66,11 +66,9 @@ class TestCatalog:
         for blocked in (
             "junction token",
             "junction token --port 6777",
-            "acpcrew token",
             "/usr/bin/junction token",
-            'kirocrew "token"',
-            "kirocrew -v --no-jail token",
-            "kiro-crew token",
+            'junction "token"',
+            "junction -v --no-jail token",
             # The module form, in the spellings a shell accepts.
             "python -m junction token",
             "python3 -m junction token --port 6777",
@@ -109,7 +107,7 @@ class TestCatalog:
             # NO `token` ARGV WORD AT ALL. An inline payload is arbitrary Python running with
             # the interpreter's authority, so it can BUILD the verb instead of passing it —
             # which is why the `-c` form is denied on the IMPORT rather than on the verb. The
-            # verb requirement holds everywhere else (`kirocrew doctor` is legitimate) but is
+            # verb requirement holds everywhere else (`junction doctor` is legitimate) but is
             # not enforceable here. Found in review (GPT 5.6).
             "python -c \"import sys; sys.argv.append('token'); "
             'from junction.cli import main; main()"',
@@ -134,13 +132,12 @@ class TestCatalog:
             ), f"token mint not blocked: {blocked!r}"
 
         for allowed in (
-            "ls kirocrew",
+            "ls junction",
             "echo tokens",
             "grep token app.log",
             # Mentions the name AND the verb, but as another program's data.
-            "echo kirocrew token",
             "echo junction token",
-            "echo acpcrew token",
+            "echo junction token",
             "pkill disjunction",
             "pytest test/test_token_auth.py",
             # The product as a module, but not the mint verb.
@@ -211,7 +208,7 @@ class TestSelfProtectionFlagInterposition:
 
     The CLI accepts top-level flags BEFORE the subcommand (``-v``/``--verbose`` is
     ``action="count"`` and ``--no-jail`` sits on the top-level parser), so
-    ``kirocrew -v restart`` runs the same restart as ``kirocrew restart``. Four
+    ``junction -v restart`` runs the same restart as ``junction restart``. Four
     self-protection patterns anchored the subcommand directly to the program name
     and were defeated by exactly that spelling. This walk covers EVERY rule in the
     category so the class cannot regress one rule at a time: a new self-protection
@@ -225,19 +222,19 @@ class TestSelfProtectionFlagInterposition:
     # rule id -> command template; ``{flags}`` is where an attacker interposes
     # flags between the anchor word and the token the rule keys on.
     _TEMPLATES = {
-        "self-protection-restart": "kirocrew {flags} restart",
-        "self-protection-update": "kirocrew {flags} update",
-        "self-protection-gateway-restart": "kirocrew {flags} gateway restart",
-        "self-protection-cloud": "kirocrew {flags} cloud destroy",
+        "self-protection-restart": "junction {flags} restart",
+        "self-protection-update": "junction {flags} update",
+        "self-protection-gateway-restart": "junction {flags} gateway restart",
+        "self-protection-cloud": "junction {flags} cloud destroy",
         # cron-adopt (added on main) already tolerates interposed flags via its own
         # tempered-greedy pattern, so it needs no widening/floor from this PR -- it
         # is listed here only to satisfy the category-completeness invariant.
-        "self-protection-cron-adopt": "kirocrew {flags} cron adopt",
+        "self-protection-cron-adopt": "junction {flags} cron adopt",
         # The kill rules key on the kill TARGET, not a CLI subcommand; their gap
         # is between the kill verb and the product name.
-        "self-protection-kill": "pkill {flags} kirocrew",
+        "self-protection-kill": "pkill {flags} junction",
         "self-protection-kill-interpreter": (
-            "python -c \"import os; os.system('pkill {flags} -f kirocrew')\""
+            "python -c \"import os; os.system('pkill {flags} -f junction')\""
         ),
     }
     _FLAGS = ("-v", "-vv", "--verbose", "--no-jail", "-v --no-jail")
@@ -278,7 +275,7 @@ class TestSelfProtectionFlagInterposition:
 
         effective = self._effective()
         for sub in ("destroy", "stop", "start", "launch", "connect", "tunnel", "login", "logout"):
-            cmd = f"kirocrew -v cloud {sub}"
+            cmd = f"junction -v cloud {sub}"
             assert security.is_denied(
                 cmd, denied_regexes=effective
             ), f"cloud {sub} not denied behind -v: {cmd!r}"
@@ -295,17 +292,17 @@ class TestSelfProtectionFlagInterposition:
 
         effective = self._effective()
         for allowed in (
-            "kirocrew -v",
-            "kirocrew --verbose",
-            "kirocrew --no-jail doctor",
-            "kirocrew -v status",
-            "kirocrew -vv cloud status",
+            "junction -v",
+            "junction --verbose",
+            "junction --no-jail doctor",
+            "junction -v status",
+            "junction -vv cloud status",
             # A lifecycle word AFTER an unrelated subcommand is not a lifecycle
             # command: neither tier may scan past the first subcommand word
             # (#5837, folded from the retired TestCatalog matrix).
-            "kirocrew doctor restart",
-            "kirocrew gateway status restart",
-            "kirocrew cloud status destroy",
+            "junction doctor restart",
+            "junction gateway status restart",
+            "junction cloud status destroy",
             "python -m junction doctor restart",
             "python -m junction gateway status restart",
             "python -m junction cloud status destroy",
@@ -314,43 +311,23 @@ class TestSelfProtectionFlagInterposition:
                 allowed, denied_regexes=effective
             ), f"false positive on {allowed!r}"
 
-    def test_stale_governance_pin_still_resolves_to_the_rule_id(self):
-        """A persisted policy pins by pattern STRING; widening must not orphan it.
+    def test_governance_pin_resolves_to_the_rule_id(self):
+        """A persisted policy pins by pattern STRING; the pin resolves to its rule id.
 
         The pin resolvers treat a governance pattern as pinning a built-in rule
-        only when it maps back to a rule id.  A ceiling/profile written against
-        the pre-widening catalog persists the OLD spelling, so without the legacy
-        aliases the pin would silently fall out of the id map on upgrade and a
-        user opt-out could drop a rule the administrator pinned.
+        only when it maps back to a rule id, so every catalog spelling must.
         """
         from junction import security
 
-        legacy_to_id = {
-            ".*kiro.?crew restart.*": "self-protection-restart",
-            ".*kiro.?crew update.*": "self-protection-update",
-            ".*kiro.?crew\\s+cloud\\s+(destroy|stop|start|launch|connect|tunnel|log(in|out)).*": (
-                "self-protection-cloud"
-            ),
-            ".*kiro.?crew gateway restart.*": "self-protection-gateway-restart",
-        }
-        for legacy, rule_id in legacy_to_id.items():
-            # The old spelling resolves to the same rule id...
-            assert security._rule_id_for_pattern(legacy) == rule_id
-            # ...as the current spelling does.
+        for rule_id in (
+            "self-protection-restart",
+            "self-protection-update",
+            "self-protection-cloud",
+            "self-protection-gateway-restart",
+        ):
             current = next(r.pattern for r in BUILTIN_DENIED_RULES if r.id == rule_id)
             assert security._rule_id_for_pattern(current) == rule_id
         assert security._rule_id_for_pattern("not a rule") is None
-
-    def test_legacy_alias_spellings_stay_out_of_the_enforced_catalog(self):
-        """Aliases are lookup-only: not enforced, not built-in, not in the golden."""
-        from junction import security
-
-        golden = json.loads(_GOLDEN.read_text(encoding="utf-8"))
-        golden_patterns = {g["pattern"] for g in golden}
-        for legacy in security._LEGACY_RULE_ID_BY_PATTERN:
-            assert legacy not in BUILTIN_DENY_PATTERNS
-            assert legacy not in security._RULE_ID_BY_PATTERN
-            assert legacy not in golden_patterns
 
     # Round 2 -> Option 2 (#4824): the four self-protection SUBCOMMAND rules get an
     # argv-structural floor (``_is_self_*`` evaluated on the de-escaped, de-quoted
@@ -369,7 +346,7 @@ class TestSelfProtectionFlagInterposition:
     def _dressings(words):
         """Shell spellings whose argv carries the plain flag/verb tokens.
 
-        Every entry reaches the shell as ``kirocrew [<flag>] <words...>`` after
+        Every entry reaches the shell as ``junction [<flag>] <words...>`` after
         the shell's own de-escaping and quote removal. The ``bare`` and
         ``real-flag`` entries also match the regex tier directly; the escaped,
         continued, and quoted entries split a token in the raw string the regex
@@ -381,22 +358,22 @@ class TestSelfProtectionFlagInterposition:
         each_quoted = " ".join(f'"{w}"' for w in words)
         each_single_quoted = " ".join(f"'{w}'" for w in words)
         return {
-            "bare": f"kirocrew {rest}",
-            "real-flag": f"kirocrew -v {rest}",
-            "backslash-escaped-flag": f"kirocrew -\\v {rest}",  # -\v -> -v
-            "escaped-verb-letter": f"kirocrew \\{first}{tail}",  # \restart -> restart
-            "line-continuation-flag": f"kirocrew -\\\nv {rest}",
-            "continuation-before-verb": f"kirocrew \\\n{first}{tail}",
-            "each-word-quoted": f"kirocrew {each_quoted}",
-            "each-word-single-quoted": f"kirocrew {each_single_quoted}",
+            "bare": f"junction {rest}",
+            "real-flag": f"junction -v {rest}",
+            "backslash-escaped-flag": f"junction -\\v {rest}",  # -\v -> -v
+            "escaped-verb-letter": f"junction \\{first}{tail}",  # \restart -> restart
+            "line-continuation-flag": f"junction -\\\nv {rest}",
+            "continuation-before-verb": f"junction \\\n{first}{tail}",
+            "each-word-quoted": f"junction {each_quoted}",
+            "each-word-single-quoted": f"junction {each_single_quoted}",
             # Quoted FLAGS (#5837, folded from the retired TestCatalog matrix):
             # the quotes split the flag token in the raw text, but the shell
             # strips them, so the interposed flag still lands in argv. The full
             # flag-by-quote-style cross lives in
             # ``test_self_protection_denied_under_the_full_quoting_cross``.
-            "double-quoted-flag": f'kirocrew "-v" {rest}',  # "-v" -> -v
-            "single-quoted-flag": f"kirocrew '-v' {rest}",
-            "quoted-flag-and-quoted-verb": f'kirocrew "-v" {each_quoted}',
+            "double-quoted-flag": f'junction "-v" {rest}',  # "-v" -> -v
+            "single-quoted-flag": f"junction '-v' {rest}",
+            "quoted-flag-and-quoted-verb": f'junction "-v" {each_quoted}',
         }
 
     def test_self_protection_subcommands_denied_under_every_shell_dressing(self):
@@ -438,7 +415,7 @@ class TestSelfProtectionFlagInterposition:
 
         effective = self._effective()
         for rule_id, words in self._SUBCOMMANDS.items():
-            for cmd in self._quoting_cross("kirocrew", list(words)):
+            for cmd in self._quoting_cross("junction", list(words)):
                 assert security.is_denied(
                     cmd, denied_regexes=effective
                 ), f"{rule_id} not denied in the quoting cross: {cmd!r}"
@@ -450,30 +427,30 @@ class TestSelfProtectionFlagInterposition:
         ``_SUBCOMMANDS`` (which feeds the dressing, quoting-cross, and launcher
         walks) is tied to the LIVE floor set here, the way ``_TEMPLATES`` is
         tied to the category by ``test_every_self_protection_rule_has_a_template``:
-        a floor-listed rule whose template names a ``kirocrew`` CLI subcommand
+        a floor-listed rule whose template names a ``junction`` CLI subcommand
         must appear in ``_SUBCOMMANDS`` (and vice versa), so a fifth subcommand
         rule joining the floor cannot silently skip all three walks. The kill
         rules key on a kill target, not a CLI subcommand, and the credential
         mint rule is outside the self-protection category -- neither has a
-        ``kirocrew ...`` template, so the derivation excludes them.
+        ``junction ...`` template, so the derivation excludes them.
         """
         from junction import security
 
         floor_subcommand_ids = {
             rule_id
             for rule_id in security._SELF_PROTECTION_FLOOR_RULE_IDS
-            if self._TEMPLATES.get(rule_id, "").startswith("kirocrew ")
+            if self._TEMPLATES.get(rule_id, "").startswith("junction ")
         }
         assert set(self._SUBCOMMANDS) == floor_subcommand_ids, (
-            "every floor-listed kirocrew-subcommand rule must register its "
+            "every floor-listed junction-subcommand rule must register its "
             "words in _SUBCOMMANDS (and every _SUBCOMMANDS entry must be "
             "floor-listed), or the shell-dressing walks silently skip it"
         )
         # the predicate for each is wired and fires on a de-escaped argv
-        assert security._is_self_restart("kirocrew -\\v restart")
-        assert security._is_self_update("kirocrew \\update")
-        assert security._is_self_gateway_restart("kirocrew -\\v gateway restart")
-        assert security._is_self_cloud_destructive("kirocrew -\\v cloud destroy")
+        assert security._is_self_restart("junction -\\v restart")
+        assert security._is_self_update("junction \\update")
+        assert security._is_self_gateway_restart("junction -\\v gateway restart")
+        assert security._is_self_cloud_destructive("junction -\\v cloud destroy")
 
     def test_self_protection_denied_under_interposed_redirection(self):
         """A redirection is removed from argv by the shell and can sit anywhere in
@@ -483,20 +460,20 @@ class TestSelfProtectionFlagInterposition:
 
         effective = self._effective()
         for cmd in (
-            "kirocrew 2>/tmp/x restart",  # attached redirect leaves fd residue
-            "kirocrew > /tmp/x restart",  # separate target
-            "kirocrew 2>&1 restart",
-            "kirocrew restart 2>/tmp/log",  # redirect AFTER the subcommand
-            "kirocrew >/dev/null -v update",  # redirect + flag
-            "kirocrew > 'audit;log' restart",  # quoted ';' in the target is a filename, not a boundary
-            "kirocrew 2> 'x|y' restart",  # quoted '|' in the target
+            "junction 2>/tmp/x restart",  # attached redirect leaves fd residue
+            "junction > /tmp/x restart",  # separate target
+            "junction 2>&1 restart",
+            "junction restart 2>/tmp/log",  # redirect AFTER the subcommand
+            "junction >/dev/null -v update",  # redirect + flag
+            "junction > 'audit;log' restart",  # quoted ';' in the target is a filename, not a boundary
+            "junction 2> 'x|y' restart",  # quoted '|' in the target
         ):
             assert security.is_denied(
                 cmd, denied_regexes=effective
             ), f"redirection-interposed form not denied: {cmd!r}"
         # A redirect whose TARGET is a file named like the subcommand runs no
         # subcommand, so it must stay allowed by the floor.
-        assert not security._is_self_restart("kirocrew > restart")
+        assert not security._is_self_restart("junction > restart")
 
     def test_self_protection_denied_under_dollar_quoting(self):
         """ANSI-C (``$'...'``) and locale (``$"..."``) quoting decode to the value
@@ -507,11 +484,11 @@ class TestSelfProtectionFlagInterposition:
 
         effective = self._effective()
         for cmd in (
-            "kirocrew $'-v' restart",  # ANSI-C flag
-            "kirocrew $'\\x2d\\x76' restart",  # ANSI-C hex -> -v
-            'kirocrew $"-v" restart',  # locale flag
-            "kirocrew $'restart'",  # ANSI-C on the verb
-            "kirocrew $'-v' cloud destroy",
+            "junction $'-v' restart",  # ANSI-C flag
+            "junction $'\\x2d\\x76' restart",  # ANSI-C hex -> -v
+            'junction $"-v" restart',  # locale flag
+            "junction $'restart'",  # ANSI-C on the verb
+            "junction $'-v' cloud destroy",
         ):
             assert security.is_denied(
                 cmd, denied_regexes=effective
@@ -591,15 +568,15 @@ class TestSelfProtectionFlagInterposition:
         """
         from junction import security
 
-        assert not security._is_self_restart("kirocrew -v status")
-        assert not security._is_self_cloud_destructive("kirocrew cloud status")
-        assert not security._is_self_cloud_destructive("kirocrew -vv cloud status")
+        assert not security._is_self_restart("junction -v status")
+        assert not security._is_self_cloud_destructive("junction cloud status")
+        assert not security._is_self_cloud_destructive("junction -vv cloud status")
         # a mention inside another program's args is not a run (data-consumer /
         # non-program position), so the floor itself does not fire on it
-        assert not security._is_self_restart("echo kirocrew restart")
-        assert not security._is_self_restart("grep restart /var/log/kirocrew.log")
+        assert not security._is_self_restart("echo junction restart")
+        assert not security._is_self_restart("grep restart /var/log/junction.log")
         # gateway-restart is a distinct rule from bare restart
-        assert not security._is_self_restart("kirocrew gateway restart")
+        assert not security._is_self_restart("junction gateway restart")
 
 
 class TestComputeEffectiveDenied:
@@ -1377,12 +1354,13 @@ class TestUserRegexReDoSGate:
 _K = "k" + "ill"
 _PK = "p" + _K
 _KA = _K + "all"
-_NAME = "kiro" + "crew"
-_HYPH = "kiro-" + "crew"
+_NAME = "junc" + "tion"
 _TOK = "to" + "ken"
 
 _RULE_KILL = "self-protection-" + _K
 _RULE_MINT = "credential-exfil-" + _NAME + "-" + _TOK
+_RULE_ARGV = _RULE_MINT + "-argv"
+_RULE_KILL_INTERP = _RULE_KILL + "-interpreter"
 Q = chr(34)
 
 
@@ -1407,6 +1385,24 @@ def _denied_by(cmd: str, reason_notes: "dict[str, str] | None" = None) -> "str |
         return None
     head = verdict.splitlines()[0]
     _, _, pattern = head.partition("Blocked by security policy: ")
+    by_pattern = {r.pattern: r.id for r in BUILTIN_DENIED_RULES}
+    return by_pattern.get(pattern or verdict, f"<unmapped:{verdict}>")
+
+
+def _denied_by_rule(cmd: str, rule_id: str) -> "str | None":
+    """``_denied_by`` with ONLY *rule_id* in the effective set.
+
+    The CLI's name is also its Python import name, so a ``python -c`` payload that
+    merely names it is refused by the credential-mint floor as an import of the CLI,
+    before any interpreter rule is consulted. Tests that pin the PRECISION of an
+    interpreter rule on a Python payload (which sinks it recognizes, which mentions it
+    leaves alone) isolate that rule here, the same way an operator opt-out of the mint
+    rule would. Each such test ALSO asserts the whole-gate verdict.
+    """
+    verdict = is_denied(cmd, denied_regexes=[_rule_pattern(rule_id)])
+    if verdict is None:
+        return None
+    _, _, pattern = verdict.splitlines()[0].partition("Blocked by security policy: ")
     by_pattern = {r.pattern: r.id for r in BUILTIN_DENIED_RULES}
     return by_pattern.get(pattern or verdict, f"<unmapped:{verdict}>")
 
@@ -1617,14 +1613,11 @@ class TestSelfProtectionFloorIsAdditive:
             f"{_K} `pgrep {_NAME}`",
             f"{_NAME} {_TOK}",
             f"{_NAME} pod {_TOK} wt",
-            f"{_HYPH} {_TOK}",
             f"./bin/{_NAME} {_TOK}",
             f"{_NAME} -v --no-jail {_TOK}",
             "junction token",
             "junction -v --no-jail token",
-            "acpcrew token",
             "pkill -f junction",
-            "killall acpcrew",
         ]
         for cmd in corpus:
             if rx.search(cmd.lower()):
@@ -1691,22 +1684,26 @@ class TestInterpreterArgvLiteralMint:
         ],
     )
     def test_argv_literal_blocked(self, cmd):
-        assert _denied_by(cmd) == self._RULE
+        assert _denied_by_rule(cmd, self._RULE) == self._RULE
+        assert _denied_by(cmd) is not None
 
     @pytest.mark.parametrize(
-        "cmd",
+        "cmd,whole_gate",
         [
             # the recorded false positive this PR exists to remove -- separated by
-            # `.*`, which the separator class excludes
-            f"python3 -c \"import re; re.search(r'.*{_NAME}.*{_TOK}', cmd)\"",
-            f"python3 -c \"print('{_NAME}')\"; echo {_TOK}",
-            f"jq -r '.{_NAME} , .{_TOK}' cfg.json",
-            f"node -e 'console.log(\"{_NAME} docs mention {_TOK}\")'",
-            f"git commit -m 'note: {_NAME} {_TOK} rule'",
+            # `.*`, which the separator class excludes. A `-c` program naming the
+            # package is still refused as a whole, by the mint floor, as an import.
+            (f"python3 -c \"import re; re.search(r'.*{_NAME}.*{_TOK}', cmd)\"", _RULE_MINT),
+            (f"python3 -c \"print('{_NAME}')\"; echo {_TOK}", _RULE_MINT),
+            (f'node -e "/.*{_NAME}.*{_TOK}/.test(cmd)"', None),
+            (f"jq -r '.{_NAME} , .{_TOK}' cfg.json", None),
+            (f"node -e 'console.log(\"{_NAME} docs mention {_TOK}\")'", None),
+            (f"git commit -m 'note: {_NAME} {_TOK} rule'", None),
         ],
     )
-    def test_mentions_and_regex_literals_allowed(self, cmd):
-        assert _denied_by(cmd) is None
+    def test_mentions_and_regex_literals_allowed(self, cmd, whole_gate):
+        assert _denied_by_rule(cmd, self._RULE) is None
+        assert _denied_by(cmd) == whole_gate
 
     @pytest.mark.parametrize(
         "cmd",
@@ -1722,7 +1719,8 @@ class TestInterpreterArgvLiteralMint:
         # ONE flat character class rather than a repeated group: a group carrying its own
         # quantifier is rejected by `_redos_prone`, and a rejected pattern is a DISABLED
         # pattern -- the rule would sit in the catalog matching nothing.
-        assert _denied_by(cmd) == self._RULE
+        assert _denied_by_rule(cmd, self._RULE) == self._RULE
+        assert _denied_by(cmd) is not None
 
     @pytest.mark.parametrize(
         "cmd",
@@ -1807,16 +1805,16 @@ class TestInterpreterArgvLiteralMint:
     @pytest.mark.parametrize(
         "cmd",
         [
-            "python -c 'os.kill(pid_from(\"[k]irocrew gateway\"), 9)'",
+            "python -c 'os.kill(pid_from(\"[j]unction gateway\"), 9)'",
             "python -c 'os.killpg(pgid_of(\"{n}\"), 15)'",
             "node -e 'process.kill(pidOf(\"{n}\"), 9)'",
         ],
     )
     def test_direct_kill_api_blocked(self, cmd):
         # `os.kill` IS the execution sink, so it stands as its own alternative rather than
-        # behind the shell-command sink list.  Matched on `irocrew` rather than the full
-        # name so the standard "don't match my own lookup" bracket idiom (`[k]irocrew`),
-        # which still resolves to the gateway, is not a free pass.
+        # behind the shell-command sink list.  The bracketed spelling (`[j]unction`) is
+        # matched alongside the full name so the standard "don't match my own lookup"
+        # bracket idiom, which still resolves to the gateway, is not a free pass.
         assert _denied_by(cmd.format(n=_NAME)) is not None
 
     def test_long_gap_inside_the_quoted_string_still_blocked(self):
@@ -1934,10 +1932,10 @@ class TestInterpreterArgvLiteralMint:
         assert _denied_by(text) is not None
 
     def test_parameter_expansion_inside_a_substitution_body_is_still_a_kill(self):
-        # `kill $(pgrep -f kiro${x:-crew})` hides the name behind an expansion whose
+        # `kill $(pgrep -f jun${x:-ction})` hides the name behind an expansion whose
         # literal branch the shell substitutes back in, so the body is searched both raw
         # and with those defaults resolved.
-        assert _denied_by("kill $(pgrep -f kiro${x:-crew})") == _RULE_KILL
+        assert _denied_by("kill $(pgrep -f jun${x:-ction})") == _RULE_KILL
 
     def test_kill_api_mentioned_in_prose_allowed(self):
         assert _denied_by(f"echo 'os.kill docs mention {_NAME}'") is None
@@ -2006,13 +2004,13 @@ class TestInterpreterArgvLiteralMint:
     @pytest.mark.parametrize(
         "cmd",
         [
-            "python -c 'os.system(\"PKILL -f [k]irocrew\")'",
-            "node -e 'execSync(\"PKILL -f [k]irocrew\")'",
-            "python -c \"subprocess.run(['PKILL','-f','[k]irocrew'])\"",
+            "python -c 'os.system(\"PKILL -f [j]unction\")'",
+            "node -e 'execSync(\"PKILL -f [j]unction\")'",
+            "python -c \"subprocess.run(['PKILL','-f','[j]unction'])\"",
         ],
     )
     def test_bracket_idiom_inside_an_interpreter_payload_blocked(self, cmd):
-        # `[k]irocrew` is the standard "don't match my own process lookup" idiom and still
+        # `[j]unction` is the standard "don't match my own process lookup" idiom and still
         # resolves to the gateway.  The direct-kill-API branch already accounted for it;
         # the sink-qualified branches now do too, so the three are consistent.
         assert _denied_by(cmd.replace("PKILL", _PK)) is not None
@@ -2055,8 +2053,8 @@ class TestInterpreterArgvLiteralMint:
     def test_bracket_idiom_in_prose_still_allowed(self):
         # Tolerating the idiom must not turn a mention into a match: no execution sink,
         # no denial.
-        assert _denied_by(f"echo 'run {_PK} [k]irocrew to stop it'") is None
-        assert _denied_by(f"git commit -m 'note: {_PK} [k]irocrew rule'") is None
+        assert _denied_by(f"echo 'run {_PK} [j]unction to stop it'") is None
+        assert _denied_by(f"git commit -m 'note: {_PK} [j]unction rule'") is None
 
     def test_data_consumer_not_in_program_position_still_allowed(self):
         # The exemption still holds for an ordinary consumer invocation.
@@ -2089,7 +2087,7 @@ class TestInterpreterArgvLiteralMint:
         [
             "node -e 'console.log(\"run {n} {v} to mint\")'",
             "echo 'run PKILL {n} to stop it'",
-            "python3 -c \"print('{n} docs mention {v}')\"",
+            "ruby -e \"puts '{n} docs mention {v}'\"",
             "git commit -m 'note: PKILL {n} rule'",
         ],
     )
@@ -2104,11 +2102,11 @@ class TestInterpreterArgvLiteralMint:
         assembled = (
             "python -c 'import os; os.system("
             + Q
-            + "kiro"
+            + "junc"
             + Q
             + " + "
             + Q
-            + "crew "
+            + "tion "
             + _TOK
             + Q
             + ")'"
@@ -2122,7 +2120,7 @@ class TestInterpreterArgvLiteralMint:
         CLI with the package name never appearing as a token. A command-text rule cannot see
         THROUGH them, so on the credential-mint path the fail-closed reading is "an inline
         program I cannot decode is refused" — the dynamic-exec verbs are matched and the whole
-        `-c` invocation denied. `os.system("kirocrew token")` with the verb literal is caught by
+        `-c` invocation denied. `os.system("junction token")` with the verb literal is caught by
         the argv floor; a base64-wrapped one is caught because the wrapper itself is the tell.
         Found in review (GPT 5.6).
         """
@@ -2266,7 +2264,6 @@ class TestSelfProtectionKillTargetScoping:
             f"{_KA} {_NAME}",
             f"sudo {_KA} -9 {_NAME}",
             f"{_PK} -9 -f '{_NAME} gateway'",
-            f"{_PK} {_HYPH}",
             f"{_PK} -f /usr/local/bin/{_NAME}",
             f"{_KA} -9 {_NAME} > /dev/null",
             f"{_K} -9 $(pgrep {_NAME})",
@@ -2418,7 +2415,7 @@ class TestSelfProtectionKillTargetScoping:
         assert _denied_by(cmd) == _RULE_KILL
 
     def test_empty_substitution_glue_is_still_a_mint(self):
-        assert _denied_by(f"kiro$()crew {_TOK}") == _RULE_MINT
+        assert _denied_by(f"jun$()ction {_TOK}") == _RULE_MINT
 
     @pytest.mark.parametrize(
         "cmd,rule",
@@ -2563,9 +2560,9 @@ class TestSelfProtectionKillTargetScoping:
     @pytest.mark.parametrize(
         "cmd",
         [
-            f"{_PK} -f kiro$()crew",
-            f"{_PK} -f kiro``crew",
-            f"{_KA} kiro$()crew",
+            f"{_PK} -f jun$()ction",
+            f"{_PK} -f jun``ction",
+            f"{_KA} jun$()ction",
         ],
     )
     def test_empty_substitution_inside_the_target_is_still_a_kill(self, cmd):
@@ -2575,10 +2572,10 @@ class TestSelfProtectionKillTargetScoping:
     @pytest.mark.parametrize(
         "cmd,rule",
         [
-            ("./bin/kiro[c]rew {v}", _RULE_MINT),
-            ("kiro?rew {v}", _RULE_MINT),
-            ("kiro*rew {v}", _RULE_MINT),
-            ("/usr/local/bin/kiro[c]rew {v}", _RULE_MINT),
+            ("./bin/junc[t]ion {v}", _RULE_MINT),
+            ("junc?ion {v}", _RULE_MINT),
+            ("jun*ion {v}", _RULE_MINT),
+            ("/usr/local/bin/junc[t]ion {v}", _RULE_MINT),
             ("p[k]ill -f {n}", _RULE_KILL),
         ],
     )
@@ -2592,32 +2589,32 @@ class TestSelfProtectionKillTargetScoping:
     @pytest.mark.parametrize(
         "cmd",
         [
-            "kiro[x]few {v}",
-            "ls ./bin/kiro*rew",
-            "echo kiro[c]rew {v}",
+            "junc[t]ure {v}",
+            "ls ./bin/jun*ion",
+            "echo junc[t]ion {v}",
         ],
     )
     def test_glob_that_cannot_name_the_cli_allowed(self, cmd):
-        # Expandability is the test, not the mere presence of a glob: `kiro[x]few` cannot
+        # Expandability is the test, not the mere presence of a glob: `junc[t]ure` cannot
         # expand to the CLI, `ls` is not an invocation of it, and `echo` treats it as data.
         assert _denied_by(cmd.format(n=_NAME, v=_TOK)) is None
 
     @pytest.mark.parametrize(
         "cmd",
         [
-            "kiro{{c..c}}rew {v}",
-            "kiro{{c,c}}rew {v}",
+            "junc{{t..t}}ion {v}",
+            "junc{{t,t}}ion {v}",
             "p{{k,k}}ill -f {n}",
         ],
     )
     def test_brace_expansion_in_program_name_blocked(self, cmd):
         # A brace group expands to the real name before exec, so it is treated like any
         # other glob: translated to a regex and tested for whether it COULD name the
-        # target.  `kiro{{x,y}}few` cannot, and stays allowed.
+        # target.  `junc{{x,y}}ure` cannot, and stays allowed.
         assert _denied_by(cmd.format(n=_NAME, v=_TOK)) is not None
 
     def test_brace_expansion_that_cannot_name_the_cli_allowed(self):
-        assert _denied_by("kiro{x,y}few " + _TOK) is None
+        assert _denied_by("junc{x,y}ure " + _TOK) is None
 
     @pytest.mark.parametrize(
         "cmd",
@@ -2632,7 +2629,8 @@ class TestSelfProtectionKillTargetScoping:
         # does, so it belongs in the sink alternation.  The `asyncio.` prefix is optional
         # because `from asyncio import create_subprocess_shell` reaches the bare name.
         text = "python -c '" + cmd.format(n=_NAME, v=_TOK) + "'"
-        assert _denied_by(text) == _RULE_MINT + "-argv"
+        assert _denied_by_rule(text, _RULE_ARGV) == _RULE_ARGV
+        assert _denied_by(text) is not None
 
     @pytest.mark.parametrize(
         "cmd",
@@ -2643,7 +2641,8 @@ class TestSelfProtectionKillTargetScoping:
     )
     def test_asyncio_subprocess_sink_can_kill(self, cmd):
         text = "python -c '" + cmd.format(n=_NAME).replace("PKILL", _PK) + "'"
-        assert _denied_by(text) == _RULE_KILL + "-interpreter"
+        assert _denied_by_rule(text, _RULE_KILL_INTERP) == _RULE_KILL_INTERP
+        assert _denied_by(text) is not None
 
     @pytest.mark.parametrize(
         "payload,rule",
@@ -2651,7 +2650,7 @@ class TestSelfProtectionKillTargetScoping:
             ("{n}\\040{v}", _RULE_MINT),
             ("{n}\\x20{v}", _RULE_MINT),
             ("{n}\\11{v}", _RULE_MINT),
-            ("\\x6birocrew {v}", _RULE_MINT),
+            ("\\x6aunction {v}", _RULE_MINT),
             ("PKILL -f\\040{n}", _RULE_KILL),
         ],
     )
@@ -2705,8 +2704,8 @@ class TestSelfProtectionKillTargetScoping:
         [
             ("x=p; x=${{x}}kill; $x -f {n}", _RULE_KILL),
             ("x=pk; y=${{x}}ill; $y -f {n}", _RULE_KILL),
-            ("a=kiro; b=$a; c=${{b}}crew; $c {v}", _RULE_MINT),
-            ("n=kiro; n=${{n}}crew; $n {v}", _RULE_MINT),
+            ("a=junc; b=$a; c=${{b}}tion; $c {v}", _RULE_MINT),
+            ("n=junc; n=${{n}}tion; $n {v}", _RULE_MINT),
         ],
     )
     def test_name_assembled_across_assignments(self, cmd, rule):
@@ -2744,7 +2743,8 @@ class TestSelfProtectionKillTargetScoping:
         body = payload.format(n=_NAME, v=_TOK).replace("PKILL", _PK)
         text = "python -c " + Q + body + Q
         expected = rule + ("-interpreter" if rule == _RULE_KILL else "-argv")
-        assert _denied_by(text) == expected
+        assert _denied_by_rule(text, expected) == expected
+        assert _denied_by(text) is not None
 
     @pytest.mark.parametrize(
         "cmd",
@@ -2807,7 +2807,8 @@ class TestSelfProtectionKillTargetScoping:
         body = payload.format(n=_NAME, v=_TOK).replace("PKILL", _PK)
         text = "python -c " + Q + body + Q
         expected = rule + ("-interpreter" if rule == _RULE_KILL else "-argv")
-        assert _denied_by(text) == expected
+        assert _denied_by_rule(text, expected) == expected
+        assert _denied_by(text) is not None
 
     @pytest.mark.parametrize(
         "payload,rule",
@@ -2874,7 +2875,7 @@ class TestSelfProtectionKillTargetScoping:
         ],
     )
     def test_bracket_idiom_names_the_protected_program(self, cmd, rule):
-        # `[k]irocrew` is the standard idiom for matching a process without matching the
+        # `[j]unction` is the standard idiom for matching a process without matching the
         # grep itself.  A one-character bracket class expands to that character, so it
         # names the protected program; the class is collapsed before comparison.
         bracketed = "[" + _NAME[0] + "]" + _NAME[1:]
@@ -2933,7 +2934,10 @@ class TestSelfProtectionKillTargetScoping:
     def test_percent_format_without_a_sink_allowed(self):
         # `print` does not execute, so collapsing the format must not make it a mint.
         text = "python3 -c " + chr(39) + 'print("' + _NAME + ' %s" % "' + _TOK + '")' + chr(39)
-        assert _denied_by(text) is None
+        # The argv rule leaves it alone; the whole gate still refuses it, because a
+        # `-c` program that names the package is an import of the CLI.
+        assert _denied_by_rule(text, _RULE_ARGV) is None
+        assert _denied_by(text) == _RULE_MINT
 
     def test_percent_format_with_a_non_literal_argument_allowed(self):
         # Only LITERAL arguments are substituted; a numeric format is left alone.
@@ -2982,11 +2986,17 @@ class TestSelfProtectionKillTargetScoping:
             + ")"
             + chr(34)
         )
-        assert _denied_by(text) is None
+        # The argv rule leaves it alone; the whole gate still refuses it, because a
+        # `-c` program that names the package is an import of the CLI.
+        assert _denied_by_rule(text, _RULE_ARGV) is None
+        assert _denied_by(text) == _RULE_MINT
 
     def test_binding_used_by_a_non_sink_allowed(self):
         text = "python3 -c " + chr(34) + "n=" + chr(39) + _NAME + chr(39) + "; print(n)" + chr(34)
-        assert _denied_by(text) is None
+        # The argv rule leaves it alone; the whole gate still refuses it, because a
+        # `-c` program that names the package is an import of the CLI.
+        assert _denied_by_rule(text, _RULE_ARGV) is None
+        assert _denied_by(text) == _RULE_MINT
 
     def test_sink_named_in_prose_allowed(self):
         # Naming a sink is not calling one; sink qualification still governs.
@@ -3000,9 +3010,9 @@ class TestSelfProtectionKillTargetScoping:
         assert _denied_by(f"K=echo; ${{K:0}} {_NAME} {_TOK}") is None
 
     def test_default_form_keeps_its_own_meaning(self):
-        # `${x:-crew}` carries its own LITERAL and is resolved separately; the
+        # `${x:-ction}` carries its own LITERAL and is resolved separately; the
         # transformation handling must not shadow it.
-        assert _denied_by(f"kiro${{x:-crew}} {_TOK}") == _RULE_MINT
+        assert _denied_by(f"jun${{x:-ction}} {_TOK}") == _RULE_MINT
 
     def test_computed_value_that_is_not_the_verb_allowed(self):
         assert _denied_by("T=$(printf hello); echo $T") is None
@@ -3034,7 +3044,11 @@ class TestSelfProtectionKillTargetScoping:
     def test_concatenation_without_a_sink_allowed(self):
         # `print` does not execute, so joining the literals must not make it a mint --
         # sink qualification still governs.
-        assert _denied_by("python3 -c \"print('" + _NAME + " '+'" + _TOK + "')\"") is None
+        text = "python3 -c \"print('" + _NAME + " '+'" + _TOK + "')\""
+        # The argv rule leaves it alone; the whole gate still refuses it, because a
+        # `-c` program that names the package is an import of the CLI.
+        assert _denied_by_rule(text, _RULE_ARGV) is None
+        assert _denied_by(text) == _RULE_MINT
 
     def test_greedy_variable_name_is_not_a_concatenation(self):
         # bash parses `$xkill` as the variable `xkill` (unset), NOT `$x` followed by
@@ -3156,11 +3170,6 @@ class TestCredentialMintSegmentScoping:
     )
     def test_mint_invocation_still_blocked(self, cmd):
         assert _denied_by(cmd) == _RULE_MINT
-
-    def test_hyphenated_spelling_now_blocked(self):
-        # NEW COVERAGE: the retired pattern hardcoded the unhyphenated name, so
-        # this real invocation form was allowed.
-        assert _denied_by(f"{_HYPH} {_TOK} --ttl 30m") == _RULE_MINT
 
     @pytest.mark.parametrize(
         "cmd",
@@ -3470,28 +3479,28 @@ class TestSelfFloorShortCircuit:
 
     def test_name_carrying_command_still_descends(self, monkeypatch):
         # A real candidate must reach the full structural scan.
-        assert self._descent_calls(monkeypatch, "kirocrew token") >= 1
-        assert self._descent_calls(monkeypatch, "pkill -f kirocrew") >= 1
+        assert self._descent_calls(monkeypatch, "junction token") >= 1
+        assert self._descent_calls(monkeypatch, "pkill -f junction") >= 1
 
     def test_gate_is_a_necessary_condition_not_a_name_grep(self):
         """Every obfuscated spelling the floor denies must pass the gate.
 
         The issue proposed gating on a raw ``_SELF_NAME_RE`` search; that is
         UNSOUND — each input below fires a predicate today while its raw text
-        never matches ``kiro[-.]?crew``. The gate must answer True for all of
+        never matches ``\\bjunction\\b``. The gate must answer True for all of
         them (over-matching is safe; under-matching is a bypass).
         """
         from junction import security
 
         for evasive in (
-            "python -m junction token",  # underscored module spelling
-            "[k]irocrew token",  # one-char bracket class
-            "kiro$()crew token",  # empty command substitution
-            "kiro${x:-crew} token",  # parameter default
-            'bash -c "\\x6birocrew token"',  # printf hex escape
-            'k""iro""crew token',  # empty-string concatenation
-            "kiro?rew token",  # glob the shell expands before exec
-            "kill $(pgrep -f kirocrew)",  # bare kill via substitution
+            "python -mjunction token",  # attached module spelling
+            "[j]unction token",  # one-char bracket class
+            "jun$()ction token",  # empty command substitution
+            "jun${x:-ction} token",  # parameter default
+            'bash -c "\\x6aunction token"',  # printf hex escape
+            'j""unc""tion token',  # empty-string concatenation
+            "junc?ion token",  # glob the shell expands before exec
+            "kill $(pgrep -f junction)",  # bare kill via substitution
             "python -c \"exec(__import__('base64').b64decode('x'))\" token",
         ):
             assert security._self_floor_can_fire(
@@ -3503,16 +3512,16 @@ class TestSelfFloorShortCircuit:
         from junction import security
 
         for mint in (
-            "[k]irocrew token",
-            "kiro$()crew token",
-            "kiro${x:-crew} token",
-            'bash -c "\\x6birocrew token"',
-            'k""iro""crew token',
-            "kiro?rew token",
+            "[j]unction token",
+            "jun$()ction token",
+            "jun${x:-ction} token",
+            'bash -c "\\x6aunction token"',
+            'j""unc""tion token',
+            "junc?ion token",
         ):
             assert security._is_credential_mint(mint), f"mint not caught: {mint!r}"
-        assert security._is_self_kill("kill $(pgrep -f kirocrew)")
-        assert security._is_self_kill("pkill -f kirocrew")
+        assert security._is_self_kill("kill $(pgrep -f junction)")
+        assert security._is_self_kill("pkill -f junction")
 
     def test_gate_declines_plain_text_without_machinery(self):
         from junction import security
@@ -3536,8 +3545,8 @@ class TestSelfFloorShortCircuit:
 
         # expanduser reads HOME on POSIX but USERPROFILE on Windows — set
         # both so the tilde target resolves under the product tree everywhere.
-        monkeypatch.setenv("HOME", "/opt/kiro-crew")
-        monkeypatch.setenv("USERPROFILE", "/opt/kiro-crew")
+        monkeypatch.setenv("HOME", "/opt/junction")
+        monkeypatch.setenv("USERPROFILE", "/opt/junction")
         for kill in ("pkill -f ~", "killall ~", "pkill -f ~/"):
             assert security._self_floor_can_fire(kill), f"gate would bypass the floor for {kill!r}"
         # End-to-end: the gated predicate still denies it.
@@ -3775,7 +3784,7 @@ class TestStdinProgramTextScoping:
     def test_rule_does_not_fire_on_its_own_pattern_text(self):
         """Quoting this rule must not trip it.
 
-        ``credential-exfil-kirocrew-token``'s code comment claims this exemption
+        ``credential-exfil-junction-token``'s code comment claims this exemption
         ("a regex LITERAL quoting this very rule ... from reading as a mint"), and
         #2660 reported the claim failing in practice.  Pin it so discussing,
         documenting or testing the rule by quoting it stays possible.
@@ -3783,7 +3792,7 @@ class TestStdinProgramTextScoping:
         from junction import security
 
         rule = next(
-            r for r in security.BUILTIN_DENIED_RULES if r.id == "credential-exfil-kirocrew-token"
+            r for r in security.BUILTIN_DENIED_RULES if r.id == "credential-exfil-junction-token"
         )
         for cmd in (
             f'grep -n "{rule.pattern}" notes.txt',

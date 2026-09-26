@@ -102,7 +102,7 @@ def _make_pack(root: Path, *, slug: str = "lcars", level: int = 0) -> Path:
 @pytest.fixture
 def themes_dir(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> Path:
     """Redirect JUNCTION_HOME into tmp_path and return the themes directory."""
-    home = tmp_path / "crew-home"
+    home = tmp_path / "data-home"
     home.mkdir()
     monkeypatch.setenv("JUNCTION_HOME", str(home))
     d = home / "themes"

@@ -63,6 +63,25 @@ from junction.validation import (
 
 logger = logging.getLogger(__name__)
 
+#: The slot mode of a Multitask Mode session: topics run in parallel
+#: sub-sessions behind a durable queue (``junction.multitask_chat``).
+SLOT_MODE_MULTITASK = "multitask"
+#: Earlier Junction builds wrote the multitask slot mode as ``"crew"`` in a
+#: transcript's metadata line; it is read so an existing data home keeps its
+#: multitask tabs, and the queues behind them, after an upgrade.
+LEGACY_SLOT_MODE_MULTITASK = "crew"
+
+
+def normalize_slot_mode(mode: str) -> str:
+    """The current spelling of a slot mode read back from disk.
+
+    Applied wherever a persisted mode becomes a live ``slot.mode``, so every
+    comparison downstream sees one spelling and the next save writes it.
+    """
+    if mode == LEGACY_SLOT_MODE_MULTITASK:
+        return SLOT_MODE_MULTITASK
+    return mode
+
 
 async def run_config_write(fn, /, *args, **kwargs):
     """Run a blocking ``config.json`` writer under BOTH config locks.

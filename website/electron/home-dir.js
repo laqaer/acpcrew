@@ -5,7 +5,7 @@
 //      (/usr, /System, /etc) -- are rejected (paths.py _valid_override_home)
 //      and fall through to the default, so both sides agree on which overrides
 //      are honored.
-//   2. Otherwise the default home ~/.kiro/crew.
+//   2. Otherwise the default home ~/.junction.
 //
 // Electron consumes this in two ways:
 //   - resolveHome(): the data home whose config.json content governs this
@@ -21,7 +21,7 @@ const nodeOs = require("os");
 const nodePath = require("path");
 
 function canonicalHome(os = nodeOs, path = nodePath) {
-  return path.join(os.homedir(), ".kiro", "crew");
+  return path.join(os.homedir(), ".junction");
 }
 
 /**
@@ -52,7 +52,7 @@ function validOverride(env, os, path) {
 
 /**
  * The data home whose config content governs this launch: a valid
- * JUNCTION_HOME override, else the default ~/.kiro/crew.
+ * JUNCTION_HOME override, else the default ~/.junction.
  * @param {{env?: object, os?: object, path?: object}} deps
  * @returns {string}
  */

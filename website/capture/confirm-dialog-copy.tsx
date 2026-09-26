@@ -31,13 +31,13 @@ import '../src/index.css'
 const params = new URLSearchParams(location.search)
 const scene = params.get('scene') ?? 'deploy-destroy'
 
-document.documentElement.setAttribute('data-theme', 'kiro-dark')
+document.documentElement.setAttribute('data-theme', 'junction-dark')
 applyFallbackTheme()
 initI18n('en')
 
 /** Realistic operands so the frame reads like production, not lorem ipsum. */
 const SITE = 'blog'
-const BUCKET = 'kc-site-blog-8f3a'
+const BUCKET = 'jn-site-blog-8f3a'
 const DISTRIBUTION = 'E2ABCDEF123'
 const FILE = 'draft.tex'
 

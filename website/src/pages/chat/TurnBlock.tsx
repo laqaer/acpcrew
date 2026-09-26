@@ -10,6 +10,7 @@ import { isSubagentCompletionMessage } from './subagentCompletion'
 import { isDiffToolMessage } from './toolDiff'
 import { OPTION_MARKER_RE } from '../../app-sdk/protocol/optionMarker'
 import { i18nT } from '../../i18n/t'
+import { hasMultitaskReplyMarker } from '../../lib/noteContract'
 
 // A workflow_run launch renders as its own always-visible inline card
 // (WorkflowRunCard), so it must never be folded into the collapsible tool-call
@@ -100,30 +101,25 @@ const isHandBack = (it: TurnItem) =>
   it.kind === 'single' && isConclusion(it) && hasOptionsMarker(it.msg.content)
 
 /**
- * A crew-mode answer: a forwarded topic result, a meta render, or a question
- * back to the user. Crew Mode breaks this component's central assumption —
- * that the LAST assistant message of a turn is the conclusion and the earlier
- * ones are reasoning. There, each forward is the FINAL answer for a different
- * topic, so collapsing all but the last hides answers the user asked for.
- * Keyed on the persisted marker class rather than the live-only `kind`, so it
- * still holds after a reload.
+ * A multitask-mode answer: a forwarded topic result, a meta render, or a
+ * question back to the user. Multitask Mode breaks this component's central
+ * assumption — that the LAST assistant message of a turn is the conclusion and
+ * the earlier ones are reasoning. There, each forward is the FINAL answer for a
+ * different topic, so collapsing all but the last hides answers the user asked
+ * for. Keyed on the persisted marker (`meta` key or class, see noteContract)
+ * rather than the live-only `kind`, so it still holds after a reload.
  */
-const isCrewReply = (it: TurnItem) =>
-  it.kind === 'single' && isConclusion(it) &&
-  // `meta.crew_reply` is the durable signal: the periodic slot flush keeps `meta`
-  // for every role but keeps `cls` only for role === 'system', so a class-only
-  // marker was dropped on the main persistence path. The class check stays as a
-  // fallback for rows written before the marker moved, and for the live frame.
-  (it.msg.meta?.crew_reply === true || /(^|\s)crew-reply(\s|$)/.test(it.msg.cls || ''))
+const isMultitaskReply = (it: TurnItem) =>
+  it.kind === 'single' && isConclusion(it) && hasMultitaskReplyMarker(it.msg)
 
 /** A renderable assistant message (widget/image), a mid-turn hand-back
- *  ([OPTIONS:] marker), a crew-mode answer, a role that must surface inline
+ *  ([OPTIONS:] marker), a multitask-mode answer, a role that must surface inline
  *  (mcp_oauth, error), a workflow_run / spawn_run / workflow-completion /
  *  sub-agent-completion card, or an MCP App-bearing tool call (interactive
  *  iframe anchored to the row). All
  *  bypass the collapse pane. */
 const isVisibleInline = (it: TurnItem, appToolCallIds: ReadonlySet<string>) =>
-  isRenderable(it) || isHandBack(it) || isAlwaysVisible(it) || isCrewReply(it) ||
+  isRenderable(it) || isHandBack(it) || isAlwaysVisible(it) || isMultitaskReply(it) ||
   isWorkflowRunItem(it) || isSpawnRunItem(it) ||
   isSubagentCompletionItem(it) ||
   isWorkflowCompletionItem(it) || isMcpAppItem(it, appToolCallIds) ||

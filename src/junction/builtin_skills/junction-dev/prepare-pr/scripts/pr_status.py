@@ -350,8 +350,8 @@ def _normalize_repo_key(value):
     the portability scanner's path-assembly rule does not read it as one.
 
     GitHub owner and repository names are case-insensitive, so the comparison
-    must be too: otherwise ``Fixes KiroDotDev/Junction#7`` would read as naming
-    a different repository from the host's own ``kirodotdev/KiroCrew`` and the
+    must be too: otherwise ``Fixes Laqaer/Junction#7`` would read as naming
+    a different repository from the host's own ``laqaer/junction`` and the
     trailer would stop covering the closure it plainly declares.
     """
     if not isinstance(value, str):

@@ -57,7 +57,7 @@ _ENGINE_DIRNAME = "sdpm"
 
 
 def app_root() -> Path:
-    """The app's writable data dir (``~/.kiro/crew/apps/pptx-maker/data``).
+    """The app's writable data dir (``~/.junction/apps/pptx-maker/data``).
 
     A builtin app's *source* lives read-only inside the installed Python
     package, so everything this app provisions at runtime (the engine checkout,

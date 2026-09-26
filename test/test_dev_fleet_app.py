@@ -1193,9 +1193,9 @@ async def test_repo_owner_name_ssh():
     import junction.apps.builtins.dev_fleet.server as mod
 
     mod._OWNER_REPO = None
-    with patch.object(mod, "_run_cmd", new_callable=AsyncMock, return_value=(0, "git@github.com:kirodotdev/KiroCrew.git\n", "")):
+    with patch.object(mod, "_run_cmd", new_callable=AsyncMock, return_value=(0, "git@github.com:laqaer/junction.git\n", "")):
         result = await mod._repo_owner_name()
-    assert result == "kirodotdev/KiroCrew"
+    assert result == "laqaer/junction"
 
 
 @pytest.mark.asyncio
@@ -1203,9 +1203,9 @@ async def test_repo_owner_name_https():
     import junction.apps.builtins.dev_fleet.server as mod
 
     mod._OWNER_REPO = None
-    with patch.object(mod, "_run_cmd", new_callable=AsyncMock, return_value=(0, "https://github.com/kirodotdev/KiroCrew.git\n", "")):
+    with patch.object(mod, "_run_cmd", new_callable=AsyncMock, return_value=(0, "https://github.com/laqaer/junction.git\n", "")):
         result = await mod._repo_owner_name()
-    assert result == "kirodotdev/KiroCrew"
+    assert result == "laqaer/junction"
 
 
 # --- _find_worktree ambiguity rejection ---
@@ -2817,7 +2817,7 @@ def _make_checkout(root: Path) -> Path:
     """Create a directory carrying every Junction checkout marker."""
     (root / ".git").mkdir(parents=True)
     (root / "src" / "junction").mkdir(parents=True)
-    (root / "pyproject.toml").write_text("[project]\nname = 'kiro-crew'\n")
+    (root / "pyproject.toml").write_text("[project]\nname = 'junction'\n")
     return root
 
 
@@ -2865,22 +2865,22 @@ def test_discover_main_repo_honors_the_config_repo_path(monkeypatch):
     """``dev_fleet.repo_path`` is a supported alternative to the env var."""
     monkeypatch.delenv("JUNCTION_DEVFLEET_REPO", raising=False)
     monkeypatch.delenv("JUNCTION_PROJECT_DIR", raising=False)
-    with patch.object(mod, "_load_dev_fleet_cfg", return_value={"repo_path": "/opt/kc"}):
-        assert mod._discover_main_repo() == "/opt/kc"
+    with patch.object(mod, "_load_dev_fleet_cfg", return_value={"repo_path": "/opt/junction"}):
+        assert mod._discover_main_repo() == "/opt/junction"
 
 
 def test_discover_main_repo_takes_an_explicit_path_verbatim(monkeypatch):
     """A configured path is NOT marker-tested: a typo must surface as an error
     naming that path, not be silently swapped for a discovered checkout."""
     monkeypatch.setenv("JUNCTION_DEVFLEET_REPO", "/typo/junction")
-    with patch.object(mod, "_load_dev_fleet_cfg", return_value={"repo_path": "/opt/kc"}):
+    with patch.object(mod, "_load_dev_fleet_cfg", return_value={"repo_path": "/opt/junction"}):
         assert mod._discover_main_repo() == "/typo/junction"
 
 
 def test_discover_main_repo_finds_a_conventional_clone_location(monkeypatch, tmp_path):
     """A real checkout in a conventional location is found without configuration."""
     home = tmp_path / "home"
-    checkout = _make_checkout(home / "Repos" / "Junction")  # brand-ok: clone dir name
+    checkout = _make_checkout(home / "Repos" / "Junction")
     monkeypatch.delenv("JUNCTION_DEVFLEET_REPO", raising=False)
     monkeypatch.delenv("JUNCTION_PROJECT_DIR", raising=False)
     with patch.object(mod, "_load_dev_fleet_cfg", return_value={}), \
@@ -3092,7 +3092,7 @@ async def test_unreadable_repo_answers_a_coded_409_too():
     secret = "s" * 32
 
     async def boom(request):
-        raise mod.RepoUnreadable("main checkout not found: /opt/kc is missing or not a git checkout.")
+        raise mod.RepoUnreadable("main checkout not found: /opt/junction is missing or not a git checkout.")
 
     app = web.Application(middlewares=[mod.hmac_proxy_middleware])
     app.router.add_get("/api/prune-candidates", boom)
@@ -3110,7 +3110,7 @@ async def test_fleet_handler_still_reports_an_unreadable_repo_as_an_error():
     """/fleet is the one route that distinguishes them: unreadable keeps the
     error payload (the Discovery Error banner names the path the user chose)."""
     async def boom():
-        raise mod.RepoUnreadable("main checkout not found: /opt/kc is missing or not a git checkout.")
+        raise mod.RepoUnreadable("main checkout not found: /opt/junction is missing or not a git checkout.")
 
     with patch.object(mod, "_fleet_refresh", new=boom), \
          patch.object(mod, "_fleet_cached", new=boom):
@@ -3132,7 +3132,7 @@ def test_repo_source_hint_names_the_env_var(monkeypatch):
 
 def test_repo_source_hint_names_the_config_key(monkeypatch):
     monkeypatch.delenv("JUNCTION_DEVFLEET_REPO", raising=False)
-    with patch.object(mod, "_load_dev_fleet_cfg", return_value={"repo_path": "/typo/kc"}):
+    with patch.object(mod, "_load_dev_fleet_cfg", return_value={"repo_path": "/typo/junction"}):
         hint = mod._repo_source_hint()
     assert "config.json" in hint
     assert "environment variable" not in hint
@@ -3423,9 +3423,9 @@ def _mk_make_live_wt(tmp_path, *, venv: bool = False, dist: bool = False,
     if venv:
         vb = wt / ".venv" / "bin"
         vb.mkdir(parents=True, exist_ok=True)
-        kcbin = vb / "junction"
-        kcbin.write_text("#!/bin/sh\n")
-        kcbin.chmod(0o755 if venv_exec else 0o644)
+        junction_bin = vb / "junction"
+        junction_bin.write_text("#!/bin/sh\n")
+        junction_bin.chmod(0o755 if venv_exec else 0o644)
     if dist:
         dd = wt / "src" / "junction" / "static" / "dist"
         dd.mkdir(parents=True, exist_ok=True)
@@ -3816,9 +3816,9 @@ async def test_make_live_already_live_space_path(monkeypatch, tmp_path):
     wt.mkdir(parents=True)
     vb = wt / ".venv" / "bin"
     vb.mkdir(parents=True)
-    kc = vb / "junction"
-    kc.write_text("#!/bin/sh\n")
-    kc.chmod(0o755)
+    jbin = vb / "junction"
+    jbin.write_text("#!/bin/sh\n")
+    jbin.chmod(0o755)
     dd = wt / "src" / "junction" / "static" / "dist"
     dd.mkdir(parents=True)
     (dd / "index.html").write_text("<html></html>")
@@ -3844,12 +3844,12 @@ def test_in_pod_tristate(monkeypatch, tmp_path):
     previous fail-OPEN False would have let a pod cut the live gateway)."""
     import junction.config.loader as cfg_loader
 
-    pod_home = tmp_path / ".kirocrew-pods" / "junction-wt-x"
+    pod_home = tmp_path / ".junction-pods" / "junction-wt-x"
     pod_home.mkdir(parents=True)
     monkeypatch.setattr(cfg_loader, "config_dir", lambda: pod_home)
     assert mod._in_pod() is True
 
-    live_home = tmp_path / ".kirocrew"
+    live_home = tmp_path / ".junction"
     live_home.mkdir()
     monkeypatch.setattr(cfg_loader, "config_dir", lambda: live_home)
     assert mod._in_pod() is False
@@ -5853,7 +5853,7 @@ async def test_sync_refuses_when_target_repo_has_no_venv(monkeypatch, tmp_path):
 
 def test_gateway_unit_resolves_pod_instance(monkeypatch, tmp_path):
     """Inside a pod HOME the restart target is the pod unit, never the live one."""
-    pod_home = tmp_path / ".kirocrew-pods" / "junction-wt-feature"
+    pod_home = tmp_path / ".junction-pods" / "junction-wt-feature"
     pod_home.mkdir(parents=True)
     monkeypatch.setenv("JUNCTION_HOME", str(pod_home))
     from junction.config import loader as cfg_loader
@@ -5863,7 +5863,7 @@ def test_gateway_unit_resolves_pod_instance(monkeypatch, tmp_path):
 
 
 def test_gateway_unit_resolves_live_outside_pods(monkeypatch, tmp_path):
-    home = tmp_path / ".kirocrew"
+    home = tmp_path / ".junction"
     home.mkdir(parents=True)
     monkeypatch.setenv("JUNCTION_HOME", str(home))
     assert mod._gateway_unit_name() == "junction-gateway.service"
@@ -6008,10 +6008,10 @@ def test_pick_summary_falls_back_to_latest_when_all_bumps():
 # --- html origin parsing (issue link base) ---
 def test_parse_html_repo_base_variants():
     p = mod._parse_html_repo_base
-    assert p("git@github.com:kirodotdev/KiroCrew.git") == "https://github.com/kirodotdev/KiroCrew"
-    assert p("https://github.com/kirodotdev/KiroCrew.git") == "https://github.com/kirodotdev/KiroCrew"
-    assert p("https://github.com/kirodotdev/KiroCrew") == "https://github.com/kirodotdev/KiroCrew"
-    assert p("ssh://git@github.com/kirodotdev/KiroCrew.git") == "https://github.com/kirodotdev/KiroCrew"
+    assert p("git@github.com:laqaer/junction.git") == "https://github.com/laqaer/junction"
+    assert p("https://github.com/laqaer/junction.git") == "https://github.com/laqaer/junction"
+    assert p("https://github.com/laqaer/junction") == "https://github.com/laqaer/junction"
+    assert p("ssh://git@github.com/laqaer/junction.git") == "https://github.com/laqaer/junction"
     assert p("") is None
     assert p("not a url") is None
 
@@ -6050,13 +6050,13 @@ async def test_build_context_parses_pr_body_and_commits():
     with patch.object(mod, "_upstream_remote", new_callable=AsyncMock, return_value="origin"), \
          patch.object(mod, "_git", new_callable=AsyncMock, return_value=log), \
          patch.object(mod, "_html_repo_base", new_callable=AsyncMock,
-                      return_value="https://github.com/kirodotdev/KiroCrew"), \
+                      return_value="https://github.com/laqaer/junction"), \
          patch.object(mod, "_load_dev_fleet_cfg",
                       return_value={"ticket_url_template": "https://t.corp/{id}"}):
         ctx = await mod._build_context("feat/thing", "/wt/thing", {"_body": "Closes #147\nsee #12"})
     # ordered-unique across pr body + commit subjects + commit bodies
     assert [i["number"] for i in ctx["issues"]] == [147, 12, 99]
-    assert ctx["issues"][0]["url"] == "https://github.com/kirodotdev/KiroCrew/issues/147"
+    assert ctx["issues"][0]["url"] == "https://github.com/laqaer/junction/issues/147"
     assert [t["id"] for t in ctx["tickets"]] == ["TT-5"]
     assert ctx["tickets"][0]["url"] == "https://t.corp/TT-5"
     assert ctx["summary"] == "feat(dev-fleet): surface context"
@@ -7986,8 +7986,7 @@ async def test_ancestry_gate_allows_ref_delete_when_ancestor():
 async def test_empty_branch_ref_survives_when_pr_not_merged():
     """own==0 (empty branch) must NOT delete the branch ref when no PR is
     merged: an empty branch may simply not have been pushed yet, and the ref
-    is the only local pointer to those commits (recoverable > irrecoverable).
-    Regression test for kirodotdev#1554."""
+    is the only local pointer to those commits (recoverable > irrecoverable)."""
     import junction.apps.builtins.dev_fleet.server as mod
 
     deleted_refs: list[str] = []
@@ -8790,7 +8789,7 @@ async def test_dirty_unmerged_message_does_not_promise_force_override():
 # Foreground last-resort restart (issue #2566)
 # =============================================================================
 
-def _mk_kcbin(tmp_path: Path, name: str = "junction") -> Path:
+def _mk_junction_bin(tmp_path: Path, name: str = "junction") -> Path:
     """An executable file that passes ForegroundBackend's launcher validation."""
     d = tmp_path / "bin"
     d.mkdir(parents=True, exist_ok=True)
@@ -8828,8 +8827,8 @@ def _fg(tmp_path: Path, *, port: int = 7777, pid: int = 4242,
 @pytest.mark.asyncio
 async def test_foreground_backend_ok_and_start_id(tmp_path):
     """Single live marker + resolvable binary -> ok; start_id is the marker pid."""
-    kc = _mk_kcbin(tmp_path)
-    fg, _ = _fg(tmp_path, launcher=str(kc))
+    jbin = _mk_junction_bin(tmp_path)
+    fg, _ = _fg(tmp_path, launcher=str(jbin))
     assert await fg.status() == "ok"
     assert await fg.start_id() == "4242"
 
@@ -8837,17 +8836,17 @@ async def test_foreground_backend_ok_and_start_id(tmp_path):
 @pytest.mark.asyncio
 async def test_foreground_backend_unavailable_cases(tmp_path):
     """No marker, dead pid, or ambiguous markers -> unavailable, start_id None."""
-    kc = _mk_kcbin(tmp_path)
+    jbin = _mk_junction_bin(tmp_path)
     # No marker at all.
-    fg, _ = _fg(tmp_path, ports=[], pids={}, launcher=str(kc))
+    fg, _ = _fg(tmp_path, ports=[], pids={}, launcher=str(jbin))
     assert await fg.status() == "no_foreground_gateway"
     assert await fg.start_id() is None
     # Marker whose pid is dead (crash leftover).
-    fg, _ = _fg(tmp_path, alive=False, launcher=str(kc))
+    fg, _ = _fg(tmp_path, alive=False, launcher=str(jbin))
     assert await fg.status() == "no_foreground_gateway"
     # Two live markers: ambiguous, never guess which gateway to bounce.
     fg, _ = _fg(tmp_path, ports=[7777, 7778], pids={7777: 1, 7778: 2},
-                launcher=str(kc))
+                launcher=str(jbin))
     assert await fg.status() == "no_foreground_gateway"
     assert await fg.start_id() is None
 
@@ -8857,11 +8856,11 @@ async def test_foreground_backend_binary_resolution(tmp_path):
     """ONLY the keystone-fenced marker launcher is trusted — no PATH fallback
     (an agent can plant a `junction` in ~/.local/bin); invalid recorded
     launchers are refused rather than guessed around."""
-    kc = _mk_kcbin(tmp_path)
+    jbin = _mk_junction_bin(tmp_path)
     # Marker launcher used, verbatim.
-    fg, spawned = _fg(tmp_path, launcher=str(kc))
+    fg, spawned = _fg(tmp_path, launcher=str(jbin))
     ok, err = await fg.restart_detached()
-    assert ok and spawned[0][0] == str(kc)
+    assert ok and spawned[0][0] == str(jbin)
     # No recorded launcher (source-tree launch, empty marker): refuse — the
     # PATH fallback is deliberately absent.
     fg, spawned = _fg(tmp_path, launcher=None)
@@ -8870,12 +8869,12 @@ async def test_foreground_backend_binary_resolution(tmp_path):
     assert not ok and "resolved" in err and spawned == []
     # A launcher that is not basenamed junction is refused even when executable
     # (the _own_console_script rule: exec the entry point it claims to be).
-    impostor = _mk_kcbin(tmp_path / "i", name="systemctl")
+    impostor = _mk_junction_bin(tmp_path / "i", name="systemctl")
     fg, _ = _fg(tmp_path, launcher=str(impostor))
     assert await fg.status() == "no_junction_binary"
     # A non-executable launcher is refused: it could stop the gateway but never
     # start the replacement.
-    limp = _mk_kcbin(tmp_path / "n")
+    limp = _mk_junction_bin(tmp_path / "n")
     limp.chmod(0o644)
     fg, _ = _fg(tmp_path, launcher=str(limp))
     assert await fg.status() == "no_junction_binary"
@@ -8888,8 +8887,8 @@ async def test_foreground_backend_binary_resolution(tmp_path):
 async def test_foreground_backend_refuses_when_confined(tmp_path):
     """A confined backend (OS sandbox / agents cgroup scope) never spawns: the
     replacement would inherit the confinement for the gateway's whole life."""
-    kc = _mk_kcbin(tmp_path)
-    fg, spawned = _fg(tmp_path, launcher=str(kc),
+    jbin = _mk_junction_bin(tmp_path)
+    fg, spawned = _fg(tmp_path, launcher=str(jbin),
                       confined="the Dev Fleet backend runs inside the sandbox")
     assert await fg.status() == "backend_confined"
     ok, err = await fg.restart_detached()
@@ -8911,25 +8910,25 @@ def test_default_confinement_detects_sandbox_marker(monkeypatch):
 @pytest.mark.asyncio
 async def test_foreground_restart_detached_pins_port(tmp_path):
     """The detached command is `<bin> restart --port <marker port>`."""
-    kc = _mk_kcbin(tmp_path)
-    fg, spawned = _fg(tmp_path, port=6776, pid=99, launcher=str(kc))
+    jbin = _mk_junction_bin(tmp_path)
+    fg, spawned = _fg(tmp_path, port=6776, pid=99, launcher=str(jbin))
     ok, err = await fg.restart_detached()
     assert ok and err == ""
-    assert spawned == [[str(kc), "restart", "--port", "6776"]]
+    assert spawned == [[str(jbin), "restart", "--port", "6776"]]
 
 
 @pytest.mark.asyncio
 async def test_foreground_spawn_failure_signals_nothing(tmp_path, monkeypatch):
     """A spawn that cannot be established returns (False, why) and the backend
     never signals any process — the incumbent gateway must stay untouched."""
-    kc = _mk_kcbin(tmp_path)
+    jbin = _mk_junction_bin(tmp_path)
 
     def bad_spawn(argv):
         raise OSError("resource temporarily unavailable")
 
     kills: list = []
     monkeypatch.setattr(os, "kill", lambda *a: kills.append(a))
-    fg, _ = _fg(tmp_path, launcher=str(kc), spawn=bad_spawn)
+    fg, _ = _fg(tmp_path, launcher=str(jbin), spawn=bad_spawn)
     ok, err = await fg.restart_detached()
     assert not ok and "resource temporarily unavailable" in err
     assert kills == []
@@ -8941,20 +8940,20 @@ async def test_make_live_foreground_last_resort_cutover(monkeypatch, tmp_path):
     make-live finishes the cutover itself: pointer written, detached
     `junction restart` established, start_id (the pre-restart pid) returned,
     and the committed latch set exactly as on a drivable host."""
-    kc = _mk_kcbin(tmp_path)
+    jbin = _mk_junction_bin(tmp_path)
     for status in ("no_systemd", "no_user_unit", "no_launchd", "no_agent"):
         wt = _mk_make_live_wt(tmp_path / status, venv=True, dist=True)
         ptr_dir = tmp_path / "ptr" / status
         _stub_make_live(monkeypatch, wt, unit_status=status, pointer_dir=ptr_dir)
         monkeypatch.setattr(mod, "_MAKE_LIVE_COMMITTED", False, raising=False)
-        fg, spawned = _fg(tmp_path, port=7777, pid=31337, launcher=str(kc))
+        fg, spawned = _fg(tmp_path, port=7777, pid=31337, launcher=str(jbin))
         monkeypatch.setattr(mod, "_foreground_backend", lambda fg=fg: fg)
 
         res = await mod._make_live(str(wt), dry_run=False)
         assert res["ok"] is True and res["cutover"] is True, f"{status}: {res}"
         assert "staged_only" not in res
         assert res["start_id"] == "31337"
-        assert spawned == [[str(kc), "restart", "--port", "7777"]]
+        assert spawned == [[str(jbin), "restart", "--port", "7777"]]
         # Pointer written with the target.
         data = json.loads((ptr_dir / "live_target.json").read_text())
         assert Path(data["checkout"]).resolve() == wt.resolve()
@@ -8995,7 +8994,7 @@ async def test_make_live_foreground_spawn_failure_keeps_advisory(monkeypatch, tm
     """FAIL SAFE: when the detached spawn cannot be established the running
     gateway is untouched, the pointer STAYS staged, the committed latch is not
     set, and the response is the status-quo manual advisory."""
-    kc = _mk_kcbin(tmp_path)
+    jbin = _mk_junction_bin(tmp_path)
     wt = _mk_make_live_wt(tmp_path, venv=True, dist=True)
     ptr_dir = tmp_path / "ptr"
     _stub_make_live(monkeypatch, wt, unit_status="no_systemd", pointer_dir=ptr_dir)
@@ -9004,7 +9003,7 @@ async def test_make_live_foreground_spawn_failure_keeps_advisory(monkeypatch, tm
     def bad_spawn(argv):
         raise OSError("spawn refused")
 
-    fg, _ = _fg(tmp_path, launcher=str(kc), spawn=bad_spawn)
+    fg, _ = _fg(tmp_path, launcher=str(jbin), spawn=bad_spawn)
     monkeypatch.setattr(mod, "_foreground_backend", lambda: fg)
 
     res = await mod._make_live(str(wt), dry_run=False)
@@ -9025,12 +9024,12 @@ async def test_make_live_foreground_unavailable_keeps_advisory(monkeypatch, tmp_
     """Eligible codes without a usable foreground gateway (no/ambiguous marker,
     unresolvable binary, confined backend) keep the pre-existing staged_only
     behaviour."""
-    kc = _mk_kcbin(tmp_path)
+    jbin = _mk_junction_bin(tmp_path)
     wt = _mk_make_live_wt(tmp_path, venv=True, dist=True)
     ptr_dir = tmp_path / "ptr"
     for label, fg_kwargs in (
         ("no_marker", dict(ports=[], pids={}, launcher=None)),
-        ("confined", dict(launcher=str(kc), confined="backend is sandboxed")),
+        ("confined", dict(launcher=str(jbin), confined="backend is sandboxed")),
     ):
         _stub_make_live(monkeypatch, wt, unit_status="no_systemd",
                         pointer_dir=ptr_dir / label)
@@ -9049,11 +9048,11 @@ async def test_make_live_foreground_unavailable_keeps_advisory(monkeypatch, tmp_
 async def test_make_live_foreground_dry_run_plan(monkeypatch, tmp_path):
     """A dry run on a foreground-capable host reports the restart as automatic
     with the exact command — and mutates nothing, spawns nothing."""
-    kc = _mk_kcbin(tmp_path)
+    jbin = _mk_junction_bin(tmp_path)
     wt = _mk_make_live_wt(tmp_path, venv=True, dist=True)
     ptr_dir = tmp_path / "ptr"
     _stub_make_live(monkeypatch, wt, unit_status="no_systemd", pointer_dir=ptr_dir)
-    fg, spawned = _fg(tmp_path, port=7777, pid=1, launcher=str(kc))
+    fg, spawned = _fg(tmp_path, port=7777, pid=1, launcher=str(jbin))
     monkeypatch.setattr(mod, "_foreground_backend", lambda: fg)
 
     res = await mod._make_live(str(wt), dry_run=True)
@@ -9061,7 +9060,7 @@ async def test_make_live_foreground_dry_run_plan(monkeypatch, tmp_path):
     plan = res["plan"]
     assert plan["restart"] == "automatic"
     assert plan["restart_backend"] == "foreground"
-    assert plan["restart_command"] == f"{kc} restart --port 7777"
+    assert plan["restart_command"] == f"{jbin} restart --port 7777"
     assert spawned == []
     assert not (ptr_dir / "live_target.json").exists()
 
@@ -9071,8 +9070,8 @@ async def test_gateway_start_id_foreground_fallback(monkeypatch, tmp_path):
     """On an eligible host the health handshake identity is the marker pid, so
     the dashboard can observe a foreground cutover complete; on an ineligible
     host it stays None (degrade, never wait forever)."""
-    kc = _mk_kcbin(tmp_path)
-    fg, _ = _fg(tmp_path, pid=8080, launcher=str(kc))
+    jbin = _mk_junction_bin(tmp_path)
+    fg, _ = _fg(tmp_path, pid=8080, launcher=str(jbin))
     monkeypatch.setattr(mod, "_foreground_backend", lambda: fg)
     with patch.object(mod, "sys", MagicMock(platform="linux")), \
          patch.object(mod, "shutil",
@@ -9115,7 +9114,7 @@ async def test_make_live_artifact_changed_before_lock_is_revalidated(
     _stub_make_live(monkeypatch, wt, pointer_dir=ptr_dir)
     monkeypatch.setattr(mod, "_MAKE_LIVE_COMMITTED", False)
 
-    kcbin = wt / ".venv" / "bin" / "junction"
+    junction_bin = wt / ".venv" / "bin" / "junction"
 
     # Wrap _MAKE_LIVE_LOCK so that entering the lock removes the binary,
     # simulating a concurrent rebuild that completes between the early probe
@@ -9123,7 +9122,7 @@ async def test_make_live_artifact_changed_before_lock_is_revalidated(
     real_lock = asyncio.Lock()
 
     class _SideEffectLock:
-        """Proxy that removes *kcbin* when the lock body is entered."""
+        """Proxy that removes *junction_bin* when the lock body is entered."""
 
         def locked(self) -> bool:
             return real_lock.locked()
@@ -9131,7 +9130,7 @@ async def test_make_live_artifact_changed_before_lock_is_revalidated(
         async def __aenter__(self):
             await real_lock.__aenter__()
             # Binary vanishes at the moment the lock body begins.
-            kcbin.unlink(missing_ok=True)
+            junction_bin.unlink(missing_ok=True)
             return self
 
         async def __aexit__(self, *args):
@@ -9170,7 +9169,7 @@ async def test_make_live_artifact_checks_are_executor_offloaded(
     the in-lock re-validation — proving the checks are offloaded.
 
     Without the production fix, the checks are plain synchronous expressions
-    (``kcbin.is_file()``, ``os.access()``, ``dist_index.is_file()``) executed
+    (``junction_bin.is_file()``, ``os.access()``, ``dist_index.is_file()``) executed
     inline; no callable named ``_validate_artifacts_sync`` is ever submitted.
     """
     wt = _mk_make_live_wt(tmp_path, venv=True, dist=True)

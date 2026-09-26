@@ -1171,7 +1171,7 @@ class TestLinuxControlPaths:
         # would also affect pytest/fixture machinery).
         unit_path = tmp_path / "junction.service"
         unit_path.write_text("")
-        data_home = tmp_path / "crew-home"
+        data_home = tmp_path / "data-home"
         data_home.mkdir()
         sentinel = data_home / "memory.db"
         sentinel.write_text("user data")
@@ -1413,7 +1413,7 @@ class TestMacOSControlPaths:
         plist_path = plist_dir / f"{LAUNCHD_LABEL}.plist"
         plist_dir.mkdir(parents=True)
         plist_path.write_text("<plist/>")
-        data_home = tmp_path / "crew-home"
+        data_home = tmp_path / "data-home"
         data_home.mkdir()
         sentinel = data_home / "memory.db"
         sentinel.write_text("user data")
@@ -1628,28 +1628,6 @@ class TestJunctionBinOverride:
         ):
             assert junction_bin() == "/usr/local/bin/junction"
 
-    def test_prefers_junction_over_alias_on_path(self, monkeypatch):
-        monkeypatch.delenv("JUNCTION_SERVICE_BIN", raising=False)
-
-        def _which(name: str) -> str | None:
-            return {
-                "junction": "/usr/local/bin/junction",
-                "junction": "/usr/local/bin/junction",
-                "acpcrew": "/usr/local/bin/acpcrew",
-            }.get(name)
-
-        with patch("junction.service.common.shutil.which", side_effect=_which):
-            assert junction_bin() == "/usr/local/bin/junction"
-
-    def test_falls_back_to_junction_alias_when_junction_absent(self, monkeypatch):
-        monkeypatch.delenv("JUNCTION_SERVICE_BIN", raising=False)
-
-        def _which(name: str) -> str | None:
-            return "/usr/local/bin/junction" if name == "junction" else None
-
-        with patch("junction.service.common.shutil.which", side_effect=_which):
-            assert junction_bin() == "/usr/local/bin/junction"
-
     def test_blank_override_is_ignored(self, monkeypatch):
         monkeypatch.setenv("JUNCTION_SERVICE_BIN", "   ")
         with patch(
@@ -1823,7 +1801,7 @@ class TestServiceEnvironment:
         assert 'ExecStart="/opt/Junction App/junction" gateway' in unit
         assert 'Environment="JUNCTION_KIRO_BIN=/opt/Junction App/kiro-cli"\n' in unit
         # The bare unquoted forms must NOT appear (would break systemd parsing).
-        assert "ExecStart=/opt/Kiro Crew/junction gateway" not in unit
+        assert "ExecStart=/opt/Junction App/junction gateway" not in unit
 
     def test_unit_escapes_percent_specifiers(self, monkeypatch):
         # systemd expands %-specifiers (%h=home, %i=instance) in ExecStart /
@@ -2164,7 +2142,7 @@ class TestLauncherReconcileIsProductionOnly:
     def test_an_isolated_home_does_not_reconcile(self, monkeypatch, tmp_path):
         from junction import cli_server
 
-        monkeypatch.setenv("JUNCTION_HOME", str(tmp_path / ".kirocrew-dev"))
+        monkeypatch.setenv("JUNCTION_HOME", str(tmp_path / ".junction-dev"))
         monkeypatch.setattr(cli_server.sys, "platform", "darwin")
 
         assert cli_server._should_reconcile_launchd_launcher() is False
@@ -2282,7 +2260,7 @@ class TestAppArmorProfileRendering:
     def test_has_no_attachment_path(self):
         """A path attachment here would be a privilege leak, not a detail.
 
-        The gateway's interpreter (``~/.kiro/crew-venv/bin/python3``) is a
+        The gateway's interpreter (``~/.junction-venv/bin/python3``) is a
         SYMLINK to the system python, and AppArmor matches the resolved path. So
         attaching to the venv path silently never matches, and attaching to the
         resolved path grants unprivileged userns to EVERY Python process on the
@@ -2300,7 +2278,7 @@ class TestAppArmorProfileRendering:
         # And no interpreter path anywhere in the RULES (comments may explain why).
         body = text.split("{", 1)[1]
         assert "python" not in body
-        assert "crew-venv" not in body
+        assert "-venv" not in body
 
     def test_grants_only_userns(self):
         from junction.service import apparmor as aa
@@ -3773,7 +3751,7 @@ class TestHeadlessApiKeyWarning:
         plain = common.headless_auth_warning({self.API_KEY: self.SECRET})
         assert "JUNCTION_HOME" not in plain
         with_home = common.headless_auth_warning(
-            {self.API_KEY: self.SECRET, "JUNCTION_HOME": "/srv/crew"}
+            {self.API_KEY: self.SECRET, "JUNCTION_HOME": "/srv/junction"}
         )
         assert "JUNCTION_HOME" in with_home
 
@@ -3792,7 +3770,7 @@ class TestHeadlessApiKeyWarning:
             "printf"
         ), "chmod must precede the append, or the secret lands in a 0644 file"
 
-    def test_remedy_survives_a_crew_home_containing_spaces(self, monkeypatch, tmp_path):
+    def test_remedy_survives_a_data_home_containing_spaces(self, monkeypatch, tmp_path):
         """An operator copy-pastes this line, so the shell must read one path.
 
         Unquoted, a spaced path word-splits: `touch` creates the wrong files,
@@ -3802,7 +3780,7 @@ class TestHeadlessApiKeyWarning:
         world-readable outcome the chmod ordering exists to prevent, so quoting
         belongs to that same contract.
         """
-        spaced = tmp_path / "crew home"
+        spaced = tmp_path / "data home"
         spaced.mkdir()
         dotenv = self._dotenv(monkeypatch, spaced, "")
         warning = common.headless_auth_warning({self.API_KEY: self.SECRET})

@@ -127,7 +127,7 @@ _PROJECT_SKILL_MAX_DEPTH = 64
 # ── Auto skill creation ──
 
 # Namespace for auto-generated skills — keeps them out of the way of
-# hand-authored skills.  Final path: ``~/.kiro/crew/skills/auto/<name>/SKILL.md``.
+# hand-authored skills.  Final path: ``~/.junction/skills/auto/<name>/SKILL.md``.
 AUTO_SKILL_NAMESPACE = "auto"
 
 # Archive area for retired auto-skills. A dot-prefixed dir so it is pruned from
@@ -1448,14 +1448,14 @@ def skills_dir() -> Path:
 
 
 class SkillsLoader:
-    """Load skill markdown files from ~/.kiro/crew/skills/.
+    """Load skill markdown files from ~/.junction/skills/.
 
     Supports nested directories. Each skill is identified by its
     relative path from the skills root (e.g. ``utils/tiny-url``).
 
     Directory layout::
 
-        ~/.kiro/crew/skills/
+        ~/.junction/skills/
         ├── learn/SKILL.md
         ├── subagent/SKILL.md
         ├── code/

@@ -1,20 +1,20 @@
 name: Sign and Notarize macOS (reusable)
 
-# Reusable workflow: sign the macOS app via the signing service, notarize +
-# staple it, then publish it. Called by nightly.yml (channel: nightly) and release.yml
+# Reusable workflow: Developer ID sign the macOS app, notarize + staple it,
+# then publish it. Called by nightly.yml (channel: nightly) and release.yml
 # (channel: insider | stable). See docs/build/signing-runbook.md for the full
 # chain and the credential rotation procedure.
 #
 # Three jobs, chained:
-#   sign      -- flatten build artifacts, attest provenance, upload unsigned
-#                artifacts to pre-signed/ in the PRIVATE signing bucket,
-#                submit the .app to the signing service. Nothing here is public-facing.
-#                (This job was historically duplicated in nightly.yml and
-#                release.yml under the misleading name "publish".)
-#   notarize  -- everything macOS-bound: Apple notarization, staple, the
-#                spctl fail-closed gate. The Apple credential is confined
-#                to this job. Ends by attaching the GATED artifact
-#                (notarized zip) to the workflow run.
+#   sign      -- flatten build artifacts, attest provenance, stage the unsigned
+#                artifacts under pre-signed/ in the PRIVATE signing bucket, and
+#                hand their keys to the notarize job. Nothing here is
+#                public-facing, and nothing here holds a signing identity.
+#   notarize  -- everything macOS-bound: Developer ID codesigning of the app
+#                and later of the DMG, Apple notarization, staple, the spctl
+#                fail-closed gate. The signing identity and the Apple
+#                credential are both confined to this job. Ends by attaching
+#                the GATED artifact (notarized zip) to the workflow run.
 #   publish   -- everything S3-bound: copy the gated artifact to the public
 #                distribution bucket and write the channel feed, dead last
 #                among the go-live pointers (a convenience latest-DMG alias
@@ -28,24 +28,30 @@ name: Sign and Notarize macOS (reusable)
 # in this trust chain. It ships from publish-linux.yml, its own lane
 # called directly by nightly.yml / release.yml beside publish-cli.yml.)
 #
-# DMG history (2026-07-21): the DMG was briefly withdrawn after a field
-# defect -- hdiutil-created DMGs carry an ADHOC signature, which the Apple
-# notary service Accepts but Gatekeeper treats as "no usable signature",
-# showing "app is damaged" when a user drags the app out of the quarantined
-# mount (syspolicy_check: app passed, DMG failed). It is reinstated with a
-# proper Developer ID signature: a SECOND CDSigner task (manifest type:
-# dmg, see packaging/signing/sign-dmg.sh) signs the rebuilt DMG before its
-# notarization -- which also makes the DMG STAPLE-able (stapler fails with
-# Error 73 on unsigned DMGs), so first-install verification now works
-# fully offline. A fail-closed spctl gate below enforces the end state.
+# Why the DMG is signed on its own: hdiutil-created DMGs carry an ADHOC
+# signature, which the Apple notary service Accepts but Gatekeeper treats as
+# "no usable signature", showing "app is damaged" when a user drags the app
+# out of the quarantined mount (syspolicy_check: app passed, DMG failed). So
+# packaging/signing/sign-dmg.sh gives the rebuilt DMG its own Developer ID
+# signature before its notarization -- which also makes the DMG STAPLE-able
+# (stapler fails with Error 73 on unsigned DMGs), so first-install
+# verification works fully offline. A fail-closed spctl gate below enforces
+# the end state.
 #
 # Key properties:
-#   - The signed_zip_key handoff is internal (sign job output -> notarize
-#     job), no longer plumbed through every caller.
-#   - The Apple credential is fetched from AWS Secrets Manager at runtime
-#     (junction/signing/apple-notary) via the same OIDC role used for
-#     signing. The password is masked and scoped to single steps in the
-#     notarize job only; it is never persisted to GITHUB_ENV, files, or
+#   - Signing is gated on the Developer ID identity secret
+#     (APPLE_DEVELOPER_ID_P12_BASE64). Without it the sign job still flattens,
+#     attests and stages, but hands nothing over, so notarize and publish skip
+#     and the run's artifacts stay the unsigned build outputs.
+#   - The unsigned_zip_key / unsigned_dmg_key handoff is internal (sign job
+#     output -> notarize job), not plumbed through every caller.
+#   - The Developer ID identity is imported from its .p12 secret into a
+#     temporary keychain in the notarize job, used by codesign, and deleted
+#     by an always() step at the end of that job, so it never outlives it.
+#   - The Apple notary credential is fetched from AWS Secrets Manager at
+#     runtime (junction/signing/apple-notary) via the OIDC role that also
+#     stages artifacts. The password is masked and scoped to single steps in
+#     the notarize job only; it is never persisted to GITHUB_ENV, files, or
 #     logs, and the publish job never touches it.
 #   - Fails closed: Gatekeeper assessment (spctl) must report
 #     "Notarized Developer ID" or the notarize job fails and publish never
@@ -97,7 +103,7 @@ permissions:
 
 jobs:
   sign:
-    name: Sign with signing service (${{ inputs.channel }})
+    name: Stage for signing (${{ inputs.channel }})
     if: ${{ !inputs.promote }}
     runs-on: ubuntu-latest
     timeout-minutes: 30
@@ -108,18 +114,18 @@ jobs:
     # job below for the full environment-protection rationale.
     environment: prod
     outputs:
-      signed_zip_key: ${{ steps.sign.outputs.signed_zip_key }}
+      unsigned_zip_key: ${{ steps.sign.outputs.unsigned_zip_key }}
       unsigned_dmg_key: ${{ steps.sign.outputs.unsigned_dmg_key }}
     env:
       HAS_SIGNING_SECRETS: ${{ secrets.AWS_SIGNING_ROLE_ARN != '' && 'true' || '' }}
-      HAS_CDSIGNER: ${{ secrets.CDSIGNER_API_ENDPOINT != '' && 'true' || '' }}
+      # Developer ID signing is configured when its identity secret is. This
+      # flag alone decides whether the sign job hands the app to the notarize
+      # job; `secrets.*` is not available in a step-level `if`, so it is
+      # hoisted here.
+      HAS_SIGNING_IDENTITY: ${{ secrets.APPLE_DEVELOPER_ID_P12_BASE64 != '' && 'true' || '' }}
       CHANNEL: ${{ inputs.channel }}
       VERSION: ${{ inputs.version }}
     steps:
-      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-        with:
-          sparse-checkout: packaging/signing
-
       - uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
         with:
           path: artifacts
@@ -145,23 +151,6 @@ jobs:
             release/*.tar.gz
             release/*.AppImage
 
-      # Install the SigV4 client (awscurl) BEFORE AWS credentials are
-      # configured, so a compromised or version-drifted release can never observe
-      # the signing-role credentials at install time. Pinned for the same reason.
-      - name: Install awscurl (SigV4 client for signing service)
-        if: env.HAS_CDSIGNER
-        run: |
-          # Dedicated venv: `pip install --user` is refused by PEP 668
-          # (externally-managed-environment) on Homebrew/Deadsnakes-managed
-          # runner Pythons -- macos-15 enforces it today, ubuntu images will.
-          # Symlink only the awscurl binary onto PATH so the venv's python
-          # never shadows the system python3 used by later steps.
-          python3 -m venv "$RUNNER_TEMP/awscurl-venv"
-          "$RUNNER_TEMP/awscurl-venv/bin/pip" install --quiet "awscurl==0.44"
-          mkdir -p "$RUNNER_TEMP/tool-bin"
-          ln -sf "$RUNNER_TEMP/awscurl-venv/bin/awscurl" "$RUNNER_TEMP/tool-bin/awscurl"
-          echo "$RUNNER_TEMP/tool-bin" >> "$GITHUB_PATH"
-
       - name: Configure AWS credentials
         if: env.HAS_SIGNING_SECRETS
         uses: aws-actions/configure-aws-credentials@e1253824e5c10ff9df46874f81ed3ec929e19cfd # v6.3.0
@@ -169,6 +158,8 @@ jobs:
           role-to-assume: ${{ secrets.AWS_SIGNING_ROLE_ARN }}
           aws-region: us-west-2
 
+      # The notarize job reads the unsigned app zip and the DMG layout template
+      # back from here: a private staging prefix, never the distribution bucket.
       - name: Upload unsigned artifacts to S3
         if: env.HAS_SIGNING_SECRETS
         run: |
@@ -179,38 +170,31 @@ jobs:
             aws s3 cp "$f" "s3://${{ secrets.AWS_SIGNING_BUCKET }}/${KEY}"
           done
 
-      - name: Extract .app from zip for signing
-        if: env.HAS_CDSIGNER
+      # The handoff to the notarize job, which does the codesigning on macOS.
+      # Its outputs are the whole gate downstream: empty keys skip notarize
+      # (and with it publish), which is the unsigned path.
+      - name: Hand the unsigned app to Developer ID signing
+        id: sign
+        if: env.HAS_SIGNING_IDENTITY
         run: |
-          mkdir -p unsigned-app
+          set -euo pipefail
           # Arch-agnostic: electron-builder's mac zip always ends in
           # "-mac.zip" (universal builds carry "-universal-mac.zip", per-arch
           # ones "-arm64-mac.zip"), and nothing else in release/ is a mac zip
           # (wheel/sdist/AppImage only) -- so this matches the mac zip
           # whichever arch mode built it.
           MAC_ZIP=$(find release -name "*-mac.zip" | head -1)
-          if [ -n "$MAC_ZIP" ]; then
-            unzip -q "$MAC_ZIP" -d unsigned-app/
-            echo "APP_PATH=$(find unsigned-app -name '*.app' -maxdepth 1 | head -1)" >> "$GITHUB_ENV"
-          else
+          if [ -z "$MAC_ZIP" ]; then
             echo "No macOS zip found -- skipping signing"
-            echo "APP_PATH=" >> "$GITHUB_ENV"
+            exit 0
           fi
-
-      - name: Sign with signing service
-        id: sign
-        if: env.HAS_CDSIGNER && env.APP_PATH != ''
-        env:
-          AWS_SIGNING_BUCKET: ${{ secrets.AWS_SIGNING_BUCKET }}
-          AWS_SIGNER_ROLE_ARN: ${{ secrets.AWS_SIGNER_ACCESS_ROLE_ARN }}
-          CDSIGNER_API_ENDPOINT: ${{ secrets.CDSIGNER_API_ENDPOINT }}
-        run: |
-          bash packaging/signing/sign.sh "$APP_PATH" "$CHANNEL" "$VERSION"
-          # MUST mirror sign.sh's OUTPUT_KEY: bucket keys use the space-free
-          # slug of the bundle name ("Junction Nightly" -> "Junction-Nightly").
-          APP_SLUG="$(basename "$APP_PATH" .app)"
-          APP_SLUG="${APP_SLUG// /-}"
-          echo "signed_zip_key=signed/${CHANNEL}/${VERSION}/${APP_SLUG}.zip" >> "$GITHUB_OUTPUT"
+          # The notarize job reads the staged bytes back from the signing
+          # bucket, so an identity without the role that stages them is a
+          # misconfiguration rather than a reason to skip.
+          if [ -z "${HAS_SIGNING_SECRETS}" ]; then
+            echo "::error::APPLE_DEVELOPER_ID_P12_BASE64 is set but AWS_SIGNING_ROLE_ARN is not, so the unsigned app was never staged for signing. Set both or neither."
+            exit 1
+          fi
           shopt -s nullglob
           UNSIGNED_DMGS=(release/*.dmg)
           shopt -u nullglob
@@ -219,6 +203,7 @@ jobs:
             exit 1
           }
           UNSIGNED_DMG_NAME="$(basename "${UNSIGNED_DMGS[0]}")"
+          echo "unsigned_zip_key=pre-signed/${CHANNEL}/${VERSION}/$(basename "$MAC_ZIP")" >> "$GITHUB_OUTPUT"
           echo "unsigned_dmg_key=pre-signed/${CHANNEL}/${VERSION}/${UNSIGNED_DMG_NAME}" >> "$GITHUB_OUTPUT"
 
       - name: Summary
@@ -226,23 +211,26 @@ jobs:
           {
             echo "## Sign (${CHANNEL})"
             echo "- Version: ${VERSION}"
-            echo "- Signed: ${{ env.HAS_CDSIGNER && env.APP_PATH != '' && 'Yes' || 'No (signing service not configured)' }}"
+            echo "- Signed: ${{ steps.sign.outputs.unsigned_zip_key != '' && 'Yes (Developer ID, in the notarize job)' || 'No (signing identity not configured)' }}"
             echo "- Artifacts:"
             ls release/ | sed 's/^/  - /'
           } >> "$GITHUB_STEP_SUMMARY"
 
   notarize:
-    name: Notarize + staple (${{ inputs.channel }})
+    name: Sign, notarize + staple (${{ inputs.channel }})
     needs: sign
     # Skip cleanly (rather than fail) when signing is not configured
-    # (fork / repo without signing-service secrets) -- there is nothing to notarize.
-    if: needs.sign.outputs.signed_zip_key != ''
+    # (fork / repo without a Developer ID identity) -- there is nothing to
+    # sign or notarize.
+    if: needs.sign.outputs.unsigned_zip_key != ''
     runs-on: macos-15
     # Worst-case wait budget: two notarytool submissions (app, then DMG)
-    # at up to 30m each, plus the CDSigner DMG sign task poll at up to 15m
-    # = 75m of pure waiting. The budget must also cover checkout, installs,
-    # downloads, DMG build, staple, attestation, and uploads, or GitHub
-    # cancels the job mid-publication on a legitimately slow day.
+    # at up to 30m each, plus the app's Developer ID signing at up to 15m
+    # (one timestamped codesign call per nested Mach-O, and the embedded
+    # Python backend carries hundreds) = 75m of pure waiting. The budget must
+    # also cover checkout, downloads, DMG build, staple, attestation, and
+    # uploads, or GitHub cancels the job mid-publication on a legitimately
+    # slow day.
     timeout-minutes: 90
     # OIDC subject alignment: tag-triggered callers (release.yml) present
     # ref:refs/tags/<tag>, which the signing role does not trust. The prod
@@ -254,14 +242,19 @@ jobs:
     # repository ruleset restricts v* tag creation/update/deletion to
     # repository admins. An unmerged commit can therefore only reach this
     # environment if an admin deliberately tags it -- the same principal
-    # who could merge it to main.
+    # who could merge it to main. The Developer ID identity is a prod
+    # environment secret for the same reason.
     environment: prod
     env:
       HAS_SIGNING_SECRETS: ${{ secrets.AWS_SIGNING_ROLE_ARN != '' && 'true' || '' }}
       CHANNEL: ${{ inputs.channel }}
       VERSION: ${{ inputs.version }}
-      SIGNED_ZIP_KEY: ${{ needs.sign.outputs.signed_zip_key }}
+      UNSIGNED_ZIP_KEY: ${{ needs.sign.outputs.unsigned_zip_key }}
       UNSIGNED_DMG_KEY: ${{ needs.sign.outputs.unsigned_dmg_key }}
+      # A throwaway keychain in RUNNER_TEMP, never the login keychain. The
+      # last step of this job deletes it whatever happened before it. (Only
+      # the name lives here: the runner context is not available to job env.)
+      SIGNING_KEYCHAIN_NAME: junction-signing.keychain-db
       # Published FILENAMES are pinned to this basename on every channel even
       # though the nightly BUNDLE is "Junction Nightly.app": CDN keys and the
       # latest-DMG permalink (desktop/<channel>/latest/Junction.dmg) are a
@@ -273,18 +266,6 @@ jobs:
         with:
           sparse-checkout: packaging/signing
 
-      # Install the CDSigner SigV4 client BEFORE AWS credentials are
-      # configured (same supply-chain ordering as the sign job). Same
-      # PEP 668-safe venv recipe: macos-15's Homebrew python3 refuses
-      # `pip install --user` with externally-managed-environment.
-      - name: Install awscurl (SigV4 client for CDSigner)
-        run: |
-          python3 -m venv "$RUNNER_TEMP/awscurl-venv"
-          "$RUNNER_TEMP/awscurl-venv/bin/pip" install --quiet "awscurl==0.44"
-          mkdir -p "$RUNNER_TEMP/tool-bin"
-          ln -sf "$RUNNER_TEMP/awscurl-venv/bin/awscurl" "$RUNNER_TEMP/tool-bin/awscurl"
-          echo "$RUNNER_TEMP/tool-bin" >> "$GITHUB_PATH"
-
       - name: Configure AWS credentials
         if: env.HAS_SIGNING_SECRETS
         uses: aws-actions/configure-aws-credentials@e1253824e5c10ff9df46874f81ed3ec929e19cfd # v6.3.0
@@ -292,13 +273,79 @@ jobs:
           role-to-assume: ${{ secrets.AWS_SIGNING_ROLE_ARN }}
           aws-region: us-west-2
 
-      - name: Download signed artifact
+      - name: Download unsigned artifacts
         if: env.HAS_SIGNING_SECRETS
         run: |
           mkdir -p work
-          aws s3 cp "s3://${{ secrets.AWS_SIGNING_BUCKET }}/${SIGNED_ZIP_KEY}" work/signed.zip --only-show-errors
+          aws s3 cp "s3://${{ secrets.AWS_SIGNING_BUCKET }}/${UNSIGNED_ZIP_KEY}" work/unsigned.zip --only-show-errors
           aws s3 cp "s3://${{ secrets.AWS_SIGNING_BUCKET }}/${UNSIGNED_DMG_KEY}" work/layout-template.dmg --only-show-errors
           ls -la work/
+
+      # The .p12 is decoded to disk only for the length of this step. The
+      # keychain password is random per run and never leaves the step: the
+      # keychain stays unlocked for the rest of the job, and the partition
+      # list lets codesign use the key without an interactive prompt.
+      - name: Import Developer ID signing identity
+        if: env.HAS_SIGNING_SECRETS
+        env:
+          P12_BASE64: ${{ secrets.APPLE_DEVELOPER_ID_P12_BASE64 }}
+          P12_PASSWORD: ${{ secrets.APPLE_DEVELOPER_ID_P12_PASSWORD }}
+        run: |
+          set -euo pipefail
+          SIGNING_KEYCHAIN="$RUNNER_TEMP/$SIGNING_KEYCHAIN_NAME"
+          P12="$RUNNER_TEMP/developer-id.p12"
+          trap 'rm -f "$P12"' EXIT
+          printf '%s' "$P12_BASE64" | base64 --decode > "$P12"
+          KEYCHAIN_PASSWORD="$(openssl rand -base64 32)"
+          echo "::add-mask::$KEYCHAIN_PASSWORD"
+          security create-keychain -p "$KEYCHAIN_PASSWORD" "$SIGNING_KEYCHAIN"
+          # -ut: auto-lock only after 6h, which outlives the job's 90m budget.
+          # No -l, so the keychain does not lock when the machine sleeps.
+          security set-keychain-settings -ut 21600 "$SIGNING_KEYCHAIN"
+          security unlock-keychain -p "$KEYCHAIN_PASSWORD" "$SIGNING_KEYCHAIN"
+          security import "$P12" -k "$SIGNING_KEYCHAIN" -P "$P12_PASSWORD" -f pkcs12 -T /usr/bin/codesign
+          security set-key-partition-list -S apple-tool:,apple:,codesign: -s -k "$KEYCHAIN_PASSWORD" "$SIGNING_KEYCHAIN" > /dev/null
+          # codesign resolves identities through the user search list, so the
+          # temporary keychain joins it ahead of the existing entries.
+          EXISTING=()
+          while IFS= read -r entry; do
+            entry="${entry#"${entry%%[![:space:]]*}"}"
+            entry="${entry%\"}"
+            entry="${entry#\"}"
+            if [ -n "$entry" ]; then
+              EXISTING+=("$entry")
+            fi
+          done < <(security list-keychains -d user)
+          security list-keychains -d user -s "$SIGNING_KEYCHAIN" "${EXISTING[@]+"${EXISTING[@]}"}"
+          IDENTITY=$(security find-identity -v -p codesigning "$SIGNING_KEYCHAIN" \
+            | awk '/"Developer ID Application: / {print $2; exit}')
+          if [ -z "$IDENTITY" ]; then
+            echo "::error::APPLE_DEVELOPER_ID_P12_BASE64 holds no valid Developer ID Application identity."
+            security find-identity -v -p codesigning "$SIGNING_KEYCHAIN" || true
+            exit 1
+          fi
+          # The SHA-1 fingerprint names the certificate, not a secret; later
+          # steps pass it and the keychain to codesign through sign.sh and
+          # sign-dmg.sh.
+          echo "SIGNING_IDENTITY=${IDENTITY}" >> "$GITHUB_ENV"
+          echo "SIGNING_KEYCHAIN=${SIGNING_KEYCHAIN}" >> "$GITHUB_ENV"
+          echo "Imported Developer ID identity ${IDENTITY}"
+
+      # Inside-out Developer ID signing with the hardened runtime and a secure
+      # timestamp (packaging/signing/sign.sh), then re-zipped with ditto, which
+      # preserves the bundle's symlinks and extended attributes where zip(1)
+      # would break the signature.
+      - name: Sign app with Developer ID
+        if: env.HAS_SIGNING_SECRETS
+        run: |
+          set -euo pipefail
+          mkdir -p work/unsigned-app
+          /usr/bin/ditto -x -k work/unsigned.zip work/unsigned-app
+          APP=$(find work/unsigned-app -maxdepth 1 -name "*.app" | head -1)
+          [ -n "$APP" ] || { echo "No .app found in the unsigned zip"; exit 1; }
+          bash packaging/signing/sign.sh "$APP"
+          /usr/bin/ditto -c -k --keepParent "$APP" work/signed.zip
+          ls -la work/signed.zip
 
       # The credential lives in Secrets Manager (never GitHub secrets --
       # dedicated secret-store custody, CloudTrail audit, rotation lifecycle). It is fetched,
@@ -382,27 +429,23 @@ jobs:
             "work/${ARTIFACT_BASENAME}.dmg"
           ls -lh "work/${ARTIFACT_BASENAME}.dmg"
 
-      # Developer ID sign the DMG itself via a second CDSigner task (type:
-      # dmg). Without this, the DMG carries hdiutil's adhoc signature, which
+      # Developer ID sign the DMG itself with the same identity as the app.
+      # Without this, the DMG carries hdiutil's adhoc signature, which
       # Gatekeeper rejects as "app is damaged" on drag-out -- and an unsigned
       # DMG cannot be stapled (stapler Error 73). Fail-closed: the script
       # verifies a Developer ID Application authority on the result.
-      - name: Sign DMG with CDSigner
+      - name: Sign DMG with Developer ID
         if: env.HAS_SIGNING_SECRETS
-        env:
-          AWS_SIGNING_BUCKET: ${{ secrets.AWS_SIGNING_BUCKET }}
-          AWS_SIGNER_ROLE_ARN: ${{ secrets.AWS_SIGNER_ACCESS_ROLE_ARN }}
-          CDSIGNER_API_ENDPOINT: ${{ secrets.CDSIGNER_API_ENDPOINT }}
         run: |
           set -euo pipefail
-          # The DMG signs under the app's own bundle identifier, read from
-          # the stapled bundle rather than hardcoded (all channels currently
-          # share the onboarded com.amazon.kiro.crew -- CDSigner authz is
-          # per-identifier, so any future distinct id needs onboarding first).
+          # The DMG signs under the app's own bundle identifier, read from the
+          # stapled bundle rather than hardcoded, so the image's signature
+          # names the product (dev.junction.desktop on every channel) rather
+          # than the image's filename.
           DMG_IDENTIFIER="$(/usr/libexec/PlistBuddy -c 'Print :CFBundleIdentifier' "work/stapled/${APP_NAME}.app/Contents/Info.plist")"
           export DMG_IDENTIFIER
           echo "DMG identifier: ${DMG_IDENTIFIER}"
-          bash packaging/signing/sign-dmg.sh "work/${ARTIFACT_BASENAME}.dmg" "$CHANNEL" "$VERSION"
+          bash packaging/signing/sign-dmg.sh "work/${ARTIFACT_BASENAME}.dmg"
 
       - name: Notarize DMG
         if: env.HAS_SIGNING_SECRETS
@@ -483,10 +526,23 @@ jobs:
           {
             echo "## Notarization (${CHANNEL})"
             echo "- Version: ${VERSION}"
-            echo "- Input: \`${SIGNED_ZIP_KEY}\`"
+            echo "- Input: \`${UNSIGNED_ZIP_KEY}\` (Developer ID signed in this job)"
             echo "- Output: \`${NOTARIZED_KEY}\` (stapled, Gatekeeper-verified)"
             echo "- DMG: \`${ARTIFACT_BASENAME}.dmg\` (Developer ID signed, notarized, stapled)"
           } >> "$GITHUB_STEP_SUMMARY"
+
+      # always(): the identity must not outlive the job, including when
+      # signing or notarization failed part-way. Deleting the keychain also
+      # drops it from the search list.
+      - name: Delete the signing keychain
+        if: always()
+        run: |
+          KEYCHAIN="$RUNNER_TEMP/$SIGNING_KEYCHAIN_NAME"
+          if [ -f "$KEYCHAIN" ]; then
+            security delete-keychain "$KEYCHAIN"
+            echo "Deleted $KEYCHAIN"
+          fi
+          rm -f "$RUNNER_TEMP/developer-id.p12"
 
   publish:
     name: Publish to distribution (${{ inputs.channel }})
@@ -662,7 +718,7 @@ jobs:
       # exact shape electron-builder generates -- version, files[] with
       # url + sha512 + size, legacy top-level path/sha512, releaseDate.
       # website/electron/auto-update.js reads the per-channel feed
-      # DIRECTORY (updates.crew.kiro.dev/feed/<channel>/) and the library
+      # DIRECTORY (updates.getjunction.dev/feed/<channel>/) and the library
       # appends the platform filename.
       #
       # Two properties are load-bearing (see test_publish_feed_contract.py):
@@ -670,8 +726,8 @@ jobs:
       #     never hex: electron-updater string-compares base64; a hex value
       #     makes every download fail checksum verification.
       #   - files[].url are ABSOLUTE byte-host urls (CLI_CDN_BASE =
-      #     download.crew.kiro.dev). The yml itself lives on the POINTER
-      #     host (updates.crew.kiro.dev/feed/...); electron-updater's
+      #     download.getjunction.dev). The yml itself lives on the POINTER
+      #     host (updates.getjunction.dev/feed/...); electron-updater's
       #     newUrlFromBase does `new URL(fileUrl, base)`, which ignores the
       #     base for absolute urls -- that is what preserves the
       #     pointer/bytes host split. A bare filename here would resolve
@@ -802,7 +858,7 @@ jobs:
           # a guard that fails on permissions instead of on the condition it
           # guards. Same convention as publish-linux.yml's byte compare, which
           # goes through the CDN for exactly this reason. CLI_CDN_BASE and
-          # updates.crew.kiro.dev are alternate domains of the SAME
+          # updates.getjunction.dev are alternate domains of the SAME
           # distribution, and feed/* is CACHING_DISABLED, so this response
           # comes from origin and reflects the object just written.
           FEED_CC=$(curl -fsS --retry 3 --retry-delay 2 \

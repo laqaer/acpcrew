@@ -74,7 +74,7 @@ def isolated_home(tmp_path, monkeypatch):
     # The standalone-tree tier reads data_home(); keep it inside the fake HOME so
     # a real ensure-node.sh install on the developer's box cannot leak in.
     monkeypatch.setattr(
-        env_mod, "data_home", lambda: home / ".kiro" / "crew", raising=True
+        env_mod, "data_home", lambda: home / ".junction", raising=True
     )
     return home
 

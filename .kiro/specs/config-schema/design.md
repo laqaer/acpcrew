@@ -69,7 +69,7 @@ graph TD
     JSD --> ED
 
     BG -->|writes| BL["config-baseline.json"]
-    VAL -->|reads| CFG["~/.kirocrew/config.json"]
+    VAL -->|reads| CFG["~/.junction/config.json"]
 ```
 
 ### Key Design Decisions
@@ -489,7 +489,7 @@ OpenClaw's full config structure (36 top-level keys, ~5518 entries) is documente
 
 Decisions made during the spec session:
 
-1. **Source of truth: Python dataclasses** — not JSON Schema, not Zod. The config only lives on the customer's machine (`~/.kirocrew/config.json`), so the code that reads it (Python) should own the schema definition. Everything else is derived.
+1. **Source of truth: Python dataclasses** — not JSON Schema, not Zod. The config only lives on the customer's machine (`~/.junction/config.json`), so the code that reads it (Python) should own the schema definition. Everything else is derived.
 
 2. **Three-layer schema (like OpenClaw)** — dataclasses → nested JSON Schema (in-memory) → flat entry list (persisted). OpenClaw does Zod → JSON Schema → flat baseline. Same pattern, different source language.
 

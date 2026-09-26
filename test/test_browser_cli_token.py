@@ -147,9 +147,9 @@ class TestItIsRegisteredAsACredential:
     def test_the_file_is_a_known_secret_leaf(self):
         # The agent inherits the token through the environment and never needs to
         # open the file, so the file stays behind the secret floor.
-        from junction.security import _CREW_SECRET_LEAVES
+        from junction.security import _DATA_HOME_SECRET_LEAVES
 
-        assert mod._TOKEN_FILE in _CREW_SECRET_LEAVES
+        assert mod._TOKEN_FILE in _DATA_HOME_SECRET_LEAVES
 
     def test_the_module_never_returns_the_value_in_a_status_shape(self):
         # has_token exists so a status surface can report configuration without

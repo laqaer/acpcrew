@@ -32,7 +32,7 @@ When working on the backend, run it by hand instead::
     asyncio.run(main())
     EOF
 
-That call now succeeds: Crew injects its agent through ``_meta.kiro.customAgents``
+That call now succeeds: Junction injects its agent through ``_meta.kiro.customAgents``
 on ``session/new`` and activates it with ``session/set_mode``, and with
 ``--auth=acp-callback`` a real prompt round-trip completes (the host answers KAS's
 token callback by shelling out to kiro-cli). ``agent.acp_backend`` accepts ``kas``.
@@ -221,7 +221,7 @@ class TestCapabilities:
             assert KAS_CLIENT_CAPABILITIES[key] == value
 
     def test_callback_capabilities_stay_undeclared(self):
-        """Crew implements none of KAS's client-callback capabilities.
+        """Junction implements none of KAS's client-callback capabilities.
 
         Declaring one would make KAS call back for a feature this client cannot
         service, so their absence is the correct declaration, not a gap.

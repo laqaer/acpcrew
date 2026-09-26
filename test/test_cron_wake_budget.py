@@ -629,6 +629,6 @@ class TestWakeBudgetSubprocessGuard:
         svc._load()
         job = svc.add_job(
             name="t", message="m", every_secs=300,
-            script="~/.kiro/crew/crons/x.py:f", timeout_secs=60,
+            script="~/.junction/crons/x.py:f", timeout_secs=60,
         )
         assert job.timeout_secs == 60

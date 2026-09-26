@@ -52,7 +52,7 @@ function isValidRepo(repo: string): boolean {
  * Derive a browsable https web URL from a repo value:
  *  - https URLs open as-is
  *  - scp/ssh forms convert to https://host/path (stripping a trailing .git)
- *  - bare names keep the legacy kirodotdev-labs URL
+ *  - a bare name resolves under Junction's GitHub organization
  */
 function repoWebUrl(repo: string): string {
   if (/^https?:\/\//.test(repo)) return repo
@@ -60,7 +60,7 @@ function repoWebUrl(repo: string): string {
   if (scp) return `https://${scp[1]}/${scp[2].replace(/\.git$/, '')}`
   const ssh = repo.match(/^ssh:\/\/(?:[^@/]+@)?([^/]+)\/(.+)$/)
   if (ssh) return `https://${ssh[1]}/${ssh[2].replace(/\.git$/, '')}`
-  return `https://github.com/kirodotdev-labs/${repo}`
+  return `https://github.com/laqaer/${repo}`
 }
 
 /**

@@ -51,9 +51,9 @@ HOST_ARCH="$(uname -m)"
 # Windows ships an NSIS installer, which has no KNOWN_DISTRIBUTIONS value yet;
 # "source" is the honest answer until "nsis" is added on both sides.
 case "$OS" in
-  darwin)  KC_DISTRIBUTION="dmg" ;;
-  windows) KC_DISTRIBUTION="source" ;;
-  *)       KC_DISTRIBUTION="appimage" ;;
+  darwin)  JN_DISTRIBUTION="dmg" ;;
+  windows) JN_DISTRIBUTION="source" ;;
+  *)       JN_DISTRIBUTION="appimage" ;;
 esac
 
 # Linux packages ONE backend tree into several artifact formats, and the beacon
@@ -100,9 +100,9 @@ fi
 ELECTRON_DIR="$ROOT/website/electron"
 
 # Version from the package.
-KC_VERSION="$(grep -m1 '__version__' "$ROOT/src/junction/__init__.py" \
+JN_VERSION="$(grep -m1 '__version__' "$ROOT/src/junction/__init__.py" \
   | sed -E 's/.*=[[:space:]]*"([^"]+)".*/\1/')"
-if [ -z "$KC_VERSION" ]; then
+if [ -z "$JN_VERSION" ]; then
   echo "ERROR: could not parse __version__ from src/junction/__init__.py" >&2
   exit 1
 fi
@@ -114,7 +114,7 @@ fi
 # between them), so they keep the package.json defaults. Derivation mirrors
 # auto-update.js channelForVersion: only a "-nightly." stamp changes
 # identity; unstamped dev builds and insider/stable stamps build "Junction".
-case "$KC_VERSION" in
+case "$JN_VERSION" in
   *-nightly.*) PRODUCT_NAME="Junction Nightly" ;;
   *)           PRODUCT_NAME="Junction" ;;
 esac
@@ -265,7 +265,7 @@ build_backend() {
   # universal build's two backends are each stamped and no state leaks into the
   # developer's checkout. pip installed from $ROOT, where the module is
   # gitignored and absent, so this is the only place it exists.
-  bash "$ROOT/scripts/stamp-distribution.sh" "$KC_DISTRIBUTION" "$sp/junction"
+  bash "$ROOT/scripts/stamp-distribution.sh" "$JN_DISTRIBUTION" "$sp/junction"
 
   # Relocatable launcher script.
   cat > "$out/bin/junction" <<'LAUNCH'
@@ -350,7 +350,7 @@ build_backend_windows() {
   # the honest answer is "source", but stamp it explicitly rather than relying on
   # the module's absence: pip installed from $ROOT, and a stale stamp left in a
   # developer's checkout would otherwise be copied in and mislabel the build.
-  bash "$ROOT/scripts/stamp-distribution.sh" "$KC_DISTRIBUTION" "$sp/junction"
+  bash "$ROOT/scripts/stamp-distribution.sh" "$JN_DISTRIBUTION" "$sp/junction"
 
   # Relocatable launcher shim: %~dp0 is the .cmd's own directory (bin\),
   # so the interpreter resolves relative to the bundle wherever it lands.
@@ -502,19 +502,18 @@ if [ "${SKIP_ELECTRON:-0}" = "1" ]; then
 fi
 
 # --- 4. Package the desktop app with electron-builder -----------------------
-log "Packaging desktop app (electron-builder, version: $KC_VERSION)…"
+log "Packaging desktop app (electron-builder, version: $JN_VERSION)…"
 ( cd "$ELECTRON_DIR"
   if [ -f package-lock.json ]; then npm ci --no-audit --no-fund; else npm install --no-audit --no-fund; fi
 
-  EB_ARGS=( "-c.extraMetadata.version=$KC_VERSION" )
+  EB_ARGS=( "-c.extraMetadata.version=$JN_VERSION" )
   if [ "$PRODUCT_NAME" = "Junction Nightly" ]; then
-    # Same appId (com.amazon.kiro.crew) as production ON PURPOSE:
+    # Same appId (dev.junction.desktop) as production ON PURPOSE:
     # - Finder decides install-replace by FILENAME only, so the distinct
     #   productName alone gives side-by-side installs.
     # - Squirrel.Mac validates updates against the host app's designated
     #   requirement (which pins the bundle id); a distinct nightly id would
     #   strand every existing install at the identity switch.
-    # - CDSigner authz is per-identifier; the shared id is already onboarded.
     # Cost accepted: shared TCC/notification identity, and a junction:// URL
     # scheme could not disambiguate the two apps (none is registered today).
     EB_ARGS+=(
@@ -567,7 +566,7 @@ log "Packaging desktop app (electron-builder, version: $KC_VERSION)…"
       #    channels claim one registry key and an assisted nightly install
       #    adopts -- then on uninstall removes -- the stable entry. The value
       #    below is exactly what electron-builder would derive from a
-      #    hypothetical `com.amazon.kiro.crew.nightly` appId, so it is stable,
+      #    hypothetical `dev.junction.desktop.nightly` appId, so it is stable,
       #    reproducible, and collision-free without moving the real appId.
       # 2. The install DIRECTORY comes from productFilename (i.e. the spaced
       #    productName above) only because nsis.oneClick is false --
@@ -601,7 +600,7 @@ log "Packaging desktop app (electron-builder, version: $KC_VERSION)…"
       # strand every installed mac app's updates. This is the same identity
       # main.js already claims at runtime via app.setAppUserModelId, so the
       # packaged shortcuts and the running process finally agree.
-      "-c.win.appId=com.amazon.kiro.crew.nightly"
+      "-c.win.appId=dev.junction.desktop.nightly"
     )
   fi
   # Start from a pristine output dir. A prior interrupted universal build can
@@ -625,7 +624,7 @@ log "Packaging desktop app (electron-builder, version: $KC_VERSION)…"
   eb_run() {
     local attempt=1 max_attempts=3 eb_log
     while : ; do
-      eb_log="$(mktemp "${TMPDIR:-/tmp}/kc-eb.XXXXXX")"
+      eb_log="$(mktemp "${TMPDIR:-/tmp}/jn-eb.XXXXXX")"
       if CSC_IDENTITY_AUTO_DISCOVERY=false ./node_modules/.bin/electron-builder "$@" 2>&1 | tee "$eb_log"; then
         rm -f "$eb_log"; return 0
       fi

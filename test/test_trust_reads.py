@@ -164,9 +164,9 @@ class TestIsReadOnlyBash:
         These are the payloads that combined the suffix with a sensitive-path
         read or a write to the deny-rule keystone file.
         """
-        assert is_read_only_bash("cd ~/.kiro/crew --help && cat token_signing.key --help") is False
+        assert is_read_only_bash("cd ~/.junction --help && cat token_signing.key --help") is False
         assert (
-            is_read_only_bash("cd ~/.kiro/crew --help && tee denied_commands.json --help") is False
+            is_read_only_bash("cd ~/.junction --help && tee denied_commands.json --help") is False
         )
         assert is_read_only_bash("V=$HOME --help; awk 1 $V/.aws/credentials --help") is False
 

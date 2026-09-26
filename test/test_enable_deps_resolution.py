@@ -224,11 +224,11 @@ class TestClientInstallOnEnableIsAdvisory:
     """
 
     @staticmethod
-    def _client_app(name: str = "crew-companion", os_list: list[str] | None = None) -> dict:
+    def _client_app(name: str = "desk-companion", os_list: list[str] | None = None) -> dict:
         return {
             "name": name,
             "manifest": {
-                "setup": {"onEnable": 'open "$HOME/Applications/Crew Companion.app"'},
+                "setup": {"onEnable": 'open "$HOME/Applications/Companion.app"'},
                 "platform": {
                     "os": os_list if os_list is not None else ["macos"],
                     "installMode": "client",
@@ -264,7 +264,7 @@ class TestClientInstallOnEnableIsAdvisory:
             from junction.apps.routes import handle_enable_app
 
             request = MagicMock()
-            request.match_info = {"name": "crew-companion"}
+            request.match_info = {"name": "desk-companion"}
             request.app = {"state": MagicMock()}
 
             response = await handle_enable_app(request)
@@ -299,7 +299,7 @@ class TestClientInstallOnEnableIsAdvisory:
             from junction.apps.routes import handle_enable_app
 
             request = MagicMock()
-            request.match_info = {"name": "crew-companion"}
+            request.match_info = {"name": "desk-companion"}
             request.app = {"state": MagicMock()}
 
             response = await handle_enable_app(request)

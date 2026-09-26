@@ -49,8 +49,8 @@ const INDEX_CSS = readFileSync(join(SRC, 'index.css'), 'utf8')
 
 /** Region-specific Han aliases must never share an active token. */
 const SC_ALIASES = [
-  'KC Han Fallback',
-  'KC Han Mono Fallback',
+  'Junction Han Fallback',
+  'Junction Han Mono Fallback',
 ] as const
 
 /**
@@ -62,9 +62,9 @@ const SC_ALIASES = [
  * rather than prepending to it.
  */
 const REGIONAL = [
-  { lang: 'zh-CN', body: 'KC Han Fallback', mono: 'KC Han Mono Fallback' },
-  { lang: 'ja', body: 'KC Japanese Fallback', mono: 'KC Japanese Mono Fallback' },
-  { lang: 'ko', body: 'KC Korean Fallback', mono: 'KC Korean Mono Fallback' },
+  { lang: 'zh-CN', body: 'Junction Han Fallback', mono: 'Junction Han Mono Fallback' },
+  { lang: 'ja', body: 'Junction Japanese Fallback', mono: 'Junction Japanese Mono Fallback' },
+  { lang: 'ko', body: 'Junction Korean Fallback', mono: 'Junction Korean Mono Fallback' },
 ] as const
 
 const REGIONAL_ALIASES = REGIONAL.flatMap(r => [r.body, r.mono])
@@ -82,8 +82,8 @@ const SCRIPT_PROBES: Record<string, ReadonlyArray<readonly [string, number]>> = 
 
 /** Script aliases shared by every locale. */
 const COMMON_ALIASES = [
-  'KC Devanagari Fallback',
-  'KC Bengali Fallback',
+  'Junction Devanagari Fallback',
+  'Junction Bengali Fallback',
 ] as const
 
 const ALIASES = [...SC_ALIASES, ...REGIONAL_ALIASES, ...COMMON_ALIASES] as const
@@ -107,10 +107,10 @@ const FORBIDDEN = [
  * the token instead of leading with it — not every possible ordering mistake.
  */
 const BASE_FAMILIES = [
-  "'Space Grotesk'",
+  "'Overpass'",
   '-apple-system',
   'BlinkMacSystemFont',
-  "'JetBrains Mono'",
+  "'Overpass Mono'",
   'ui-monospace',
   'SFMono-Regular',
   "'Segoe UI'",

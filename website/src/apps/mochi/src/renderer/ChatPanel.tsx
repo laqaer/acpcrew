@@ -1716,10 +1716,10 @@ const mdComponents: Record<string, React.FC<any>> = {
     // app API and renders a data URL. A bare `<img src="/Users/…/x.png">` cannot
     // work in a page: the browser resolves it against the gateway origin and 404s.
     //
-    // This used to be gated on `.kiro/crew/screenshots/` only, so every UPLOADED
-    // image — which the route stores under `uploads/`, and which is how dropped
-    // files and now crops are referenced — rendered as a broken image. The test
-    // is the shape of the path, not one directory.
+    // The test is the shape of the path, not one directory: an UPLOADED image —
+    // which the route stores under `uploads/`, and which is how dropped files and
+    // crops are referenced — is as local as one under `screenshots/`, and gating
+    // on a single directory renders every other one as a broken image.
     //
     // `startsWith('/')` alone is not enough: gateway-relative URLs like
     // `/assets/logo.png` also start with a slash and must stay ordinary <img>.
@@ -1743,8 +1743,7 @@ function isLocalFilePath(src: unknown): src is string {
   if (typeof src !== 'string' || !src.startsWith('/')) return false
   return (
     /^\/(?:Users|home|tmp|var|private|etc)\//.test(src) ||
-    src.includes('.junction/') ||
-    src.includes('.kiro/crew/')
+    src.includes('.junction/')
   )
 }
 

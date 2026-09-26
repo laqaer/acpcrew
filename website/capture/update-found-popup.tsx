@@ -38,7 +38,7 @@ const scene = params.get('scene') || 'desktop'
 const theme = params.get('theme') || 'dark'
 const lang = params.get('lang') || 'en'
 
-document.documentElement.setAttribute('data-theme', theme === 'light' ? 'kiro-light' : 'kiro-dark')
+document.documentElement.setAttribute('data-theme', theme === 'light' ? 'junction-light' : 'junction-dark')
 
 // Realistic length and shape: gateway notes are CHANGELOG.md markdown, so the
 // frame must prove headers/lists render and the box scrolls.
@@ -91,7 +91,7 @@ if (scene === 'desktop') {
 } else if (scene === 'command') {
   store.dispatch(sseStatus({
     update_available: true, update_latest_version: '0.5.0', update_can_apply: false,
-    update_command: 'curl -fsSL https://download.crew.kiro.dev/cli.sh | sh',
+    update_command: 'curl -fsSL https://download.getjunction.dev/cli.sh | sh',
   } as StatusData))
 } else if (scene === 'apply') {
   store.dispatch(sseStatus({

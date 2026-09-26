@@ -56,26 +56,14 @@ class TestConfigDir:
         result = paths.config_dir()
         assert result == tmp_path / ".junction"
 
-    def test_previous_home_is_kept_until_the_new_one_exists(
+    def test_only_the_junction_home_is_the_default(
         self, monkeypatch: pytest.MonkeyPatch, tmp_path: Path
     ) -> None:
         monkeypatch.delenv("JUNCTION_HOME", raising=False)
         monkeypatch.setattr(Path, "home", classmethod(lambda cls: tmp_path))
-        prior = tmp_path / ".kiro" / "crew"
-        prior.mkdir(parents=True)
-        result = paths.config_dir()
-        assert result == prior.resolve()
-        assert not (tmp_path / ".junction").exists()
-
-    def test_new_home_wins_when_both_exist(
-        self, monkeypatch: pytest.MonkeyPatch, tmp_path: Path
-    ) -> None:
-        monkeypatch.delenv("JUNCTION_HOME", raising=False)
-        monkeypatch.setattr(Path, "home", classmethod(lambda cls: tmp_path))
-        current = tmp_path / ".junction"
-        current.mkdir()
-        (tmp_path / ".kiro" / "crew").mkdir(parents=True)
-        assert paths.config_dir() == current.resolve()
+        (tmp_path / ".kiro").mkdir()
+        assert paths.config_dir() == (tmp_path / ".junction").resolve()
+        assert paths.default_home_paths() == (tmp_path / ".junction",)
 
 
 class TestConfigPackageDir:

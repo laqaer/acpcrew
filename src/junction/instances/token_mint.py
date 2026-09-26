@@ -23,7 +23,7 @@ import asyncio
 import logging
 import re
 
-from junction.config.paths import CONFIG_DIR_NAME, LEGACY_CONFIG_DIR_NAME, PRIOR_CONFIG_DIR_NAME
+from junction.config.paths import CONFIG_DIR_NAME
 from junction.instances.constants import DEFAULT_MINT_TIMEOUT_SECS, TTL_PATTERN
 from junction.platform_compat import kill_and_reap
 from junction.security import redact_credentials, redact_exfiltration_urls
@@ -38,7 +38,7 @@ DEFAULT_REMOTE_BIN = "$HOME/.local/bin/junction"
 # candidate is a full path the remote shell can exec directly.
 REMOTE_BIN_CANDIDATES: tuple[str, ...] = (
     "$HOME/.local/bin/junction",  # install.sh / source install
-    "$HOME/.kirocrew-app/.venv/bin/junction",  # one-liner installer venv
+    "$HOME/.junction-app/.venv/bin/junction",  # one-liner installer venv
 )
 
 # ttl accepted by `junction token --ttl`: a positive integer with an h/m suffix
@@ -185,8 +185,8 @@ def build_candidate_command(
 
     When *marker_port* is given, the snippet first consults the run-marker the
     *running* gateway wrote for that port (``<data-home>/run/gateway-<port>.bin``,
-    probing ``$JUNCTION_HOME`` then ``$HOME/.kiro/crew`` then the legacy
-    ``$HOME/.kirocrew`` — see :func:`_run_marker_clause`) and execs the launcher
+    probing ``$JUNCTION_HOME`` then ``$HOME/.junction`` — see
+    :func:`_run_marker_clause`) and execs the launcher
     it names — so mint uses the same venv as the live gateway instead of whatever
     ``~/.local/bin/junction`` happens to point at. Falls through to the candidate
     search when the marker is absent or doesn't name an executable (older
@@ -218,47 +218,37 @@ def _run_marker_clause(subcommand: str, port: int) -> str:
     file:
 
     1. ``$JUNCTION_HOME`` — an explicit override, if exported into this shell.
-    2. ``$HOME/<CONFIG_DIR_NAME>`` — the current default data home.
-    3. ``$HOME/<PRIOR_CONFIG_DIR_NAME>`` — the previous default data home.
-    4. ``$HOME/<LEGACY_CONFIG_DIR_NAME>`` — the older top-level home.
+    2. ``$HOME/<CONFIG_DIR_NAME>`` — the default data home.
 
-    The default/legacy home segments are **interpolated from**
-    :data:`junction.config.paths.CONFIG_DIR_NAME` /
-    :data:`~junction.config.paths.LEGACY_CONFIG_DIR_NAME` — the same constants
+    The default home segment is **interpolated from**
+    :data:`junction.config.paths.CONFIG_DIR_NAME` — the same constant
     ``config_dir()`` (the marker *writer*) derives its default from — so reader
     and writer share one source of truth. A future data-home rename updates both
     sides from that single edit instead of leaving these shell literals to drift
     stale (which is precisely the read/write desync this whole mechanism guards).
 
     ``$HOME``/``$JUNCTION_HOME`` expand at remote-shell parse time; *port* is a
-    bounded int (see :func:`_validate_port`) and the home segments are trusted
-    module constants, so the path literals cannot inject shell syntax.
+    bounded int (see :func:`_validate_port`) and the home segment is a trusted
+    module constant, so the path literals cannot inject shell syntax.
 
-    Why the multi-home probe: the writer keys the marker off the gateway
-    process's ``config_dir()``. A new install uses ``~/.junction``. When that
-    directory is absent, ``~/.kiro/crew`` then ``~/.kirocrew`` are kept. This
-    prelude runs in the *remote* non-interactive SSH shell, which usually does
-    NOT export ``JUNCTION_HOME``, so a single hard-coded home would miss the
-    marker whenever the remote is still on an older directory and fall through
-    to the blind candidate search (which lands on whatever
-    ``~/.local/bin/junction`` points at, e.g. an uninstalled worktree). Probing
-    the current home, the previous home, and the older top-level home — and
-    still honoring an explicit ``JUNCTION_HOME`` first — hits the marker on
-    each of those. Falls through to the candidate search when no marker names
-    an executable.
+    Why the override is probed first: the writer keys the marker off the gateway
+    process's ``config_dir()``, which honours ``JUNCTION_HOME``. This prelude
+    runs in the *remote* non-interactive SSH shell, which usually does NOT
+    export ``JUNCTION_HOME``, so the default home is the fallback probe. Without
+    a marker the command falls through to the blind candidate search (which
+    lands on whatever ``~/.local/bin/junction`` points at, e.g. an uninstalled
+    worktree).
     """
     fname = f"run/gateway-{int(port)}.bin"
     # ``${JUNCTION_HOME:+...}`` expands to the value only when JUNCTION_HOME is
     # set and non-empty (else an empty word, skipped below) — so an unset
     # override never degrades to a bare ``/run/...`` absolute path. The default
-    # and legacy home segments come from the shared config.paths constants (not
-    # re-hardcoded here) so reader and writer never drift apart on a home move.
+    # home segment comes from the shared config.paths constant (not re-hardcoded
+    # here) so reader and writer never drift apart on a home move.
     homes = " ".join(
         [
             f'"${{JUNCTION_HOME:+$JUNCTION_HOME/{fname}}}"',
             f'"$HOME/{CONFIG_DIR_NAME}/{fname}"',
-            f'"$HOME/{PRIOR_CONFIG_DIR_NAME}/{fname}"',
-            f'"$HOME/{LEGACY_CONFIG_DIR_NAME}/{fname}"',
         ]
     )
     return " ".join(

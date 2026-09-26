@@ -1421,13 +1421,13 @@ export const SETTINGS_REGISTRY: SettingEntry[] =
     "occurrence": 1
   },
   {
-    "id": "instances.enable-remote-crew-management",
-    "labelKey": "pages.settings.instancesPanel.enable_remote_crew_management",
+    "id": "instances.enable-multi-instance-management",
+    "labelKey": "pages.settings.instancesPanel.enable_multi_instance_management",
     "tab": "instances",
     "type": "toggle",
     "occurrence": 1,
     "configKey": "instances.enabled",
-    "label": "Enable remote crew management"
+    "label": "Enable remote instance management"
   },
   {
     "id": "notifications.sound-category-turn",

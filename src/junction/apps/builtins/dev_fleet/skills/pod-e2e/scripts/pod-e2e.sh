@@ -47,9 +47,9 @@ HERE="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
 # Resolve the junction CLI
 JUNCTION_CLI=""
-_kc="$(command -v junction 2>/dev/null || true)"
-if [ -n "$_kc" ] && "$_kc" pod --help >/dev/null 2>&1; then
-  JUNCTION_CLI="$_kc"
+_jn="$(command -v junction 2>/dev/null || true)"
+if [ -n "$_jn" ] && "$_jn" pod --help >/dev/null 2>&1; then
+  JUNCTION_CLI="$_jn"
 fi
 if [ -z "$JUNCTION_CLI" ]; then
   for _cand in "$HOME/.local/bin/junction" "/usr/local/bin/junction"; do
@@ -130,18 +130,18 @@ fi
 # kept using the stale build. Provision it with the installed CLI (that is what it
 # is for), then REQUIRE the worktree's own binary — running the wrong build is a
 # false verdict, so it is a hard failure, not a fallback.
-_wt_kc="$CHECKOUT/.venv/bin/junction"
-if [ ! -x "$_wt_kc" ]; then
+_wt_jn="$CHECKOUT/.venv/bin/junction"
+if [ ! -x "$_wt_jn" ]; then
   echo "provisioning the worktree venv so the suite runs its own build..."
   "$JUNCTION_CLI" pod provision "$NAME" --venv-only || true
 fi
-if [ ! -x "$_wt_kc" ] || ! "$_wt_kc" pod --help >/dev/null 2>&1; then
-  echo "FATAL: no usable CLI in the worktree venv at $_wt_kc" >&2
+if [ ! -x "$_wt_jn" ] || ! "$_wt_jn" pod --help >/dev/null 2>&1; then
+  echo "FATAL: no usable CLI in the worktree venv at $_wt_jn" >&2
   echo "  The suite must run the branch under test, not the host's installed build." >&2
   echo "  Build it: junction pod provision $NAME --venv-only" >&2
   exit 67
 fi
-JUNCTION_CLI="$_wt_kc"
+JUNCTION_CLI="$_wt_jn"
 echo "junction CLI: $JUNCTION_CLI"
 
 # Playwright runner (sibling script)
@@ -189,8 +189,8 @@ _realpath_dir() {
   printf '%s\n' "${out:-/}"
 }
 
-E2E_ARTIFACT_BASE="$(_realpath_dir "$HOME/.kirocrew-pods/.e2e-artifacts")" \
-  || E2E_ARTIFACT_BASE="$HOME/.kirocrew-pods/.e2e-artifacts"
+E2E_ARTIFACT_BASE="$(_realpath_dir "$HOME/.junction-pods/.e2e-artifacts")" \
+  || E2E_ARTIFACT_BASE="$HOME/.junction-pods/.e2e-artifacts"
 ARTIFACT_DIR="$E2E_ARTIFACT_BASE/$NAME"
 case "$(_realpath_dir "$ARTIFACT_DIR")" in
   "$E2E_ARTIFACT_BASE"/*) : ;;

@@ -1408,7 +1408,7 @@ def _format_acp_error(error: object, available_models: Sequence[str] | None = No
                 f"Model '{model}' is unavailable on the backend right now "
                 f"(capacity throttle or region rollout). Try: (1) pick a "
                 f"different model in the model picker, (2) set agent.model to "
-                f"'auto' in ~/.kiro/crew/config.json, or (3) wait a minute and "
+                f"'auto' in ~/.junction/config.json, or (3) wait a minute and "
                 f"retry."
                 f"{req_id_suffix}"
             )
@@ -1423,7 +1423,7 @@ def _format_acp_error(error: object, available_models: Sequence[str] | None = No
                 "The selected model is unavailable on the backend right now "
                 "(capacity throttle or region rollout). Try: (1) pick a "
                 "different model in the model picker, (2) set agent.model to "
-                "'auto' in ~/.kiro/crew/config.json, or (3) wait a minute and "
+                "'auto' in ~/.junction/config.json, or (3) wait a minute and "
                 "retry."
                 f"{req_id_suffix}"
             )
@@ -2333,12 +2333,12 @@ class AcpClient:
         self,
         session_key: str,
         channel_id: str | None = None,
-        crew_agent: str = "",
+        canonical_agent: str = "",
         watchdog: object | None = None,
     ) -> None:
         """Re-key this client for a different session (used by warm pool).
 
-        ``crew_agent`` and ``watchdog`` exist only for signature parity with
+        ``canonical_agent`` and ``watchdog`` exist only for signature parity with
         AcpSessionProvider.rekey (session.py calls provider.client.rekey
         uniformly): this client's dispatch loop carries no per-agent watchdog
         snapshot, so both are accepted and deliberately not stored."""
@@ -2741,7 +2741,7 @@ class AcpClient:
         # foreign MCP subprocesses (which bundle their own interpreter + deps).
         # is_kiro_cli is membership in ACP_BACKENDS_INTERNAL_SANDBOX
         # (harness-parity H7), not "not claude": the flag makes wrap_argv SKIP
-        # Crew's seatbelt on macOS and grants Windows's Kiro-only delegation in
+        # Junction's seatbelt on macOS and grants Windows's Kiro-only delegation in
         # favour of the harness's own internal sandbox, so a harness without one
         # must never be granted it by the absence of another harness.
         argv, self._sandbox_cleanup = wrap_argv(
@@ -5537,7 +5537,7 @@ class AcpClient:
         "grep"), then a follow-up `tool_call_update` once `chunk.input` is
         fully streamed — that update carries the populated `rawInput` and a
         refined `title`/`kind` from the upstream `toolInfoFromToolUse`
-        (e.g. `"ls /local/home/user/.kiro/crew/workspace"`).
+        (e.g. `"ls /local/home/user/.junction/workspace"`).
 
         We yield an EVENT_TOOL_CALL_UPDATE so the dashboard can patch the
         existing pill / persisted message in place — see the matching

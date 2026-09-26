@@ -223,8 +223,8 @@ const THEMES = [
   // `base` is what the stubbed config reports (light/dark); `attr` is the kiro
   // palette the boot effect writes to `data-theme`. Passing one where the other
   // is expected makes the theme assertion hang, not the capture fail loudly.
-  { name: 'dark', base: 'dark', attr: 'kiro-dark' },
-  { name: 'light', base: 'light', attr: 'kiro-light' },
+  { name: 'dark', base: 'dark', attr: 'junction-dark' },
+  { name: 'light', base: 'light', attr: 'junction-light' },
 ]
 
 /** One still per scene: what the menu looks like for each protocol shape. */

@@ -25,13 +25,13 @@ import { serveDist } from './lib/serve-dist.mjs'
 import { makeFixedApi, handleBootRoute } from './lib/boot-api.mjs'
 
 const OUT = process.argv[2] || '../temp-screenshots/segmented-control'
-const PROJECT = '/home/user/.kiro/crew/workspace'
+const PROJECT = '/home/user/.junction/workspace'
 const FIXED_API = makeFixedApi(PROJECT)
 
 /** `theme` is the data-theme attribute; `mode` is what /api/theme/boot returns. */
 const SCENES = [
-  { name: 'light', theme: 'kiro-light', mode: 'light' },
-  { name: 'dark', theme: 'kiro-dark', mode: 'dark' },
+  { name: 'light', theme: 'junction-light', mode: 'light' },
+  { name: 'dark', theme: 'junction-dark', mode: 'dark' },
 ]
 
 mkdirSync(OUT, { recursive: true })

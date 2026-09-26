@@ -932,9 +932,9 @@ class TestApiChatModeForwarding:
         assert slot is not None
         assert slot.mode == "design-critique"
         # The leak this guards against: the sidebar allowlist admits surfaces
-        # "", "orchestrator" and "crew" — the recreated worker must not
+        # "", "orchestrator" and "multitask" — the recreated worker must not
         # serialize one of those.
-        assert slot.mode not in ("", "orchestrator", "crew")
+        assert slot.mode not in ("", "orchestrator", "multitask")
 
     async def test_bogus_mode_is_dropped(self, tmp_path, monkeypatch):
         monkeypatch.setattr("junction.dashboard.state.config_dir", lambda: tmp_path)
@@ -962,21 +962,21 @@ class TestApiChatModeForwarding:
         assert slot is not None
         assert slot.mode == ""
 
-    async def test_crew_mode_dropped_for_crew_incapable_name(self, tmp_path, monkeypatch):
+    async def test_multitask_mode_dropped_for_multitask_incapable_name(self, tmp_path, monkeypatch):
         """Same boundary api_chat_slot_create enforces with a 400: a name whose
-        normalized key cannot host a crew store (e.g. a Win32 device basename)
-        must not become a crew slot via auto-create. Here it is dropped, not
+        normalized key cannot host a multitask store (e.g. a Win32 device basename)
+        must not become a multitask slot via auto-create. Here it is dropped, not
         refused — the slot is created with the default mode instead."""
         monkeypatch.setattr("junction.dashboard.state.config_dir", lambda: tmp_path)
         state = _make_state(tmp_path)
 
         await self._post_chat(
             state,
-            {"message": "hello", "slot": "CON", "mode": "crew"},
+            {"message": "hello", "slot": "CON", "mode": "multitask"},
         )
 
         created = [s for k, s in state._slots.items() if k.lower() == "con"]
-        assert created, "slot should still be created, just without crew mode"
+        assert created, "slot should still be created, just without multitask mode"
         assert created[0].mode == ""
 
     async def test_mode_ignored_for_existing_slot(self, tmp_path, monkeypatch):
@@ -4997,7 +4997,7 @@ class TestRunChatNativeSubagentAttribution:
             }
 
         events = [
-            # 1) crew list → spawn one card
+            # 1) subagent list → spawn one card
             LLMEvent(kind=EVENT_SUBAGENT_LIST, subagents=[_sub("working")]),
             # 2) private-channel activity maps the inner toolCallId → this card
             LLMEvent(
@@ -5031,7 +5031,7 @@ class TestRunChatNativeSubagentAttribution:
             LLMEvent(
                 kind=EVENT_SUBAGENT_ACTIVITY, sub_session_id="sess-1", text="thinking out loud"
             ),
-            # 6) crew list terminal → done with accumulated feed
+            # 6) subagent list terminal → done with accumulated feed
             LLMEvent(kind=EVENT_SUBAGENT_LIST, subagents=[_sub("terminated")]),
             LLMEvent(kind=EVENT_COMPLETE),
         ]
@@ -8999,7 +8999,7 @@ class TestPythonStageLoop:
         under ``config_dir() / "sessions" / slot.key``. The orchestrator imports
         ``config_dir`` into its own namespace, so patching only the ``chat`` /
         ``state`` namespaces leaves results writing to the live
-        ``~/.kirocrew/sessions/`` dir, and parallel (xdist) runs then race on the
+        ``~/.junction/sessions/`` dir, and parallel (xdist) runs then race on the
         shared fixed ``loop-test`` key. Patching all three namespaces to a unique
         ``tmp_path`` isolates every test in this class.
         """

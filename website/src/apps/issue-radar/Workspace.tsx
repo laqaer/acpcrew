@@ -9,16 +9,16 @@
 //
 // In 'dashboard' main view the list+detail split is replaced by a full-width
 // dashboard page (Overview / Tagging), chosen from the
-// registry. 'settings' shows the Settings page in the same area. 'crews' keeps
-// the two-column shape with a different pair: the crew roster in the list column
-// and the selected crew's page beside it — which is why it is a
+// registry. 'settings' shows the Settings page in the same area. 'stewards' keeps
+// the two-column shape with a different pair: the steward roster in the list column
+// and the selected steward's page beside it — which is why it is a
 // MainView and not a dashboard tab. The rail stays
 // visible in every mode. All shared state comes from useIssueRadar(); this file
 // owns only presentational layout (column resize).
 import { useState } from 'react'
 import { CircleDot, GitPullRequest, FilterX, Users } from 'lucide-react'
 import { useIssueRadar } from './context'
-import type { Crew } from './api'
+import type { Steward } from './api'
 import { Btn } from '../../components/ui'
 import {
   loadListWidth, LIST_WIDTH_KEY, MIN_LIST_WIDTH, MAX_LIST_WIDTH, DEFAULT_LIST_WIDTH,
@@ -34,9 +34,9 @@ import IssueList from './components/IssueList'
 import IssueDetail from './components/IssueDetail'
 import PrList from './components/PrList'
 import PrDetail from './components/PrDetail'
-import CrewList from './components/CrewList'
-import CrewEditor from './components/CrewEditor'
-import CrewPageView from './views/CrewPageView'
+import StewardList from './components/StewardList'
+import StewardEditor from './components/StewardEditor'
+import StewardPageView from './views/StewardPageView'
 import SettingsView from './views/SettingsView'
 import { dashboardComponent } from './views/registry'
 import { providerTerms } from './lib/links'
@@ -49,7 +49,7 @@ const RAIL_COLLAPSE: CollapseConfig = {
   width: COLLAPSED_RAIL_WIDTH, storageKey: RAIL_COLLAPSED_KEY, whenNarrow: true,
 }
 
-/** The crew roster column's own persisted width.
+/** The steward roster column's own persisted width.
  *
  * Separate from `LIST_WIDTH_KEY` on purpose: the issue and PR lists share a key
  * because they hold the same shape of content and are never both on screen, while
@@ -57,9 +57,9 @@ const RAIL_COLLAPSE: CollapseConfig = {
  * so a width that suits one is not the width that suits the other. Sharing the key
  * would also mean dragging one silently resized the other two. Bounds are reused
  * (240–600px), which is the range every list column in this app lives in. */
-const CREW_LIST_WIDTH_KEY = 'kc:issue-radar:crew-list-width'
-const loadCrewListWidth = () => loadColumnWidth(
-  CREW_LIST_WIDTH_KEY, MIN_LIST_WIDTH, MAX_LIST_WIDTH, DEFAULT_LIST_WIDTH,
+const STEWARD_LIST_WIDTH_KEY = 'jn:issue-radar:steward-list-width'
+const loadStewardListWidth = () => loadColumnWidth(
+  STEWARD_LIST_WIDTH_KEY, MIN_LIST_WIDTH, MAX_LIST_WIDTH, DEFAULT_LIST_WIDTH,
 )
 
 export default function Workspace() {
@@ -67,7 +67,7 @@ export default function Workspace() {
     mainView, dashboardTab, activeIssue, activePull, active,
     selectedIssue, anyFilterActive, clearFilters,
     selectedPull, anyPrFilterActive, clearPrFilters,
-    crewView, listDetail,
+    stewardView, listDetail,
   } = useIssueRadar()
   // A selection resolved from the FILTERED list has no fallback (see context's
   // activeIssue/activePull), so an active filter that excludes the selected item
@@ -86,14 +86,14 @@ export default function Workspace() {
     RAIL_WIDTH_KEY, loadRailWidth, MIN_RAIL_WIDTH, MAX_RAIL_WIDTH, RAIL_COLLAPSE, loadRailCollapsed,
   )
   const list = useColumnResize(LIST_WIDTH_KEY, loadListWidth, MIN_LIST_WIDTH, MAX_LIST_WIDTH)
-  const crewList = useColumnResize(CREW_LIST_WIDTH_KEY, loadCrewListWidth, MIN_LIST_WIDTH, MAX_LIST_WIDTH)
+  const stewardList = useColumnResize(STEWARD_LIST_WIDTH_KEY, loadStewardListWidth, MIN_LIST_WIDTH, MAX_LIST_WIDTH)
 
-  // The crew create/edit dialog's target. `null` = closed; `{crew: null}` = create;
-  // `{crew}` = edit that record. A wrapper object, not a bare `Crew | null`, so
-  // "closed" and "open on a new crew" are distinguishable — with one nullable
+  // The steward create/edit dialog's target. `null` = closed; `{steward: null}` = create;
+  // `{steward}` = edit that record. A wrapper object, not a bare `Steward | null`, so
+  // "closed" and "open on a new steward" are distinguishable — with one nullable
   // field they collapse into the same value and the dialog can never be closed
   // after a create. Transient by design: a restored-open dialog is not a page.
-  const [crewEditor, setCrewEditor] = useState<{ crew: Crew | null } | null>(null)
+  const [stewardEditor, setStewardEditor] = useState<{ steward: Steward | null } | null>(null)
 
   // Expanding the rail on a phone gives it the whole viewport rather than
   // restoring its 280px minimum beside a pane that then has ~110px — the strip's
@@ -115,7 +115,7 @@ export default function Workspace() {
   // rail strip's nav rows switch section, they do not leave the detail, and
   // component selection state is not browser history. Null on a desktop, where
   // both panes are on screen and there is nothing to return from.
-  // Only the crews pane still takes its Back row from the shell. The issue and
+  // Only the stewards pane still takes its Back row from the shell. The issue and
   // pull panes render their own inside their sticky header, so the control can
   // share a row with the compact title instead of standing on its own 44px.
   const narrowBack = (label: string) => (
@@ -247,68 +247,68 @@ export default function Workspace() {
                 : (
                   <div className="h-full flex flex-col items-center justify-center text-muted gap-2">
                     <GitPullRequest size={26} strokeWidth={1.5} className="opacity-50" />
-                    <div className="text-[13px]">{i18nT('apps.issueRadar.workspace.select_a')} {terms.changeRequestTitle} {i18nT('apps.issueRadar.workspace.to_see_its_details')}</div>
+                    <div className="text-[13px]">{i18nT(terms.changeRequestEmptyDetailKey)}</div>
                   </div>
                 )}
             </div>
           </main>
         </>
-      ) : mainView === 'crews' ? (
+      ) : mainView === 'stewards' ? (
         <>
           {showList && (
-            <section style={listPaneStyle(crewList.width)} className={listPaneClass}>
-              <CrewList onCreate={() => setCrewEditor({ crew: null })} />
+            <section style={listPaneStyle(stewardList.width)} className={listPaneClass}>
+              <StewardList onCreate={() => setStewardEditor({ steward: null })} />
             </section>
           )}
 
-          {/* Drag handle — resize the crew-list column. Its own width key (see
-              CREW_LIST_WIDTH_KEY): sharing LIST_WIDTH_KEY would make dragging the
+          {/* Drag handle — resize the steward-list column. Its own width key (see
+              STEWARD_LIST_WIDTH_KEY): sharing LIST_WIDTH_KEY would make dragging the
               roster narrower also narrow the issue and PR lists, which are
               different columns holding different content. */}
           {!listDetail.isMobile && (
           <ResizeHandle
-            handleProps={crewList.handleProps}
+            handleProps={stewardList.handleProps}
             label={i18nT('apps.issueRadar.workspace.resize_list')}
-            onNudge={crewList.nudge}
-            value={crewList.width}
+            onNudge={stewardList.nudge}
+            value={stewardList.width}
             min={MIN_LIST_WIDTH}
             max={MAX_LIST_WIDTH}
           />
           )}
 
           <main className={`flex-1 min-w-0 min-h-0 flex flex-col ${showDetail ? '' : 'hidden'}`}>
-            {narrowBack(i18nT('apps.issueRadar.views.crews.rail_section'))}
+            {narrowBack(i18nT('apps.issueRadar.views.stewards.rail_section'))}
             {/* The scroll container moves off <main> onto this wrapper so the
                 Back row stays pinned instead of scrolling away with the page. */}
             <div className="flex-1 min-h-0 overflow-y-auto">
-            {crewView.kind === 'crew'
-              ? <CrewPageView crewId={crewView.id} onEdit={(crew) => setCrewEditor({ crew })} />
+            {stewardView.kind === 'steward'
+              ? <StewardPageView stewardId={stewardView.id} onEdit={(steward) => setStewardEditor({ steward })} />
               : (
-                // Only reachable on a repo with no crews at all: context opens the
-                // first crew as soon as the roster has one. Same placeholder shape
+                // Only reachable on a repo with no stewards at all: context opens the
+                // first steward as soon as the roster has one. Same placeholder shape
                 // as the issue and PR panes, so an unaddressed main column reads
                 // the same way everywhere in this app.
                 <div className="h-full flex flex-col items-center justify-center text-muted gap-2">
                   <Users size={26} strokeWidth={1.5} className="opacity-50" />
-                  {/* Assembled the same way the PR pane assembles its own
-                      placeholder, so the two read identically and the noun comes
-                      from the crews catalog rather than being spelled here. */}
-                  <div className="text-[13px]">{i18nT('apps.issueRadar.workspace.select_a')} {i18nT('apps.issueRadar.views.crews.group_crew')} {i18nT('apps.issueRadar.workspace.to_see_its_details')}</div>
+                  {/* One whole-sentence key, like the issue and PR placeholders: a
+                      noun spliced between two fragments cannot agree with its
+                      article or take the word order another language needs. */}
+                  <div className="text-[13px]">{i18nT('apps.issueRadar.workspace.select_a_steward_to_see_its_details')}</div>
                 </div>
               )}
             </div>
           </main>
 
           {/* The create/edit dialog is mounted HERE rather than inside either
-              column, because both raise it: the roster's "New Crew" creates, and
-              the crew page's Edit opens the same form on a record. One owner also
+              column, because both raise it: the roster's "New steward" creates, and
+              the steward page's Edit opens the same form on a record. One owner also
               means one open dialog — two mounts would let a create and an edit
               sheet stack. Rendered only in this main view, so it cannot be opened
-              from a page that has no crew context. */}
-          <CrewEditor
-            open={crewEditor !== null}
-            onClose={() => setCrewEditor(null)}
-            crew={crewEditor?.crew ?? null}
+              from a page that has no steward context. */}
+          <StewardEditor
+            open={stewardEditor !== null}
+            onClose={() => setStewardEditor(null)}
+            steward={stewardEditor?.steward ?? null}
           />
         </>
       ) : (

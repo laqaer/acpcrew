@@ -6,7 +6,7 @@
  * ('keydown', ...)` in the BUBBLE phase, so a Cmd+, typed into a half-filled
  * form would otherwise reach it, navigate to Settings, and unmount the dialog
  * with the input still in it. `SideSheet` carried this guard; the centered
- * dialog that replaced it on the Crews page has to as well.
+ * dialog that replaced it on the Agents page has to as well.
  *
  * The guard must be surgical: Radix's own Escape handling uses
  * `{ capture: true }`, which runs BEFORE the event reaches the dialog, so

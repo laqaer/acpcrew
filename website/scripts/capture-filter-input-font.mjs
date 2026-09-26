@@ -58,7 +58,7 @@ import { json, makeFixedApi, handleBootRoute } from './lib/boot-api.mjs'
 const OUT = process.argv[2] || '../temp-screenshots/filter-input-font'
 const TAG = process.argv[3] || 'after'
 const SLOT = 'filter-input-font'
-const PROJECT = '/home/user/.kiro/crew/workspace'
+const PROJECT = '/home/user/.junction/workspace'
 const VIEW = { width: 1500, height: 1000 }
 
 // The family under test. NOT the default: 'sans' would leave --font-body at its
@@ -86,7 +86,7 @@ const MODELS = [
 ]
 
 const AGENTS = [
-  { name: 'default', kiro_agent: 'junction', description: 'Default crew agent' },
+  { name: 'default', kiro_agent: 'junction', description: 'Default agent' },
   { name: 'reviewer', kiro_agent: 'junction', description: 'Reads a diff and reports findings' },
   { name: 'researcher', kiro_agent: 'junction', description: 'Gathers evidence before a decision' },
   { name: 'translator', kiro_agent: 'junction', description: 'Keeps the locale catalogs in parity' },

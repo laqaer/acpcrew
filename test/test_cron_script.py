@@ -37,22 +37,20 @@ def _cron_caller_is_named(named_cron_caller):
 
 @pytest.fixture(autouse=True)
 def _crons_dir_tracks_patched_home(monkeypatch):
-    """Keep ``cron_script.config_dir()`` pointed at ``<patched home>/.kirocrew``.
+    """Keep ``cron_script.config_dir()`` pointed at ``<patched home>/.junction``.
 
-    The data home moved from the top-level ``~/.kirocrew`` to ``~/.kiro/crew``
-    (``config_dir()``), and ``resolve_script_path`` now derives its allowed
-    ``crons/`` dir from ``config_dir()`` rather than ``Path.home()/".kirocrew"``.
-    These tests patch ``Path.home()`` per-test and write scripts under
-    ``<home>/.kirocrew/crons`` — but ``config_dir()`` reads ``JUNCTION_HOME``
-    (pinned to a *different* tmp dir by the conftest ``_isolate_junction_home``
-    fixture), so without this redirect the allowed dir would never match.
-    Redirect ``config_dir`` to ``Path.home()/".kirocrew"`` (evaluated lazily, so
-    it tracks whatever ``Path.home()`` each test patches) — preserving the
-    existing ``.kirocrew/crons`` layout the tests build. Tests that patch
-    ``cron_script.config_dir`` themselves still win (applied later).
+    ``resolve_script_path`` derives its allowed ``crons/`` dir from
+    ``config_dir()``. These tests patch ``Path.home()`` per-test and write
+    scripts under ``<home>/.junction/crons`` — but ``config_dir()`` reads
+    ``JUNCTION_HOME`` (pinned to a *different* tmp dir by the conftest
+    ``_isolate_junction_home`` fixture), so without this redirect the allowed dir
+    would never match. Redirect ``config_dir`` to ``Path.home()/".junction"``
+    (evaluated lazily, so it tracks whatever ``Path.home()`` each test patches),
+    keeping the ``.junction/crons`` layout the tests build authoritative. Tests
+    that patch ``cron_script.config_dir`` themselves still win (applied later).
     """
     monkeypatch.setattr(
-        "junction.cron_script.config_dir", lambda: Path.home() / ".kirocrew"
+        "junction.cron_script.config_dir", lambda: Path.home() / ".junction"
     )
 
 
@@ -60,7 +58,7 @@ class TestResolveScriptPath:
     """Tests for resolve_script_path validation."""
 
     def test_valid_path(self, tmp_path):
-        crons_dir = tmp_path / ".kirocrew" / "crons"
+        crons_dir = tmp_path / ".junction" / "crons"
         crons_dir.mkdir(parents=True)
         script = crons_dir / "test.py"
         script.write_text("def run(ctx): pass")
@@ -89,10 +87,10 @@ class TestResolveScriptPath:
     def test_file_not_found_raises(self, tmp_path):
         with patch("pathlib.Path.home", return_value=tmp_path):
             with pytest.raises(FileNotFoundError):
-                resolve_script_path(str(tmp_path / ".kirocrew/crons/missing.py") + ":run")
+                resolve_script_path(str(tmp_path / ".junction/crons/missing.py") + ":run")
 
     def test_outside_crons_dir_raises(self, tmp_path):
-        crons_dir = tmp_path / ".kirocrew" / "crons"
+        crons_dir = tmp_path / ".junction" / "crons"
         crons_dir.mkdir(parents=True)
         outside = tmp_path / "outside.py"
         outside.write_text("x = 1")
@@ -101,7 +99,7 @@ class TestResolveScriptPath:
                 resolve_script_path(str(outside) + ":run")
 
     def test_tilde_expansion(self, tmp_path):
-        crons_dir = tmp_path / ".kirocrew" / "crons"
+        crons_dir = tmp_path / ".junction" / "crons"
         crons_dir.mkdir(parents=True)
         script = crons_dir / "monitor.py"
         script.write_text("def check(ctx): pass")
@@ -111,7 +109,7 @@ class TestResolveScriptPath:
         with patch("pathlib.Path.home", return_value=tmp_path), patch.dict(
             os.environ, {"HOME": str(tmp_path), "USERPROFILE": str(tmp_path)}
         ):
-            file_path, func_name = resolve_script_path("~/.kirocrew/crons/monitor.py:check")
+            file_path, func_name = resolve_script_path("~/.junction/crons/monitor.py:check")
         assert func_name == "check"
         # The tilde must actually have expanded to the patched home, not been
         # left literal — otherwise the assertion above would pass on a path that
@@ -402,7 +400,7 @@ class TestRunScriptSandboxed:
         )
 
     def _write_script(self, tmp_path, code):
-        crons_dir = tmp_path / ".kirocrew" / "crons"
+        crons_dir = tmp_path / ".junction" / "crons"
         crons_dir.mkdir(parents=True)
         script = crons_dir / "test_script.py"
         script.write_text(code)
@@ -892,7 +890,7 @@ class TestRunScriptSandboxedEdgeCases:
         monkeypatch.setattr("junction.cron_script._resolve_command_shell", lambda: "sh")
 
     def _write_script(self, tmp_path, code):
-        crons_dir = tmp_path / ".kirocrew" / "crons"
+        crons_dir = tmp_path / ".junction" / "crons"
         crons_dir.mkdir(parents=True)
         script = crons_dir / "edge_test.py"
         script.write_text(code)
@@ -1295,7 +1293,7 @@ class TestResolveScriptPathSensitive:
     """Test for is_sensitive_path block (line 275)."""
 
     def test_sensitive_path_blocked(self, tmp_path):
-        crons_dir = tmp_path / ".kirocrew" / "crons"
+        crons_dir = tmp_path / ".junction" / "crons"
         crons_dir.mkdir(parents=True)
         script = crons_dir / "test.py"
         script.write_text("def run(ctx): pass")
@@ -1310,7 +1308,7 @@ class TestRunScriptSandboxedErrorPaths:
     """Tests for run_script_sandboxed subprocess error paths (lines 333, 337-338)."""
 
     def _write_script(self, tmp_path, code):
-        crons_dir = tmp_path / ".kirocrew" / "crons"
+        crons_dir = tmp_path / ".junction" / "crons"
         crons_dir.mkdir(parents=True)
         script = crons_dir / "err_test.py"
         script.write_text(code)
@@ -1466,7 +1464,7 @@ class TestMcpCronHandlerPaths:
         from junction.cron import CronJob, CronSchedule
         from junction.mcp_cron import _call_tool_inner
 
-        crons_dir = tmp_path / ".kirocrew" / "crons"
+        crons_dir = tmp_path / ".junction" / "crons"
         crons_dir.mkdir(parents=True)
         (crons_dir / "mon.py").write_text("def run(ctx): pass")
         script_path = str(crons_dir / "mon.py") + ":run"

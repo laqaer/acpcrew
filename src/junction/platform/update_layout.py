@@ -172,7 +172,7 @@ def cdn_bases() -> tuple[str, str]:
     override = (os.environ.get("JUNCTION_CDN_BASE") or "").strip().rstrip("/")
     if override:
         return override, override
-    return "https://updates.crew.kiro.dev", "https://download.crew.kiro.dev"
+    return "https://updates.getjunction.dev", "https://download.getjunction.dev"
 
 
 #: Characters a CDN base may contain. ``JUNCTION_CDN_BASE`` is operator-set and
@@ -230,11 +230,11 @@ def wheel_update_command(channel: str | None = None) -> str:
     _, artifact_base = cdn_bases()
     return (
         "set -e; "
-        f"_kc_body=\"$(curl -fsSL --proto '=https' {artifact_base}/cli.sh)\"; "
+        f"_jn_body=\"$(curl -fsSL --proto '=https' {artifact_base}/cli.sh)\"; "
         # An empty body would let sh exit 0 on nothing at all, which is the same
         # false success as the piped form.
-        'test -n "$_kc_body"; '
-        f'printf \'%s\\n\' "$_kc_body" | sh -s -- --channel {channel}'
+        'test -n "$_jn_body"; '
+        f'printf \'%s\\n\' "$_jn_body" | sh -s -- --channel {channel}'
     )
 
 

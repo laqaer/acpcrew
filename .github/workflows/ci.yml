@@ -168,7 +168,7 @@ jobs:
         run: ./scripts/smoke-linux-packages.sh website/electron/dist
 
   scrub-lint:
-    name: De-Amazon Scrub Lint
+    name: Internal Marker Scrub Lint
     runs-on: ubuntu-latest
     timeout-minutes: 10
     steps:
@@ -176,7 +176,7 @@ jobs:
         # Full history is fetched lazily by the script only for the (skipped)
         # history scan; the working-tree gate needs just the checkout.
       - name: Scan working tree for internal markers
-        # Blocking gate: fails the build on any Amazon-internal marker in the
+        # Blocking gate: fails the build on any internal marker in the
         # public tree (internal domains/hosts, ticket ids, aliases, credential
         # shapes) outside the intentional allowlist, so a sync cannot reintroduce
         # a coupling. --no-history: git-history rewrite is a separate task.
@@ -777,12 +777,12 @@ jobs:
   # The one job where the sandbox-dependent tests EXECUTE rather than skip. They need
   # unprivileged user namespaces (unshare NEWNS), which ubuntu-24.04 restricts via
   # AppArmor -- the same restriction codex-review.yml clears for its bwrap sandbox.
-  # Without this job the ~/.kiro/crew sensitive-path keystone has no CI coverage at all,
+  # Without this job the ~/.junction sensitive-path keystone has no CI coverage at all,
   # even though branch protection treats breaking it as a blocking offence.
   #
   # The shards COLLECT all eleven of these files (nothing is deselected any more), but the
   # `skipif(not userns_available())` tests inside SIX of them skip there -- so this job is
-  # the only place those 85 assertions execute, the ~/.kiro/crew sensitive-path keystone
+  # the only place those 85 assertions execute, the ~/.junction sensitive-path keystone
   # among them. The other five carry no such guard and run fully in the shards too; they
   # are listed here because running them against a REAL sandbox is a different test than
   # running them against a stubbed one, and this is the only lane that can.

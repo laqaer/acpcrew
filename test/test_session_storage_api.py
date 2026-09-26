@@ -36,13 +36,13 @@ def _fresh_scan_cache() -> None:
 def stores(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> tuple[Path, Path]:
     # Nested, not sibling: reclaim_block_reason() refuses an isolated data home
     # whose kiro store sits outside it, because such a store may be shared.
-    crew_home = tmp_path / "crew"
-    kiro_home = crew_home / "kiro"
-    (crew_home / "sessions" / "archive").mkdir(parents=True)
+    home_dir = tmp_path / "home"
+    kiro_home = home_dir / "kiro"
+    (home_dir / "sessions" / "archive").mkdir(parents=True)
     (kiro_home / "sessions" / "cli").mkdir(parents=True)
-    monkeypatch.setenv("JUNCTION_HOME", str(crew_home))
+    monkeypatch.setenv("JUNCTION_HOME", str(home_dir))
     monkeypatch.setenv("KIRO_HOME", str(kiro_home))
-    return crew_home, kiro_home
+    return home_dir, kiro_home
 
 
 def _retired(kiro_home: Path, sid: str, *, log_bytes: int = 1024, age_days: float = 60) -> int:
@@ -121,7 +121,7 @@ class TestReport:
         resp = await handler.api_session_storage(_request("GET", "/api/system/session-storage"))
         flat = json.dumps(json.loads(resp.body))
 
-        for leaked in ("cli_bytes", "crew_bytes", "kiro-cli", "transcript_bytes"):
+        for leaked in ("cli_bytes", "junction_bytes", "kiro-cli", "transcript_bytes"):
             assert leaked not in flat
 
     @pytest.mark.asyncio
@@ -1028,17 +1028,15 @@ class TestWhyAReclaimIsRefused:
     """
 
     @staticmethod
-    def _recorded_session(crew_home: Path, kiro_home: Path, sid: str, key: str) -> None:
+    def _recorded_session(home_dir: Path, kiro_home: Path, sid: str, key: str) -> None:
         """A session that IS in the map: a transcript, a replay log, and the entry."""
         stem = key.replace(":", "_")
-        transcript = crew_home / "sessions" / f"{stem}.jsonl"
+        transcript = home_dir / "sessions" / f"{stem}.jsonl"
         transcript.write_text('{"_type": "metadata"}\n')
         mtime = time.time() - 30 * _DAY
         os.utime(transcript, (mtime, mtime))
         _retired(kiro_home, sid, age_days=30)
-        for directory in (crew_home, crew_home / "crew"):
-            directory.mkdir(parents=True, exist_ok=True)
-            (directory / "session_map.json").write_text(json.dumps({key: {"sid": sid}}))
+        (home_dir / "session_map.json").write_text(json.dumps({key: {"sid": sid}}))
 
     def _request_with_running(self, uids: list[str], running: frozenset[str]):
         req = _request("POST", "/api/system/session-storage/trash", {"uids": uids})
@@ -1053,9 +1051,9 @@ class TestWhyAReclaimIsRefused:
     async def test_an_idle_recorded_session_is_refused_as_resumable_not_in_use(
         self, stores: tuple[Path, Path]
     ) -> None:
-        crew_home, kiro_home = stores
+        home_dir, kiro_home = stores
         sid = "aaaaaaaa-0000-4000-8000-000000000001"
-        self._recorded_session(crew_home, kiro_home, sid, "dashboard:chat-9")
+        self._recorded_session(home_dir, kiro_home, sid, "dashboard:chat-9")
 
         req = self._request_with_running([sid], frozenset())
         with patch.object(handler, "_sel", _sel_stub):
@@ -1067,10 +1065,10 @@ class TestWhyAReclaimIsRefused:
 
     @pytest.mark.asyncio
     async def test_a_running_session_is_refused_as_in_use(self, stores: tuple[Path, Path]) -> None:
-        crew_home, kiro_home = stores
+        home_dir, kiro_home = stores
         sid = "aaaaaaaa-0000-4000-8000-000000000002"
         key = "dashboard:chat-10"
-        self._recorded_session(crew_home, kiro_home, sid, key)
+        self._recorded_session(home_dir, kiro_home, sid, key)
 
         req = self._request_with_running([sid], frozenset({key}))
         with patch.object(handler, "_sel", _sel_stub):
@@ -1084,10 +1082,10 @@ class TestWhyAReclaimIsRefused:
     async def test_the_row_reports_running_separately_from_resumable(
         self, stores: tuple[Path, Path]
     ) -> None:
-        crew_home, kiro_home = stores
+        home_dir, kiro_home = stores
         sid = "aaaaaaaa-0000-4000-8000-000000000003"
         key = "dashboard:chat-11"
-        self._recorded_session(crew_home, kiro_home, sid, key)
+        self._recorded_session(home_dir, kiro_home, sid, key)
 
         req = _request("GET", "/api/system/session-storage/sessions")
         state = req.app["state"]
@@ -1162,13 +1160,13 @@ class TestTheListDoesNotShipTheWholeStore:
         their labels, and a label it mis-parsed would understate what is about to
         move.
         """
-        crew_home, kiro_home = stores
+        home_dir, kiro_home = stores
         _retired(kiro_home, "aaaaaaaa-0000-4000-8000-000000000001", age_days=10)
         _retired(kiro_home, "aaaaaaaa-0000-4000-8000-000000000002", age_days=200)
         # Mapped, so refused however old it is — and therefore not offered.
         held = "aaaaaaaa-0000-4000-8000-000000000003"
         _retired(kiro_home, held, age_days=500)
-        (crew_home / "session_map.json").write_text(
+        (home_dir / "session_map.json").write_text(
             json.dumps({"dashboard:chat-1": {"sid": held}}), encoding="utf-8"
         )
 
@@ -1200,10 +1198,10 @@ class TestTranscriptContentIsRedacted:
     async def test_a_credential_in_a_title_never_reaches_the_list(
         self, stores: tuple[Path, Path]
     ) -> None:
-        crew_home, kiro_home = stores
+        home_dir, kiro_home = stores
         sid = "cccccccc-0000-4000-8000-000000000001"
         key = "dashboard:chat-20"
-        TestWhyAReclaimIsRefused._recorded_session(crew_home, kiro_home, sid, key)
+        TestWhyAReclaimIsRefused._recorded_session(home_dir, kiro_home, sid, key)
 
         req = _request("GET", "/api/system/session-storage/sessions")
         state = req.app["state"]
@@ -1222,9 +1220,9 @@ class TestTranscriptContentIsRedacted:
     async def test_a_credential_in_a_first_message_never_reaches_the_detail(
         self, stores: tuple[Path, Path]
     ) -> None:
-        crew_home, kiro_home = stores
+        home_dir, kiro_home = stores
         sid = "cccccccc-0000-4000-8000-000000000002"
-        TestWhyAReclaimIsRefused._recorded_session(crew_home, kiro_home, sid, "dashboard:chat-21")
+        TestWhyAReclaimIsRefused._recorded_session(home_dir, kiro_home, sid, "dashboard:chat-21")
 
         secret = self.SECRET
 
@@ -1254,9 +1252,9 @@ class TestRefusalsAreAudited:
     async def test_a_fully_refused_selection_is_audited_as_denied(
         self, stores: tuple[Path, Path]
     ) -> None:
-        crew_home, kiro_home = stores
+        home_dir, kiro_home = stores
         sid = "dddddddd-0000-4000-8000-000000000001"
-        TestWhyAReclaimIsRefused._recorded_session(crew_home, kiro_home, sid, "dashboard:chat-30")
+        TestWhyAReclaimIsRefused._recorded_session(home_dir, kiro_home, sid, "dashboard:chat-30")
 
         req = _request("POST", "/api/system/session-storage/trash", {"uids": [sid]})
         req.app["state"].running_session_keys.return_value = frozenset()
@@ -1278,10 +1276,10 @@ class TestRefusalsAreAudited:
         self, stores: tuple[Path, Path]
     ) -> None:
         """Nine taken and one protected must record BOTH, not just the nine."""
-        crew_home, kiro_home = stores
+        home_dir, kiro_home = stores
         protected = "dddddddd-0000-4000-8000-000000000002"
         TestWhyAReclaimIsRefused._recorded_session(
-            crew_home, kiro_home, protected, "dashboard:chat-31"
+            home_dir, kiro_home, protected, "dashboard:chat-31"
         )
         # An unmapped, old session: eligible, so the request partially succeeds.
         takeable = "dddddddd-0000-4000-8000-000000000003"
@@ -1313,10 +1311,10 @@ class TestAMalformedTitleCannotCrashTheList:
     async def test_a_numeric_title_is_skipped_rather_than_raising(
         self, stores: tuple[Path, Path]
     ) -> None:
-        crew_home, kiro_home = stores
+        home_dir, kiro_home = stores
         sid = "eeeeeeee-0000-4000-8000-000000000001"
         key = "dashboard:chat-40"
-        TestWhyAReclaimIsRefused._recorded_session(crew_home, kiro_home, sid, key)
+        TestWhyAReclaimIsRefused._recorded_session(home_dir, kiro_home, sid, key)
 
         req = _request("GET", "/api/system/session-storage/sessions")
         state = req.app["state"]
@@ -1347,7 +1345,7 @@ class TestACredentialInASessionIdIsScrubbed:
     async def test_an_access_key_shaped_session_id_is_not_rendered(
         self, stores: tuple[Path, Path]
     ) -> None:
-        crew_home, kiro_home = stores
+        home_dir, kiro_home = stores
         secret = "AKIAIOSFODNN7EXAMPLE"
         # A replay-only unit keyed by the offending id, which is what `_origin`
         # falls back to when there is no transcript stem.

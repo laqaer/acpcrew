@@ -35,7 +35,7 @@ vi.mock('../apps/issue-radar/api', async (importOriginal) => ({
 /** Open the app straight onto the PR surface (mainView is restored from the
  * persisted UI state, and `prSurfaceActive` follows it). */
 function openOnPrSurface(extra: Record<string, unknown> = {}) {
-  localStorage.setItem('kc:issue-radar:ui-state', JSON.stringify({ mainView: 'pulls', ...extra }))
+  localStorage.setItem('jn:issue-radar:ui-state', JSON.stringify({ mainView: 'pulls', ...extra }))
 }
 
 const REPO_A = { owner: 'kirodotdev', repo: 'Kiro' }
@@ -323,7 +323,7 @@ describe('issue-radar list polling', () => {
     // A person filter left on must not keep polling GitHub search in the
     // background while the user works elsewhere in the app.
     localStorage.setItem(
-      'kc:issue-radar:ui-state',
+      'jn:issue-radar:ui-state',
       JSON.stringify({ mainView: 'dashboard', prAuthoredByMe: true }),
     )
     const { unmount } = renderProvider()

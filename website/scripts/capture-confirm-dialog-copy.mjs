@@ -26,8 +26,8 @@ const BEFORE = process.argv.includes('--before')
 mkdirSync(OUT, { recursive: true })
 
 const DESTROY_TITLE = 'Destroy site?'
-const DESTROY_AFTER = "Permanently deletes bucket kc-site-blog-8f3a and distribution E2ABCDEF123 for 'blog'. Cannot be undone."
-const DESTROY_BEFORE = "DESTROY 'blog'? Permanently deletes bucket kc-site-blog-8f3a and distribution E2ABCDEF123. Cannot be undone."
+const DESTROY_AFTER = "Permanently deletes bucket jn-site-blog-8f3a and distribution E2ABCDEF123 for 'blog'. Cannot be undone."
+const DESTROY_BEFORE = "DESTROY 'blog'? Permanently deletes bucket jn-site-blog-8f3a and distribution E2ABCDEF123. Cannot be undone."
 const DISCARD_TITLE_AFTER = 'Discard unsaved changes?'
 const DISCARD_TITLE_BEFORE = 'Discard unsaved edits?'
 const DISCARD_AFTER = 'Discards your unsaved changes to \u201cdraft.tex\u201d and loads the co-author\u2019s version. This cannot be undone.'

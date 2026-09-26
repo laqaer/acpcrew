@@ -551,12 +551,12 @@ describe('query-string builders', () => {
   })
 
   it('cloud lifecycle calls carry only the coordinates they were given', async () => {
-    await api.cloudStop('kc-1')
-    expect(call().url).toBe('/api/cloud/kc-1/stop')
-    await api.cloudStart('kc-1', { region: 'us-west-2' })
-    expect(call(1).url).toBe('/api/cloud/kc-1/start?region=us-west-2')
-    await api.cloudDestroy('kc-1', { profile: 'dev', region: 'us-east-1', instanceId: 'i-0abc' })
-    expect(call(2).url).toBe('/api/cloud/kc-1?profile=dev&region=us-east-1&instance_id=i-0abc')
+    await api.cloudStop('jn-1')
+    expect(call().url).toBe('/api/cloud/jn-1/stop')
+    await api.cloudStart('jn-1', { region: 'us-west-2' })
+    expect(call(1).url).toBe('/api/cloud/jn-1/start?region=us-west-2')
+    await api.cloudDestroy('jn-1', { profile: 'dev', region: 'us-east-1', instanceId: 'i-0abc' })
+    expect(call(2).url).toBe('/api/cloud/jn-1?profile=dev&region=us-east-1&instance_id=i-0abc')
     expect(call(2).method).toBe('DELETE')
   })
 

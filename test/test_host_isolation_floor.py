@@ -69,7 +69,7 @@ _root = _load_root_conftest()
 #: form is true on all four targets.
 _GUARDED_ROOTS: tuple[pathlib.Path, ...] = (
     pathlib.Path.home() / ".kiro",
-    pathlib.Path.home() / ".kirocrew",
+    pathlib.Path.home() / ".junction",
     pathlib.Path.home() / ".claude.json",
 )
 
@@ -94,8 +94,7 @@ class TestTheDataHomeIsPinnedForEveryTestpath:
     These assertions run against the LIVE fixtures rather than a reconstruction,
     because the thing worth pinning is that the autouse chain actually fired. The
     stakes are specific: ``config_dir()`` is not a read -- it CREATES the home and its
-    marker on first use and can run the one-time ``~/.kirocrew`` -> ``~/.kiro/crew``
-    migration as a side effect. A test that resolves it unpinned mutates the
+    recovery breadcrumb on first use. A test that resolves it unpinned mutates the
     operator's live install.
     """
 
@@ -430,7 +429,7 @@ class TestTheSharedKiroPathRatchet:
         ("junction/service/macos.py", "PLIST_DIR"): "covered by _isolate_launchd_paths",
         ("junction/service/macos.py", "LOG_DIR"): "covered by _isolate_launchd_paths",
         # NOT a data path -- a security MATCHER compiled from the real home. It exists
-        # to refuse `tar -C ~/.kiro/crew`, which can drop a `security_policy.json` or a
+        # to refuse `tar -C ~/.junction`, which can drop a `security_policy.json` or a
         # `profiles/` entry into the governance trust root. Pointing it at a tmp dir
         # would make every test that exercises it assert against a pattern that no
         # longer matches the thing it protects -- weakening the guard to satisfy an

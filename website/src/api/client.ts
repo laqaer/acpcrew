@@ -1731,7 +1731,7 @@ export type WebhookOutcome =
 export interface WebhookTokenEntry {
   id: string
   label: string
-  /** Leading, non-secret slice of the raw token, e.g. `kc_whk_4f2b`. */
+  /** Leading, non-secret slice of the raw token, e.g. `jn_whk_4f2b`. */
   display_prefix: string
   last4: string
   created_at: number
@@ -2015,11 +2015,11 @@ export const api = {
       // '' when the peer is too old to report it — treated as unknown.
       resume_mode?: 'session_load' | 'prefix' | ''
     }>,
-  // Cloud provisioning (owner-only) — launch a cloud-hosted remote crew on the
+  // Cloud provisioning (owner-only) — launch a cloud-hosted remote instance on the
   // user's OWN AWS account, then register it as an SSM instance on connect. The
   // launch is a DURABLE gateway job (see cloud/launch_job.py): it survives
   // dashboard navigation and restart, so the UI polls its state rather than
-  // holding it in memory. `tag` (kc-xxxx) is the cloud lifecycle handle used by
+  // holding it in memory. `tag` (jn-xxxx) is the cloud lifecycle handle used by
   // stop/start/destroy; `instance_id` (i-...) is the EC2 id it registers under.
   cloudPreflight: (profile?: string, region?: string) => {
     const p = new URLSearchParams()
@@ -2041,10 +2041,11 @@ export const api = {
   cloudLaunchSignin: (id: string) =>
     post('/api/cloud/launch/' + encodeURIComponent(id) + '/signin').then(j) as Promise<{ signin: CloudLaunchSignin }>,
   // The gateway resolves the stack from the tag but needs the launch's AWS
-  // coordinates: a crew created under a non-default profile/region is invisible
-  // to the default ones, so omitting them makes stop/start/destroy fail. destroy
-  // also needs instance_id to drop the local Instances registration, otherwise
-  // the crew keeps appearing in the list after its box is gone.
+  // coordinates: a remote Junction created under a non-default profile/region
+  // is invisible to the default ones, so omitting them makes stop/start/destroy
+  // fail. destroy also needs instance_id to drop the local Instances
+  // registration, otherwise the remote Junction keeps appearing in the list
+  // after its box is gone.
   cloudStop: (tag: string, coords?: CloudCoords) =>
     post('/api/cloud/' + encodeURIComponent(tag) + '/stop' + cloudQuery(coords)).then(j) as Promise<{ ok?: boolean }>,
   cloudStart: (tag: string, coords?: CloudCoords) =>

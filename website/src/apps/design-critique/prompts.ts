@@ -31,7 +31,7 @@ const CRITIC =
   'evidence cannot reveal, and never critique visuals from unrendered source.\n\n'
 
 // As a BUILTIN app, the skill's scripts live inside the installed junction
-// package, not under ~/.kiro/crew/apps. The path is machine-specific, so we never
+// package, not under ~/.junction/apps. The path is machine-specific, so we never
 // hardcode it: instead every prompt that runs a script tells the agent to resolve
 // the two directories itself and substitute the printed paths wherever <SCRIPTS>
 // and <UPLOADS> appear. <SCRIPTS> is the skill's bundled scripts dir; <UPLOADS> is
@@ -43,7 +43,7 @@ const RESOLVE_PATHS =
   '    python3 -c "import junction, pathlib; print(pathlib.Path(junction.__file__).parent / \'apps/builtins/design_critique/skills/design-critique/scripts\')"\n' +
   '  <UPLOADS> = the Junction uploads dir:\n' +
   // Must go through config_dir(), not Path.home(): JUNCTION_HOME can move the
-  // data home (a dev instance does exactly that), and hardcoding ~/.kiro/crew
+  // data home (a dev instance does exactly that), and hardcoding ~/.junction
   // would write captures into the production home and contaminate isolated data.
   // This is the same resolution the upload handler itself uses.
   '    python3 -c "from junction.config.paths import config_dir; print(config_dir() / \'uploads\')"\n\n'

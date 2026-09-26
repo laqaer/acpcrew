@@ -1,4 +1,4 @@
-"""Crew agent spec -> KAS ``ClientCustomAgent`` projection.
+"""Junction agent spec -> KAS ``ClientCustomAgent`` projection.
 
 Each assertion here pins a constraint read off KAS's own zod schema
 (``resolve-client-agents.ts``), not a preference: getting ``tools`` or ``prompt``
@@ -34,7 +34,7 @@ def _rule(policy, capability):
 def _spec(**over):
     base = {
         "name": "junction",
-        "description": "the crew agent",
+        "description": "the Junction agent",
         "prompt": "You are Kiro.",
         "tools": ["fs_read", "fs_write", "@junction-core"],
         "mcpServers": {"junction-core": {"command": "x"}},
@@ -74,7 +74,7 @@ class TestToolsFailClosed:
         assert out["tools"] == ["fs_read", "fs_write", "@junction-core"]
 
     def test_mcp_server_shorthand_survives(self):
-        """KAS tags every MCP tool ``@<server>``, so Crew's existing syntax works."""
+        """KAS tags every MCP tool ``@<server>``, so Junction's existing syntax works."""
         out = to_client_custom_agent("a", _spec(tools=["@junction-cron"]), "p")
         assert out["tools"] == ["@junction-cron"]
 
@@ -112,7 +112,7 @@ class TestDeliberateOmissions:
 
 class TestOptionalPassThrough:
     def test_description_when_present(self):
-        assert to_client_custom_agent("a", _spec(), "p")["description"] == "the crew agent"
+        assert to_client_custom_agent("a", _spec(), "p")["description"] == "the Junction agent"
 
     def test_description_omitted_when_blank(self):
         assert "description" not in to_client_custom_agent("a", _spec(description=""), "p")
@@ -163,13 +163,13 @@ class TestPermissionsProjection:
         assert "permissions" not in out
 
     def test_a_hand_written_policy_is_not_relayed(self):
-        """The wire carries only what passed Crew's governance ceiling.
+        """The wire carries only what passed Junction's governance ceiling.
 
         Forwarding an author block would be one line and it is already in KAS's
         vocabulary — which is the trap. ``allowedTools`` is the only auto-approve
         input the ceiling (``_may_auto_approve``) has seen, so relaying a block
         from the file would hand any editor of it a grant the ceiling never
-        reviewed. An auto-approved call never reaches Crew's permission callback,
+        reviewed. An auto-approved call never reaches Junction's permission callback,
         so the deny-list and the audit trail would be skipped with it.
         """
         mine = {"rules": [{"capability": "shell", "effect": "allow"}]}
@@ -436,7 +436,7 @@ def test_the_batch_cap_matches_the_schema():
 
 
 class TestAgainstTheRealBundledSpec:
-    """Translate the spec Crew actually ships, not a hand-written stand-in.
+    """Translate the spec Junction actually ships, not a hand-written stand-in.
 
     The fixtures above encode what the schema allows; this one catches the case
     where the real spec's shape has drifted away from them.
@@ -447,13 +447,13 @@ class TestAgainstTheRealBundledSpec:
         path = Path(junction_config.__file__).resolve().parent / "defaults.json"
         return json.loads(path.read_text(encoding="utf-8"))
 
-    def test_the_crew_agent_projects_with_its_tools_intact(self):
+    def test_the_junction_agent_projects_with_its_tools_intact(self):
         spec = self._bundled()
         out = to_client_custom_agent(spec["name"], spec, "resolved prompt text")
 
         assert out["id"] == "junction"
         assert out["prompt"] == "resolved prompt text"
-        # The MCP shorthand is most of Crew's tool surface; losing it would leave
+        # The MCP shorthand is most of Junction's tool surface; losing it would leave
         # the agent nominally configured but unable to reach its own tools.
         assert any(t.startswith("@") for t in out["tools"])
         assert "fs_read" in out["tools"]

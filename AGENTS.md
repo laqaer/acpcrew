@@ -26,11 +26,10 @@ is optional.
   not the product name).
 - **Frontend:** React + TS + Vite SPA in `website/`; the built `dist/` is staged
   into `src/junction/static/dist/` and served by the backend.
-- **Data home:** `~/.junction`, overridden with `JUNCTION_HOME`. If
-  `~/.junction` is absent and `~/.kiro/crew` or `~/.kirocrew` already exists,
-  that older directory is kept. All three stay on the sensitive-path deny list.
+- **Data home:** `~/.junction`, overridden with `JUNCTION_HOME`. There is no
+  other data home and no fallback to another product's directory.
 - **Distribution:** public GitHub, plain setuptools, public PyPI / public npm.
-- **CLI:** `junction` (silent aliases exist for older entry points).
+- **CLI:** `junction`, the only console script.
 
 Full map: [`docs/architecture/overview.md`](docs/architecture/overview.md).
 
@@ -101,6 +100,13 @@ This repo is a public OSS tree. Never re-add:
   a default-open Slack enterprise gate, lazy STT extras.
 - **Removed surfaces:** the Channels app is hidden from the App Store and the
   Board app is removed. Do not restore them.
+- **The upstream product's identity.** Junction started as a fork; none of that
+  product's name, data homes, env prefix, CLI aliases, bundle ids, download or
+  update hosts, repository slug, or ghost mascot ship in Junction. Junction's
+  own identity (the J-and-switch mark, the "Interchange" palette, Overpass) is
+  generated from [`assets/brand/build.py`](assets/brand/build.py); change it
+  there, not by hand-editing a raster. The one deliberate exception is the
+  Apache-2.0 attribution in `NOTICE`, which the license requires to be kept.
 
 `scripts/scrub-lint.sh` gates `src/`, `website/src/`, `scripts/`, `config/`,
 `packaging/`, and the top level; keep `docs/` clean by convention. Rationale for
@@ -327,7 +333,7 @@ Format, which the `[0.2.0]` section is the reference for:
 - **The section ends with `### Contributors`**, crediting everyone whose code
   shipped in it — `@handle`, alphabetical by username case-insensitively, bots
   left out. Derive it from the release's own range rather than by hand:
-  `gh api repos/kirodotdev/KiroCrew/releases/generate-notes -f tag_name=<tag>
+  `gh api repos/laqaer/junction/releases/generate-notes -f tag_name=<tag>
   -f previous_tag_name=<last-tag>` names the author of every merged PR, so nobody
   is dropped for having a quiet commit subject. **This belongs to the changelog
   only.** A GitHub Release page renders its own contributor block from the tag
@@ -425,7 +431,7 @@ Two traps are worth naming here because neither is visible when reading the test
 | Constants | No hardcoded strings or values in business logic; every limit has an owning module. Index: [code-style](docs/system-specs/common/code-style.md) |
 | Comments | Explain **behavior and rationale (the why)**: invariants, edge cases, units, non-obvious constraints. NOT a task log: no PR/CR numbers, review-round markers, incident dates, milestone tags, or commit SHAs. No "previously/used to/we now" narration, state current behavior in present tense. Don't restate what the code plainly does. `_vendor/` and pragmas are exempt. |
 | Icons | **Never use emojis in the UI.** Use `lucide-react` with `className="lucide-inline"`. |
-| Product name | The product is **Junction**. Identifiers stay as their systems spelled them (`junction`, `JUNCTION_*`, Electron `productName`, slug `laqaer/junction`). CI-gates concatenated upstream brand tokens on added lines; run `BRAND_BASE_REF=origin/main python3 scripts/check_brand_name.py` before pushing. |
+| Product name | The product is **Junction**. Identifiers stay as their systems spelled them (`junction`, `JUNCTION_*`, Electron `productName`, slug `laqaer/junction`). The upstream identity is retired: CI fails an added line carrying the upstream product name glued or joined by one separator (whitespace, `_ - . + / \`, a Unicode dash, `%20`, or a regex spelling of one: an escape, a short character class or a short group), in prose and identifiers alike, env-var prefix included; its data home as a path literal (or a regex of one) or built from split string literals; its hosts and its bundle id, dots plain or regex-escaped; its GitHub org (except citations of kiro-cli's own repository under it); or its mascot. The root `NOTICE` is the only exempt file and there is no inline marker, so a test or gate that names the old identity builds it from fragments. kiro-cli's `~/.kiro` and its own directories, `kiro-cli`, the word "crew", and the two words split by clause punctuation are not flagged. Run `BRAND_BASE_REF=origin/main python3 scripts/check_brand_name.py` before pushing. |
 | User-facing strings | The dashboard is translated into 12 languages. **Never hardcode a user-facing English string, and never format a date, number, or sort order without naming a locale.** Both are CI-gated. Backend-owned strings have no catalog path yet, so a new non-2xx JSON body MUST carry a machine-readable `code` field. |
 
 ## Cross-platform: route POSIX calls through `platform_compat`
@@ -496,5 +502,5 @@ formats: [injected-messages](docs/system-specs/common/injected-messages.md).
 
 `junction gateway --approval yolo` auto-approves ALL tools and refuses to start
 unless `JUNCTION_HOME` is explicitly set to a non-default path. Never point it at
-`~/.junction`, or at a previous home still in use (`~/.kiro/crew`, `~/.kirocrew`).
+`~/.junction`.
 All harness flags: [cli](docs/system-specs/modules/cli.md).

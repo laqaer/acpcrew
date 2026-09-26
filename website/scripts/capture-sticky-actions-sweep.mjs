@@ -56,9 +56,9 @@ const WEBHOOKS_VIEW = {
     timeout_max: 900, max_concurrent: 2, signature_window_seconds: 300,
   },
   tokens: [
-    { id: 'tok-1', label: 'review-bot', display_prefix: 'kc_whk_4f2b', last4: '9d1c', created_at: now - 86400 * 12, last_used_at: now - 3600, require_signature: true, legacy: false },
-    { id: 'tok-2', label: 'ci-pipeline', display_prefix: 'kc_whk_a81e', last4: '02f7', created_at: now - 86400 * 3, last_used_at: null, require_signature: false, legacy: false },
-    { id: 'tok-3', label: 'pager-bridge', display_prefix: 'kc_whk_77c0', last4: '5b44', created_at: now - 3600 * 5, last_used_at: now - 60, require_signature: true, legacy: false },
+    { id: 'tok-1', label: 'review-bot', display_prefix: 'jn_whk_4f2b', last4: '9d1c', created_at: now - 86400 * 12, last_used_at: now - 3600, require_signature: true, legacy: false },
+    { id: 'tok-2', label: 'ci-pipeline', display_prefix: 'jn_whk_a81e', last4: '02f7', created_at: now - 86400 * 3, last_used_at: null, require_signature: false, legacy: false },
+    { id: 'tok-3', label: 'pager-bridge', display_prefix: 'jn_whk_77c0', last4: '5b44', created_at: now - 3600 * 5, last_used_at: now - 60, require_signature: true, legacy: false },
   ],
   contexts: [],
   runs: [],

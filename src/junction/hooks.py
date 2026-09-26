@@ -2247,7 +2247,7 @@ def safe_write_file_nolink(
     # already exist as real user data, and O_CREAT|O_TRUNC would have destroyed
     # it and then renamed it away. O_EXCL also means we only ever clean up a file
     # this call created.
-    tmp_name = f".{base}.kirocrew-{os.getpid()}-{uuid.uuid4().hex}.tmp"
+    tmp_name = f".{base}.junction-{os.getpid()}-{uuid.uuid4().hex}.tmp"
     # Directory-fd pinning is an ENHANCEMENT, not a precondition. Where the POSIX
     # APIs exist (Linux) the staging and rename resolve against an open handle on
     # the parent, so an ancestor swapped mid-save cannot redirect the write. Where
@@ -3485,7 +3485,7 @@ _HOOKS_FILE = "hooks.json"
 
 
 class ScriptHookStore:
-    """Persist script hooks to ~/.kiro/crew/hooks.json."""
+    """Persist script hooks to ~/.junction/hooks.json."""
 
     def __init__(self, config_dir: Path | None = None):
         from junction.config.loader import config_dir as _cfg_dir

@@ -17,7 +17,7 @@
  *    lane names its own position in words — with the SPECIFIC exit token for an
  *    exited lane, so skipped / yielded / handed-back / preempted stay distinct;
  *  - the queue summary cards, including that EDITING flags danger only when a
- *    SINGLE crew holds more than one editing item (two crews with one each is
+ *    SINGLE steward holds more than one editing item (two stewards with one each is
  *    legal and must not read as a fault);
  *  - the empty state (a connected repo with `items: []` is a 200, not an error).
  *
@@ -30,13 +30,13 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { fireEvent, render, screen, waitFor, within } from '@testing-library/react'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 
-import type { CrewFabricItem, CrewFabricResponse, RepoRef } from '../api'
+import type { StewardFabricItem, StewardFabricResponse, RepoRef } from '../api'
 
 // ── the HTTP seam ────────────────────────────────────────────────────────────
 // Declared through vi.hoisted so the vi.mock factory (itself hoisted to the top
 // of the module) can close over the same fn instances the tests drive.
-const { crewFabric, listConnectedRepos } = vi.hoisted(() => ({
-  crewFabric: vi.fn<[RepoRef], Promise<CrewFabricResponse>>(),
+const { stewardFabric, listConnectedRepos } = vi.hoisted(() => ({
+  stewardFabric: vi.fn<[RepoRef], Promise<StewardFabricResponse>>(),
   listConnectedRepos: vi.fn<[], Promise<unknown[]>>(),
 }))
 
@@ -44,7 +44,7 @@ vi.mock('../api', async (importOriginal) => {
   const actual = await importOriginal<typeof import('../api')>()
   return {
     ...actual,
-    autoTriagePipelineApi: { crewFabric, listConnectedRepos },
+    autoTriagePipelineApi: { stewardFabric, listConnectedRepos },
     // A first-ever visit has no stored preference, so the resolver falls back to
     // the connected list the mock returns.
     loadStoredPreference: () => null,
@@ -53,7 +53,7 @@ vi.mock('../api', async (importOriginal) => {
 })
 
 import PipelineView from './PipelineView'
-import { CREW_FABRIC_SCHEMA } from '../api'
+import { STEWARD_FABRIC_SCHEMA } from '../api'
 
 // ── ResizeObserver we can drive ───────────────────────────────────────────────
 // happy-dom has no layout, so getBoundingClientRect().width is 0 (ignored by the
@@ -98,7 +98,7 @@ beforeEach(() => {
     removeListener: vi.fn(),
     dispatchEvent: vi.fn(),
   })) as unknown as typeof matchMedia
-  crewFabric.mockReset()
+  stewardFabric.mockReset()
   listConnectedRepos.mockReset()
   listConnectedRepos.mockResolvedValue([{ owner: 'acme', repo: 'demo-repo' }])
   localStorage.clear()
@@ -114,10 +114,10 @@ afterEach(() => {
 const T = (h: number, m = 0) =>
   `2026-07-30T${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}:00Z`
 
-function item(over: Partial<CrewFabricItem> = {}): CrewFabricItem {
+function item(over: Partial<StewardFabricItem> = {}): StewardFabricItem {
   return {
     number: 100,
-    crew_id: 'crew-a',
+    steward_id: 'steward-a',
     title: '',
     next: '',
     pr_number: null,
@@ -125,12 +125,12 @@ function item(over: Partial<CrewFabricItem> = {}): CrewFabricItem {
     timeline: [{ phase: 'selected', at: T(1) }],
     reopens: 0,
     ...over,
-  } as CrewFabricItem
+  } as StewardFabricItem
 }
 
-function fabric(items: CrewFabricItem[], generatedAt: string | null = T(4)): CrewFabricResponse {
+function fabric(items: StewardFabricItem[], generatedAt: string | null = T(4)): StewardFabricResponse {
   return {
-    schema: CREW_FABRIC_SCHEMA,
+    schema: STEWARD_FABRIC_SCHEMA,
     owner: 'acme',
     repo: 'demo-repo',
     provider: 'github',
@@ -155,8 +155,8 @@ function renderView() {
 /** Mount, wait for the board to actually populate (a lane row, not just the
  * repo-picker button in the chrome), then report the observed track width so the
  * wide/narrow branch is exercised. */
-async function mountBoard(items: CrewFabricItem[], opts: { width?: number; generatedAt?: string | null } = {}) {
-  crewFabric.mockResolvedValue(fabric(items, opts.generatedAt ?? T(4)))
+async function mountBoard(items: StewardFabricItem[], opts: { width?: number; generatedAt?: string | null } = {}) {
+  stewardFabric.mockResolvedValue(fabric(items, opts.generatedAt ?? T(4)))
   const utils = renderView()
   // Wait for the FIRST lane to render — the board has left its loading skeleton
   // and the ColumnHeader (the element the ResizeObserver is attached to) is
@@ -190,9 +190,9 @@ function statCardValue(label: string): HTMLElement {
 describe('PipelineView — populated board', () => {
   it('draws one lane per work item, stating the issue identity with the PR as a separate chip', async () => {
     await mountBoard([
-      item({ number: 5179, crew_id: 'crew-a', phase: 'implementing', pr_number: 5127, title: 'zzq alpha' }),
-      item({ number: 4820, crew_id: 'crew-b', phase: 'awaiting-ci', pr_number: null, title: 'zzq beta' }),
-      item({ number: 4711, crew_id: 'crew-c', phase: 'resolved', pr_number: 4700, title: 'zzq gamma' }),
+      item({ number: 5179, steward_id: 'steward-a', phase: 'implementing', pr_number: 5127, title: 'zzq alpha' }),
+      item({ number: 4820, steward_id: 'steward-b', phase: 'awaiting-ci', pr_number: null, title: 'zzq beta' }),
+      item({ number: 4711, steward_id: 'steward-c', phase: 'resolved', pr_number: 4700, title: 'zzq gamma' }),
     ])
 
     // One <li> per item — no more, no fewer.
@@ -230,7 +230,7 @@ describe('PipelineView — hover card phase table', () => {
     await mountBoard([
       item({
         number: 4400,
-        crew_id: 'crew-a',
+        steward_id: 'steward-a',
         phase: 'handed-back',
         pr_number: null,
         title: 'zzq handed',
@@ -268,7 +268,7 @@ describe('PipelineView — hover card phase table', () => {
     await mountBoard([
       item({
         number: 4401,
-        crew_id: 'crew-a',
+        steward_id: 'steward-a',
         phase: 'implementing',
         timeline: [
           { phase: 'claimed', at: T(1) },
@@ -288,7 +288,7 @@ describe('PipelineView — hover card phase table', () => {
 describe('PipelineView — narrow (measured track width) branch', () => {
   it('stacks the row, drops the column-header labels, and names the lane position in words', async () => {
     await mountBoard(
-      [item({ number: 4500, crew_id: 'crew-a', phase: 'implementing', title: 'zzq narrow' })],
+      [item({ number: 4500, steward_id: 'steward-a', phase: 'implementing', title: 'zzq narrow' })],
       { width: 200 }, // below NARROW_TRACK_W (560)
     )
 
@@ -311,7 +311,7 @@ describe('PipelineView — narrow (measured track width) branch', () => {
   })
 
   it('names the SPECIFIC exit token so skipped / yielded / handed-back / preempted stay distinct', async () => {
-    const cases: Array<{ phase: CrewFabricItem['phase']; token: string; number: number }> = [
+    const cases: Array<{ phase: StewardFabricItem['phase']; token: string; number: number }> = [
       { phase: 'skipped', token: 'SKIPPED', number: 4601 },
       { phase: 'yielded', token: 'YIELDED', number: 4602 },
       { phase: 'handed-back', token: 'HANDED BACK', number: 4603 },
@@ -321,7 +321,7 @@ describe('PipelineView — narrow (measured track width) branch', () => {
       const { unmount } = await mountBoard(
         [item({
           number: c.number,
-          crew_id: 'crew-x',
+          steward_id: 'steward-x',
           phase: c.phase,
           timeline: [{ phase: 'claimed', at: T(1) }],
           exit: { phase: c.phase, at: T(2) },
@@ -343,26 +343,26 @@ describe('PipelineView — narrow (measured track width) branch', () => {
 })
 
 describe('PipelineView — queue summary cards', () => {
-  it('does not flag EDITING as a fault when two DIFFERENT crews each hold one editing item', async () => {
+  it('does not flag EDITING as a fault when two DIFFERENT stewards each hold one editing item', async () => {
     await mountBoard([
-      item({ number: 100, crew_id: 'crew-a', phase: 'implementing' }),
-      item({ number: 200, crew_id: 'crew-b', phase: 'addressing-review' }),
+      item({ number: 100, steward_id: 'steward-a', phase: 'implementing' }),
+      item({ number: 200, steward_id: 'steward-b', phase: 'addressing-review' }),
     ])
 
-    // Two editing lanes total, but across two crews — the per-crew cap (1) is not
+    // Two editing lanes total, but across two stewards — the per-steward cap (1) is not
     // breached, so this is legal and must NOT render in danger red.
     const value = statCardValue('Editing')
     expect(value.textContent).toBe('2')
     expect(value.className).not.toContain('text-danger')
   })
 
-  it('flags EDITING as a fault when a SINGLE crew holds more than one editing item', async () => {
+  it('flags EDITING as a fault when a SINGLE steward holds more than one editing item', async () => {
     await mountBoard([
-      item({ number: 100, crew_id: 'crew-a', phase: 'implementing' }),
-      item({ number: 200, crew_id: 'crew-a', phase: 'addressing-review' }),
+      item({ number: 100, steward_id: 'steward-a', phase: 'implementing' }),
+      item({ number: 200, steward_id: 'steward-a', phase: 'addressing-review' }),
     ])
 
-    // Same crew, two editing items — that IS the invariant breach, and only THIS
+    // Same steward, two editing items — that IS the invariant breach, and only THIS
     // is the danger case.
     const value = statCardValue('Editing')
     expect(value.textContent).toBe('2')
@@ -373,8 +373,8 @@ describe('PipelineView — queue summary cards', () => {
     // generated_at = 04:00; a lane that entered awaiting-ci at 01:00 has waited 3h.
     await mountBoard(
       [
-        item({ number: 100, crew_id: 'crew-a', phase: 'awaiting-ci', reopens: 2, timeline: [{ phase: 'awaiting-ci', at: T(1) }] }),
-        item({ number: 200, crew_id: 'crew-b', phase: 'implementing', timeline: [{ phase: 'implementing', at: T(3, 30) }] }),
+        item({ number: 100, steward_id: 'steward-a', phase: 'awaiting-ci', reopens: 2, timeline: [{ phase: 'awaiting-ci', at: T(1) }] }),
+        item({ number: 200, steward_id: 'steward-b', phase: 'implementing', timeline: [{ phase: 'implementing', at: T(3, 30) }] }),
       ],
       { generatedAt: T(4) },
     )
@@ -390,13 +390,13 @@ describe('PipelineView — queue summary cards', () => {
 
 describe('PipelineView — empty state', () => {
   it('renders the designed empty state when a connected repo returns items: []', async () => {
-    // A connected repo with no crews is a 200 with an empty list, NOT an error —
+    // A connected repo with no stewards is a 200 with an empty list, NOT an error —
     // this is the COMMON case, and it must draw the designed empty state.
-    crewFabric.mockResolvedValue(fabric([], null))
+    stewardFabric.mockResolvedValue(fabric([], null))
     renderView()
 
     await waitFor(() => expect(screen.getByTestId('atp-empty')).toBeTruthy())
-    expect(screen.getByTestId('atp-empty-title').textContent).toBe('No crew activity yet')
+    expect(screen.getByTestId('atp-empty-title').textContent).toBe('No steward activity yet')
     // It is the empty state, not the board: no lanes, and not the "no repo"
     // state either (a repo IS connected).
     expect(screen.queryByText(/^IS-\d+$/)).toBeNull()

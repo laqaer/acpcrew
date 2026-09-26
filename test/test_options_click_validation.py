@@ -358,8 +358,8 @@ class TestAbstainsRatherThanRefuses:
             None,
             "",
             "some_unrelated_block_id",
-            "kcopt1:truncated",
-            "kcopt1:!!!:!!!",
+            "jnopt1:truncated",
+            "jnopt1:!!!:!!!",
         ],
     )
     async def test_an_unusable_token_honours_the_click(self, tmp_path, block_id):
@@ -400,9 +400,9 @@ class TestAbstainsRatherThanRefuses:
 
 class TestTheTokenRidesInTheMessage:
     def test_the_token_is_carried_on_the_block_id_slack_echoes_back(self):
-        blocks = build_options_blocks(["yes", "no"], staleness_token="kcopt1:aGk:dGhlcmU")
+        blocks = build_options_blocks(["yes", "no"], staleness_token="jnopt1:aGk:dGhlcmU")
 
-        assert blocks[0]["block_id"] == "kcopt1:aGk:dGhlcmU"
+        assert blocks[0]["block_id"] == "jnopt1:aGk:dGhlcmU"
 
     def test_a_colon_shaped_key_and_an_offset_timestamp_survive_intact(self):
         """Both halves are colon-bearing, so neither may be split on naively."""

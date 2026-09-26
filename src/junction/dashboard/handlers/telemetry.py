@@ -1,7 +1,7 @@
 """Telemetry handlers — read the local OTEL metric shards for the dashboard.
 
 An OpenTelemetry recorder's default sink is per-process JSONL
-under ``~/.kiro/crew/metrics/metrics-YYYY-MM-DD-<pid>.jsonl`` (see
+under ``~/.junction/metrics/metrics-YYYY-MM-DD-<pid>.jsonl`` (see
 ``junction.metrics.local_exporter``). Each line is one export cycle serialized
 via ``MetricsData.to_json()`` — resource_metrics -> scope_metrics -> metrics ->
 data.data_points, where a histogram data point carries ``bucket_counts`` +

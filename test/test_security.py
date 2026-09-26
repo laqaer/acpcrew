@@ -16,6 +16,7 @@ import pytest
 from oauth_url_corpus import OPERATOR_EXTENSION_OAUTH_URLS
 
 from junction import security
+from junction.config.paths import RETIRED_AUTH_STAGING_NAME, RETIRED_DATA_HOME_NAMES
 from junction.security import (
     _SECRET_KEY_LEN,
     apply_resource_limits,
@@ -23,6 +24,7 @@ from junction.security import (
     audit_bash_exfiltration,
     is_sensitive_bash_command,
     is_sensitive_path,
+    is_sensitive_write_path,
     oauth_url_contains_credential,
     redact_and_truncate,
     redact_credentials,
@@ -1394,8 +1396,8 @@ class TestKiroCliBundledDeniedCommands:
     Regression tests for the ``kill``/``junction`` pattern false positive,
     narrowed in two steps.
 
-    Step 1 (word boundaries): the original pattern ``.*kill.*kiro.?crew.*``
-    matched any command whose argv contained ``~/.kirocrew/skills/...``
+    Step 1 (word boundaries): the original pattern ``.*kill.*junction.*``
+    matched any command whose argv contained ``~/.junction/skills/...``
     (because ``skills`` contains the substring ``kill``) followed by
     ``junction`` anywhere.  Anchoring the kill word on word boundaries
     stopped skill-dir paths from reading as ``kill``.
@@ -1409,8 +1411,7 @@ class TestKiroCliBundledDeniedCommands:
     PIDs, so it only matches when the name is resolved to one inside a
     command substitution.  ``[^|;&]*`` confines each arm to a single command
     segment, so an unrelated later command in a ``;``/``&&``/pipe chain is not
-    captured.  Every by-name kill form is still blocked; ``kiro-crew`` is
-    still covered by the ``[-.]?`` separator.
+    captured.  Every by-name kill form is still blocked.
     """
 
     @staticmethod
@@ -1430,11 +1431,6 @@ class TestKiroCliBundledDeniedCommands:
     def test_killall_junction_blocked(self) -> None:
         assert self._is_denied("sudo killall junction")
 
-    def test_kill_junction_hyphenated_blocked(self) -> None:
-        # The `.?` in the pattern covers an optional separator so agents can't
-        # bypass with "kiro-crew".
-        assert self._is_denied("pkill kiro-crew")
-
     def test_kill_pidof_substitution_blocked(self) -> None:
         # `pidof` resolves the name to a PID exactly as `pgrep` does, so a
         # resolver-name allowlist would have been a bypass.
@@ -1450,22 +1446,22 @@ class TestKiroCliBundledDeniedCommands:
 
     def test_skill_create_sh_junction_domain_allowed(self) -> None:
         """The brazil-workspace skill scaffold must not be blocked."""
-        cmd = "/Users/user/.kirocrew/skills/brazil-workspace/create.sh --domain junction"
+        cmd = "/Users/user/.junction/skills/brazil-workspace/create.sh --domain junction"
         assert not self._is_denied(cmd)
 
     def test_skills_dir_listing_allowed(self) -> None:
-        assert not self._is_denied("ls ~/.kirocrew/skills/")
+        assert not self._is_denied("ls ~/.junction/skills/")
 
     def test_skill_run_with_junction_arg_allowed(self) -> None:
-        cmd = "/Users/user/.kirocrew/skills/coder/run.sh junction --dry-run"
+        cmd = "/Users/user/.junction/skills/coder/run.sh junction --dry-run"
         assert not self._is_denied(cmd)
 
     def test_bash_skill_script_allowed(self) -> None:
-        assert not self._is_denied("bash ~/.kirocrew/skills/something.sh")
+        assert not self._is_denied("bash ~/.junction/skills/something.sh")
 
     def test_cat_junction_config_allowed(self) -> None:
         # "cat" has no "kill" word anywhere — must not match.
-        assert not self._is_denied("cat ~/.kirocrew/config.json")
+        assert not self._is_denied("cat ~/.junction/config.json")
 
     # --- incidental-mention false positives: must be allowed ---
     # A bare `kill` takes PIDs, so none of these can aim at a junction process
@@ -2455,7 +2451,7 @@ class TestOperatorOAuthEndpointExtension:
 
     # ── Keystone fence: the agent cannot widen its own trust boundary ──
 
-    @pytest.mark.parametrize("prefix", [".kiro/crew", ".kirocrew"])
+    @pytest.mark.parametrize("prefix", [".junction"])
     def test_extension_file_is_sensitive_under_every_home_prefix(self, prefix: str) -> None:
         from junction.security import is_sensitive_write_path
 
@@ -2466,11 +2462,10 @@ class TestOperatorOAuthEndpointExtension:
 
     def test_bash_write_and_read_both_blocked(self) -> None:
         for cmd in (
-            "echo x > ~/.kiro/crew/oauth_endpoints.json",
-            "tee ~/.kiro/crew/oauth_endpoints.json",
-            "cp evil ~/.kiro/crew/oauth_endpoints.json",
-            "cat ~/.kiro/crew/oauth_endpoints.json",
-            "cat ~/.kirocrew/oauth_endpoints.json",
+            "echo x > ~/.junction/oauth_endpoints.json",
+            "tee ~/.junction/oauth_endpoints.json",
+            "cp evil ~/.junction/oauth_endpoints.json",
+            "cat ~/.junction/oauth_endpoints.json",
         ):
             assert is_sensitive_bash_command(cmd) is not None, cmd
 
@@ -3249,12 +3244,35 @@ class TestIsSensitivePath:
         assert is_sensitive_path("~/.gnupg/private-keys-v1.d") is True
 
     def test_junction_env(self) -> None:
-        # The data home moved to ~/.kiro/crew; the legacy ~/.kirocrew stays gated
-        # (migration leaves a rollback copy that still holds real secret bytes).
+        # Junction's own credential file and governance ceiling under the data home.
         assert is_sensitive_path("~/.junction/.env") is True
         assert is_sensitive_path("~/.junction/security_policy.json") is True
-        assert is_sensitive_path("~/.kiro/crew/.env") is True
-        assert is_sensitive_path("~/.kirocrew/.env") is True
+
+    @pytest.mark.parametrize("retired", RETIRED_DATA_HOME_NAMES)
+    @pytest.mark.parametrize(
+        "leaf", [".env", "token_signing.key", ".local_secret", ".vault/.vault_key"]
+    )
+    def test_retired_data_home_secrets_stay_fenced(self, retired: str, leaf: str) -> None:
+        """A machine upgraded in place can still hold live secrets in a retired home.
+
+        Junction no longer reads those directories, but dropping them from the
+        floor would open credentials an agent could not read the day before.
+        """
+        home = str(Path.home())
+        assert is_sensitive_path(f"~/{retired}/{leaf}") is True
+        assert is_sensitive_path(f"{home}/{retired}/{leaf}") is True
+        assert is_sensitive_bash_command(f"cat ~/{retired}/{leaf}") is not None
+        assert is_sensitive_write_path(f"~/{retired}/{leaf}") is True
+
+    def test_retired_auth_staging_root_stays_fenced(self) -> None:
+        assert is_sensitive_path(f"~/{RETIRED_AUTH_STAGING_NAME}/credentials.json") is True
+        assert is_sensitive_bash_command(f"ls ~/{RETIRED_AUTH_STAGING_NAME}") is not None
+
+    def test_retired_homes_leave_the_harness_home_readable(self) -> None:
+        """``~/.kiro`` is kiro-cli's own home; only the retired child is fenced."""
+        assert is_sensitive_path("~/.kiro/settings/cli.json") is False
+        assert is_sensitive_path("~/.kiro/agents/default.json") is False
+        assert is_sensitive_bash_command("cat ~/.kiro/settings/cli.json") is None
 
     def test_browser_auth_cookie_paths(self) -> None:
         # The browser-auth cookie jar + the Playwright storage-state derived from
@@ -3262,13 +3280,10 @@ class TestIsSensitivePath:
         # not read them through the shared gate, or a prompt-injected turn could
         # exfiltrate live browser sessions.
         home = str(Path.home())
-        assert is_sensitive_path("~/.kiro/crew/browser-cookies.txt") is True
-        assert is_sensitive_path("~/.kiro/crew/playwright-storage-state.json") is True
-        assert is_sensitive_path(f"{home}/.kiro/crew/browser-cookies.txt") is True
-        assert is_sensitive_path(f"{home}/.kiro/crew/playwright-storage-state.json") is True
-        # Legacy pre-move home is still gated.
-        assert is_sensitive_path("~/.kirocrew/browser-cookies.txt") is True
-        assert is_sensitive_path(f"{home}/.kirocrew/playwright-storage-state.json") is True
+        assert is_sensitive_path("~/.junction/browser-cookies.txt") is True
+        assert is_sensitive_path("~/.junction/playwright-storage-state.json") is True
+        assert is_sensitive_path(f"{home}/.junction/browser-cookies.txt") is True
+        assert is_sensitive_path(f"{home}/.junction/playwright-storage-state.json") is True
 
     def test_sel_hmac_key(self) -> None:
         # security-review finding cdf82704: the SEL HMAC signing key is the trust root of
@@ -3276,46 +3291,38 @@ class TestIsSensitivePath:
         # it could forge the entire chain, so it must be sensitive (read-blocked).
         # The key lives at trust/sel_hmac.key (whole-dir gate); the bare leaf
         # covers pre-migration installs and stale post-restore leftovers.
-        assert is_sensitive_path("~/.kiro/crew/sel_hmac.key") is True
-        assert is_sensitive_path("~/.kirocrew/sel_hmac.key") is True
-        assert is_sensitive_path("~/.kiro/crew/trust") is True
-        assert is_sensitive_path("~/.kiro/crew/trust/sel_hmac.key") is True
-        assert is_sensitive_path("~/.kirocrew/trust") is True
-        assert is_sensitive_path("~/.kirocrew/trust/sel_hmac.key") is True
+        assert is_sensitive_path("~/.junction/sel_hmac.key") is True
+        assert is_sensitive_path("~/.junction/trust") is True
+        assert is_sensitive_path("~/.junction/trust/sel_hmac.key") is True
 
     def test_security_events_log(self) -> None:
         # security-review finding cdf82704: the SEL audit log itself must not be
         # readable/rewritable by the audited agent (tamper of the evidence trail).
-        assert is_sensitive_path("~/.kiro/crew/security_events.jsonl") is True
-        assert is_sensitive_path("~/.kirocrew/security_events.jsonl") is True
+        assert is_sensitive_path("~/.junction/security_events.jsonl") is True
 
     def test_rotated_security_event_segments(self) -> None:
         # A rotated segment holds exactly the same audit records the live log
         # does (sel.py closes the log at a size cap and renames it into this
         # dir), so rotation must not become the way around the fence.
-        assert is_sensitive_path("~/.kiro/crew/security_events.d") is True
+        assert is_sensitive_path("~/.junction/security_events.d") is True
         assert (
             is_sensitive_path(
-                "~/.kiro/crew/security_events.d/security_events-000001-20260821T045139Z.jsonl"
+                "~/.junction/security_events.d/security_events-000001-20260821T045139Z.jsonl"
             )
             is True
         )
-        assert is_sensitive_path("~/.kirocrew/security_events.d") is True
         assert (
             is_sensitive_path(
-                "~/.kirocrew/security_events.d/security_events-000001-20260821T045139Z.jsonl"
+                "~/.junction/security_events.d/security_events-000001-20260821T045139Z.jsonl"
             )
             is True
         )
 
     def test_sel_files_absolute_path(self) -> None:
         home = str(Path.home())
-        assert is_sensitive_path(f"{home}/.kiro/crew/sel_hmac.key") is True
-        assert is_sensitive_path(f"{home}/.kiro/crew/trust/sel_hmac.key") is True
-        assert is_sensitive_path(f"{home}/.kiro/crew/security_events.jsonl") is True
-        assert is_sensitive_path(f"{home}/.kirocrew/sel_hmac.key") is True
-        assert is_sensitive_path(f"{home}/.kirocrew/trust/sel_hmac.key") is True
-        assert is_sensitive_path(f"{home}/.kirocrew/security_events.jsonl") is True
+        assert is_sensitive_path(f"{home}/.junction/sel_hmac.key") is True
+        assert is_sensitive_path(f"{home}/.junction/trust/sel_hmac.key") is True
+        assert is_sensitive_path(f"{home}/.junction/security_events.jsonl") is True
 
     def test_app_admission_policy(self) -> None:
         # Keystone invariant: app_admission.json is the sole fleet-controlled
@@ -3323,55 +3330,45 @@ class TestIsSensitivePath:
         # governed agent that could rewrite/delete it could neuter its own
         # admission ceiling — it must be read/write blocked via the shared gate.
         home = str(Path.home())
-        assert is_sensitive_path("~/.kiro/crew/app_admission.json") is True
-        assert is_sensitive_path(f"{home}/.kiro/crew/app_admission.json") is True
-        assert is_sensitive_path("~/.kirocrew/app_admission.json") is True
+        assert is_sensitive_path("~/.junction/app_admission.json") is True
+        assert is_sensitive_path(f"{home}/.junction/app_admission.json") is True
 
     def test_token_signing_key(self) -> None:
         # token_signing.key (dashboard/token_secret.py) signs every
         # dashboard access + refresh token. An agent that could fs_read it could
         # forge auth tokens for itself, so it must be read-blocked like the SEL
         # HMAC key above.
-        assert is_sensitive_path("~/.kiro/crew/token_signing.key") is True
-        assert is_sensitive_path("~/.kirocrew/token_signing.key") is True
+        assert is_sensitive_path("~/.junction/token_signing.key") is True
 
     def test_refresh_chains_json(self) -> None:
         # refresh_chains.json (dashboard/refresh_tokens.py) stores
         # refresh-token chain state used to mint new access tokens.
-        assert is_sensitive_path("~/.kiro/crew/refresh_chains.json") is True
-        assert is_sensitive_path("~/.kirocrew/refresh_chains.json") is True
+        assert is_sensitive_path("~/.junction/refresh_chains.json") is True
 
     def test_local_secret(self) -> None:
         # .local_secret is the shared internal-auth secret used to
         # authenticate MCP/cron/hook callbacks back into the gateway
         # (mcp_core.py, cron_script.py, mcp_shared.py, etc.).
-        assert is_sensitive_path("~/.kiro/crew/.local_secret") is True
-        assert is_sensitive_path("~/.kirocrew/.local_secret") is True
+        assert is_sensitive_path("~/.junction/.local_secret") is True
 
     def test_kiro_cli_binary_attestation(self) -> None:
-        assert is_sensitive_path("~/.kiro/crew/.kiro_cli_binary_trust.json") is True
-        assert is_sensitive_path("~/.kirocrew/.kiro_cli_binary_trust.json") is True
+        assert is_sensitive_path("~/.junction/.kiro_cli_binary_trust.json") is True
 
     def test_kiro_auth_staging_parent(self) -> None:
-        assert is_sensitive_path("~/.kiro/crew-auth-staging") is True
-        assert is_sensitive_path("~/.kiro/crew-auth-staging/auth-123/token.json") is True
+        assert is_sensitive_path("~/.kiro/junction-auth-staging") is True
+        assert is_sensitive_path("~/.kiro/junction-auth-staging/auth-123/token.json") is True
 
     def test_dashboard_secrets_absolute_path(self) -> None:
         home = str(Path.home())
-        assert is_sensitive_path(f"{home}/.kiro/crew/token_signing.key") is True
-        assert is_sensitive_path(f"{home}/.kiro/crew/refresh_chains.json") is True
-        assert is_sensitive_path(f"{home}/.kiro/crew/.local_secret") is True
-        assert is_sensitive_path(f"{home}/.kirocrew/token_signing.key") is True
-        assert is_sensitive_path(f"{home}/.kirocrew/refresh_chains.json") is True
-        assert is_sensitive_path(f"{home}/.kirocrew/.local_secret") is True
+        assert is_sensitive_path(f"{home}/.junction/token_signing.key") is True
+        assert is_sensitive_path(f"{home}/.junction/refresh_chains.json") is True
+        assert is_sensitive_path(f"{home}/.junction/.local_secret") is True
 
-    def test_non_sel_crew_file_not_blocked(self) -> None:
+    def test_non_sel_data_home_file_not_blocked(self) -> None:
         # Regression guard: the SEL additions must not over-block routine
-        # crew-home reads (config.json, sessions.db) that operators/tools need.
-        assert is_sensitive_path("~/.kiro/crew/config.json") is False
-        assert is_sensitive_path("~/.kiro/crew/sessions.db") is False
-        assert is_sensitive_path("~/.kirocrew/config.json") is False
-        assert is_sensitive_path("~/.kirocrew/sessions.db") is False
+        # data-home reads (config.json, sessions.db) that operators/tools need.
+        assert is_sensitive_path("~/.junction/config.json") is False
+        assert is_sensitive_path("~/.junction/sessions.db") is False
 
     def test_safe_path(self) -> None:
         assert is_sensitive_path("~/Documents/code/main.py") is False
@@ -3442,7 +3439,7 @@ class TestHomeDirTargetsCache:
     """Tests for the TTL cache in front of ``_home_dir_targets_uncached``.
 
     The cache exists because rebuilding the target set was 91% of every
-    ``is_sensitive_path`` call (it realpath()s ``$HOME`` and each crew-home
+    ``is_sensitive_path`` call (it realpath()s ``$HOME`` and each data-home
     leaf), and callers hit it per FILE. These tests pin the two properties that
     make caching a security gate's inputs acceptable: the cached set is
     equivalent to an uncached build, and an env change is reflected AT ONCE
@@ -3523,8 +3520,8 @@ class TestHomeDirTargetsCache:
         from junction import security
 
         monkeypatch.setenv("HOME", str(tmp_path))
-        home_a = tmp_path / "crew-a"
-        home_b = tmp_path / "crew-b"
+        home_a = tmp_path / "home-a"
+        home_b = tmp_path / "home-b"
         home_a.mkdir()
         home_b.mkdir()
         self._clear()
@@ -3696,13 +3693,13 @@ class TestIsSensitiveBashCommand:
         gateway's working directory rather than the directory the command
         moved to.
         """
-        assert is_sensitive_bash_command("cd ~/.kiro/crew && cat token_signing.key") is not None
-        assert is_sensitive_bash_command("cd ~/.kiro/crew; cat token_signing.key") is not None
+        assert is_sensitive_bash_command("cd ~/.junction && cat token_signing.key") is not None
+        assert is_sensitive_bash_command("cd ~/.junction; cat token_signing.key") is not None
         assert is_sensitive_bash_command("cd ~/.aws && cat credentials") is not None
         assert is_sensitive_bash_command("cd ~/.ssh && cat id_rsa") is not None
         # The `cd` target may itself arrive through $HOME.
         assert (
-            is_sensitive_bash_command("cd $HOME/.kiro/crew && awk 1 token_signing.key") is not None
+            is_sensitive_bash_command("cd $HOME/.junction && awk 1 token_signing.key") is not None
         )
 
     def test_cd_into_a_benign_directory_is_allowed(self) -> None:
@@ -3713,9 +3710,9 @@ class TestIsSensitiveBashCommand:
 
     def test_chained_relative_cd_resolves_against_prior_base(self) -> None:
         """Relative cd targets must join against the prior base_dir, not overwrite."""
-        # cd ~/.kiro && cd crew → base should be ~/.kiro/crew, not bare "crew"
+        # cd ~/.config && cd gcloud → base should be ~/.config/gcloud, not bare "gcloud"
         assert (
-            is_sensitive_bash_command("cd ~/.kiro && cd crew && cat token_signing.key") is not None
+            is_sensitive_bash_command("cd ~/.config && cd gcloud && cat credentials.db") is not None
         )
         assert is_sensitive_bash_command("cd ~ && cd .aws && cat credentials") is not None
         # Absolute cd resets the base entirely
@@ -3748,7 +3745,7 @@ class TestIsSensitiveBashCommand:
         """
         assert (
             is_sensitive_bash_command(
-                "cd ~/.kiro/crew && echo 'x; cd /tmp' && cat token_signing.key"
+                "cd ~/.junction && echo 'x; cd /tmp' && cat token_signing.key"
             )
             is not None
         )
@@ -3768,13 +3765,13 @@ class TestIsSensitiveBashCommand:
         """
         assert (
             is_sensitive_bash_command(
-                "cd ~/.kiro/crew && echo $(true; cd /tmp) && cat token_signing.key"
+                "cd ~/.junction && echo $(true; cd /tmp) && cat token_signing.key"
             )
             is not None
         )
         assert (
             is_sensitive_bash_command(
-                "cd ~/.kiro/crew && echo `true; cd /tmp` && cat token_signing.key"
+                "cd ~/.junction && echo `true; cd /tmp` && cat token_signing.key"
             )
             is not None
         )
@@ -3793,7 +3790,7 @@ class TestIsSensitiveBashCommand:
         """
         assert (
             is_sensitive_bash_command(
-                "V=$HOME; echo V=/tmp; cd $V/.kiro/crew; cat token_signing.key"
+                "V=$HOME; echo V=/tmp; cd $V/.junction; cat token_signing.key"
             )
             is not None
         )
@@ -3808,7 +3805,7 @@ class TestIsSensitiveBashCommand:
     def test_cd_dash_returns_to_the_previous_directory(self) -> None:
         """`cd -` goes back, so the tracked base has to go back with it."""
         assert (
-            is_sensitive_bash_command("cd ~/.kiro/crew; cd /tmp; cd -; cat token_signing.key")
+            is_sensitive_bash_command("cd ~/.junction; cd /tmp; cd -; cat token_signing.key")
             is not None
         )
         assert (
@@ -3827,7 +3824,7 @@ class TestIsSensitiveBashCommand:
         set and the bare filename read clean. And the base must not outlive the
         closing paren, or an ordinary read after it would start denying.
         """
-        assert is_sensitive_bash_command("(cd ~/.kiro/crew && cat token_signing.key)") is not None
+        assert is_sensitive_bash_command("(cd ~/.junction && cat token_signing.key)") is not None
         assert is_sensitive_bash_command("( cd ~/.aws && cat credentials )") is not None
         assert is_sensitive_bash_command("(cd ~/.ssh; cat id_rsa)") is not None
         # The move does not escape the subshell.
@@ -3905,7 +3902,7 @@ class TestIsSensitiveBashCommand:
         assert is_sensitive_bash_command("cat ${SOMEVAR:-/tmp}/.ssh/id_rsa") is not None
         # As a `cd` target.
         assert (
-            is_sensitive_bash_command("D=$HOME/.kiro/crew; cd ${D:-/tmp}; cat token_signing.key")
+            is_sensitive_bash_command("D=$HOME/.junction; cd ${D:-/tmp}; cat token_signing.key")
             is not None
         )
         # A benign remainder stays clean under any value.
@@ -3915,7 +3912,7 @@ class TestIsSensitiveBashCommand:
     def test_a_masked_substitution_still_shows_the_path_inside_it(self) -> None:
         """Masking is a trade, so the whole-line pass runs over BOTH spellings.
 
-        Masking keeps `cd "$(printf %s ~)/.kiro/crew"` as one token so its tail
+        Masking keeps `cd "$(printf %s ~)/.junction"` as one token so its tail
         still resolves. But it also hides a path written INSIDE the substitution,
         and that shape is caught only on the raw text — losing it was a regression
         against a read `main` already blocked.
@@ -3924,7 +3921,7 @@ class TestIsSensitiveBashCommand:
         assert is_sensitive_bash_command("echo `cat ~/.ssh/id_rsa`") is not None
         # And the masked-only shape keeps working, so neither pass was traded away.
         assert (
-            is_sensitive_bash_command('cd "$(printf %s ~)/.kiro/crew" && cat token_signing.key')
+            is_sensitive_bash_command('cd "$(printf %s ~)/.junction" && cat token_signing.key')
             is not None
         )
 
@@ -3937,7 +3934,7 @@ class TestIsSensitiveBashCommand:
         entered $HOME.
         """
         assert (
-            is_sensitive_bash_command("__kc_subst=/tmp; cd $(printf %s ~); cat .aws/credentials")
+            is_sensitive_bash_command("__jn_subst=/tmp; cd $(printf %s ~); cat .aws/credentials")
             is not None
         )
 
@@ -3954,7 +3951,7 @@ class TestIsSensitiveBashCommand:
         assert is_sensitive_bash_command("D=x; cd ${D/x/$HOME}; cat .aws/credentials") is not None
         # The value wins here, and must not be lost by preferring the other reading.
         assert (
-            is_sensitive_bash_command("D=$HOME/.kiro/crew; cd ${D:-/tmp}; cat token_signing.key")
+            is_sensitive_bash_command("D=$HOME/.junction; cd ${D:-/tmp}; cat token_signing.key")
             is not None
         )
         # A benign remainder stays clean under every reading.
@@ -3976,20 +3973,20 @@ class TestIsSensitiveBashCommand:
     def test_an_append_assignment_builds_on_the_recorded_value(self) -> None:
         """`NAME+=value` appends, so the tracked value has to append too.
 
-        The assignment pattern matched only `=`, so the whole `V+=/crew` token
+        The assignment pattern matched only `=`, so the whole `V+=/.junction` token
         failed to match and the segment was read as a command word instead of an
-        assignment. The tracked value stayed on `$HOME/.kiro` while bash held
-        `$HOME/.kiro/crew`, and the read after the `cd` resolved against the
+        assignment. The tracked value stayed on `$HOME` while bash held
+        `$HOME/.junction`, and the read after the `cd` resolved against the
         wrong directory.
         """
         assert (
-            is_sensitive_bash_command('V=$HOME/.kiro; V+=/crew; cd "$V"; cat token_signing.key')
+            is_sensitive_bash_command('V=$HOME; V+=/.junction; cd "$V"; cat token_signing.key')
             is not None
         )
         # Appending more than once, and appending to a name never assigned.
         assert (
             is_sensitive_bash_command(
-                'V=$HOME; V+=/.kiro; V+=/crew; cd "$V"; cat token_signing.key'
+                'V=$HOME; V+=/.junction; V+=/trust; cd "$V"; cat sel_hmac.key'
             )
             is not None
         )
@@ -4001,11 +3998,11 @@ class TestIsSensitiveBashCommand:
         """`$HOME` inside a substitution is expanded before masking, so it is visible.
 
         Masking the substitution to an opaque placeholder threw that away: the
-        target read as `$__kc_subst/crew`, the home hypothesis rewrote it to
-        `~/crew` — benign — while bash entered `~/.kiro/crew` and read the key.
+        target read as `$__jn_subst/trust`, the home hypothesis rewrote it to
+        `~/trust` — benign — while bash entered `~/.junction/trust` and read the key.
         """
         assert (
-            is_sensitive_bash_command('cd "$(printf %s "$HOME/.kiro")/crew"; cat token_signing.key')
+            is_sensitive_bash_command('cd "$(printf %s "$HOME/.junction")/trust"; cat sel_hmac.key')
             is not None
         )
         assert is_sensitive_bash_command('cd `printf %s "$HOME/.aws"`; cat credentials') is not None
@@ -4015,7 +4012,7 @@ class TestIsSensitiveBashCommand:
         # Through a variable assigned from the substitution.
         assert (
             is_sensitive_bash_command(
-                'V=$(printf %s "$HOME/.kiro"); cd "$V/crew"; cat token_signing.key'
+                'V=$(printf %s "$HOME/.junction"); cd "$V/trust"; cat sel_hmac.key'
             )
             is not None
         )
@@ -4030,7 +4027,7 @@ class TestIsSensitiveBashCommand:
         assert is_sensitive_bash_command("cat $(pwd)/out.txt") is None
 
     def test_a_cd_into_a_directory_that_holds_a_secret_taints(self) -> None:
-        """`~/.kiro/crew` is not sensitive itself — only its leaves are.
+        """`~/.junction` is not sensitive itself — only its leaves are.
 
         Every check that guards a *move* asked `is_sensitive_path` about the `cd`
         target, which answers "is this the protected thing". For the keystone the
@@ -4043,11 +4040,10 @@ class TestIsSensitiveBashCommand:
         both depend on the taint pass.
         """
         assert (
-            is_sensitive_bash_command('bash -c "cd ~/.kiro/crew; cat token_signing.key"')
-            is not None
+            is_sensitive_bash_command('bash -c "cd ~/.junction; cat token_signing.key"') is not None
         )
         assert (
-            is_sensitive_bash_command("cd ~/.kiro/crew; false && cd /tmp; cat token_signing.key")
+            is_sensitive_bash_command("cd ~/.junction; false && cd /tmp; cat token_signing.key")
             is not None
         )
         # The directory list is derived, so a directory that holds no secret is not
@@ -4059,14 +4055,14 @@ class TestIsSensitiveBashCommand:
     def test_a_later_cd_does_not_erase_a_sensitive_one(self) -> None:
         """The erasing `cd` does not have to run.
 
-        `false &&` short-circuits, so bash never leaves the crew directory — while
+        `false &&` short-circuits, so bash never leaves the data-home directory — while
         the walk had already moved its only base and resolved the read against
         nothing. Deciding whether a `cd` executes means evaluating the command, so
         nothing is forgotten instead.
         """
         assert (
             is_sensitive_bash_command(
-                "H=$HOME; D=$H/.kiro/crew; cd $D; false && cd /tmp; cat token_signing.key"
+                "H=$HOME; D=$H/.junction; cd $D; false && cd /tmp; cat token_signing.key"
             )
             is not None
         )
@@ -4083,7 +4079,7 @@ class TestIsSensitiveBashCommand:
         name was never recorded.
         """
         assert (
-            is_sensitive_bash_command("export D=$HOME/.kiro/crew; cd $D; cat token_signing.key")
+            is_sensitive_bash_command("export D=$HOME/.junction; cd $D; cat token_signing.key")
             is not None
         )
         for keyword in ("declare", "typeset", "local", "readonly"):
@@ -4102,13 +4098,13 @@ class TestIsSensitiveBashCommand:
         """Collapsing an operator form at ASSIGNMENT time is one-way, and picked wrong.
 
         `${X:+…}` names X, so resolving to the variable's value recorded `x` — while
-        bash yields the OPERAND for `:+`, entered the crew directory and read the
+        bash yields the OPERAND for `:+`, entered the data-home directory and read the
         signing key. Recorded literally, both meanings survive to the point of use:
         `_expansion_readings` derives the value form back out, and the operand is
         still readable in the text.
         """
         assert (
-            is_sensitive_bash_command("X=x; D=${X:+$HOME/.kiro/crew}; cd $D; cat token_signing.key")
+            is_sensitive_bash_command("X=x; D=${X:+$HOME/.junction}; cd $D; cat token_signing.key")
             is not None
         )
         assert (
@@ -4116,7 +4112,7 @@ class TestIsSensitiveBashCommand:
         )
         # The value reading must not be lost either — this one needs it.
         assert (
-            is_sensitive_bash_command("D=$HOME/.kiro/crew; cd ${D:-/tmp}; cat token_signing.key")
+            is_sensitive_bash_command("D=$HOME/.junction; cd ${D:-/tmp}; cat token_signing.key")
             is not None
         )
         # A benign operand stays clean under every reading.
@@ -4126,7 +4122,7 @@ class TestIsSensitiveBashCommand:
     def test_the_reserved_placeholder_name_is_refused_in_every_spelling(self) -> None:
         """The segment walk numbers the placeholder, so the refusal has to be numbered too.
 
-        `_mask_substitutions_valued` emits `__kc_subst1`, `__kc_subst2`, … so two
+        `_mask_substitutions_valued` emits `__jn_subst1`, `__jn_subst2`, … so two
         substitutions in one segment cannot inherit each other's value. A refusal
         that only knew the unnumbered spelling therefore covered a name the walk
         no longer produces.
@@ -4147,11 +4143,11 @@ class TestIsSensitiveBashCommand:
         assert not _SUBST_PLACEHOLDER_NAME_RE.match(f"x{_SUBST_PLACEHOLDER_NAME}")
         # And the payload the refusal exists for stays denied in both spellings.
         assert (
-            is_sensitive_bash_command("__kc_subst=/tmp; cd $(printf %s ~); cat .aws/credentials")
+            is_sensitive_bash_command("__jn_subst=/tmp; cd $(printf %s ~); cat .aws/credentials")
             is not None
         )
         assert (
-            is_sensitive_bash_command("__kc_subst1=/tmp; cd $(printf %s ~); cat .aws/credentials")
+            is_sensitive_bash_command("__jn_subst1=/tmp; cd $(printf %s ~); cat .aws/credentials")
             is not None
         )
 
@@ -4175,7 +4171,7 @@ class TestIsSensitiveBashCommand:
         a single token before tokenization.
         """
         assert (
-            is_sensitive_bash_command('cd "$(printf %s ~)/.kiro/crew" && cat token_signing.key')
+            is_sensitive_bash_command('cd "$(printf %s ~)/.junction" && cat token_signing.key')
             is not None
         )
         assert is_sensitive_bash_command("cd $(printf %s ~)/.aws && cat credentials") is not None
@@ -4183,7 +4179,7 @@ class TestIsSensitiveBashCommand:
         assert is_sensitive_bash_command("cat $(printf %s ~)/.aws/credentials") is not None
         # Through a variable assigned from a substitution.
         assert (
-            is_sensitive_bash_command("D=$(printf %s ~); cd $D/.kiro/crew && cat token_signing.key")
+            is_sensitive_bash_command("D=$(printf %s ~); cd $D/.junction && cat token_signing.key")
             is not None
         )
         # A substitution over a benign remainder is not a reason to deny.
@@ -4196,7 +4192,7 @@ class TestIsSensitiveBashCommand:
 
     def test_pushd_tracks_directory(self) -> None:
         """pushd should be treated like cd for directory tracking."""
-        assert is_sensitive_bash_command("pushd ~/.kiro/crew && cat token_signing.key") is not None
+        assert is_sensitive_bash_command("pushd ~/.junction && cat token_signing.key") is not None
         assert is_sensitive_bash_command("pushd /tmp && cat notes.txt") is None
 
     def test_home_with_backslash_separators_survives_tokenization(
@@ -4215,8 +4211,8 @@ class TestIsSensitiveBashCommand:
         home = tmp_path / "Users\\runneradmin"
         (home / ".aws").mkdir(parents=True)
         (home / ".aws" / "credentials").write_text("[default]\n")
-        (home / ".kiro" / "crew").mkdir(parents=True)
-        (home / ".kiro" / "crew" / "token_signing.key").write_text("k\n")
+        (home / ".junction").mkdir(parents=True)
+        (home / ".junction" / "token_signing.key").write_text("k\n")
         monkeypatch.setenv("HOME", str(home))
 
         assert is_sensitive_bash_command("cat $HOME/.aws/credentials") is not None
@@ -4224,7 +4220,7 @@ class TestIsSensitiveBashCommand:
         assert is_sensitive_bash_command("D=$HOME/.aws; cat $D/credentials") is not None
         # As a `cd` target, with the operand a bare filename.
         assert (
-            is_sensitive_bash_command("cd $HOME/.kiro/crew && awk 1 token_signing.key") is not None
+            is_sensitive_bash_command("cd $HOME/.junction && awk 1 token_signing.key") is not None
         )
         # A benign remainder under the same home stays clean.
         assert is_sensitive_bash_command("cat $HOME/notes.txt") is None
@@ -4277,44 +4273,32 @@ class TestIsSensitiveBashCommand:
     def test_cat_sel_hmac_key_blocked(self) -> None:
         # security-review finding cdf82704: reading the SEL HMAC key via bash is blocked
         # (adding it to _SENSITIVE_HOME_DIRS also arms the bash-read matcher).
-        result = is_sensitive_bash_command("cat ~/.kiro/crew/sel_hmac.key")
+        result = is_sensitive_bash_command("cat ~/.junction/sel_hmac.key")
         assert result is not None and "blocked" in result.lower()
-        legacy = is_sensitive_bash_command("cat ~/.kirocrew/sel_hmac.key")
-        assert legacy is not None and "blocked" in legacy.lower()
         # The key's real home since the trust/ relocation.
-        trust = is_sensitive_bash_command("cat ~/.kiro/crew/trust/sel_hmac.key")
+        trust = is_sensitive_bash_command("cat ~/.junction/trust/sel_hmac.key")
         assert trust is not None and "blocked" in trust.lower()
-        trust_legacy = is_sensitive_bash_command("cat ~/.kirocrew/trust/sel_hmac.key")
-        assert trust_legacy is not None and "blocked" in trust_legacy.lower()
 
     def test_cat_security_events_log_blocked(self) -> None:
-        result = is_sensitive_bash_command("cat ~/.kiro/crew/security_events.jsonl")
+        result = is_sensitive_bash_command("cat ~/.junction/security_events.jsonl")
         assert result is not None and "blocked" in result.lower()
-        legacy = is_sensitive_bash_command("cat ~/.kirocrew/security_events.jsonl")
-        assert legacy is not None and "blocked" in legacy.lower()
 
     def test_cat_rotated_security_event_segment_blocked(self) -> None:
         # Same evidence, one rename later: a rotated segment must be as
         # unreadable through the shell as the live log it came from.
         rotated = is_sensitive_bash_command(
-            "cat ~/.kiro/crew/security_events.d/security_events-000001-20260821T045139Z.jsonl"
+            "cat ~/.junction/security_events.d/security_events-000001-20260821T045139Z.jsonl"
         )
         assert rotated is not None and "blocked" in rotated.lower()
-        legacy = is_sensitive_bash_command(
-            "cat ~/.kirocrew/security_events.d/security_events-000001-20260821T045139Z.jsonl"
-        )
-        assert legacy is not None and "blocked" in legacy.lower()
 
     def test_write_app_admission_policy_blocked(self) -> None:
         # Keystone invariant: a tee/rm to the admission ceiling is blocked
         # (adding app_admission.json to _SENSITIVE_HOME_DIRS also arms the
         # bash write/extract matcher, so the agent cannot delete or rewrite it).
-        tee = is_sensitive_bash_command("echo '{}' | tee ~/.kiro/crew/app_admission.json")
+        tee = is_sensitive_bash_command("echo '{}' | tee ~/.junction/app_admission.json")
         assert tee is not None and "blocked" in tee.lower()
-        rm = is_sensitive_bash_command("rm -f ~/.kiro/crew/app_admission.json")
+        rm = is_sensitive_bash_command("rm -f ~/.junction/app_admission.json")
         assert rm is not None and "blocked" in rm.lower()
-        legacy = is_sensitive_bash_command("rm -f ~/.kirocrew/app_admission.json")
-        assert legacy is not None and "blocked" in legacy.lower()
 
     def test_colon_separated_sensitive_path_blocked(self) -> None:
         # H-p5: a sensitive path after ':' / VAR=val:path / a
@@ -4327,8 +4311,7 @@ class TestIsSensitiveBashCommand:
         # H-p9: file-materialising git verbs still blocked.
         assert is_sensitive_bash_command("git checkout -- ~/.aws/credentials") is not None
         assert is_sensitive_bash_command("git restore ~/.ssh/id_rsa") is not None
-        assert is_sensitive_bash_command("git mv x ~/.kiro/crew/profiles/p.json") is not None
-        assert is_sensitive_bash_command("git mv x ~/.kirocrew/profiles/p.json") is not None
+        assert is_sensitive_bash_command("git mv x ~/.junction/profiles/p.json") is not None
 
     def test_readonly_git_non_sensitive_path_allowed(self) -> None:
         # H-p9: bare `git` was over-blocking read-only inspection.
@@ -4338,22 +4321,17 @@ class TestIsSensitiveBashCommand:
         assert is_sensitive_bash_command("git show HEAD") is None
 
     def test_extract_into_trust_root_subdir_blocked(self) -> None:
-        # H-p6: extraction into ANY crew-home descendant (not just
+        # H-p6: extraction into ANY data-home descendant (not just
         # the root or /profiles) can drop files downstream tooling reads.
-        assert is_sensitive_bash_command("tar -xf evil.tar -C ~/.kiro/crew/foo/") is not None
-        assert is_sensitive_bash_command("unzip -d ~/.kiro/crew/foo/ evil.zip") is not None
-        assert is_sensitive_bash_command("tar -xf e.tar -C ~/.kiro/crew") is not None
-        # Legacy pre-move home is still gated.
-        assert is_sensitive_bash_command("tar -xf evil.tar -C ~/.kirocrew/foo/") is not None
-        assert is_sensitive_bash_command("tar -xf e.tar -C ~/.kirocrew") is not None
+        assert is_sensitive_bash_command("tar -xf evil.tar -C ~/.junction/foo/") is not None
+        assert is_sensitive_bash_command("unzip -d ~/.junction/foo/ evil.zip") is not None
+        assert is_sensitive_bash_command("tar -xf e.tar -C ~/.junction") is not None
 
-    def test_normal_crew_access_not_overblocked(self) -> None:
+    def test_normal_data_home_access_not_overblocked(self) -> None:
         # Regression guard: the broadened rules must not block routine
-        # non-sensitive crew-home access (config.json, sessions.db).
-        assert is_sensitive_bash_command("cat ~/.kiro/crew/config.json") is None
-        assert is_sensitive_bash_command("sqlite3 ~/.kiro/crew/sessions.db .tables") is None
-        assert is_sensitive_bash_command("cat ~/.kirocrew/config.json") is None
-        assert is_sensitive_bash_command("sqlite3 ~/.kirocrew/sessions.db .tables") is None
+        # non-sensitive data-home access (config.json, sessions.db).
+        assert is_sensitive_bash_command("cat ~/.junction/config.json") is None
+        assert is_sensitive_bash_command("sqlite3 ~/.junction/sessions.db .tables") is None
 
     # ── IMDS short-form (inet_aton 2-/3-part) encodings ──
     # canonicalize_ip only handled 1-part and 4-part encodings, so the 2-part
@@ -4393,7 +4371,7 @@ class TestIsSensitiveBashCommand:
 
     def test_variable_indirection_denied(self) -> None:
         """Shell-variable indirection must not bypass the sensitive-path gate."""
-        cmd = "F=security_policy.json; cat ~/.kiro/crew/$F"
+        cmd = "F=security_policy.json; cat ~/.junction/$F"
         result = security.is_sensitive_bash_command(cmd)
         assert result is not None
         assert "unresolved shell variable" in result.lower() or "sensitive" in result.lower()
@@ -4401,7 +4379,7 @@ class TestIsSensitiveBashCommand:
     def test_variable_indirection_variants(self) -> None:
         """Multiple forms of unresolved variables in path position are blocked."""
         cases = [
-            "cat ${HOME}/.kiro/crew/${F}",
+            "cat ${HOME}/.junction/${F}",
             "cat ~/.aws/$PROFILE/credentials",
             "cat ~/.ssh/$KEYNAME",
         ]
@@ -4469,13 +4447,13 @@ class TestChdirVerbSpellings:
         """A relative read after the move resolves against the directory entered."""
         assert security.is_sensitive_bash_command(f"{verb} ~; cat .aws/credentials")
         assert security.is_sensitive_bash_command(f"{verb} ~ && cat .ssh/id_rsa")
-        assert security.is_sensitive_bash_command(f"{verb} $HOME; cat .kiro/crew/token_signing.key")
+        assert security.is_sensitive_bash_command(f"{verb} $HOME; cat .junction/token_signing.key")
 
     @pytest.mark.parametrize("verb", CHDIR_VERBS)
     def test_every_chdir_verb_into_a_fenced_dir_taints_the_read(self, verb: str) -> None:
         """Entering the fenced directory itself, then reading a bare filename."""
         assert security.is_sensitive_bash_command(f"{verb} ~/.aws; cat credentials")
-        assert security.is_sensitive_bash_command(f"{verb} ~/.kiro/crew; cat token_signing.key")
+        assert security.is_sensitive_bash_command(f"{verb} ~/.junction; cat token_signing.key")
 
     @pytest.mark.parametrize("verb", CHDIR_VERBS)
     def test_chdir_verbs_do_not_over_block_benign_targets(self, verb: str) -> None:
@@ -4534,7 +4512,7 @@ class TestChdirVerbSpellings:
         cmd.exe's only `cd` switch sits before the target and is forward-slash
         prefixed, so it does not look like a flag. It is NOT classified as one
         either: a single-letter absolute path is a real POSIX directory that can
-        be the crew home, and discarding it turned `JUNCTION_HOME=/d` plus
+        be the data home, and discarding it turned `JUNCTION_HOME=/d` plus
         `cd /d; cat token_signing.key` from denied into allowed. Keeping every
         non-switch argument as a candidate reaches the real directory without
         having to decide which reading of `/d` was meant.
@@ -4569,7 +4547,7 @@ class TestChdirVerbSpellings:
         )
         assert security.is_sensitive_bash_command(amp + " cd ~; cat .aws/credentials")
         assert security.is_sensitive_bash_command(
-            amp + " chdir %USERPROFILE%; type .kiro/crew/token_signing.key"
+            amp + " chdir %USERPROFILE%; type .junction/token_signing.key"
         )
 
     def test_every_non_switch_argument_is_a_candidate_target(self) -> None:
@@ -4695,7 +4673,7 @@ class TestNativeHomeEntryThenFencedRead:
         """POSIX tokenizing reads `\\` as an escape, so the fenced dir vanished."""
         assert security.is_sensitive_bash_command("cd ~; cat .aws" + self.BS + "credentials")
         assert security.is_sensitive_bash_command(
-            "cd ~; cat .kiro" + self.BS + "crew" + self.BS + "token_signing.key"
+            "cd ~; cat .junction" + self.BS + "token_signing.key"
         )
 
     def test_single_ampersand_as_sequencer(self) -> None:
@@ -4718,15 +4696,7 @@ class TestNativeHomeEntryThenFencedRead:
             "cd ~ " + self.AMP + " type .aws" + self.CARET + self.BS + "credentials"
         )
         assert security.is_sensitive_bash_command(
-            "cd ~ "
-            + self.AMP
-            + " type .kiro"
-            + self.CARET
-            + self.BS
-            + "crew"
-            + self.CARET
-            + self.BS
-            + "token_signing.key"
+            "cd ~ " + self.AMP + " type .junction" + self.CARET + self.BS + "token_signing.key"
         )
 
     def test_glued_drive_switch(self) -> None:
@@ -4746,7 +4716,7 @@ class TestNativeHomeEntryThenFencedRead:
     def test_bare_chdir_lands_in_the_home_directory(self) -> None:
         assert security.is_sensitive_bash_command("cd; cat .aws/credentials")
         assert security.is_sensitive_bash_command(
-            "cd " + self.AMP + self.AMP + " cat .kiro/crew/token_signing.key"
+            "cd " + self.AMP + self.AMP + " cat .junction/token_signing.key"
         )
 
     def test_caret_does_not_eat_a_regex_anchor(self) -> None:
@@ -4827,7 +4797,7 @@ class TestNativeHomeEntryThenFencedRead:
     def test_longer_filename_ending_in_a_fenced_name(self) -> None:
         """The leading lookaround also rejects a name that merely ENDS this way."""
         assert security.is_sensitive_bash_command("cd ~; cat x.aws/credentials") is None
-        assert security.is_sensitive_bash_command("cd ~; cat my.kiro/crew/x") is None
+        assert security.is_sensitive_bash_command("cd ~; cat my.junction/token_signing.key") is None
 
     def test_home_target_bound_to_a_parameter(self) -> None:
         """`Set-Location -Path:~` binds the target to the flag with `:` or `=`.
@@ -5423,9 +5393,9 @@ class TestWindowsPathShapes:
         # its drive is an anchor alongside the user home's.
         from unittest.mock import patch
 
-        monkeypatch.setenv("JUNCTION_HOME", "D:\\crew")
+        monkeypatch.setenv("JUNCTION_HOME", "D:\\junction")
         with patch.object(security.Path, "home", return_value=Path("C:\\Users\\u")):
-            assert security._is_path_like("D:\\crew\\security_policy.json")
+            assert security._is_path_like("D:\\junction\\security_policy.json")
             # Drives matching NEITHER root stay unrecognized (no realpath probe).
             assert not security._is_path_like("Z:\\stale\\mapped\\drive")
 
@@ -5503,7 +5473,7 @@ class TestWindowsPathShapes:
         # dirs already are -- host-independently, since the raw pass never
         # depends on the runner's OS.
         win_leaf = leaf.replace("/", "\\")
-        for prefix in security.crew_home_prefixes():
+        for prefix in security.data_home_prefixes():
             win_prefix = prefix.replace("/", "\\")
             for anchor in ("C:\\Users\\u", "%USERPROFILE%", "$env:USERPROFILE"):
                 target = f"{anchor}\\{win_prefix}\\{win_leaf}"
@@ -5514,11 +5484,9 @@ class TestWindowsPathShapes:
                     f'del "{target}"',
                 ):
                     assert is_sensitive_bash_command(cmd) is not None, cmd
-        # Adding a leaf must not fence the whole crew home: unrelated content in
+        # Adding a leaf must not fence the whole data home: unrelated content in
         # the same native spelling stays writable.
-        assert (
-            is_sensitive_bash_command('echo x > "C:\\Users\\u\\.kiro\\crew\\sessions.db"') is None
-        )
+        assert is_sensitive_bash_command('echo x > "C:\\Users\\u\\.junction\\sessions.db"') is None
 
     def test_appdata_alias_of_fenced_store_is_blocked(self) -> None:
         # %APPDATA% points INTO AppData\Roaming, so this spelling names the
@@ -5624,8 +5592,8 @@ class TestWindowsPathShapes:
 class TestBareTokenProtectedLeaves:
     """The distinctive leaves are refused by NAME, with no anchor required.
 
-    Every other leaf branch needs a home anchor plus a crew prefix, so one ``cd`` walks
-    around all of them: after ``cd ~/.kiro/crew`` a relative ``echo forged >
+    Every other leaf branch needs a home anchor plus a data-home prefix, so one ``cd`` walks
+    around all of them: after ``cd ~/.junction`` a relative ``echo forged >
     connections-tool-aliases.json`` names no home, no prefix and no separator. For the
     alias ownership record that is not a residual limit to accept the way it is for
     credential paths -- the file IS the deletion grant (``alias_record.load_claimed``
@@ -5637,11 +5605,11 @@ class TestBareTokenProtectedLeaves:
     def test_relative_redirect_after_cd_is_blocked(self) -> None:
         for leaf in security._BARE_TOKEN_PROTECTED_LEAVES:
             for cmd in (
-                f"cd ~/.kiro/crew && echo forged > {leaf}",
-                f"cd $HOME/.kiro/crew; echo forged >> {leaf}",
+                f"cd ~/.junction && echo forged > {leaf}",
+                f"cd $HOME/.junction; echo forged >> {leaf}",
                 # no space between the operator and the target
-                f"cd ~/.kirocrew && echo forged >{leaf}",
-                f"cd ~/.kiro/crew && echo forged > '{leaf}'",
+                f"cd ~/.junction && echo forged >{leaf}",
+                f"cd ~/.junction && echo forged > '{leaf}'",
             ):
                 assert is_sensitive_bash_command(cmd) is not None, cmd
 
@@ -5668,8 +5636,8 @@ class TestBareTokenProtectedLeaves:
             for cmd in (
                 f"echo forged > ./{leaf}",
                 f"tee ./{leaf}",
-                f"cp /tmp/f.json crew/{leaf}",
-                f"echo forged > ../crew/{leaf}",
+                f"cp /tmp/f.json sub/{leaf}",
+                f"echo forged > ../sub/{leaf}",
             ):
                 assert is_sensitive_bash_command(cmd) is not None, cmd
 
@@ -5680,17 +5648,16 @@ class TestBareTokenProtectedLeaves:
             for cmd in (
                 f"echo forged > .\\{leaf}",
                 f'copy /Y evil.json ".\\{leaf}"',
-                f"echo forged > crew\\{leaf}",
+                f"echo forged > sub\\{leaf}",
                 f"python -c \"open(r'.\\{leaf}','w')\"",
             ):
                 assert is_sensitive_bash_command(cmd) is not None, cmd
 
-    def test_unrelated_names_and_crew_content_stay_allowed(self) -> None:
+    def test_unrelated_names_and_data_home_content_stay_allowed(self) -> None:
         # Bare-token matching is deliberately narrow: it fences ONE distinctive
-        # filename, not the crew home and not every name that contains it.
-        assert is_sensitive_bash_command("touch ~/.kiro/crew/sessions.db") is None
-        assert is_sensitive_bash_command("touch ~/.kirocrew/sessions.db") is None
-        assert is_sensitive_bash_command("cat ~/.kiro/crew/config.json") is None
+        # filename, not the data home and not every name that contains it.
+        assert is_sensitive_bash_command("touch ~/.junction/sessions.db") is None
+        assert is_sensitive_bash_command("cat ~/.junction/config.json") is None
         for leaf in security._BARE_TOKEN_PROTECTED_LEAVES:
             # a DIFFERENT file whose name merely ends with the protected one
             assert is_sensitive_bash_command(f"touch my-{leaf}") is None
@@ -5708,7 +5675,7 @@ class TestBareTokenProtectedLeaves:
             assert generic not in security._BARE_TOKEN_PROTECTED_LEAVES
             assert is_sensitive_bash_command(f"touch {generic}") is None
         for leaf in security._WRITE_PROTECTED_BASH_LEAVES:
-            for prefix in security.crew_home_prefixes():
+            for prefix in security.data_home_prefixes():
                 anchored = f"echo forged > ~/{prefix}/{leaf}"
                 assert is_sensitive_bash_command(anchored) is not None, anchored
 
@@ -5723,7 +5690,7 @@ class TestKiroAgentsDirWriteProtection:
     ``_SENSITIVE_HOME_DIRS``), so spec discovery / the dashboard MCP rows work;
     the bash gate matches verb-independently (naming the dir is the signal, so
     ``curl``/``wget``/``python -c open`` and novel write verbs cannot slip past),
-    which incidentally blocks bash reads too — harmless, exactly like the crew
+    which incidentally blocks bash reads too — harmless, exactly like the data-home
     write-protected leaves it mirrors.
     """
 
@@ -5838,7 +5805,7 @@ class TestKiroAgentsDirWriteProtection:
     def test_bash_naming_agents_dir_is_blocked_but_tool_reads_stay_allowed(self) -> None:
         # The bash gate matches verb-independently, so a bash READ of the dir is
         # blocked too (harmless: no secret, Python readers only) — the same
-        # tradeoff the crew write-protected leaves accept. The read-ALLOWANCE that
+        # tradeoff the data-home write-protected leaves accept. The read-ALLOWANCE that
         # matters (the file viewer, knowledge indexing, is_sensitive_path) lives on
         # the tool path and is unaffected, asserted here so the asymmetry is pinned.
         assert is_sensitive_bash_command("cat ~/.kiro/agents/foo.json") is not None
@@ -5850,7 +5817,7 @@ class TestKiroAgentsDirWriteProtection:
     def test_kiro_home_override_is_covered_on_the_tool_gate(self, tmp_path, monkeypatch) -> None:
         # kiro_agents_dir() honours KIRO_HOME; the override moves the specs the
         # gateway execs, so the write gate must follow it (re-anchored the same way
-        # JUNCTION_HOME re-anchors the crew secrets). The default ~/.kiro/agents
+        # JUNCTION_HOME re-anchors the data-home secrets). The default ~/.kiro/agents
         # stays covered regardless.
         from junction.security import is_sensitive_write_path
 
@@ -5880,7 +5847,7 @@ class TestDeniedCommandsKeystone:
     """The denied-command opt-out file is a KEYSTONE trust root.
 
     The opt-out state (``{disable_all, disabled_ids, user_added}``) lives in
-    ``~/.kirocrew/denied_commands.json`` on ``_SENSITIVE_HOME_DIRS`` — a full
+    ``~/.junction/denied_commands.json`` on ``_SENSITIVE_HOME_DIRS`` — a full
     read+write block — NOT in config.json. So the agent can neither read nor
     write its own deny ceiling via any shell form, inheriting the mature
     ``is_sensitive_path`` gate (the same protection level as
@@ -5891,17 +5858,17 @@ class TestDeniedCommandsKeystone:
     def test_keystone_path_is_sensitive(self) -> None:
         from junction.security import is_sensitive_path
 
-        assert is_sensitive_path("~/.kirocrew/denied_commands.json") is True
+        assert is_sensitive_path("~/.junction/denied_commands.json") is True
 
     def test_bash_write_and_read_both_blocked(self) -> None:
         # Full keystone: BOTH reads and writes of the opt-out file are blocked
         # for the agent (it must not read OR write its own ceiling).
         for cmd in (
-            "echo x > ~/.kirocrew/denied_commands.json",
-            "tee ~/.kirocrew/denied_commands.json",
-            "cp evil ~/.kirocrew/denied_commands.json",
-            "cat ~/.kirocrew/denied_commands.json",
-            "python -c open ~/.kirocrew/denied_commands.json",
+            "echo x > ~/.junction/denied_commands.json",
+            "tee ~/.junction/denied_commands.json",
+            "cp evil ~/.junction/denied_commands.json",
+            "cat ~/.junction/denied_commands.json",
+            "python -c open ~/.junction/denied_commands.json",
         ):
             assert is_sensitive_bash_command(cmd) is not None, cmd
 
@@ -6913,7 +6880,7 @@ class TestCronStoreProtection:
     deliberately cannot write ``session_key`` and ``self-protection-cron-adopt``
     blocks the CLI spelling of that write — but while the store sat outside the
     protected leaves, an auto-approved shell could bypass both with an ordinary
-    file edit. It is on ``_CREW_SECRET_LEAVES`` with its ``cron-history``
+    file edit. It is on ``_DATA_HOME_SECRET_LEAVES`` with its ``cron-history``
     sidecar directory (per-job records plus the index), read+write-blocked on
     both the tool path and the shell forms. The gateway's own writers open the
     store directly, not through this gate, so the cron service keeps working;
@@ -6925,12 +6892,12 @@ class TestCronStoreProtection:
         # Drift guard: a rename of the store or sidecar dir in cron.py /
         # cron_history.py without a matching entry here would silently
         # un-fence them.
-        from junction.security import _CREW_SECRET_LEAVES
+        from junction.security import _DATA_HOME_SECRET_LEAVES
 
-        assert "crons.json" in _CREW_SECRET_LEAVES
-        assert "cron-history" in _CREW_SECRET_LEAVES
+        assert "crons.json" in _DATA_HOME_SECRET_LEAVES
+        assert "cron-history" in _DATA_HOME_SECRET_LEAVES
 
-    @pytest.mark.parametrize("prefix", [".kiro/crew", ".kirocrew"])
+    @pytest.mark.parametrize("prefix", [".junction"])
     def test_store_and_history_sensitive_under_every_home_prefix(self, prefix: str) -> None:
         from junction.security import is_sensitive_write_path
 
@@ -6944,13 +6911,13 @@ class TestCronStoreProtection:
 
     def test_bash_write_and_read_both_blocked(self) -> None:
         for cmd in (
-            "echo x > ~/.kiro/crew/crons.json",
-            "tee ~/.kiro/crew/crons.json",
-            "cp evil ~/.kiro/crew/crons.json",
-            'sed -i \'s/"approval_mode": ""/"approval_mode": "auto"/\' ~/.kiro/crew/crons.json',
-            "cat ~/.kiro/crew/crons.json",
-            "echo x > ~/.kiro/crew/cron-history/_index.jsonl",
-            "cat ~/.kirocrew/crons.json",
+            "echo x > ~/.junction/crons.json",
+            "tee ~/.junction/crons.json",
+            "cp evil ~/.junction/crons.json",
+            'sed -i \'s/"approval_mode": ""/"approval_mode": "auto"/\' ~/.junction/crons.json',
+            "cat ~/.junction/crons.json",
+            "echo x > ~/.junction/cron-history/_index.jsonl",
+            "cat ~/.junction/crons.json",
         ):
             assert is_sensitive_bash_command(cmd) is not None, cmd
 
@@ -6960,4 +6927,4 @@ class TestCronStoreProtection:
         # Shared-prefix names a shell might legitimately touch elsewhere.
         assert is_sensitive_path("~/projects/crontab.txt") is False
         assert is_sensitive_write_path("~/projects/crontab.txt") is False
-        assert is_sensitive_path("~/.kiro/crew/workspace/crons.json.bak") is False
+        assert is_sensitive_path("~/.junction/workspace/crons.json.bak") is False

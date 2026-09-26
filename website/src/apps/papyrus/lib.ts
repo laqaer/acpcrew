@@ -5,10 +5,10 @@ import { compareText } from '../../i18n/format'
 import type { Diagnostic, GitStatus } from './api'
 
 /** localStorage key holding the project the user last had open. */
-export const LAST_PROJECT_KEY = 'kc:papyrus:project'
+export const LAST_PROJECT_KEY = 'jn:papyrus:project'
 
 /** localStorage key prefix mapping a project to its co-author chat slot. */
-export const SLOT_KEY_PREFIX = 'kc:papyrus:slot:'
+export const SLOT_KEY_PREFIX = 'jn:papyrus:slot:'
 
 /** Suffixes hidden from the file tree — LaTeX build artifacts, never editable. */
 const ARTIFACT_SUFFIXES = [

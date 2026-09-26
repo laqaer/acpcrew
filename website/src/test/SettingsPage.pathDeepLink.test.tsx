@@ -34,7 +34,7 @@ vi.mock('../pages/settings/BrowserPanel', () => ({ BrowserPanel: () => <div data
 // during render.
 vi.mock('../pages/settings/ComputerUsePanel', () => ({ ComputerUsePanel: () => <div data-testid="computer-use-panel" /> }))
 vi.mock('../pages/settings/WebhooksPanel', () => ({ WebhooksPanel: () => <div data-testid="webhooks-panel" /> }))
-vi.mock('../pages/settings/RemoteCrewPanel', () => ({ RemoteCrewPanel: () => <div data-testid="remote-crew-panel" /> }))
+vi.mock('../pages/settings/RemoteInstancesPanel', () => ({ RemoteInstancesPanel: () => <div data-testid="remote-instances-panel" /> }))
 vi.mock('../pages/settings/SecurityPanel', () => ({ SecurityPanel: () => <div data-testid="security-panel" /> }))
 vi.mock('../pages/settings/PrivacyPanel', () => ({ PrivacyPanel: () => <div data-testid="privacy-panel" /> }))
 vi.mock('../pages/settings/NotificationsPanel', () => ({ NotificationsPanel: () => <div data-testid="notifications-panel" /> }))

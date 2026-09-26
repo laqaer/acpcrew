@@ -263,7 +263,7 @@ output.
 
 ## Storage Schema
 
-All data under `app_data_dir("issue-radar")` (typically `~/.kiro/crew/apps/issue-radar/data/`):
+All data under `app_data_dir("issue-radar")` (typically `~/.junction/apps/issue-radar/data/`):
 
 ```
 config.json                         # Connected repos, per-repo settings

@@ -848,7 +848,7 @@ def provision_in_background(root: Path | None = None) -> bool:
         _state.bytes_total = 0
         _state.started = time.time()
         thread = threading.Thread(
-            target=_provision_job, args=(root,), name="kc-papyrus-tectonic", daemon=True
+            target=_provision_job, args=(root,), name="jn-papyrus-tectonic", daemon=True
         )
         _job_thread = thread
     _audit("started")

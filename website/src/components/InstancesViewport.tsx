@@ -36,7 +36,7 @@ import { AlertTriangle, Loader2, RefreshCw } from 'lucide-react'
 import { api } from '../api/client'
 import { useAppDispatch, useAppSelector } from '../store'
 import { removeWarm, setActiveId, setPaneReady, setUnread, setWarm } from '../store/instancesSlice'
-import InstanceTabBar, { visibleInstanceTabs, useCrewPins, toggleCrewPin, useCrewSwitcherStableOrder, setStableOrder } from './InstanceTabBar'
+import InstanceTabBar, { visibleInstanceTabs, useInstancePins, toggleInstancePin, useInstanceSwitcherStableOrder, setStableOrder } from './InstanceTabBar'
 import { resolveTunnelOrigin } from '../lib/tunnelOrigin'
 import { LINUX_CAPTION_CONTROLS_WIDTH, TRAFFIC_LIGHT_INSET_PX, WIN_CAPTION_OVERLAY_WIDTH } from '../lib/electron'
 import { isEmbeddedPane } from '../lib/embedded'
@@ -79,20 +79,20 @@ export default function InstancesViewport({ macInset = false }: { macInset?: boo
   // Panes whose embedded SPA has announced readiness for their CURRENT src.
   // Tests preload partial slices, so tolerate a missing map.
   const ready = useAppSelector(s => s.instances.ready) ?? {}
-  // The crew-switcher pin preference, relayed into every embedded pane so a
+  // The instance-switcher pin preference, relayed into every embedded pane so a
   // remote pane's bar matches the local bar. Reactive: a change re-broadcasts
   // the model (see buildModelFor deps + the broadcast effect) so all panes flip
-  // together, and an embedded pin toggle routes back here via `mc-set-crew-pin`.
-  const [pinnedCrewSet] = useCrewPins()
+  // together, and an embedded pin toggle routes back here via `mc-set-instance-pin`.
+  const [pinnedInstanceSet] = useInstancePins()
   // Stable array identity per pin change, so the model memo below does not
   // re-broadcast on every render.
-  const pinnedCrews = useMemo(() => [...pinnedCrewSet], [pinnedCrewSet])
-  // The crew-switcher "keep tab order fixed" preference, relayed into every
+  const pinnedInstances = useMemo(() => [...pinnedInstanceSet], [pinnedInstanceSet])
+  // The instance-switcher "keep tab order fixed" preference, relayed into every
   // embedded pane so a remote pane's bar orders its chips the same way the local
   // bar does. Reactive like the pins: a change re-broadcasts the model, and an
   // embedded toggle routes back here via `mc-set-stable-order`.
-  const [stableOrder] = useCrewSwitcherStableOrder()
-  // Focus mode is a property of the WINDOW, not of one pane: a remote crew shown
+  const [stableOrder] = useInstanceSwitcherStableOrder()
+  // Focus mode is a property of the WINDOW, not of one pane: a remote instance shown
   // inside a focused window must hide its chrome too. Relayed down the host model
   // below, and it also gates the host drag strips (see their render site).
   const { enabled: focusMode } = useFocusMode()
@@ -237,13 +237,13 @@ export default function InstancesViewport({ macInset = false }: { macInset?: boo
         ) {
           dispatch(setActiveId(target))
         }
-      } else if (data.type === 'mc-set-crew-pin') {
+      } else if (data.type === 'mc-set-instance-pin') {
         // A pin was toggled inside an embedded pane. It has no access to the
         // parent's preference store from its own iframe realm, so it relays the
-        // crew id here; applying it broadcasts to every bar (local header + all
+        // instance id here; applying it broadcasts to every bar (local header + all
         // panes) via the module store, keeping the set one shared value.
         const id = (data as { id?: unknown }).id
-        if (typeof id === 'string' && id) toggleCrewPin(id)
+        if (typeof id === 'string' && id) toggleInstancePin(id)
       } else if (data.type === 'mc-set-stable-order') {
         // The "keep tab order fixed" toggle was flipped inside an embedded pane.
         // Like the pin, it has no access to the parent's preference store from
@@ -355,7 +355,7 @@ export default function InstancesViewport({ macInset = false }: { macInset?: boo
   // while the incoming pane, whose own state did not change, re-posts nothing.
   // Symptom fixed: traffic lights stranded visible over the new pane until its
   // next hover cycle. A pane with NO recorded report defaults to VISIBLE: remote
-  // crews are independently versioned installs, so a pane that has never posted
+  // instances are independently versioned installs, so a pane that has never posted
   // mc-focus-chrome is most likely a pre-focus-mode version that renders its full
   // header unconditionally — defaulting it to hidden would strip the traffic
   // lights and drag strips out from under a header the user can see. A
@@ -467,11 +467,11 @@ export default function InstancesViewport({ macInset = false }: { macInset?: boo
         electron: isElectron,
         // Array, not the Set itself: structured clone rejects a Set across this
         // boundary in some engines and the receiver validates element-wise anyway.
-        pinnedCrews,
+        pinnedInstances,
         stableOrder,
       }
     },
-    [instancesQuery.data, warm, unread, activeId, macInset, focusMode, pinnedCrews, stableOrder],
+    [instancesQuery.data, warm, unread, activeId, macInset, focusMode, pinnedInstances, stableOrder],
   )
 
   // Post the model into one embedded pane, addressed to its exact loopback
@@ -498,7 +498,7 @@ export default function InstancesViewport({ macInset = false }: { macInset?: boo
   // to a loopback frame.
   useEffect(() => {
     for (const id of Object.keys(warm)) postModelTo(id)
-  }, [warm, activeId, unread, macInset, instancesQuery.data, postModelTo, pinnedCrews, stableOrder])
+  }, [warm, activeId, unread, macInset, instancesQuery.data, postModelTo, pinnedInstances, stableOrder])
 
   // Keep warm iframes mounted across Local<->remote switches (hide-not-unmount).
   // Also render when the active tab is a remote instance with no warm iframe

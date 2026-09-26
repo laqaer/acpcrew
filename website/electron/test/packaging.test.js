@@ -364,7 +364,9 @@ describe("first-download installer design contract", () => {
     assert.equal(pkg.devDependencies["electron-builder"], "26.15.3");
   });
 
-  it("reuses the Junction track mark across splash, site, and installer art", () => {
+  it("reuses the Junction mark across splash, site, and installer art", () => {
+    // assets/brand/build.py generates all of these from one glyph geometry, so
+    // the J's stem path appearing verbatim is what proves they share the mark.
     const normalize = text => text.replaceAll(",", " ").replace(/\s+/g, " ");
     const loading = normalize(fs.readFileSync(path.join(ROOT, "loading.html"), "utf8"));
     const siteLogo = normalize(
@@ -380,18 +382,17 @@ describe("first-download installer design contract", () => {
       fs.readFileSync(path.join(INSTALLER_ASSETS, "windows-installer-header.svg"), "utf8")
     );
 
-    const trackStem = "M10 6v7.5c0 2.8 2.2 5 6 5";
-    const ghostBody = "M398.554 818.914C316.315 1001.03";
-    const logoGhost = "M84.76 266.62c-19.2 42.53";
-    assert.ok(loading.includes(trackStem));
-    assert.ok(dmgSource.includes(trackStem));
-    assert.ok(sidebarSource.includes(trackStem));
-    assert.ok(headerSource.includes(trackStem));
-    assert.ok(siteLogo.includes(trackStem));
-    assert.ok(!loading.includes(ghostBody));
-    assert.ok(!dmgSource.includes(ghostBody));
-    assert.ok(!sidebarSource.includes(logoGhost));
-    assert.ok(!headerSource.includes(logoGhost));
+    const glyphStem = "M34 13v25a11 11 0 0 1-22 0";
+    assert.ok(loading.includes(glyphStem));
+    assert.ok(sidebarSource.includes(glyphStem));
+    assert.ok(headerSource.includes(glyphStem));
+    assert.ok(siteLogo.includes(glyphStem));
+
+    // Retired marks: the mascot body and the earlier Y-shaped track stem.
+    const retired = ["M398.554 818.914C316.315 1001.03", "M84.76 266.62c-19.2 42.53", "M10 6v7.5c0 2.8 2.2 5 6 5"];
+    for (const source of [loading, siteLogo, dmgSource, sidebarSource, headerSource]) {
+      for (const path of retired) assert.ok(!source.includes(path));
+    }
   });
 
   it("applies the branded layout again after signing and stapling", () => {
@@ -460,14 +461,14 @@ function parseEntitlements(xml) {
 }
 
 // There are TWO signing lanes reading TWO different files (electron-builder
-// locally, the enterprise signing service for release), so an entitlement
+// locally, packaging/signing/sign.sh for release), so an entitlement
 // present in one and absent from the other still ships a broken bundle on that
 // lane. Every entitlement assertion below runs against both.
 const ENTITLEMENT_LANES = {
   "electron-builder (build/entitlements.mac.plist)": path.join(
     ROOT, "build", "entitlements.mac.plist"
   ),
-  "signing service (packaging/signing/Entitlements.entitlements)": path.resolve(
+  "release codesign (packaging/signing/Entitlements.entitlements)": path.resolve(
     ROOT, "..", "..", "packaging", "signing", "Entitlements.entitlements"
   ),
 };
@@ -477,8 +478,8 @@ const ENTITLEMENT_LANES = {
 // audio-input missing, the runtime refused the microphone BEFORE macOS (TCC) was
 // consulted, so voice input reported "permission denied" and the user was never
 // prompted and had no System Settings toggle to fix it. There are TWO signing
-// lanes reading TWO different files (electron-builder locally, the enterprise
-// signing service for release), so an entitlement present in one and absent from
+// lanes reading TWO different files (electron-builder locally,
+// packaging/signing/sign.sh for release), so an entitlement present in one and absent from
 // the other still ships a broken bundle on that lane. Pin both.
 describe("macOS microphone entitlement (both signing lanes)", () => {
   const MIC = "com.apple.security.device.audio-input";
@@ -667,7 +668,7 @@ describe("uninstall data preservation contract", () => {
     // handler to audit any more -- the guarantee moves entirely into config.
     // deleteAppDataOnUninstall MUST stay false/absent: it would delete the
     // Electron userData dir on uninstall, and the Junction home under
-    // ~/.kiro/crew is user data that survives an uninstall by design.
+    // ~/.junction is user data that survives an uninstall by design.
     assert.notEqual(
       electronPkg.build.nsis?.deleteAppDataOnUninstall,
       true,
@@ -736,7 +737,7 @@ describe("uninstall data preservation contract", () => {
   it("reclaims the updater cache the generated uninstaller cannot reach", () => {
     // The uninstaller template only ever clears $APPDATA (Roaming), and only
     // under deleteAppDataOnUninstall -- which stays false here to protect
-    // ~/.kiro/crew. The electron-updater cache lives under $LOCALAPPDATA and so
+    // ~/.junction. The electron-updater cache lives under $LOCALAPPDATA and so
     // matches no built-in path: without this macro a full installer payload
     // (~200MB) is orphaned on every uninstall.
     const nsh = fs.readFileSync(path.join(ROOT, "build", "installer.nsh"), "utf8");
@@ -794,7 +795,8 @@ describe("uninstall data preservation contract", () => {
       .filter(l => /^(RMDir|Delete)\b/.test(l));
     assert.ok(removals.length > 0, "expected at least one removal statement to audit");
     for (const line of removals) {
-      assert.doesNotMatch(line, /\.kiro/, `data home in a removal path: ${line}`);
+      assert.doesNotMatch(line, /\.junction(?![\w-])/, `data home in a removal path: ${line}`);
+      assert.doesNotMatch(line, /\.kiro/, `kiro-cli home in a removal path: ${line}`);
       assert.doesNotMatch(line, /\$PROFILE|\$USERPROFILE/, `profile-rooted removal: ${line}`);
       // Kiro-Cli is a separate product with its own installer; removing another
       // product's files would be a bug, not thoroughness.
@@ -884,7 +886,7 @@ describe("uninstall data preservation contract", () => {
     // even though its .exe is untouched.
     //
     // main.js already splits the RUNTIME id (app.setAppUserModelId picks
-    // com.amazon.kiro.crew.nightly for a nightly stamp). Leaving the PACKAGED
+    // dev.junction.desktop.nightly for a nightly stamp). Leaving the PACKAGED
     // id shared makes the two disagree: the app claims one identity at runtime
     // while its own shortcuts were stamped with the other.
     const buildScript = fs.readFileSync(
@@ -892,7 +894,7 @@ describe("uninstall data preservation contract", () => {
       "utf8"
     );
     assert.ok(
-      buildScript.includes("-c.win.appId=com.amazon.kiro.crew.nightly"),
+      buildScript.includes("-c.win.appId=dev.junction.desktop.nightly"),
       "build-desktop.sh must give the nightly channel its own WINDOWS appId, or " +
         "uninstalling one channel deregisters the other channel's shortcut " +
         "AppUserModelID and Windows reports that app as relocated"
@@ -901,17 +903,17 @@ describe("uninstall data preservation contract", () => {
     // value, so a top-level override would change the macOS bundle id too and
     // break Squirrel.Mac's designated-requirement check on every installed mac.
     assert.ok(
-      !buildScript.includes("-c.appId=com.amazon.kiro.crew.nightly"),
+      !buildScript.includes("-c.appId=dev.junction.desktop.nightly"),
       "the nightly appId override must be win-scoped; a top-level appId would " +
         "also move the macOS bundle id and strand installed mac updates"
     );
     // The runtime id main.js claims for a nightly build must equal the one the
     // installer stamps, or the shortcuts and the process disagree again.
     assert.ok(
-      main.includes("com.amazon.kiro.crew.nightly"),
+      main.includes("dev.junction.desktop.nightly"),
       "main.js must claim the same nightly AppUserModelID the installer stamps"
     );
     // And the shared production id must remain the mac/appId default.
-    assert.equal(electronPkg.build.appId, "com.amazon.kiro.crew");
+    assert.equal(electronPkg.build.appId, "dev.junction.desktop");
   });
 });

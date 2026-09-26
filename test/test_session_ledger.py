@@ -233,8 +233,8 @@ def test_ledger_root_is_behind_the_agent_file_gate():
     from junction.security import is_sensitive_path
 
     home = Path.home()
-    assert is_sensitive_path(str(home / ".kiro/crew/ledger/chat-1-abc12345/state.json"))
-    assert is_sensitive_path(str(home / ".kirocrew/ledger/x-deadbeef/state.json"))
+    assert is_sensitive_path(str(home / ".junction/ledger/chat-1-abc12345/state.json"))
+    assert is_sensitive_path(str(home / ".junction/ledger/x-deadbeef/state.json"))
 
 
 def test_coerce_preserves_unknown_fields():
@@ -520,7 +520,7 @@ async def test_remove_slot_for_history_key_purges_ledger():
 
     state = MagicMock()
     state._slots = {}
-    state.crew = None
+    state.multitask = None
     state.remove_chat_pins_for_slots = AsyncMock()
     await _remove_slot_for_history_key(state, history_key)
     assert not sl.has_ledger(ledger_key)
@@ -540,7 +540,7 @@ async def test_delete_with_folded_spelling_reaps_exact_channel_key_ledger():
 
     state = MagicMock()
     state._slots = {}
-    state.crew = None
+    state.multitask = None
     state.remove_chat_pins_for_slots = AsyncMock()
     # The funnel is handed only the folded spelling (what the transcript
     # filename layer uses); the raw colon-structured key is not among the

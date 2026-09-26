@@ -3,7 +3,7 @@
 Persists preview payloads from MCP tool callers so they can be confirmed
 via the dashboard UI (Artifact Deploy page) by a cookie-authenticated human.
 
-Storage: ``~/.kiro/crew/deploy/pending-deploys.json`` — same atomic-write
+Storage: ``~/.junction/deploy/pending-deploys.json`` — same atomic-write
 pattern as profiles.py registry.
 """
 

@@ -97,9 +97,9 @@ def project_root_marker(directory: str) -> str | None:
     """
     if os.path.dirname(directory) == directory:
         return None
-    # A HOME directory is never a project root either. Junction's OWN data home
-    # is ``~/.kiro/crew``, so ``~/.kiro`` exists for every user -- which would
-    # make the entire home directory a "project" and turn a loose ``~/notes.md``
+    # A HOME directory is never a project root either. kiro-cli, the harness
+    # Junction drives, keeps its own home at ``~/.kiro``, so that marker exists
+    # for every user -- which would make the entire home directory a "project" and turn a loose ``~/notes.md``
     # into a LIVE link whose artifact edits overwrite the original. The same
     # applies to a stray ``~/Makefile`` or ``~/package.json``, so the home
     # directory is rejected wholesale rather than special-casing one marker.

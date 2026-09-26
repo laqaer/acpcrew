@@ -64,8 +64,8 @@ const detail = {
 
 /** Folders the recommender would have been shown. */
 const folders = [
-  { id: 'f-kc', name: 'Kiro Crew', order: 0, parent_id: '' },
-  { id: 'f-i18n', name: 'i18n', order: 1, parent_id: 'f-kc' },
+  { id: 'f-jn', name: 'Junction', order: 0, parent_id: '' },
+  { id: 'f-i18n', name: 'i18n', order: 1, parent_id: 'f-jn' },
   { id: 'f-errands', name: 'Errands', order: 2, parent_id: '' },
 ]
 
@@ -173,7 +173,7 @@ async function main() {
     await shot(name)
   }
 
-  const NESTED = { folderId: 'f-i18n', folderName: 'i18n', breadcrumb: 'Kiro Crew › i18n' }
+  const NESTED = { folderId: 'f-i18n', folderName: 'i18n', breadcrumb: 'Junction › i18n' }
   const ROOT = { folderId: 'f-errands', folderName: 'Errands', breadcrumb: 'Errands' }
 
   // 1. Nested folder, dark — the common case: glyph, question, ancestry line.

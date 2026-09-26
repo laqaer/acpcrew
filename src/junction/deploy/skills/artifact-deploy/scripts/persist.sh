@@ -18,7 +18,7 @@ validate_slug "$SLUG" || exit 1
 
 read_base_outputs || { echo "base stack not found." >&2; exit 1; }
 
-key="s3://$BUCKET/$SLUG/.kirocrew-deploy.json"
+key="s3://$BUCKET/$SLUG/.junction-deploy.json"
 cur="$(aws_cli s3 cp "$key" - 2>/dev/null || true)"
 [[ -n "$cur" ]] || { echo "no manifest for slug '$SLUG' (is it deployed?)" >&2; exit 1; }
 

@@ -1,6 +1,6 @@
 """Subagent persistence — disk I/O for agent folders.
 
-Each subagent gets a folder at ``~/.kiro/crew/subagents/{id}/`` containing:
+Each subagent gets a folder at ``~/.junction/subagents/{id}/`` containing:
 - ``state.json``   — running state (task, PID, turns, last_tool)
 - ``result.txt``   — streamed result text
 - ``tombstone.json`` — written on abnormal exit only
@@ -23,8 +23,8 @@ from junction.providers.cleanup import _is_safe_path
 logger = logging.getLogger(__name__)
 
 # Resolved per call, never captured at import: an import-time binding freezes
-# the data home and defeats pod isolation, the lazy legacy-home migration and
-# test isolation. The name below is an opt-in override (None = live home) so
+# the data home and defeats pod isolation and test
+# isolation. The name below is an opt-in override (None = live home) so
 # existing monkeypatch call sites keep working. See config.md "Data Home";
 # dashboard/handlers/usage.py is the reference implementation.
 _SUBAGENTS_DIR: Path | None = None
@@ -94,7 +94,7 @@ def create_agent_folder(
     max_turns: int = 0,
     context_groups: str = "",
 ) -> Path:
-    """Create ``~/.kiro/crew/subagents/{id}/`` with ``state.json``.
+    """Create ``~/.junction/subagents/{id}/`` with ``state.json``.
 
     ``context_groups`` is the run's injected-context scope, as a comma-joined
     list of the switchable groups it KEEPS. It is recorded here, at folder

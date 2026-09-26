@@ -25,7 +25,7 @@ to pay for, so the whole subsystem is inert until `session_summary.enabled`.
 
 ## Storage: a sidecar, never the transcript
 
-Summaries live in `~/.kiro/crew/sessions/.intents/<safe_key>.json`, keyed by the
+Summaries live in `~/.junction/sessions/.intents/<safe_key>.json`, keyed by the
 session's **transcript** key, with the payload shape below plus the `sig` and
 `gen` fields that together identify the transcript it describes.
 

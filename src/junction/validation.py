@@ -1965,27 +1965,28 @@ ISSUE_RADAR_RECORD_INVESTIGATION_SCHEMA = ToolSchema(
     ],
 )
 
-# ── Tool Schemas (Issue Radar crews) ──
+# ── Tool Schemas (Issue Radar stewards) ──
 #
-# The crew ledger is an autonomous agent's ONLY memory across compaction, the
+# The steward ledger is an autonomous agent's ONLY memory across compaction, the
 # per-turn ceiling and a gateway restart, so both tools are on the same
 # internal-secret path as ``issue_radar_record_investigation`` and validated
 # here, next to it.
 #
-# Neither schema carries owner/repo/crew_id. That is a security choice, not an
-# omission: identity is resolved from the CALLING SESSION (see
-# ``mcp_core._crew_identity``). If the model could name the crew, a crew could
-# write into another crew's ledger — clobbering its ``next``, its worktree path
-# or its claim comment id — and the store's "at most one item in an editing
-# phase" invariant is per-crew, so a cross-crew write would also defeat that.
+# Neither schema carries owner/repo/steward_id. That is a security choice, not
+# an omission: identity is resolved from the CALLING SESSION (see
+# ``mcp_core._steward_identity``). If the model could name the steward, one
+# steward could write into another steward's ledger — clobbering its ``next``,
+# its worktree path or its claim comment id — and the store's "at most one item
+# in an editing phase" invariant is per-steward, so a cross-steward write would
+# also defeat that.
 #
 # The phase / event-kind vocabularies MIRROR
-# ``issue_radar.backend.crew_store.PHASES`` and ``.EVENT_KINDS`` rather than
+# ``issue_radar.backend.steward_store.PHASES`` and ``.EVENT_KINDS`` rather than
 # importing them: ``validation`` is core and must not import an app package
-# (apps load dynamically and may be absent). ``test_issue_radar_crew_mcp_tools``
+# (apps load dynamically and may be absent). ``test_issue_radar_steward_mcp_tools``
 # asserts the mirrors are exact, so drift fails a test instead of silently
 # rejecting a legitimate phase at the tool boundary.
-_ISSUE_RADAR_CREW_PHASES = frozenset(
+_ISSUE_RADAR_STEWARD_PHASES = frozenset(
     {
         "selected",
         "claimed",
@@ -2002,7 +2003,7 @@ _ISSUE_RADAR_CREW_PHASES = frozenset(
         "preempted",
     }
 )
-_ISSUE_RADAR_CREW_EVENT_KINDS = frozenset(
+_ISSUE_RADAR_STEWARD_EVENT_KINDS = frozenset(
     {
         "claim",
         "investigate",
@@ -2017,16 +2018,16 @@ _ISSUE_RADAR_CREW_EVENT_KINDS = frozenset(
         "yield",
     }
 )
-#: Mirrors ``crew_store.SKIP_SCOPES`` — the classification a crew attaches to a
-#: pass in the repo-wide shared skip index. Advertised to the model as an enum so
+#: Mirrors ``steward_store.SKIP_SCOPES`` — the classification a steward attaches to
+#: a pass in the repo-wide shared skip index. Advertised to the model as an enum so
 #: it picks a real one; NOT enforced as ``allowed=`` on the field (see the
 #: ``skip_scope`` spec below for why).
 #:
-#: ``needs-decision`` and ``needs-investigation`` are how a crew says the next step
-#: belongs to a human. They are scopes on a PASS because a crew never holds an
-#: issue waiting for one: it says what it needs on the issue, labels it, records the
+#: ``needs-decision`` and ``needs-investigation`` are how a steward says the next
+#: step belongs to a human. They are scopes on a PASS because a steward never holds
+#: an issue waiting for one: it says what it needs on the issue, labels it, records the
 #: pass and moves on.
-_ISSUE_RADAR_CREW_SKIP_SCOPES = frozenset(
+_ISSUE_RADAR_STEWARD_SKIP_SCOPES = frozenset(
     {
         "architecture",
         "new-feature",
@@ -2049,12 +2050,12 @@ _ISSUE_RADAR_CREW_SKIP_SCOPES = frozenset(
 _GIT_SHA_RE = re.compile(r"^[0-9a-fA-F]{7,64}$")
 
 
-def _validate_crew_record_couples_phase_to_an_event(args: dict[str, Any]) -> None:
+def _validate_steward_record_couples_phase_to_an_event(args: dict[str, Any]) -> None:
     """Enforce the invariants that justify ONE write tool instead of two.
 
     * ``event`` and ``event_kind`` travel together — the store refuses an
       unknown kind, and an event with no kind cannot be filed on either surface
-      it feeds (crew page + the public claim comment).
+      it feeds (steward page + the public claim comment).
     * a ``phase`` write must carry its reason. Splitting upsert and append into
       two tools is what allows a phase to move with nothing logged; merging them
       only closes that if the event is actually mandatory on a phase change.
@@ -2071,38 +2072,38 @@ def _validate_crew_record_couples_phase_to_an_event(args: dict[str, Any]) -> Non
         )
 
 
-ISSUE_RADAR_CREW_READ_SCHEMA = ToolSchema(
-    tool_name="issue_radar_crew_read",
+ISSUE_RADAR_STEWARD_READ_SCHEMA = ToolSchema(
+    tool_name="issue_radar_steward_read",
     fields=[
-        # Deliberately empty: no argument can select WHICH crew is read (see the
-        # block comment above). ``max_events`` is not exposed either — the
-        # handler bounds the log itself so a long-lived crew cannot blow the
+        # Deliberately empty: no argument can select WHICH steward is read (see
+        # the block comment above). ``max_events`` is not exposed either — the
+        # handler bounds the log itself so a long-lived steward cannot blow the
         # caller's context by asking for more.
     ],
 )
 
-ISSUE_RADAR_CREW_RECORD_SCHEMA = ToolSchema(
-    tool_name="issue_radar_crew_record",
+ISSUE_RADAR_STEWARD_RECORD_SCHEMA = ToolSchema(
+    tool_name="issue_radar_steward_record",
     fields=[
         # Bounds the number that becomes the work item's FILENAME
-        # (``crews/<crew_id>/<n>.json``) — same ENAMETOOLONG rationale as the
+        # (``stewards/<steward_id>/<n>.json``) — same ENAMETOOLONG rationale as the
         # investigation record, hence the same constant.
         FieldSpec(
             "number", int, required=True, min_val=1, max_val=_ISSUE_RADAR_MAX_ITEM_NUMBER
         ),
-        FieldSpec("phase", str, max_len=32, allowed=_ISSUE_RADAR_CREW_PHASES),
+        FieldSpec("phase", str, max_len=32, allowed=_ISSUE_RADAR_STEWARD_PHASES),
         # Bounded but deliberately NOT ``allowed=``, unlike ``phase`` beside it.
         # An out-of-vocabulary phase has to be refused — it would corrupt the
         # phase state machine. A scope is only a filter label, and refusing one
         # would fail the whole write, which on a ``skipped`` write is the write
         # that puts the issue in the shared skip index. Weakening "a skip is
         # always indexed" to buy a tidier label is the wrong trade, so the store
-        # coerces an unknown value to ``other`` (``crew_store.SKIP_SCOPES``) and
+        # coerces an unknown value to ``other`` (``steward_store.SKIP_SCOPES``) and
         # the pass is recorded either way. The vocabulary is still advertised as
         # an enum in the tool schema, so the model is told what to pick.
         FieldSpec("skip_scope", str, max_len=32),
         # ``outcome`` is a bounded free string, NOT an enum: the store keeps it
-        # as free text (``crew_store.upsert_work_item``) and no vocabulary is
+        # as free text (``steward_store.upsert_work_item``) and no vocabulary is
         # defined anywhere in the app, so an allowlist invented here would
         # reject a legitimate terminal outcome and lose it.
         FieldSpec("outcome", str, max_len=MAX_SHORT_STRING),
@@ -2129,7 +2130,7 @@ ISSUE_RADAR_CREW_RECORD_SCHEMA = ToolSchema(
         FieldSpec("ci_inherited_reds", int, min_val=0, max_val=100_000),
         # Forge comment ids are large (GitHub is past 3e9 and monotonic).
         FieldSpec("claim_comment_id", int, min_val=1, max_val=10**18),
-        # No ``crew:``-prefix pattern here on purpose: this field RECORDS what
+        # No ``steward:``-prefix pattern here on purpose: this field RECORDS what
         # was applied so a hand-back knows what to remove. The prefix allowlist
         # belongs to the forge write route that applies a label; enforcing it at
         # this boundary would reject a truthful record and lose the removal list.
@@ -2143,9 +2144,9 @@ ISSUE_RADAR_CREW_RECORD_SCHEMA = ToolSchema(
         # One public progress line. Short by design: it is rendered as a list
         # item inside the claim comment's <details> block, not as a report.
         FieldSpec("event", str, max_len=MAX_SHORT_STRING),
-        FieldSpec("event_kind", str, max_len=16, allowed=_ISSUE_RADAR_CREW_EVENT_KINDS),
+        FieldSpec("event_kind", str, max_len=16, allowed=_ISSUE_RADAR_STEWARD_EVENT_KINDS),
     ],
-    custom_validator=_validate_crew_record_couples_phase_to_an_event,
+    custom_validator=_validate_steward_record_couples_phase_to_an_event,
 )
 
 # ── Tool Schemas (MCP Cron) ──
@@ -2532,15 +2533,15 @@ REGISTER_HOOK_SCHEMA = ToolSchema(
     ],
 )
 
-# select_crew: `crew` is optional — omitted/empty returns the roster. When
-# present it is NOT pattern-validated here: crew creation only strips the name
+# select_agent: `agent` is optional — omitted/empty returns the roster. When
+# present it is NOT pattern-validated here: agent creation only strips the name
 # (agents.py), so names may contain spaces/dots; the deny-by-default gate is the
-# `crew not in cfg.agents` membership check in _do_select_crew, not a regex.
-SELECT_CREW_SCHEMA = ToolSchema(
-    tool_name="select_crew",
+# `agent not in cfg.agents` membership check in _do_select_agent, not a regex.
+SELECT_AGENT_SCHEMA = ToolSchema(
+    tool_name="select_agent",
     fields=[
         FieldSpec(
-            "crew",
+            "agent",
             str,
             required=False,
             max_len=MAX_SHORT_STRING,
@@ -2732,12 +2733,12 @@ MCP_CORE_SCHEMAS: dict[str, ToolSchema] = {
     "deploy_artifact": DEPLOY_ARTIFACT_SCHEMA,
     "issue_radar_record_investigation": ISSUE_RADAR_RECORD_INVESTIGATION_SCHEMA,
     "ops_mission_control_api": OPS_MISSION_CONTROL_API_SCHEMA,
-    # Registered even though ``issue_radar_crew_read`` takes no arguments: an
+    # Registered even though ``issue_radar_steward_read`` takes no arguments: an
     # unregistered tool's args pass through raw, and the empty-field schema is
     # also what makes an unknown arg an "Error:" string instead of a stdio-loop
     # crash that takes the whole junction-core server down for the session.
-    "issue_radar_crew_read": ISSUE_RADAR_CREW_READ_SCHEMA,
-    "issue_radar_crew_record": ISSUE_RADAR_CREW_RECORD_SCHEMA,
+    "issue_radar_steward_read": ISSUE_RADAR_STEWARD_READ_SCHEMA,
+    "issue_radar_steward_record": ISSUE_RADAR_STEWARD_RECORD_SCHEMA,
 }
 
 MCP_CRON_SCHEMAS: dict[str, ToolSchema] = {

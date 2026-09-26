@@ -343,7 +343,7 @@ class TestBuildMessageAppliesTheMacro:
         Neither the stale bounds NOR the full replacement is right: clamping would
         attribute the instruction's first six characters to the user, and claiming
         the whole span would report ~1.8k characters of generated text as their
-        typing and underreport Crew-added context. The user's span is empty, which
+        typing and underreport Junction-added context. The user's span is empty, which
         is the rule ``attributable_user_chars`` already states for ``@prompt``.
         """
         builder = _make_builder(tmp_path)
@@ -440,7 +440,7 @@ class TestPrefixedTurnStillExpands:
         msg, span = self._build(tmp_path, "/plain")
         assert span[0] == span[1], "a replacing expansion attributes nothing"
         # Anchored at the splice point, i.e. after the prefix -- not at offset 0,
-        # which would place the (empty) user span inside Crew-added context.
+        # which would place the (empty) user span inside Junction-added context.
         assert span[0] >= msg.index("remembered fact.")
 
     def test_a_prefixed_ordinary_turn_still_reports_its_real_span(self, tmp_path):
@@ -453,7 +453,7 @@ class TestPrefixedTurnStillExpands:
         assert msg[span[0] : span[1]] == "/plainly explain the retry path"
 
     def test_a_token_inside_the_PREFIX_does_not_expand(self, tmp_path):
-        """The envelope is Crew-added text. A `/plain` quoted inside it is not an
+        """The envelope is Junction-added text. A `/plain` quoted inside it is not an
         invocation, and treating it as one would let injected context fire the
         macro."""
         msg, _ = self._build(

@@ -170,7 +170,7 @@
       "why": "",
       "doc": "",
       "cta_prompt": "",
-      "action": { "kind": "route", "label": "Open Background Model setting", "route": "/settings/chat?highlight=chat.background-model" }
+      "action": { "kind": "route", "label": "Open Background Model setting", "route": "/settings/chat?highlight=key:agent.role_models.background" }
     },
     {
       "id": "agent-browsing",
@@ -203,14 +203,14 @@
       "action": { "kind": "route", "label": "Open Apps", "route": "/apps" }
     },
     {
-      "id": "remote-crew",
-      "feature": "Remote Crew",
+      "id": "remote-instances",
+      "feature": "Remote Instances",
       "title": "Reach another machine's Junction",
-      "body": "Add another Junction gateway over SSH or AWS SSM in **Settings › Remote Crew**, then switch between instances from the header.",
+      "body": "Add another Junction gateway over SSH or AWS SSM in **Settings › Remote Instances**, then switch between instances from the header.",
       "why": "",
       "doc": "",
       "cta_prompt": "",
-      "action": { "kind": "route", "label": "Open Remote Crew settings", "route": "/settings/instances" }
+      "action": { "kind": "route", "label": "Open Remote Instances settings", "route": "/settings/instances" }
     }
   ]
 }

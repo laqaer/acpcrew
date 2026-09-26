@@ -1,6 +1,6 @@
 """Issue Radar — on-disk data layout.
 
-Everything lives under ``~/.kiro/crew/apps/issue-radar/data/`` (via
+Everything lives under ``~/.junction/apps/issue-radar/data/`` (via
 ``junction.apps.manager.app_data_dir``, the platform-standard app-scoped data
 dir). Nothing is stored on a Junction-hosted backend and no GitHub App/PAT is
 used — auth is entirely delegated to the user's own ``gh`` CLI session.
@@ -1377,8 +1377,8 @@ DEPS_CACHE_SCHEMA = 1
 #     a request on an expired cache (it returns the stale graph and refreshes in
 #     the background), so for the route this TTL governs how often a BACKGROUND
 #     rebuild fires and a long value would be harmless;
-#   * crew_runtime._read_or_refresh_deps, the sweep that feeds SIG_DEP_UNBLOCKED.
-#     For the sweep this TTL IS the freshness horizon on which a crew waiting for
+#   * steward_runtime._read_or_refresh_deps, the sweep that feeds SIG_DEP_UNBLOCKED.
+#     For the sweep this TTL IS the freshness horizon on which a steward waiting for
 #     its blocker to merge gets woken, so raising it directly delays that wake.
 #
 # Serve-stale already removes the ~11s stall a user could hit here, so there is

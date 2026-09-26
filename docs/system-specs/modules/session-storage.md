@@ -116,9 +116,6 @@ outright. Two things about how it decides:
   inside it. A default-location test would pass the arrangement where sharing is
   least visible: two isolated instances pointed at one *custom* `KIRO_HOME` see
   neither the default store nor each other's maps.
-- The **legacy pre-migration home counts as a default**, not as isolation. An
-  install that has not yet migrated legitimately resolves to `~/.kirocrew`, and
-  treating that as an isolated instance refused every such install.
 - The refusal is **symmetric**. A default instance is also blocked when a
   discoverable co-tenant shares its store: a pod isolates `JUNCTION_HOME` but
   deliberately not `KIRO_HOME`, so each pod home under the pod root reads the
@@ -292,9 +289,15 @@ registering the module fails
 ## The trash
 
 Staged batches live at `<data home>/trash/sessions/<batch id>/`, with each file
-kept under a `cli/` or `crew/` subdirectory. The two halves can share a filename,
-and a flat batch directory would let one silently overwrite the other — turning a
-reversible move into data loss.
+kept under a `cli/` or `junction/` subdirectory named for the store it came from:
+kiro-cli's replay logs or Junction's own transcripts. The two halves can share a
+filename, and a flat batch directory would let one silently overwrite the other —
+turning a reversible move into data loss.
+
+Restore also accepts the leaf earlier Junction builds staged transcripts under
+(`LEGACY_STAGE_LEAVES`). It is read, never written: restore derives each origin
+from the leaf, so without it a batch staged before an upgrade would be purge-only.
+`test_a_batch_staged_under_the_legacy_leaf_still_restores` covers it.
 
 On a default install both stores sit under `~/.kiro`, so staging is a
 same-filesystem `os.rename`: instant regardless of size, and instantly reversible.
@@ -665,7 +668,8 @@ instead of the trash over-deleting. `TestEmptyTrash` and
 | Constant | Value | Location |
 |---|---|---|
 | `TRASH_DIR_NAME` / `TRASH_SESSIONS_LEAF` | `trash` / `sessions` | `session_storage.py` |
-| `STAGE_CLI_LEAF` / `STAGE_CREW_LEAF` | `cli` / `crew` | `session_storage.py` |
+| `STAGE_CLI_LEAF` / `STAGE_JUNCTION_LEAF` | `cli` / `junction` | `session_storage.py` |
+| `LEGACY_STAGE_LEAVES` | the transcript leaf earlier builds staged under; read on restore, never written | `session_storage.py` |
 | `MANIFEST_NAME` | `manifest.jsonl` | `session_storage.py` |
 | `MANIFEST_SCHEMA` | `1` | `session_storage.py` |
 | `BUCKET_DAYS` | `(7, 30, 90)` | `session_storage.py` |

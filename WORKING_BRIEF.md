@@ -14,7 +14,7 @@ root `ARCHITECTURE.md` once the agent OS lane lands them.
 | Tagline | Where coding agents meet the models you want. |
 | Promise | Run Cursor, Claude, Codex, and Grok from one local dashboard, with memory and cron. `junction up` starts a loopback catalog and a role DAG. The docked agent uses models it already serves. Provider translation is not bundled. A vendor agent CLI is optional. |
 | Voice | Local-first, precise, no hype. Not another chatbot. Not a Codex clone. |
-| Visual | Ink + copper dashboard default (picker slug `kiro`, painted as Junction). Track/switch motif. No ghost splash, no ghost theme picker, no ghost welcome mark, no haunt scene in the Worlds picker. Marketing site keeps copper rails. Live production: **https://getjunction.dev**. `www.getjunction.dev` redirects there. |
+| Visual | "Interchange": signal blue on asphalt, factory theme slug `junction`. Mark: a "J" whose stem throws a track switch. Type: Overpass + Overpass Mono, bundled. Wayfinding motif (route lines, interchange rings); no mascot. Brand kit: `assets/brand/build.py`. Live production: **https://getjunction.dev**. `www.getjunction.dev` redirects there. |
 | GitHub slug | `laqaer/junction`. |
 | Package / data home | `junction`, `JUNCTION_HOME`, Electron `productName` stay as implementation identifiers. |
 | Lineage | Apache-2.0 gateway + MIT-observed [Codex Router](https://github.com/duolahypercho/codex-router) model plane. Junction is the product; do not present it as a public fork. |
@@ -71,7 +71,7 @@ Safe agent-prompts defaults for this execution:
 | Execution id | `bc-39bfeb15-ff12-4636-840a-217a97c555da` |
 | Branch | `cursor/junction-launch-55da` |
 | Base | `main` at `78424fb73` |
-| Intake | No acpcrew intake issue existed at start. Open Dependabot PRs #10–#14 are unrelated. |
+| Intake | No intake issue existed at start. Open Dependabot PRs #10–#14 are unrelated. |
 | Shape | One bootstrap PR to `main`. Do not merge it in this execution. |
 
 ## This-cut non-goals

@@ -356,7 +356,7 @@ Probes run from `POST /api/mcp/probe`:
   undocumented internals. If kiro-cli re-keys them, the stat succeeds against a
   path that is simply absent, so the answer is `false` rather than unanswerable and
   an authorized server reads "Sign-in required". That row does not recover on its
-  own: a second sign-in mints artifacts under the NEW key while Crew keeps stat-ing
+  own: a second sign-in mints artifacts under the NEW key while Junction keeps stat-ing
   the old one, so it goes on asking for a sign-in until the mirror here is
   corrected. The recorded-hash tests pin the mirror only against itself, so the
   drift would not fail in-repo either. Detecting it needs an observation of an
@@ -628,7 +628,7 @@ answers `tools/list` from):
 - **Session-bound directives** (`session_directive.DIRECTIVE_TOOLS`):
   `ask_question`, `suggest_followup`, `monitor_start`, `monitor_update`,
   `autonudge_stop`, `set_project`
-- **Crew routing:** `select_crew`
+- **Agent routing:** `select_agent`
 - **Sessions and history:** `list_sessions`, `get_chat_session`,
   `search_chat_history`
 - **Artifacts:** `artifact_list`, `artifact_get`, `artifact_save`,

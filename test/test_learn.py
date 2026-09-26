@@ -119,7 +119,7 @@ class TestLessonStoreSecurity:
         assert store._dir == _default_dir()
 
     def test_sensitive_config_dir_falls_back_to_default(self, tmp_path: Path) -> None:
-        sensitive = tmp_path / ".kirocrew-sensitive"
+        sensitive = tmp_path / ".junction-sensitive"
         sensitive.mkdir()
         with (
             patch("junction.learn._config_dir", return_value=sensitive),
@@ -146,12 +146,11 @@ class TestLessonStoreSecurity:
 
 class TestImportPurity:
     def test_importing_learn_never_calls_config_dir(self) -> None:
-        # Single-point-migration invariant (PR #309): the one-time blocking
-        # legacy-home migration fires ONLY at ensure_data_home() in the CLI
-        # prologue. learn is eagerly imported by cli_server, slack/gateway,
-        # context, taskrunner, and cli_commands — a module-scope config_dir()
-        # call here would fire the migration as an import side effect
-        # (potentially on the asyncio event loop). _DEFAULT_DIR must therefore
+        # Single-point data-home creation: the data home is created ONLY at
+        # ensure_data_home() in the CLI prologue. learn is eagerly imported by
+        # cli_server, slack/gateway, context, taskrunner, and cli_commands — a
+        # module-scope config_dir() call here would create it as an import side
+        # effect (potentially on the asyncio event loop). _DEFAULT_DIR must therefore
         # be a pure literal; config_dir() is resolved lazily in
         # LessonStore.__init__.
         import importlib
@@ -166,7 +165,7 @@ class TestImportPurity:
             importlib.reload(learn_mod)
         # Restore the module to its normal state for other tests.
         importlib.reload(learn_mod)
-        assert learn_mod._DEFAULT_DIR == Path.home() / ".kiro" / "crew"
+        assert learn_mod._DEFAULT_DIR == Path.home() / ".junction"
 
 
 class TestSaveOrEnrich:

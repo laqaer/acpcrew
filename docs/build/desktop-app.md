@@ -36,12 +36,15 @@ The electron-builder configuration lives in
 - mac target: `dmg` (category `public.app-category.developer-tools`). The DMG
   uses a 660×420 logical-size branded drag-to-Applications background, packaged
   as a multi-resolution TIFF with 660×420 (1×) and 1320×840 (2×) representations
-  for Retina displays. The background is a flat light purple carrying the opening
-  animation's white ghost cast and wordmark, with a single chevron between the
-  96px app and `/Applications` targets. It holds no gradient: the brand guideline
-  restricts them, so the accent is one tone. Nothing is painted behind the icon
-  captions either — Finder draws them in dark text even under Dark Mode, so they
-  read on the accent directly.
+  for Retina displays. `assets/brand/build.py` generates it from the Interchange
+  palette: a flat asphalt ground carrying the Junction wordmark and a one-line
+  drag instruction, a single signal-blue route with an arrowhead between the 96px
+  app and `/Applications` targets, and a faint trunk line along the foot of the
+  window. It holds no gradient. Finder draws the two icon captions itself and the
+  background cannot style them; it has drawn them in dark text even under Dark
+  Mode. The asphalt ground has nothing painted behind them, so legibility has to
+  be confirmed on a mounted DMG: if Finder draws them dark there, the caption band
+  just below the two icons needs a light plate (or the window a light ground).
 - Windows target: assisted NSIS. A 164×314 welcome/finish sidebar and a 150×57
   page header reuse the Junction logo while preserving native NSIS controls,
   localization, the per-user default, and the no-UAC default path. The installer
@@ -469,9 +472,9 @@ closes the popup and collapses the labels back to the hamburger. The menu surfac
 uses the dashboard theme because native Windows popups capture window input and
 cannot support hover switching; a narrow IPC bridge keeps command execution and
 standard Electron roles in the main process.
-When a remote crew is connected, the instance switcher shares the same bounded
-left region as the menu: it is a single trigger naming the crew on screen (see
-InstanceTabBar's SwitcherMenu), not a row of per-crew tabs, so it costs constant
+When a remote instance is connected, the instance switcher shares the same bounded
+left region as the menu: it is a single trigger naming the instance on screen (see
+InstanceTabBar's SwitcherMenu), not a row of per-instance tabs, so it costs constant
 width whether the menu is collapsed to a hamburger or expanded to full labels.
 The centered command palette yields that region rather than the reverse — the
 correct priority while the menu is open is labels > instance status > an idle
@@ -535,7 +538,7 @@ the matching backend in a universal app:
    a **per-arch** packaged `.app` (or unpackaged in development).
 3. `<__dirname>/../bin/junction`
 4. Well-known install paths under `$HOME` (e.g. `~/.local/bin/junction`,
-   `~/.kirocrew-app/.venv/bin/junction`).
+   `~/.junction-app/.venv/bin/junction`).
 5. Bare `"junction"` (resolved via `PATH`).
 
 The function is pure — `fs`, `os`, `path`, `process.resourcesPath`,
@@ -544,12 +547,11 @@ unit-testable without mocking globals.
 
 ### `main.js` — spawning the gateway
 
-- Ensures `JUNCTION_HOME` (default `~/.kiro/crew`, overridable via the
+- Ensures `JUNCTION_HOME` (default `~/.junction`, overridable via the
   `JUNCTION_HOME` env var) exists, then spawns the backend with
-  `["gateway", "--no-open"]`. If a real pre-move `~/.kirocrew` directory exists,
-  the shell reads its startup config first while the backend performs the
-  one-time migration; token lookup then falls through to the canonical home.
-  A clean install never creates the legacy directory.
+  `["gateway", "--no-open"]`. The shell resolves the data home the same way the
+  backend does (`home-dir.js` mirrors `config/paths.py`): a valid
+  `JUNCTION_HOME` override, else `~/.junction`. There is no other directory.
 - Honors the **`JUNCTION_PORT`** env var for the dashboard port (default `5476`,
   validated to `1–65535`). `BACKEND_URL` / health checks target that port.
 - Sets `JUNCTION_PROJECT_DIR` to the Electron app's parent directory so the
@@ -716,14 +718,14 @@ a grant**. Auditing must never be able to change a permission verdict.
 TCC rows are pinned to the app's **code-signing identity (cdhash)**, not just its
 bundle id — and ad-hoc local builds share one collapsed `Identifier=Electron`
 identity. So a machine that ran a dev build can hold a Microphone row for
-`com.amazon.kiro.crew` whose `csreq` matches a cdhash the Developer-ID release
+`dev.junction.desktop` whose `csreq` matches a cdhash the Developer-ID release
 can never satisfy. The row reads *granted* in the TCC database and is still never
 honored, which looks exactly like the entitlement bug and survives fixing it.
 
 If the mic still fails after a rebuild, clear the row and let the app re-prompt:
 
 ```bash
-tccutil reset Microphone com.amazon.kiro.crew
+tccutil reset Microphone dev.junction.desktop
 ```
 
 This is also why distributing the signed + notarized DMG matters (above): a
@@ -743,7 +745,7 @@ declaration.
 > (`EHOSTUNREACH`, "No route to host") in ~0.000s rather than timing out. `ping`
 > and ARP to the same host succeed, so it reads as a routing fault. There is no
 > Junction row under System Settings › Privacy & Security › Local Network, and
-> `tccutil reset LocalNetwork com.amazon.kiro.crew` fails because no TCC record
+> `tccutil reset LocalNetwork dev.junction.desktop` fails because no TCC record
 > exists to reset.
 
 The gateway-works / everything-else-fails split is the signature of the TCC gate,

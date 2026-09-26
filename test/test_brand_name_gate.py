@@ -1,11 +1,12 @@
 """Unit tests for scripts/check_brand_name.py.
 
-The gate blocks merges, so every exemption gets a test: an exemption that
-silently stops matching turns the gate into a rubber stamp, and an exemption that
-silently widens turns it into a false-positive machine. The script's own
-``--test`` mode covers the same rule families; these tests add the git-diff
-scoping, the file-level scan, and the exit-code contract that ``--test`` cannot
-reach without a repository.
+The gate blocks merges on the retired upstream identity, so both directions get
+tests: a rule that silently stops matching turns the gate into a rubber stamp,
+and one that silently widens starts flagging kiro-cli, the harness Junction
+legitimately drives. The script's own ``--test`` mode covers the same rule
+families; these tests add the git-diff scoping, the NOTICE exemption end to end,
+the file-level scan, and the exit-code contract that ``--test`` cannot reach
+without a repository.
 """
 
 from __future__ import annotations
@@ -34,181 +35,457 @@ def _load():
 
 gate = _load()
 
+# The retired identity, in every spelling the probes below need. Each one is
+# assembled from fragments so this file carries none of them and stays clean
+# under the gate it tests.
+_KIRO, _CREW, _GHOST = "kiro", "crew", "ghost"
+_KIRO_CAP, _CREW_CAP = _KIRO.capitalize(), _CREW.capitalize()
+_NAME = _KIRO_CAP + _CREW_CAP
+_NAME_SPACED = f"{_KIRO_CAP} {_CREW_CAP}"
+_NAME_CLI = _KIRO + _CREW
+_NAME_ENV = _NAME_CLI.upper()
+_NAME_PKG = f"{_KIRO}_{_CREW}"
+_NAME_HYPHEN = f"{_KIRO}-{_CREW}"
+_HOME_POSIX = f"~/.{_KIRO}/{_CREW}"
+_HOME_WINDOWS = f"C:\\Users\\me\\.{_KIRO}\\{_CREW}"
+_HOME_ESCAPED = f"C:\\\\Users\\\\me\\\\.{_KIRO}\\\\{_CREW}"
+_HOME_JOINED = f"~/.{_NAME_CLI}"
+_HOST = f"{_CREW}.{_KIRO}.dev"
+_BUNDLE_ID = ".".join(("com", "amazon", _KIRO, _CREW))
+_ORG = f"{_KIRO}dotdev"
+_SLUG = f"{_ORG}/{_NAME}"
+_MASCOT = _KIRO.capitalize() + _GHOST.capitalize()
 
-def _hits(line: str, path: str = "probe.py", in_code: bool = False) -> list[str]:
-    return [v.token for v in gate.scan_line(path, 1, line, in_code=in_code)]
+
+def _hits(line: str, path: str = "probe.py") -> list[str]:
+    return [v.token for v in gate.scan_line(path, 1, line)]
+
+
+def _kinds(line: str, path: str = "probe.py") -> list[str]:
+    return [v.kind for v in gate.scan_line(path, 1, line)]
 
 
 # ---------------------------------------------------------------------------
-# The misspellings the gate exists to catch
+# The retired identity, in every spelling and every context
 # ---------------------------------------------------------------------------
 
 
-class TestCaught:
+class TestProse:
     @pytest.mark.parametrize(
         "line",
         [
-            "KiroCrew keeps working while you sleep.",
-            "Run KiroCrew on your own hardware.",
-            "This is KiroCrew's own sandbox.",
-            "the process that launched KiroCrew.",
-            "A desktop companion for KiroCrew that paces your day",
-            "every KiroCrew-owned file",
-            '"about_blurb": "A companion built into KiroCrew."',
-            "# KiroCrew needs Python >= 3.10 at runtime",
+            f"{_NAME} keeps working while you sleep.",
+            f"{_NAME_SPACED} keeps working while you sleep.",
+            f"Run {_NAME_SPACED.lower()} on your own hardware.",
+            f"This is {_NAME}'s own sandbox.",
+            f"shipped with {_NAME}.",
+            f"every {_NAME}-owned file",
+            f'"about_blurb": "A companion built into {_NAME_SPACED}."',
+            f"# {_NAME} needs Python >= 3.10 at runtime",
         ],
     )
-    def test_concatenated_prose_is_flagged(self, line: str) -> None:
-        assert _hits(line), f"missed: {line}"
+    def test_prose_is_flagged(self, line: str) -> None:
+        assert _kinds(line) == ["brand"], f"missed: {line}"
 
-    @pytest.mark.parametrize("token", ["KiroCrew", "Kirocrew", "kiroCrew", "KiroCREW"])
-    def test_every_mixed_case_join_is_flagged(self, token: str) -> None:
+    @pytest.mark.parametrize(
+        "token",
+        [
+            _NAME,
+            _NAME.lower(),
+            _NAME.upper(),
+            _KIRO.capitalize() + _CREW,
+            _KIRO + _CREW.capitalize(),
+            _NAME_SPACED,
+            _NAME_SPACED.lower(),
+            _NAME_SPACED.upper(),
+            f"{_KIRO.capitalize()}-{_CREW.capitalize()}",
+            f"{_KIRO.capitalize()}_{_CREW.capitalize()}",
+            f"{_KIRO}.{_CREW}",
+            f"{_KIRO}+{_CREW}",
+            f"{_KIRO}  {_CREW}",
+            f"{_KIRO}\t{_CREW}",
+            f"{_KIRO_CAP}\u00a0{_CREW_CAP}",
+            f"{_KIRO_CAP}/{_CREW_CAP}",
+            f"{_KIRO_CAP}\\{_CREW_CAP}",
+            f"{_KIRO_CAP}\\\\{_CREW_CAP}",
+            f"{_KIRO_CAP}--{_CREW_CAP}",
+            f"{_KIRO}__{_CREW}",
+            # Unicode joiners: a hyphen, an en dash, an em dash, a soft hyphen and
+            # the zero-width characters.
+            f"{_KIRO_CAP}\u2010{_CREW_CAP}",
+            f"{_KIRO_CAP}\u2013{_CREW_CAP}",
+            f"{_KIRO_CAP}\u2014{_CREW_CAP}",
+            f"{_KIRO_CAP}\u00ad{_CREW_CAP}",
+            f"{_KIRO}\u200b{_CREW}",
+            f"{_KIRO}\u200d{_CREW}",
+            f"{_KIRO}\u2060{_CREW}",
+            # Encoded and escaped spaces.
+            f"{_KIRO_CAP}%20{_CREW_CAP}",
+            f"{_KIRO_CAP}&nbsp;{_CREW_CAP}",
+            f"{_KIRO_CAP}\\ {_CREW_CAP}",
+        ],
+    )
+    def test_every_case_and_separator_is_flagged(self, token: str) -> None:
         assert _hits(f"powered by {token} today") == [token]
 
-    def test_uncapitalised_spacing_is_flagged(self) -> None:
-        # "at least the first letter capitalised" — a spaced but lowercase brand
-        # is still wrong.
-        assert _hits("install kiro crew first") == ["kiro crew"]
+    @pytest.mark.parametrize(
+        "token",
+        [
+            f"{_KIRO_CAP} ?{_CREW_CAP}",
+            f"{_KIRO}.?{_CREW}",
+            f"{_KIRO}-?{_CREW}",
+            f"{_KIRO}\\.{_CREW}",
+            f"{_KIRO}\\s*{_CREW}",
+            f"{_KIRO}\\s?{_CREW}",
+            f"{_KIRO}[ -]?{_CREW}",
+            f"{_KIRO}[-._ ]?{_CREW}",
+            # A class naming the slash is a joiner like any other.
+            f"{_KIRO}[/_]{_CREW}",
+            f"{_KIRO}[\\\\/]{_CREW}",
+            f"{_KIRO}[\\s_-]?{_CREW}",
+            # Escaped joiners and regex classes after a backslash.
+            f"{_KIRO}\\W?{_CREW}",
+            f"{_KIRO}\\-{_CREW}",
+            f"{_KIRO}\\_{_CREW}",
+            f"{_KIRO}\\/{_CREW}",
+            # A short group of joiners, capturing or not.
+            f"{_KIRO}(?:-|_)?{_CREW}",
+            f"{_KIRO}(?:\\s|-|_)?{_CREW}",
+            f"{_KIRO}(-|_){_CREW}",
+        ],
+    )
+    def test_a_regex_spelling_of_the_name_is_the_name(self, token: str) -> None:
+        # A pattern written to match the retired name carries it just as well: a
+        # title-stripping regex or an allowlist entry is residue like any other.
+        assert _hits(f"pattern = /{token}/g") == [token]
 
-    def test_capitalised_spacing_is_accepted(self) -> None:
-        assert _hits("Kiro Crew keeps working.") == []
-        assert _hits("Kiro crew keeps working.") == []
-
-    def test_junction_is_not_a_misspelling(self) -> None:
-        assert _hits("Junction routes agents and models.") == []
-        assert _hits("Run `junction gateway` on loopback.") == []
-
-    def test_multiple_hits_on_one_line_all_reported(self) -> None:
-        assert _hits("KiroCrew talks to KiroCrew over SSH") == ["KiroCrew", "KiroCrew"]
-
-
-# ---------------------------------------------------------------------------
-# Identifiers keep the spelling their own system gave them
-# ---------------------------------------------------------------------------
-
-
-class TestExempt:
     @pytest.mark.parametrize(
         "line",
         [
-            # The systems that own the joined spelling.
-            "run `kirocrew serve` to start the gateway",
-            'os.environ["KIROCREW_HOME"]',
-            "from kiro_crew.config import loader",
-            "state lives under ~/.kiro/crew/workspace",
-            "mailto:kiro-crew-security-support@example.com",
-            # Repo slug and URLs.
-            "https://github.com/kirodotdev/KiroCrew/issues",
-            "git clone https://github.com/kirodotdev/KiroCrew.git",
-            "pushed to `kirodotdev/KiroCrew` itself",
-            # Path segments — each separator side alone, since a brand with a
-            # separator on both sides is covered by either check.
-            "built from ~/src/KiroCrew last night",
-            "KiroCrew/website holds the frontend",
-            r"installed to C:\Program Files\KiroCrew",
-            r"launches KiroCrew\resources\app.asar",
-            "artifacts/KiroCrew-notarized-stable/KiroCrew.dmg",
-            # One identifier, not two words.
-            "resolve KiroCrewApps from the registry",
-            "the KiroCrewPublishCDK distribution stack",
-            "SHIM = MyKiroCrewShim()",
-            # Hyphenated identifier interior — an HTTP header, not prose.
-            'assert "X-KiroCrew-Proxy" in headers',
-            # Release artifacts.
-            "electron-builder signs KiroCrew.exe and Update.exe",
-            "publishes KiroCrew-x86_64.AppImage beside the deb",
-            "opens /Applications/KiroCrew.app",
-            "the KiroCrew-Nightly channel",
+            # A sentence ending on the harness's name, then one opening on the word.
+            f"The harness is {_KIRO_CAP}. {_CREW_CAP} agents then pick it up.",
+            f"Pick {_KIRO}.  {_CREW_CAP} members follow.",
+            f"Is it {_KIRO}? {_CREW_CAP} members decide.",
+            f"{_KIRO_CAP}, {_CREW} and more",
+            f"{_KIRO_CAP}; {_CREW} next",
+            f"{_KIRO_CAP}! {_CREW_CAP} ahoy",
+            f"{_KIRO_CAP} - {_CREW} as a spaced aside",
+            f"{_KIRO_CAP} (the harness) and its {_CREW}",
         ],
     )
-    def test_identifier_forms_are_not_flagged(self, line: str) -> None:
+    def test_clause_punctuation_between_the_words_is_not_the_name(self, line: str) -> None:
+        # The joiner is one bounded unit, and punctuation that ends a clause is not
+        # one: the harness's name next to the generic word is not the retired name.
         assert _hits(line) == [], f"false positive: {line}"
 
-    def test_sentence_end_is_not_read_as_a_file_extension(self) -> None:
-        # `KiroCrew.exe` is exempt; `KiroCrew.` at the end of a sentence is not.
-        assert _hits("shipped with KiroCrew.") == ["KiroCrew"]
-        assert _hits("shipped with KiroCrew.exe") == []
-
-    def test_hyphen_exemption_does_not_swallow_prose(self) -> None:
-        # Only an *interior* hyphen segment is an identifier.
-        assert _hits("a KiroCrew-specific workaround") == ["KiroCrew"]
-
-    def test_line_suppression(self) -> None:
-        assert _hits("correct = 'KiroCrew'  # brand-ok: transcript fixture") == []
-
-    def test_channel_qualified_identifier(self) -> None:
-        # PRODUCT_NAMES in cli_desktop.py spells the macOS log dir this way, so the
-        # space form is an OS identifier even though it reads like prose.
-        assert _hits('home / "Library" / "Logs" / "KiroCrew Nightly"') == []
-        assert _hits("the KiroCrew Insider channel") == []
-        # Any other following word is prose again.
-        assert _hits("the KiroCrew dashboard") == ["KiroCrew"]
+    def test_multiple_hits_on_one_line_are_all_reported(self) -> None:
+        line = f"{_NAME} talks to {_NAME_SPACED} over SSH"
+        assert _hits(line) == [_NAME, _NAME_SPACED]
 
 
-class TestUrlBoundary:
-    """A URL exempts what is *inside* it, and nothing after it."""
-
-    def test_wrapped_link_still_exempts_the_slug(self) -> None:
-        assert _hits("see [docs](https://github.com/kirodotdev/KiroCrew/issues)") == []
-        assert _hits("<https://github.com/kirodotdev/KiroCrew>") == []
-
-    def test_markup_closing_a_url_does_not_exempt_the_text_after_it(self) -> None:
-        assert _hits('<a href="https://example.com/">KiroCrew</a>') == ["KiroCrew"]
-        assert _hits("[KiroCrew](https://example.com/)") == ["KiroCrew"]
-
-    def test_a_url_earlier_on_the_line_does_not_exempt_later_prose(self) -> None:
-        assert _hits("https://example.com/x is where KiroCrew lives") == ["KiroCrew"]
+class TestIdentifiers:
+    """No system still owns a retired spelling, so identifiers are residue too."""
 
     @pytest.mark.parametrize(
+        "line",
+        [
+            f"run `{_NAME_CLI} serve` to start the gateway",
+            f"from {_NAME_PKG}.config import loader",
+            f"mailto:{_NAME_HYPHEN}-security-support@example.com",
+            f"resolve {_NAME}Apps from the registry",
+            f"SHIM = My{_NAME}Shim()",
+            f'assert "X-{_NAME}-Proxy" in headers',
+            f"electron-builder signs {_NAME}.exe and Update.exe",
+            f"opens /Applications/{_NAME}.app",
+            f"the {_NAME}-Nightly channel",
+            f'home / "Library" / "Logs" / "{_NAME} Nightly"',
+            f"built from ~/src/{_NAME} last night",
+            f"installed to C:\\Program Files\\{_NAME}",
+        ],
+    )
+    def test_identifier_forms_are_flagged(self, line: str) -> None:
+        assert _kinds(line) == ["brand"], f"missed: {line}"
+
+    @pytest.mark.parametrize(
+        "line",
+        [
+            f'os.environ["{_NAME_ENV}_HOME"]',
+            f"export {_NAME_ENV}_PORT=8080",
+            f"{_NAME_ENV}_DISABLE_TELEMETRY=1 junction gateway",
+        ],
+    )
+    def test_the_environment_prefix_is_flagged(self, line: str) -> None:
+        assert _hits(line) == [_NAME_ENV]
+
+    def test_code_fences_and_inline_code_do_not_exempt(self) -> None:
+        # The retired identity has no legitimate home in a shell snippet either.
+        assert _hits(f"clone `{_NAME}` then start it", path="doc.md") == [_NAME]
+        for line in ("```bash", f"cd {_NAME}", "```"):
+            assert _hits(line, path="doc.md") == ([_NAME] if _NAME in line else [])
+
+    def test_a_url_does_not_exempt(self) -> None:
+        assert _hits(f"https://example.com/d?app={_NAME}&v=2") == [_NAME]
+        assert _hits(f'<a href="https://example.com/">{_NAME}</a>') == [_NAME]
+
+    def test_there_is_no_inline_suppression_marker(self) -> None:
+        assert _hits(f"correct = '{_NAME}'  # brand-ok: transcript fixture") == [_NAME]
+        assert not hasattr(gate, "SUPPRESSION")
+
+
+class TestDataHome:
+    def test_the_posix_data_home_is_flagged(self) -> None:
+        assert _kinds(f"state lives under {_HOME_POSIX}/workspace") == ["home"]
+
+    def test_the_windows_data_home_is_flagged(self) -> None:
+        assert _kinds(f"{_HOME_WINDOWS}\\gateway.sock") == ["home"]
+
+    def test_an_escaped_windows_data_home_is_flagged(self) -> None:
+        # A Windows path inside a string literal doubles its backslashes.
+        assert _kinds(f'resolve_address("{_HOME_ESCAPED}\\\\gateway.sock")') == ["home"]
+
+    def test_the_joined_data_home_is_flagged(self) -> None:
+        assert _hits(f"migrated from {_HOME_JOINED}") == [_NAME_CLI]
+
+    @pytest.mark.parametrize(
+        "line",
+        [
+            # A cross-platform path regex, as a test or a redaction rule writes it.
+            f"re.compile(r'\\.{_KIRO}[\\\\/]{_CREW}')",
+            f"re.compile(r'\\.{_KIRO}[/\\\\]+{_CREW}')",
+            f"re.compile(r'\\.{_KIRO}(?:/|\\\\)+{_CREW}')",
+            # A JSON-escaped slash, and a regex doubled inside a string literal.
+            f'{{"home": "~\\/.{_KIRO}\\/{_CREW}"}}',
+            f'new RegExp("\\\\.{_KIRO}\\\\\\\\{_CREW}")',
+        ],
+    )
+    def test_a_regex_or_escaped_spelling_of_the_data_home_is_flagged(self, line: str) -> None:
+        assert _kinds(line) == ["home"], f"missed: {line}"
+
+    def test_the_data_home_is_reported_once_not_again_as_the_name(self) -> None:
+        # The path contains the two-word name; the leftmost rule claims the span.
+        assert len(_hits(f"{_HOME_POSIX}/.env")) == 1
+
+    @pytest.mark.parametrize(
+        "line",
+        [
+            f'CREW_HOME = Path.home() / ".{_KIRO}" / "{_CREW}"',
+            f'os.path.join(os.path.expanduser("~"), ".{_KIRO}", "{_CREW}")',
+            f"path.join(os.homedir(), '.{_KIRO}', '{_CREW}', 'workspace')",
+            f'parts = (".{_KIRO}", "{_CREW}")',
+            f'staging = Path(".{_KIRO}") / "{_CREW}-auth-staging"',
+            f'Path.home().joinpath(".{_KIRO}").joinpath("{_CREW}")',
+            f'legacy = home + "/.{_KIRO}/" + "{_CREW}"',
+            f'root = ".{_KIRO}" + "{_CREW}"',
+            f'f"{{home}}/.{_KIRO}{{os.sep}}{_CREW}"',
+            f"`${{home}}/.{_KIRO}${{path.sep}}{_CREW}`",
+            f"Path.home() / '.{_KIRO}' / f'{_CREW}'",
+        ],
+    )
+    def test_the_data_home_built_from_split_literals_is_flagged(self, line: str) -> None:
+        # Code rarely spells the data home as one literal: it joins kiro-cli's
+        # directory and the second word with a path operator, a comma or `+`, or
+        # interpolates the separator. Every one of those builds the retired path.
+        assert _kinds(line) == ["home"], f"missed: {line}"
+
+    @pytest.mark.parametrize(
+        "line",
+        [
+            'Path.home() / ".kiro" / "settings" / "cli.json"',
+            'os.path.join(home, ".kiro", "agents")',
+            "path.join(os.homedir(), '.kiro', 'settings', 'mcp.json')",
+            'f"{home}/.kiro{os.sep}agents"',
+        ],
+    )
+    def test_kiro_cli_paths_built_the_same_way_are_not_flagged(self, line: str) -> None:
+        assert _hits(line) == [], f"false positive: {line}"
+
+
+class TestRetiredLiterals:
+    @pytest.mark.parametrize("sub", ["download", "updates", "apps"])
+    def test_every_host_under_the_retired_domain_is_flagged(self, sub: str) -> None:
+        line = f"curl -fsSL https://{sub}.{_HOST}/cli.sh | sh"
+        assert _kinds(line) == ["host"]
+        assert _hits(line) == [_HOST]
+
+    def test_the_bare_retired_domain_is_flagged(self) -> None:
+        assert _kinds(f"alternate domain {_HOST.upper()}") == ["host"]
+
+    @pytest.mark.parametrize(
+        "dot",
+        [
+            "\\.",  # regex-escaped
+            "\\\\.",  # regex-escaped inside a string literal
+            "[.]",  # a one-character class
+        ],
+    )
+    def test_a_regex_spelling_of_the_host_is_flagged(self, dot: str) -> None:
+        # A test that asserts a URL against a pattern carries the retired host as
+        # much as the URL itself does, so reverting such a test must still fail.
+        host = _HOST.replace(".", dot)
+        line = f"assert.match(manualDownloadUrl('nightly'), /^https:\\/\\/download{dot}{host}\\//)"
+        assert _kinds(line) == ["host"], f"missed: {line}"
+        assert _hits(line) == [host]
+
+    def test_the_bundle_id_is_flagged_once(self) -> None:
+        # It contains the two-word name too; it is reported under its own rule only.
+        assert _kinds(f"codesign --identifier {_BUNDLE_ID} App.app") == ["bundle"]
+
+    def test_a_regex_spelling_of_the_bundle_id_is_flagged_once(self) -> None:
+        pattern = _BUNDLE_ID.replace(".", "\\.")
+        assert _kinds(f"expect(appId).toMatch(/^{pattern}$/)") == ["bundle"]
+
+    def test_the_slug_reports_the_org_and_the_name(self) -> None:
+        assert _kinds(f"https://github.com/{_SLUG}/issues") == ["org", "brand"]
+        assert _kinds(f"if: github.repository == '{_SLUG}'") == ["org", "brand"]
+
+    def test_the_org_alone_is_flagged(self) -> None:
+        assert _kinds(f"ghcr.io/{_ORG}/junction:latest") == ["org"]
+        assert _kinds(f"github.repository_owner == '{_ORG}'") == ["org"]
+        assert _kinds(f"registries: [{{ name: '{_ORG}-labs' }}]") == ["org"]
+
+    def test_the_org_with_any_repository_but_kiro_clis_is_flagged(self) -> None:
+        # Only kiro-cli's own repository is exempt. A half-renamed slug keeps the
+        # retired organisation, and an owner/repo pair naming another repository
+        # is flagged the same way.
+        assert _kinds(f"https://github.com/{_ORG}/junction") == ["org"]
+        assert _kinds(f"{{ owner: '{_ORG}', repo: 'Other' }}") == ["org"]
+        assert _kinds(f"github.com/{_ORG}/{_KIRO_CAP}Apps") == ["org"]
+        # The two words glued is the retired product, never kiro-cli's repository.
+        assert _kinds(f"{_ORG}/{_KIRO}{_CREW}") == ["org", "brand"]
+        assert _kinds(f"{{ owner: '{_ORG}', repo: '{_NAME}' }}") == ["org", "brand"]
+
+    @pytest.mark.parametrize(
+        "line",
+        [
+            f'import {{ {_MASCOT} }} from "./components/{_MASCOT}"',
+            f'<{_MASCOT} pose="wave" />',
+            f"the {_KIRO.capitalize()} {_GHOST} mascot",
+        ],
+    )
+    def test_the_mascot_is_flagged(self, line: str) -> None:
+        kinds = _kinds(line)
+        assert kinds and set(kinds) == {"mascot"}, f"missed: {line}"
+
+    def test_each_finding_names_its_replacement(self) -> None:
+        cases = {
+            f"Run {_NAME} now": "Junction",
+            f"under {_HOME_POSIX}": "~/.junction",
+            f"https://download.{_HOST}/": "getjunction.dev",
+            f"id {_BUNDLE_ID}": "dev.junction.desktop",
+            f"ghcr.io/{_ORG}/x": "laqaer/junction",
+            f"<{_MASCOT} />": "assets/brand/build.py",
+        }
+        for line, replacement in cases.items():
+            (violation,) = list(gate.scan_line("probe.py", 1, line))
+            assert replacement in violation.render(), line
+
+
+# ---------------------------------------------------------------------------
+# What stays: kiro-cli's own spellings and the generic word
+# ---------------------------------------------------------------------------
+
+
+class TestNotFlagged:
+    @pytest.mark.parametrize(
+        "line",
+        [
+            # kiro-cli's own home and everything under it.
+            "kiro-cli reads ~/.kiro/settings/cli.json",
+            "agent configs live in ~/.kiro/agents/junction.json",
+            'Path.home() / ".kiro" / "settings" / "mcp.json"',
+            "C:\\Users\\me\\.kiro\\settings\\cli.json",
+            # The harness itself.
+            "install kiro-cli, then run `kiro-cli chat`",
+            "the Kiro CLI is optional",
+            "agent.acp_backend = ACP_BACKEND_KIRO",
+            "is_kiro_backend(backend)",
+            "see https://kiro.dev/docs/cli for the harness",
+            "assert re.match(r'https://kiro\\.dev/docs', url)",
+            "re.compile(r'\\.kiro[\\\\/](?:settings|agents)')",
+            # kiro-cli's own repository under the organisation.
+            f"# (upstream fix requested in {_ORG}/{_KIRO_CAP}#10970)",
+            f"# busy repo ({_ORG}/{_KIRO_CAP} ~2.6k open)",
+            f"url: 'https://github.com/{_ORG}/{_KIRO_CAP}/issues/11'",
+            f"const SCOPE = 'github:github.com:{_ORG}/{_KIRO_CAP}'",
+            f"JSON.stringify({{ owner: '{_ORG}', repo: '{_KIRO_CAP}' }})",
+            f'OWNER, REPO = "{_ORG}", "{_KIRO_CAP}"',
+            f'{{"owner": "{_ORG}", "repo": "{_KIRO_CAP}"}}',
+            # The generic word on its own.
+            "a remote crew instance",
+            "the crew_companion app and its crews",
+            "STAGE_CREW_LEAF",
+            "Crew members share one Issue Radar board",
+            # The two words apart.
+            "kiro-cli drives the agent crew",
+            "kiro, then a crew",
+            # Junction itself.
+            "Junction routes agents and models.",
+            "Run `junction gateway` on loopback.",
+            "~/.junction/security_policy.json",
+            "https://download.getjunction.dev/cli.sh",
+            "dev.junction.desktop",
+            "laqaer/junction",
+        ],
+    )
+    def test_legitimate_spellings_are_not_flagged(self, line: str) -> None:
+        assert _hits(line) == [], f"false positive: {line}"
+
+
+# ---------------------------------------------------------------------------
+# Linearity
+# ---------------------------------------------------------------------------
+
+
+class TestLinearity:
+    @pytest.mark.parametrize(
         "filler,glue",
-        [(".", " "), ("a-", " "), ("x.com", " "), ("`", " "), ("a.", "")],
+        [
+            (".", " "),
+            ("a-", " "),
+            ("x.com", " "),
+            ("`", " "),
+            (f"{_KIRO} ", " "),
+            (f"{_KIRO}-cli ", ""),
+            (f"~/.{_KIRO}/", " "),
+            (f"{_KIRO}--", " "),
+            (f'.{_KIRO}" / "', " "),
+            (f"{_KIRO}%20", " "),
+            (f"{_KIRO}\\\\", " "),
+            (f"{_KIRO}[ -]", " "),
+            (f"{_KIRO}[\\s_", " "),
+            (f"{_KIRO}(?:-", " "),
+            (f".{_KIRO}[\\\\/]", " "),
+            (f"{_CREW}\\.{_KIRO}\\.x", " "),
+            ("\\", " "),
+            (f"{_ORG}/{_KIRO_CAP} ", " "),
+        ],
     )
     def test_a_very_long_line_stays_linear(self, filler: str, glue: str) -> None:
-        # A generated file can carry one enormous line. Quadratic backtracking here
-        # would blow the CI job's timeout on input nobody can see is pathological.
-        line = filler * (200_000 // len(filler)) + glue + "KiroCrew is here"
+        # A generated file can carry one enormous line, and each filler here is a
+        # run of near-misses for one rule. An unbounded quantifier would re-walk
+        # the run from every offset and blow the CI job's timeout on input nobody
+        # can see is pathological.
+        line = filler * (200_000 // len(filler)) + glue + f"{_NAME} is here"
         started = time.monotonic()
         found = _hits(line, path="big.md")
         assert time.monotonic() - started < 2.0
-        assert found == ["KiroCrew"]
+        assert found == [_NAME]
 
-    def test_many_brand_names_on_one_line_stay_linear(self) -> None:
+    def test_many_names_on_one_line_stay_linear(self) -> None:
         # The other axis: not one long line, but MANY matches on it. Any per-match
         # step that slices the line or rescans its prefix is quadratic here, and a
         # ratio assertion catches that where a wall-clock budget loose enough for a
         # loaded runner would not.
         #
-        # We only need to separate two regimes: a linear scan doubles the input for
-        # ~2x the time, while a quadratic one (slice/rescan the whole line per
-        # match) costs ~4x AND with a far larger constant that blows well past 4x
-        # at these sizes. The bound sits between them with headroom for a noisy
-        # runner, so real regressions are still caught.
-        #
-        # This mirrors the script's own ``--test`` growth check (and reuses its
-        # budgets, so tuning one tunes both) because it failed the same way and for
-        # the same reason: dividing two measured durations puts the whole burden on
-        # the timer, and the wall-clock form this test used to carry was the single
-        # largest source of Backend Tests (Windows) flakes.
-        #
-        # * WRONG CLOCK. ``time.monotonic()`` is ``GetTickCount64()`` on Windows, a
-        #   ~15.625ms tick. A ~50ms scan is only ~3 ticks wide, so quantisation
-        #   ALONE moved the ratio ~25%.
-        # * WALL CLOCK AT ALL. xdist workers oversubscribe the runner's cores, so
-        #   the timed region gets descheduled -- and the LONGER scan absorbs more
-        #   preemption than the shorter one, which inflates the ratio
-        #   systematically rather than symmetrically. Taking min() of several
-        #   wall-clock samples does NOT fix that: it is exactly what this test did,
-        #   and it still reported 3.7x against a 3.5x bound on a linear scan.
-        #   Measuring the two sizes in separate loops made it worse again, because
-        #   the two halves of the ratio then came from different conditions.
-        #
-        # So measure CPU time, which does not advance while the thread is off-CPU;
-        # pair each baseline with its own doubled sample; keep the best RATIO
-        # rather than the best time; and refuse to judge a baseline too small to
-        # divide. That is what lets the bound come back DOWN to the script's 3.0x
-        # from the 3.5x the noise had forced: measured under 2x CPU
-        # oversubscription, a linear scan stays at most 2.02x while a deliberately
-        # quadratic one never drops below 3.88x.
+        # This mirrors the script's own ``--test`` growth check and reuses its
+        # budgets, so tuning one tunes both. It measures CPU time, which does not
+        # advance while the thread is off-CPU: wall clock is quantised to a
+        # ~15.625ms tick on Windows, and when xdist workers oversubscribe the
+        # runner the LONGER scan absorbs more preemption than the shorter one,
+        # which inflates the ratio systematically. Each baseline is paired with its
+        # own doubled sample, the best RATIO is kept, and a baseline too small to
+        # divide is not judged. Under 2x CPU oversubscription a linear scan stays
+        # at most ~2x while a quadratic one never drops below ~3.9x.
         def ratio_of(base: int) -> tuple[float, float, int, int]:
             """Best (least noisy) doubled/base CPU-time ratio over several attempts."""
             best = math.inf
@@ -216,7 +493,7 @@ class TestUrlBoundary:
             found = (0, 0)
 
             def once(count: int) -> tuple[float, int]:
-                line = "!KiroCrew" * count
+                line = f"!{_NAME}" * count
                 began = time.process_time()
                 hits = len(_hits(line, path="big.md"))
                 return time.process_time() - began, hits
@@ -248,7 +525,7 @@ class TestUrlBoundary:
         assert (base_found, doubled_found) == (base_count, base_count * 2)
         if base_time < gate._PERF_MIN_BASE_SECS:
             pytest.skip(
-                f"baseline {base_time * 1000:.1f}ms at {base_count} brands is still below "
+                f"baseline {base_time * 1000:.1f}ms at {base_count} names is still below "
                 f"the {gate._PERF_MIN_BASE_SECS * 1000:.0f}ms measurement floor; a ratio "
                 "here would be noise divided by noise. Quadratic growth at this size "
                 "costs orders of magnitude more than the floor, so this cannot be hiding "
@@ -256,123 +533,50 @@ class TestUrlBoundary:
             )
         assert ratio < 3.0, (
             f"doubling the input cost {ratio:.1f}x CPU time (best of {gate._PERF_ATTEMPTS}, "
-            f"baseline {base_time:.3f}s at {base_count} brands); linear is ~2x, so a "
+            f"baseline {base_time:.3f}s at {base_count} names); linear is ~2x, so a "
             "per-match scan of the line has come back"
         )
 
-    def test_many_backticks_stay_linear(self) -> None:
-        line = "`x`" * 30_000 + " KiroCrew"
-        started = time.monotonic()
-        assert _hits(line, path="big.md") == ["KiroCrew"]
-        assert time.monotonic() - started < 2.0
-
 
 # ---------------------------------------------------------------------------
-# Markdown code context
-# ---------------------------------------------------------------------------
-
-
-class TestMarkdownCode:
-    def test_fenced_block_is_exempt_and_surrounding_prose_is_not(self) -> None:
-        doc = [
-            "Install KiroCrew:",
-            "```bash",
-            "git clone https://github.com/kirodotdev/KiroCrew.git",
-            "cd KiroCrew",
-            "```",
-            "Then start KiroCrew.",
-        ]
-        fenced = gate.fenced_lines(doc)
-        assert fenced == {2, 3, 4, 5}
-        flagged = [
-            i
-            for i, line in enumerate(doc, start=1)
-            for _ in gate.scan_line("doc.md", i, line, in_code=i in fenced)
-        ]
-        assert flagged == [1, 6]
-
-    def test_tilde_fences_and_reopened_blocks(self) -> None:
-        doc = ["a", "~~~", "cd KiroCrew", "~~~", "b", "```", "cd KiroCrew", "```"]
-        assert gate.fenced_lines(doc) == {2, 3, 4, 6, 7, 8}
-
-    def test_a_wider_fence_is_not_closed_by_a_narrower_run(self) -> None:
-        # `builtin_skills/artifacts/SKILL.md` quotes fenced examples inside
-        # four-backtick blocks. Closing the outer fence on the inner ``` would
-        # expose the example's contents as prose and flag its identifiers.
-        doc = ["````markdown", "```bash", "cd KiroCrew", "```", "````", "Then run KiroCrew."]
-        assert gate.fenced_lines(doc) == {1, 2, 3, 4, 5}
-        flagged = [
-            i
-            for i, line in enumerate(doc, start=1)
-            for _ in gate.scan_line("doc.md", i, line, in_code=i in gate.fenced_lines(doc))
-        ]
-        assert flagged == [6]
-
-    def test_a_closing_fence_may_not_carry_an_info_string(self) -> None:
-        # Only a bare run closes; ```` ```python ```` inside a block is an opener
-        # for a nested example, not the outer block's terminator.
-        doc = ["````", "```python", "x = 1", "```", "````", "KiroCrew here"]
-        assert gate.fenced_lines(doc) == {1, 2, 3, 4, 5}
-
-    def test_inline_code_span_is_exempt_but_the_rest_of_the_line_is_not(self) -> None:
-        assert _hits("clone `KiroCrew` then start KiroCrew.", path="doc.md") == ["KiroCrew"]
-
-    def test_inline_code_exemption_is_markdown_only(self) -> None:
-        # A backtick in Python is not a code span; a TS template literal string
-        # is still shipped text.
-        assert _hits("s = 'see `KiroCrew` docs'", path="a.py") == ["KiroCrew"]
-
-    def test_the_uncapitalised_rule_has_its_own_inline_code_exemption(self) -> None:
-        # A separate branch from the concatenated rule's, so it needs its own case.
-        assert _hits("run `kiro crew` from a shell", path="doc.md") == []
-        assert _hits("run kiro crew from a shell", path="doc.md") == ["kiro crew"]
-
-
-# ---------------------------------------------------------------------------
-# Scope: files and diffs
+# Scope: the NOTICE exemption, files and diffs
 # ---------------------------------------------------------------------------
 
 
 class TestScope:
-    def test_out_of_scope_paths(self) -> None:
-        assert not gate.in_scope("website/package-lock.json")
-        assert not gate.in_scope("node_modules/foo/README.md")
-        assert not gate.in_scope("assets/banner.png")
-        assert not gate.in_scope("scripts/check_brand_name.py")
-        assert not gate.in_scope("src/junction/_vendor/libggml-base.so.0")
-        assert not gate.in_scope("website/electron/package.json")
-        assert gate.in_scope("README.md")
+    def test_the_root_notice_is_the_only_exempt_path(self) -> None:
+        assert gate.exempt("NOTICE")
+        assert gate.exempt("./NOTICE")
+        assert gate.exempt(os.path.join(gate.REPO_ROOT, "NOTICE"))
+        assert not gate.in_scope("NOTICE")
+        for path in ("docs/NOTICE", "NOTICE.md", "packaging/NOTICE", "THIRD-PARTY-NOTICES.md"):
+            assert not gate.exempt(path), path
+            assert gate.in_scope(path), path
 
-    def test_generated_artifacts_are_reported_but_never_enforced(self) -> None:
-        # A regeneration or re-indent moves lines the author did not write, and JSON
-        # has no comment syntax to opt out of.
+    def test_text_the_old_gate_skipped_is_now_scanned(self) -> None:
+        # No generated-file, lockfile or self exemption survives: the identity is
+        # retired in every one of them.
         for path in (
+            "scripts/check_brand_name.py",
+            "test/test_brand_name_gate.py",
+            "website/electron/package.json",
+            "website/package-lock.json",
             "website/src/i18n/locales/de.json",
-            "website/src/i18n/locales/zh-CN.json",
-            "website/src/i18n/locales/en-XA.json",
             "src/junction/data/tips_catalog.json",
+            "CHANGELOG.md",
         ):
             assert gate.in_scope(path), path
-            assert not gate.enforced(path), path
-        # The sources they are generated FROM stay enforced — that is where a human
-        # writes the string, and fixing it there is what reaches the artifact.
-        for path in (
-            "website/src/i18n/locales/en.json",
-            "website/src/i18n/locales/en.manual.json",
-            "website/src/i18n/glossary.json",
-            "src/junction/docs/skills.md",
-        ):
-            assert gate.enforced(path), path
 
-    def test_enforced_is_never_wider_than_in_scope(self) -> None:
-        for path in (
-            "website/package-lock.json",
-            "src/junction/_vendor/x.so.0",
-            "website/electron/package.json",
-            "website/src/i18n/locales/de.json",
-            "src/junction/data/tips_catalog.json",
-        ):
-            assert not (gate.enforced(path) and not gate.in_scope(path)), path
+    def test_bytes_that_are_not_text_stay_out_of_scope(self) -> None:
+        assert not gate.in_scope("node_modules/foo/README.md")
+        assert not gate.in_scope("assets/banner.png")
+        assert not gate.in_scope("src/junction/_vendor/libggml-base.so.0")
+        assert gate.in_scope("README.md")
+
+    def test_the_gate_and_its_tests_carry_no_retired_spelling(self) -> None:
+        # Both are scanned like any other file, so they must stay clean themselves.
+        assert gate.scan_file("scripts/check_brand_name.py") == []
+        assert gate.scan_file("test/test_brand_name_gate.py") == []
 
     def test_scan_file_restricted_to_given_lines(self, tmp_path, monkeypatch) -> None:
         # Point the scanner's root at tmp_path rather than deriving a relative path
@@ -380,7 +584,7 @@ class TestScope:
         # os.path.relpath raises across mounts.
         monkeypatch.setattr(gate, "REPO_ROOT", str(tmp_path))
         (tmp_path / "note.md").write_text(
-            "KiroCrew one\nKiroCrew two\nKiroCrew three\n", encoding="utf-8"
+            f"{_NAME} one\n{_NAME} two\n{_NAME} three\n", encoding="utf-8"
         )
         assert len(gate.scan_file("note.md")) == 3
         assert [v.line_no for v in gate.scan_file("note.md", {2})] == [2]
@@ -393,7 +597,7 @@ class TestScope:
         # git splits on \n only. A lone \r must not start a new line here, or every
         # line number after it points at the wrong text.
         monkeypatch.setattr(gate, "REPO_ROOT", str(tmp_path))
-        (tmp_path / "crlf.md").write_bytes(b"one\r\ntwo \rstill two\r\nKiroCrew\r\n")
+        (tmp_path / "crlf.md").write_bytes(b"one\r\ntwo \rstill two\r\n" + _NAME.encode() + b"\r\n")
         lines = gate.read_lines("crlf.md")
         assert lines is not None and len(lines) == 4  # 3 real lines + trailing ""
         assert [v.line_no for v in gate.scan_file("crlf.md")] == [3]
@@ -453,42 +657,84 @@ class TestDiffScopedRun:
         subprocess.run(["git", "add", "-A"], cwd=root, check=True, capture_output=True)
         subprocess.run(["git", "commit", "-qm", msg], cwd=root, check=True, capture_output=True)
 
-    def test_preexisting_violation_does_not_fail_the_diff_gate(self, tmp_path) -> None:
+    def test_preexisting_residue_does_not_fail_the_diff_gate(self, tmp_path) -> None:
         root = self._repo(tmp_path)
-        self._commit(root, "doc.md", "Old line about KiroCrew.\n", "base")
-        base = subprocess.run(
-            ["git", "rev-parse", "HEAD"], cwd=root, capture_output=True, text=True, check=True
-        ).stdout.strip()
-        self._commit(root, "doc.md", "Old line about KiroCrew.\nA clean new line.\n", "head")
+        self._commit(root, "doc.md", f"Old line about {_NAME}.\n", "base")
+        base = self._head(root)
+        self._commit(root, "doc.md", f"Old line about {_NAME}.\nA clean new line.\n", "head")
 
         result = self._run(root, base)
         assert result.returncode == 0, result.stdout
-        assert "no misspellings" in result.stdout
+        assert "no retired upstream identity" in result.stdout
 
-    def test_added_violation_fails_with_the_correct_spelling_in_the_message(
-        self, tmp_path
-    ) -> None:
+    def test_added_residue_fails_and_names_the_replacement(self, tmp_path) -> None:
         root = self._repo(tmp_path)
         self._commit(root, "doc.md", "Nothing to see.\n", "base")
-        base = subprocess.run(
-            ["git", "rev-parse", "HEAD"], cwd=root, capture_output=True, text=True, check=True
-        ).stdout.strip()
-        self._commit(root, "doc.md", "Nothing to see.\nNow with KiroCrew in it.\n", "head")
+        base = self._head(root)
+        self._commit(root, "doc.md", f"Nothing to see.\nNow with {_NAME} in it.\n", "head")
 
         result = self._run(root, base)
         assert result.returncode == 1, result.stdout
-        assert "::error::" in result.stdout
-        assert "'Kiro Crew'" in result.stdout
+        assert result.stdout.startswith("::error::brand gate:")
         assert "doc.md:2" in result.stdout
+        assert "Junction" in result.stdout
+
+    @pytest.mark.parametrize(
+        "line",
+        [
+            f"export {_NAME_ENV}_HOME=/tmp/x",
+            f"state under {_HOME_POSIX}",
+            f'home = Path.home() / ".{_KIRO}" / "{_CREW}"',
+            f"curl https://updates.{_HOST}/feed",
+            f"identifier {_BUNDLE_ID}",
+            f"ghcr.io/{_ORG}/junction",
+            f"<{_MASCOT} />",
+        ],
+    )
+    def test_every_rule_family_fails_the_diff_gate(self, tmp_path, line: str) -> None:
+        root = self._repo(tmp_path)
+        self._commit(root, "run.sh", "#!/bin/sh\n", "base")
+        base = self._head(root)
+        self._commit(root, "run.sh", f"#!/bin/sh\n{line}\n", "head")
+
+        result = self._run(root, base)
+        assert result.returncode == 1, result.stdout
+        assert "run.sh:2" in result.stdout
+
+    def test_the_root_notice_is_exempt_and_nothing_else_is(self, tmp_path) -> None:
+        root = self._repo(tmp_path)
+        self._commit(root, "README.md", "clean\n", "base")
+        base = self._head(root)
+        attribution = f"This product includes {_NAME} by its original authors.\n"
+        self._commit(root, "NOTICE", attribution, "attribution")
+
+        result = self._run(root, base)
+        assert result.returncode == 0, result.stdout
+
+        # The same attribution anywhere else is residue, including a nested NOTICE.
+        self._commit(root, "docs/NOTICE", attribution, "nested")
+        result = self._run(root, base)
+        assert result.returncode == 1, result.stdout
+        assert "docs/NOTICE:1" in result.stdout
+        assert "NOTICE:1" not in result.stdout.replace("docs/NOTICE:1", "")
 
     def test_no_base_ref_reports_the_whole_tree_without_failing(self, tmp_path) -> None:
         root = self._repo(tmp_path)
-        self._commit(root, "doc.md", "Prose about KiroCrew everywhere.\n", "base")
+        self._commit(root, "doc.md", f"Prose about {_NAME} everywhere.\n", "base")
 
         result = self._run(root, None)
         assert result.returncode == 0, result.stdout
         assert "::notice::" in result.stdout
         assert "doc.md:1" in result.stdout
+
+    def test_the_whole_tree_report_skips_the_root_notice(self, tmp_path) -> None:
+        root = self._repo(tmp_path)
+        self._commit(root, "NOTICE", f"{_NAME} attribution\n", "base")
+
+        result = self._run(root, None)
+        assert result.returncode == 0, result.stdout
+        assert "NOTICE" not in result.stdout
+        assert "no retired upstream identity in the whole tree" in result.stdout
 
     # --- the three ways a diff-scoped gate can skip itself green -------------
 
@@ -498,7 +744,7 @@ class TestDiffScopedRun:
         root = self._repo(tmp_path)
         self._commit(root, ".gitattributes", "*.md -diff\n", "base")
         base = self._head(root)
-        self._commit(root, "doc.md", "Run KiroCrew today.\n", "head")
+        self._commit(root, "doc.md", f"Run {_NAME} today.\n", "head")
 
         result = self._run(root, base)
         assert result.returncode == 1, result.stdout
@@ -510,7 +756,7 @@ class TestDiffScopedRun:
         root = self._repo(tmp_path)
         self._commit(root, "clean.md", "nothing here\n", "base")
         base = self._head(root)
-        self._commit(root, "日本語.md", "Run KiroCrew today.\n", "head")
+        self._commit(root, "日本語.md", f"Run {_NAME} today.\n", "head")
 
         result = self._run(root, base)
         assert result.returncode == 1, result.stdout
@@ -533,7 +779,7 @@ class TestDiffScopedRun:
 
     def test_a_pure_deletion_hunk_contributes_nothing(self, tmp_path) -> None:
         root = self._repo(tmp_path)
-        self._commit(root, "doc.md", "keep\nKiroCrew line\nkeep\n", "base")
+        self._commit(root, "doc.md", f"keep\n{_NAME} line\nkeep\n", "base")
         base = self._head(root)
         self._commit(root, "doc.md", "keep\nkeep\n", "head")
 
@@ -545,7 +791,7 @@ class TestDiffScopedRun:
         root = self._repo(tmp_path)
         self._commit(root, "existing.md", "nothing\n", "base")
         base = self._head(root)
-        self._commit(root, "fresh.md", "line one\nRun KiroCrew here.\n", "head")
+        self._commit(root, "fresh.md", f"line one\nRun {_NAME} here.\n", "head")
 
         result = self._run(root, base)
         assert result.returncode == 1, result.stdout
@@ -562,7 +808,7 @@ class TestDiffScopedRun:
             check=True,
             capture_output=True,
         )
-        self._commit(root, "doc.md", "Now with KiroCrew in it.\n", "orphan")
+        self._commit(root, "doc.md", f"Now with {_NAME} in it.\n", "orphan")
         assert (
             subprocess.run(
                 ["git", "merge-base", "main", "HEAD"], cwd=root, capture_output=True
@@ -574,7 +820,8 @@ class TestDiffScopedRun:
         assert result.returncode == 1, result.stdout
         assert "doc.md:1" in result.stdout
 
-    def test_a_translated_catalog_cannot_fail_the_gate(self, tmp_path) -> None:
+    def test_a_translated_catalog_is_enforced(self, tmp_path) -> None:
+        # Generated catalogs are shipped text; the identity is retired there too.
         root = self._repo(tmp_path)
         os.makedirs(os.path.join(root, "website/src/i18n/locales"))
         self._commit(root, "website/src/i18n/locales/de.json", "{}\n", "base")
@@ -582,12 +829,13 @@ class TestDiffScopedRun:
         self._commit(
             root,
             "website/src/i18n/locales/de.json",
-            '{\n  "update": "KiroCrew wird aktualisiert"\n}\n',
+            f'{{\n  "update": "{_NAME} wird aktualisiert"\n}}\n',
             "head",
         )
 
         result = self._run(root, base)
-        assert result.returncode == 0, result.stdout
+        assert result.returncode == 1, result.stdout
+        assert "de.json:2" in result.stdout
 
     def test_a_clean_verdict_survives_a_non_utf8_console(self, tmp_path) -> None:
         # The clean verdict ends in a check mark and the error line carries an em
@@ -602,13 +850,13 @@ class TestDiffScopedRun:
         result = self._run(root, base, PYTHONIOENCODING="ascii")
         assert result.returncode == 0, f"stdout={result.stdout!r} stderr={result.stderr!r}"
         assert "UnicodeEncodeError" not in result.stderr
-        assert "no misspellings" in result.stdout
+        assert "no retired upstream identity" in result.stdout
 
     def test_a_non_ascii_path_is_printable_on_a_non_utf8_console(self, tmp_path) -> None:
         root = self._repo(tmp_path)
         self._commit(root, "clean.md", "nothing here\n", "base")
         base = self._head(root)
-        self._commit(root, "日本語.md", "Run KiroCrew today.\n", "head")
+        self._commit(root, "日本語.md", f"Run {_NAME} today.\n", "head")
 
         result = self._run(root, base, PYTHONIOENCODING="ascii")
         assert result.returncode == 1, f"stdout={result.stdout!r} stderr={result.stderr!r}"
@@ -630,13 +878,11 @@ class TestDiffScopedRun:
         assert "self-test passed" in result.stdout
 
     def test_self_test_actually_judges_the_growth_ratio(self, tmp_path) -> None:
-        """The repeated-brands check must reach a verdict, not skip itself.
+        """The repeated-names check must reach a verdict, not skip itself.
 
-        Its baseline used to be a fixed 20k brands, which costs fast hardware
-        ~19-21ms against a 20ms measurement floor. Landing under the floor made
-        the check print `ok ... ratio not judged` and test nothing, so on a fast
-        machine the quadratic guard was a coin-flip no-op. The workload now grows
-        until the baseline is measurable, so a real ratio is always reported.
+        A baseline under the measurement floor makes the check print
+        ``ratio not judged`` and test nothing, so the workload grows until the
+        baseline is measurable and a real ratio is always reported.
         """
         root = self._repo(tmp_path)
         self._commit(root, "doc.md", "clean\n", "base")
@@ -648,21 +894,16 @@ class TestDiffScopedRun:
             errors="replace",
         )
         assert result.returncode == 0, result.stdout
-        verdict = [ln for ln in result.stdout.splitlines() if "repeated-brands" in ln]
-        assert len(verdict) == 1, f"expected one repeated-brands line, got {verdict!r}"
-        assert "ratio not judged" not in verdict[0], (
-            f"the quadratic guard skipped its own measurement: {verdict[0]!r}"
-        )
+        verdict = [ln for ln in result.stdout.splitlines() if "repeated-names" in ln]
+        assert len(verdict) == 1, f"expected one repeated-names line, got {verdict!r}"
+        assert (
+            "ratio not judged" not in verdict[0]
+        ), f"the quadratic guard skipped its own measurement: {verdict[0]!r}"
         assert "doubling cost" in verdict[0], verdict[0]
 
 
 class TestExplicitPathFailsClosed:
-    """A path handed to the gate directly must be read, or the run must fail.
-
-    The diff-scoped path already refuses to pass on an unreadable file. The
-    explicit-path branch did not, so a typo'd or moved argument printed the
-    success line and exited 0 — a false green that looks exactly like a real one.
-    """
+    """A path handed to the gate directly must be read, or the run must fail."""
 
     @staticmethod
     def _run(*args: str) -> subprocess.CompletedProcess:
@@ -682,43 +923,54 @@ class TestExplicitPathFailsClosed:
         assert result.returncode == 1, result.stdout
         assert "never checked" in result.stdout
         assert "definitely/not/a/file.md" in result.stdout
-        assert "no misspellings" not in result.stdout
+        assert "no retired upstream identity" not in result.stdout
 
     def test_an_undecodable_path_fails_closed(self, tmp_path) -> None:
         blob = tmp_path / "notes.md"
-        blob.write_bytes(b"\xff\xfe\x00KiroCrew")
+        blob.write_bytes(b"\xff\xfe\x00" + _NAME.encode())
         result = self._run(str(blob))
         assert result.returncode == 1, result.stdout
         assert "never checked" in result.stdout
 
     def test_a_readable_clean_path_still_passes(self, tmp_path) -> None:
         doc = tmp_path / "clean.md"
-        doc.write_text("Prose about Kiro Crew.\n", encoding="utf-8")
+        doc.write_text("Prose about Junction and kiro-cli (~/.kiro/settings).\n", encoding="utf-8")
         result = self._run(str(doc))
         assert result.returncode == 0, result.stdout
-        assert "no misspellings" in result.stdout
+        assert "no retired upstream identity in the files given" in result.stdout
 
     def test_a_readable_dirty_path_still_fails_on_the_finding(self, tmp_path) -> None:
         doc = tmp_path / "dirty.md"
-        doc.write_text("Prose about KiroCrew.\n", encoding="utf-8")
+        doc.write_text(f"Prose about {_NAME_SPACED}.\n", encoding="utf-8")
         result = self._run(str(doc))
         assert result.returncode == 1, result.stdout
         assert "dirty.md:1" in result.stdout
         # Failing on the finding, not on readability.
         assert "never checked" not in result.stdout
 
+    def test_the_gate_and_its_tests_pass_their_own_scan(self) -> None:
+        # Neither is exempt, so both must stay clean through the real entry point.
+        result = self._run("scripts/check_brand_name.py", "test/test_brand_name_gate.py")
+        assert result.returncode == 0, result.stdout
+
+    def test_a_notice_outside_the_repository_root_is_scanned(self, tmp_path) -> None:
+        notice = tmp_path / "NOTICE"
+        notice.write_text(f"{_NAME} attribution\n", encoding="utf-8")
+        result = self._run(str(notice))
+        assert result.returncode == 1, result.stdout
+        assert "NOTICE:1" in result.stdout
+
 
 class TestReportDisclosesTruncation:
     """The whole-tree report must not hide the backlog it claims to report.
 
-    The listing is path-sorted, so a silent cut showed only the alphabetically
-    first paths. That is how UI-visible strings under src/ and website/ stayed
-    invisible while the report cheerfully printed a four-digit total.
+    The listing is path-sorted, so a silent cut shows only the alphabetically
+    first paths while the report prints a large total.
     """
 
     def test_a_truncated_report_says_so_and_tallies_by_path(self, capsys) -> None:
         violations = [
-            gate.Violation(f"{top}/f{i}.md", 1, "KiroCrew", "KiroCrew")
+            gate.Violation(f"{top}/f{i}.md", 1, _NAME, _NAME)
             # 'zzz' sorts last, so a silent head-slice would drop it entirely.
             for top, count in (("aaa", 40), ("zzz", 5))
             for i in range(count)
@@ -734,7 +986,7 @@ class TestReportDisclosesTruncation:
         assert "all 45 lines" in out
 
     def test_an_untruncated_report_adds_no_tally_or_notice(self, capsys) -> None:
-        violations = [gate.Violation("a.md", 1, "KiroCrew", "KiroCrew")]
+        violations = [gate.Violation("a.md", 1, _NAME, _NAME)]
         assert gate.report(violations, enforcing=False, base=None) == 0
         out = capsys.readouterr().out
         assert "more" not in out
@@ -742,9 +994,7 @@ class TestReportDisclosesTruncation:
         assert "a.md:1" in out
 
     def test_the_enforcing_path_keeps_its_own_cap_and_notice(self, capsys) -> None:
-        violations = [
-            gate.Violation(f"f{i}.md", 1, "KiroCrew", "KiroCrew") for i in range(205)
-        ]
+        violations = [gate.Violation(f"f{i}.md", 1, _NAME, _NAME) for i in range(205)]
         assert gate.report(violations, enforcing=True, base="HEAD") == 1
         out = capsys.readouterr().out
         assert "... and 5 more" in out
@@ -753,7 +1003,7 @@ class TestReportDisclosesTruncation:
 
     def test_a_root_level_path_is_tallied_without_a_trailing_slash(self, capsys) -> None:
         violations = [
-            gate.Violation("install.sh" if i % 2 else "docs/a.md", 1, "KiroCrew", "KiroCrew")
+            gate.Violation("install.sh" if i % 2 else "docs/a.md", 1, _NAME, _NAME)
             for i in range(50)
         ]
         assert gate.report(violations, enforcing=False, base=None) == 0

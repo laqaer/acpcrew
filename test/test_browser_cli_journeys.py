@@ -22,8 +22,8 @@ from junction.browser_cli import install, launch, snapshots, view
 
 @pytest.fixture()
 def home(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> Path:
-    monkeypatch.setattr(snapshots, "config_dir", lambda: tmp_path / "crew")
-    (tmp_path / "crew").mkdir(parents=True, exist_ok=True)
+    monkeypatch.setattr(snapshots, "config_dir", lambda: tmp_path / "data-home")
+    (tmp_path / "data-home").mkdir(parents=True, exist_ok=True)
     return tmp_path
 
 
@@ -137,7 +137,7 @@ class TestSnapshotDirectoryIsOursAlone:
     """Pruning is the one destructive act, and it is scoped to derived output."""
 
     def test_pruning_cannot_reach_outside_the_snapshot_directory(self, home: Path):
-        outside = home / "crew" / "playwright-config-of-mine.json"
+        outside = home / "data-home" / "playwright-config-of-mine.json"
         outside.write_text("{}", encoding="utf-8")
         snapshots.snapshot_dir().mkdir(parents=True, exist_ok=True)
         old = time.time() - (10 * 24 * 60 * 60)

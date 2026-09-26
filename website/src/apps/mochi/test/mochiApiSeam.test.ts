@@ -107,10 +107,10 @@ describe('mochiApi config shape', () => {
 
   it('drops keys the builtin does not own instead of posting them', async () => {
     const api = await loadApi()
-    await api.updateConfig({ mochi: { petName: 'Kiro', theme: 'mocha', soul: 'x' } })
+    await api.updateConfig({ mochi: { petName: 'Tofu', theme: 'mocha', soul: 'x' } })
     // The write route rejects unknown keys, so one unowned key must not cost the
     // user the rest of the save.
-    expect(updateSettings).toHaveBeenCalledWith({ petName: 'Kiro' })
+    expect(updateSettings).toHaveBeenCalledWith({ petName: 'Tofu' })
   })
 
   it('makes no request when a partial reduces to nothing owned', async () => {
@@ -136,17 +136,17 @@ describe('mochiApi config shape', () => {
     // for `shortcuts`: one keyboard belongs to one computer.
     const api = await loadApi()
     await api.updateConfig({
-      mochi: { petName: 'Kiro', petInstance: 'crew-remote' },
+      mochi: { petName: 'Tofu', petInstance: 'inst-remote' },
       shortcuts: { toggleWindow: 'Alt+Shift+M' },
     })
-    expect(updateSettings).toHaveBeenCalledWith({ petName: 'Kiro' })
+    expect(updateSettings).toHaveBeenCalledWith({ petName: 'Tofu' })
   })
 
   it('makes no request when a partial holds ONLY shell-owned prefs', async () => {
     // The corollary: a save that changed nothing else must not fire a write whose
     // entire payload the gateway does not own.
     const api = await loadApi()
-    await api.updateConfig({ mochi: { petInstance: 'crew-remote' } })
+    await api.updateConfig({ mochi: { petInstance: 'inst-remote' } })
     expect(updateSettings).not.toHaveBeenCalled()
   })
 })
@@ -159,7 +159,7 @@ describe('mochiApi per-machine prefs overlay', () => {
     // user's real choice is invisible.
     const bridge = await import('../pet/petBridge')
     vi.spyOn(bridge, 'machinePrefs').mockResolvedValue({
-      petInstance: 'crew-shell',
+      petInstance: 'inst-shell',
       shortcuts: { toggleWindow: 'Alt+Shift+K' },
     })
 
@@ -168,7 +168,7 @@ describe('mochiApi per-machine prefs overlay', () => {
       mochi: Record<string, unknown>
       shortcuts: Record<string, string>
     }
-    expect(cfg.mochi.petInstance).toBe('crew-shell')
+    expect(cfg.mochi.petInstance).toBe('inst-shell')
     expect(cfg.shortcuts.toggleWindow).toBe('Alt+Shift+K')
   })
 

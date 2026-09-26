@@ -1,47 +1,37 @@
-"""Contract tests for Windows Authenticode signing via AWS Signer.
+"""Contract tests for Windows Authenticode signing with a code-signing certificate.
 
 Windows signing is unlike the macOS path in one structural way, and every
 property below follows from it: **signing happens INSIDE the build**. The NSIS
 installer is a self-extracting archive -- the app executable is signed, then
 compressed into the installer payload, then the installer and its generated
 uninstaller are signed -- so signing afterwards would mean unpacking and
-rebuilding that structure by hand. Instead
-``website/electron/scripts/sign-windows.js`` hooks electron-builder wherever it
-would have called ``signtool``.
+rebuilding that structure by hand. electron-builder's own signtool integration
+signs at each of those points when ``WIN_CSC_LINK`` carries a certificate.
 
 That makes the Windows build job hold a production signing identity, which the
-macOS legs deliberately do not. It is also why Windows has its own reusable
-workflow: ``build-desktop.yml`` is pinned credential-free by
+macOS build legs deliberately do not. It is also why Windows has its own
+reusable workflow: ``build-desktop.yml`` is pinned credential-free by
 ``test_workflow_permissions.py``, and putting the signing leg back in it would
-hand OIDC to the mac and Linux legs too.
+put the certificate within reach of the mac and Linux legs too.
 
 The properties that keep this safe, none of which fails at PR time if broken:
 
-* **``id-token: write`` is granted by the callers.** A reusable workflow can
-  never exceed its caller's permissions, so a callee declaring OIDC is not
-  enough -- the nightly/release caller jobs must grant it. Pinned in
-  ``test_workflow_permissions.py``; asserted here from the callee side.
-* **The prod environment is requested on publishing paths.** The signing role's
-  OIDC trust accepts exactly ``ref:refs/heads/main`` and ``environment:prod``.
-  Release runs are tag-triggered (``ref:refs/tags/v*``, untrusted), so without
-  the environment they cannot assume the role. It must NOT be requested on the
-  any-ref dispatch probe, whose refs the prod branch policy rejects.
-* **The hook is wired into electron-builder.** A ``win`` config without
-  ``signtoolOptions.sign`` builds a perfectly good UNSIGNED installer, silently.
-* **``CSC_IDENTITY_AUTO_DISCOVERY`` stays false.** There is no certificate on the
-  runner -- the private key lives in the signing service and never leaves it.
-  Letting electron-builder hunt for a local certificate invites it to pick up
-  something unexpected instead of going through the hook.
-* **The five ``WINDOWS_SIGNING_*`` values are gated on the same flag as the
-  credentials.** They are inline literals, so if they were set unconditionally
-  the hook could never reach its "not configured" skip path: it would find a
-  full environment, call the AWS CLI without credentials, and FAIL the build on
-  every fork and on any repo without the secret. That regression is the reason
-  this file asserts the gate and not just the values.
-
-``sts:ExternalId`` must equal the Signer application name, which is undocumented
-and load-bearing -- without it any principal in the allowlisted account can
-assume the artifact role.
+* **The build job mints no OIDC token.** The certificate arrives from secrets,
+  so the job needs ``contents: read`` and nothing else. The caller side is
+  pinned in ``test_workflow_permissions.py``; asserted here from the callee.
+* **The prod environment is requested on publishing paths.** The certificate
+  is a ``prod`` environment secret, and that environment's deployment policy
+  admits only main and ``v*`` tags. Without it a release build cannot read the
+  certificate and ships unsigned. It must NOT be requested on the any-ref
+  dispatch probe, whose refs the prod branch policy rejects.
+* **The certificate and its password are gated on one flag.** The build either
+  receives the whole identity or none of it. With none, electron-builder finds
+  no certificate and builds unsigned, which is the documented fork and probe
+  behaviour. A certificate without its password is refused before the build.
+* **The client and the publish lane expect the same publisher.** The build
+  config names no ``publisherName``, so electron-builder writes the signing
+  certificate's own subject CN into ``app-update.yml``, and the publish lane
+  checks the installer's signer against ``WINDOWS_SIGNING_SUBJECT_CN``.
 """
 
 from __future__ import annotations
@@ -56,27 +46,22 @@ ROOT = Path(__file__).resolve().parents[1]
 WORKFLOWS = ROOT / ".github" / "workflows"
 BUILD_WORKFLOW = WORKFLOWS / "build-windows.yml"
 ELECTRON_PACKAGE_JSON = ROOT / "website" / "electron" / "package.json"
-SIGN_HOOK = ROOT / "website" / "electron" / "scripts" / "sign-windows.js"
 
-# Values the deployed infrastructure actually uses. Pinned rather than derived so
-# a rename on either side has to be a deliberate, visible edit here: the Signer
-# application name doubles as the IAM role prefix AND the sts:ExternalId, so
-# changing it forces Signer to recreate the signing profiles or every job starts
-# failing with AccessDeniedException. Deployed in JunctionPublishCDK
-# lib/windows-signer-stack.ts.
-SIGNER_APPLICATION_NAME = "JunctionWindows"
-EXPECTED_SIGNING_ENV = {
-    "WINDOWS_SIGNING_UNSIGNED_BUCKET": "junction-windows-unsigned-116101834266",
-    "WINDOWS_SIGNING_SIGNED_BUCKET": "junction-windows-signed-116101834266",
-    "WINDOWS_SIGNING_PROFILE_ID": "JunctionWindowsExe",
-    "WINDOWS_SIGNING_ARTIFACT_ROLE": (
-        f"arn:aws:iam::116101834266:role/{SIGNER_APPLICATION_NAME}-ArtifactAccessRole"
-    ),
-    "WINDOWS_SIGNING_EXTERNAL_ID": SIGNER_APPLICATION_NAME,
+# The secrets and variable the Windows signing chain reads. Named once so a
+# rename has to be a deliberate, visible edit here and in
+# docs/build/signing-runbook.md, which documents all three for operators.
+CERT_SECRET = "WINDOWS_SIGNING_CERT_P12_BASE64"
+CERT_PASSWORD_SECRET = "WINDOWS_SIGNING_CERT_PASSWORD"
+SUBJECT_CN_VARIABLE = "WINDOWS_SIGNING_SUBJECT_CN"
+
+# electron-builder's native Windows signing inputs, and the secret each carries.
+SIGNING_ENV = {
+    "WIN_CSC_LINK": CERT_SECRET,
+    "WIN_CSC_KEY_PASSWORD": CERT_PASSWORD_SECRET,
 }
 
 # Callers that build Windows, and whether they publish (and so must request the
-# prod environment for the signing role's OIDC trust to accept them).
+# prod environment, where the certificate lives).
 PUBLISHING_CALLERS = ("nightly.yml", "release.yml")
 
 
@@ -98,26 +83,45 @@ def _step(name_fragment: str) -> dict:
     )
 
 
-def test_the_callee_requests_an_oidc_token() -> None:
-    # No OIDC token, no role, no signature. The caller side (which must also
-    # grant it, since a callee cannot exceed its caller) is pinned in
-    # test_workflow_permissions.py.
-    assert _build_job()["permissions"]["id-token"] == "write"
+def _win_config() -> dict:
+    config = json.loads(ELECTRON_PACKAGE_JSON.read_text(encoding="utf-8"))
+    return config["build"]["win"]
+
+
+def test_the_build_job_mints_no_oidc_token() -> None:
+    # Signing reads a certificate from secrets, so nothing in this job needs to
+    # assume a cloud role. An id-token grant here would only let a build that
+    # runs third-party packaging tooling present the prod environment's
+    # identity to the distribution role the publish lanes assume.
+    permissions = _build_job()["permissions"]
+    assert "id-token" not in permissions, "build-windows needs no OIDC token to sign"
+    assert permissions == {"contents": "read"}
+
+
+def test_the_build_job_assumes_no_cloud_role() -> None:
+    # The whole signing identity is the certificate. A credential step here
+    # would be a second identity nothing consumes.
+    for step in _build_job()["steps"]:
+        uses = str(step.get("uses", ""))
+        assert "configure-aws-credentials" not in uses, (
+            f"step {step.get('name', uses)!r} configures cloud credentials; "
+            "Windows signing uses the certificate secret alone"
+        )
 
 
 def test_publishing_callers_request_the_prod_environment() -> None:
-    """Without this, release builds cannot assume the signing role at all.
+    """Without this, release builds cannot read the certificate at all.
 
-    Release runs are tag-triggered and present ref:refs/tags/v*, which the role
-    does not trust; only ref:refs/heads/main and environment:prod are accepted.
-    So a missing environment breaks signing on releases while nightly (which
-    runs on main) keeps working -- invisible until a release.
+    The certificate is a prod environment secret. Release runs are
+    tag-triggered, so without the environment the secret is simply absent,
+    HAS_WINDOWS_SIGNING stays empty and the release ships an unsigned installer
+    that the publish lane then refuses -- while nightly keeps working.
     """
     for caller in PUBLISHING_CALLERS:
         job = _workflow(caller)["jobs"]["build-windows"]
         assert job["with"]["use_prod_environment"] is True, (
-            f"{caller} must pass use_prod_environment: true, or tag-triggered "
-            "runs cannot assume the signing role"
+            f"{caller} must pass use_prod_environment: true, or its build cannot "
+            "read the prod-scoped signing certificate"
         )
 
 
@@ -175,24 +179,25 @@ def test_continue_on_error_is_boolean_safe() -> None:
     )
 
 
-def test_electron_builder_is_wired_to_the_signing_hook() -> None:
-    # The single most important assertion here: a win config without this builds
-    # a working but UNSIGNED installer and says nothing about it.
-    config = json.loads(ELECTRON_PACKAGE_JSON.read_text(encoding="utf-8"))
-    sign = config["build"]["win"]["signtoolOptions"]["sign"]
-    assert sign == "./scripts/sign-windows.js"
-    assert SIGN_HOOK.is_file(), f"{sign} is configured but {SIGN_HOOK} does not exist"
+def test_electron_builder_signs_natively_without_a_custom_hook() -> None:
+    # A `sign` hook replaces electron-builder's own signtool call. With the
+    # certificate delivered through WIN_CSC_LINK there is nothing for a hook to
+    # add, and a hook that skipped on a missing input would turn a
+    # misconfigured release into a silently unsigned one.
+    signtool = _win_config()["signtoolOptions"]
+    assert "sign" not in signtool, (
+        f"win.signtoolOptions.sign is set to {signtool['sign']!r}; the certificate "
+        "flow signs through electron-builder's own signtool integration"
+    )
 
 
 def test_only_one_hash_algorithm_is_signed() -> None:
-    # electron-builder's legacy signtool default is ["sha1", "sha256"], and it
-    # invokes the sign hook ONCE PER ALGORITHM. The signing profile is
-    # SHA256-only, so an unpinned list makes every file take a second round
-    # trip through S3 and the signing service that can only ever reproduce the
-    # first signature, doubling both the signing-job count and the build's
-    # wall-clock cost.
-    config = json.loads(ELECTRON_PACKAGE_JSON.read_text(encoding="utf-8"))
-    algorithms = config["build"]["win"]["signtoolOptions"].get("signingHashAlgorithms")
+    # electron-builder's signtool default is ["sha1", "sha256"]: a SHA-1 primary
+    # signature with a legacy countersignature and the SHA-256 one nested
+    # beneath it. SHA-1 Authenticode is deprecated, the primary signature would
+    # then not carry the RFC3161 timestamp the publish lane's guard is written
+    # for, and every file would make two timestamp-server round trips.
+    algorithms = _win_config()["signtoolOptions"].get("signingHashAlgorithms")
     assert algorithms == ["sha256"], (
         "signingHashAlgorithms must be pinned to exactly ['sha256']; found "
         f"{algorithms!r}. Leaving it unset restores electron-builder's "
@@ -201,9 +206,81 @@ def test_only_one_hash_algorithm_is_signed() -> None:
 
 
 def test_local_certificate_discovery_stays_disabled() -> None:
-    # There is no certificate on the runner; signing goes through the hook.
+    # The only certificate this build may sign with is the one WIN_CSC_LINK
+    # carries; nothing on the runner is allowed to stand in for it.
     env = _step("Build desktop app")["env"]
     assert env["CSC_IDENTITY_AUTO_DISCOVERY"] == "false"
+
+
+def test_the_signing_inputs_carry_the_certificate_secrets() -> None:
+    # electron-builder reads exactly these two names. A typo on either side
+    # builds a working installer with no signature and says nothing about it.
+    env = _step("Build desktop app")["env"]
+    for name, secret in SIGNING_ENV.items():
+        assert name in env, f"the build step no longer sets {name}"
+        assert f"secrets.{secret}" in str(
+            env[name]
+        ), f"{name} must carry secrets.{secret}; found {env[name]!r}"
+
+
+def test_the_signing_inputs_are_gated_on_the_signing_flag() -> None:
+    """The certificate and its password reach the build as ONE unit, or not at all.
+
+    Set unconditionally, a repository-level copy of the secret would reach the
+    any-ref dispatch probe and hand the production identity to an unmerged
+    feature branch. Gated on HAS_WINDOWS_SIGNING, which also requires the prod
+    environment, the probe and every fork build unsigned.
+    """
+    env = _step("Build desktop app")["env"]
+    for name in SIGNING_ENV:
+        assert "env.HAS_WINDOWS_SIGNING" in str(env[name]), (
+            f"{name} is set without the HAS_WINDOWS_SIGNING gate, so the signing "
+            "identity can reach a run that is meant to build unsigned."
+        )
+
+
+def test_signing_gate_is_hoisted_into_job_env() -> None:
+    # `secrets.*` is not available in a step-level `if`, so the gate has to be a
+    # job-level env flag. Same pattern as sign-and-notarize.yml.
+    gate = _build_job()["env"]["HAS_WINDOWS_SIGNING"]
+    assert f"secrets.{CERT_SECRET}" in gate
+
+
+def test_the_signing_gate_also_requires_the_prod_environment() -> None:
+    """Signing needs the secret AND the environment, so the gate needs both.
+
+    Gating on the secret alone means that the moment a repository-level copy of
+    the certificate exists, the any-ref dispatch probe signs an unmerged feature
+    branch with the production identity. A probe is supposed to build unsigned.
+    """
+    gate = _build_job()["env"]["HAS_WINDOWS_SIGNING"]
+    assert "use_prod_environment" in gate, (
+        f"HAS_WINDOWS_SIGNING ({gate!r}) must also require use_prod_environment, "
+        "or the any-ref packaging probe can sign with the production certificate."
+    )
+    assert "\n" not in gate, (
+        "keep the gate on one line: a folded block scalar preserves newlines for "
+        "more-indented continuation lines, which corrupts the expression"
+    )
+
+
+def test_a_partial_signing_configuration_is_refused_before_the_build() -> None:
+    """A certificate without its password must fail fast, and by name.
+
+    Let through, it fails deep inside signtool with an opaque PFX error after
+    the whole app has been built. The guard runs only when signing is gated on,
+    so a fork or a probe (no certificate at all) still builds unsigned.
+    """
+    guard = _step("Refuse partial Windows signing configuration")
+    assert "HAS_WINDOWS_SIGNING" in guard["if"]
+    assert f"secrets.{CERT_PASSWORD_SECRET}" in str(guard["env"])
+    assert "::error::" in guard["run"] and "exit 1" in guard["run"]
+
+    names = [s.get("name", "") for s in _build_job()["steps"]]
+    guard_i = next(i for i, n in enumerate(names) if "Refuse partial Windows signing" in n)
+    assert guard_i < names.index(
+        "Build desktop app"
+    ), "the configuration guard must run before the build it protects"
 
 
 def _publish_job() -> dict:
@@ -219,38 +296,50 @@ def _publish_step(name_fragment: str) -> dict:
 
 def test_the_publish_lane_expects_the_publisher_the_client_verifies() -> None:
     # NsisUpdater verifies the downloaded installer's Authenticode publisher
-    # fail-closed against electron-builder's publisherName. If the publish lane
-    # accepts a different CN than the client demands, the lane happily publishes
-    # bytes that every client then refuses, and the mutable latest.yml means it
-    # refuses them all at once. One value, asserted from both ends.
+    # fail-closed against the publisherName in the installed app's
+    # app-update.yml. If the publish lane accepts a different CN than the client
+    # demands, the lane happily publishes bytes that every client then refuses,
+    # and the mutable latest.yml means it refuses them all at once.
     #
-    # The location is part of the contract, not a detail. electron-builder 26's
-    # WindowsConfiguration is `additionalProperties: false` and carries no
-    # publisherName -- it belongs to WindowsSigntoolConfiguration, i.e. inside
-    # signtoolOptions beside `sign`. A win-level key is not merely ignored: the
-    # schema validator rejects the whole config, so EVERY desktop build fails on
-    # EVERY platform, mac and Linux included. Only this path is read by
-    # WindowsSignToolManager.computedPublisherName, which is what
-    # PublishManager copies into app-update.yml, which is the only thing
-    # NsisUpdater.verifySignature consults -- and an absent value there makes it
-    # return early and skip verification instead of failing, so a misplaced key
-    # silently costs the fail-closed check rather than announcing itself.
+    # Both ends read the signing certificate. With no publisherName in the
+    # config, electron-builder's WindowsSignToolManager.computedPublisherName
+    # falls back to the certificate's subject CN, PublishManager copies that
+    # into app-update.yml, and the publish lane compares the signer against the
+    # repository variable that names the same certificate.
+    #
+    # A certificate rotation that changes the CN lists both names in
+    # signtoolOptions.publisherName for a bridge release; that edit belongs
+    # here too (docs/build/signing-runbook.md has the order).
     expected = _publish_job()["env"]["EXPECT_SUBJECT_CN"]
-    config = json.loads(ELECTRON_PACKAGE_JSON.read_text(encoding="utf-8"))
-    win = config["build"]["win"]
-    assert "publisherName" not in win, (
-        "publisherName must live in win.signtoolOptions, not win: electron-builder's "
-        "WindowsConfiguration forbids unknown keys and fails every desktop build."
-    )
-    publisher_name = win["signtoolOptions"]["publisherName"]
-    assert publisher_name == [expected], (
-        f"publish-windows.yml verifies publisher {expected!r} but the client pins "
-        f"{publisher_name!r}; the lane would publish installers the updater rejects."
+    assert (
+        expected == f"${{{{ vars.{SUBJECT_CN_VARIABLE} }}}}"
+    ), f"EXPECT_SUBJECT_CN must come from vars.{SUBJECT_CN_VARIABLE}; found {expected!r}"
+    win = _win_config()
+    # electron-builder 26's WindowsConfiguration is `additionalProperties: false`
+    # and carries no publisherName: a win-level key fails schema validation and
+    # with it every desktop build on every platform.
+    assert "publisherName" not in win
+    assert "publisherName" not in win["signtoolOptions"], (
+        "a pinned publisherName stops electron-builder reading the CN from the "
+        "certificate, so the client would expect a name the publish lane does not"
     )
     # verifyUpdateCodeSignature defaults to on (isForceCodeSigningVerification is
     # `!== false`); setting it false would drop publisherName from app-update.yml
     # and disable the check the publish guard is paired with.
     assert win.get("verifyUpdateCodeSignature") is not False
+
+
+def test_the_verify_step_refuses_an_unset_expected_publisher() -> None:
+    # An unset variable must refuse the publish, exactly as an unsigned
+    # installer does, and say which variable to set rather than reporting a
+    # confusing CN mismatch against the empty string.
+    run = _publish_step("Verify the Authenticode signature")["run"]
+    assert '[ -z "${EXPECT_SUBJECT_CN}" ]' in run
+    assert SUBJECT_CN_VARIABLE in run
+    unset_check = run.index('[ -z "${EXPECT_SUBJECT_CN}" ]')
+    verifier = run.index("scripts/verify_windows_installer.py")
+    assert unset_check < verifier, "the unset check must run before the verifier"
+    assert "exit 1" in run[unset_check:verifier]
 
 
 def test_the_published_basename_matches_the_clients_manual_download_url() -> None:
@@ -341,11 +430,11 @@ def test_the_updater_offers_exactly_the_channels_that_publish_windows() -> None:
     # have to move together, in both directions.
     #
     # Expressed against KNOWN_CHANNELS rather than a Windows-specific set:
-    # publish-windows.yml is now wired into every channel, so a separate set
-    # would be a declaration claiming a restriction that does not exist. If a
-    # channel ever loses its Windows lane, this fails -- and the fix is to
-    # reintroduce the restriction and report `disabled: "channel"`, not to delete
-    # the assertion.
+    # publish-windows.yml is wired into every channel, so a separate set would
+    # be a declaration claiming a restriction that does not exist. If a channel
+    # ever loses its Windows lane, this fails -- and the fix is to reintroduce
+    # the restriction and report `disabled: "channel"`, not to delete the
+    # assertion.
     auto_update = (ROOT / "website" / "electron" / "auto-update.js").read_text(encoding="utf-8")
     match = re.search(r"KNOWN_CHANNELS = new Set\(\[([^\]]*)\]\)", auto_update)
     assert match, "auto-update.js no longer declares KNOWN_CHANNELS"
@@ -462,87 +551,8 @@ def test_publishing_callers_consume_the_artifact_the_build_uploads() -> None:
             )
 
 
-def test_all_five_signing_env_vars_carry_the_deployed_values() -> None:
-    # The hook needs ALL five; the values must match the deployed
-    # infrastructure or every signing job fails with AccessDeniedException.
-    env = _step("Build desktop app")["env"]
-    actual = {k: v for k, v in env.items() if k.startswith("WINDOWS_SIGNING_")}
-    assert set(actual) == set(EXPECTED_SIGNING_ENV)
-    for name, expected in EXPECTED_SIGNING_ENV.items():
-        assert expected in actual[name], f"{name} must carry {expected!r}; found {actual[name]!r}"
-
-
-def test_the_five_env_values_are_gated_on_the_signing_secret() -> None:
-    """The regression this file exists to prevent.
-
-    The five values are inline literals. Set unconditionally, the hook's
-    "not configured -> skip" path becomes unreachable: on a fork, or on any repo
-    without the signing secret, the credential step skips but the hook still
-    finds a complete environment, shells out to the AWS CLI with no credentials,
-    and FAILS the Windows build. Gating them on the same flag as the credential
-    step is what makes the documented skip behaviour real.
-    """
-    env = _step("Build desktop app")["env"]
-    for name in EXPECTED_SIGNING_ENV:
-        assert "HAS_WINDOWS_SIGNING" in str(env[name]), (
-            f"{name} is set unconditionally. It must be gated on "
-            "HAS_WINDOWS_SIGNING, or an unconfigured build fails instead of "
-            "shipping an unsigned installer."
-        )
-
-
-def test_external_id_equals_the_signer_application_name() -> None:
-    # Undocumented and load-bearing: ArtifactAccessRole's trust policy requires
-    # sts:ExternalId = the application name. Without it, anything in the
-    # allowlisted account can assume the role.
-    env = _step("Build desktop app")["env"]
-    assert SIGNER_APPLICATION_NAME in str(env["WINDOWS_SIGNING_EXTERNAL_ID"])
-    assert SIGNER_APPLICATION_NAME in str(env["WINDOWS_SIGNING_ARTIFACT_ROLE"])
-
-
-def test_credentials_are_configured_before_the_build_runs() -> None:
-    # Signing happens during the build, so the role must already be assumed.
-    names = [s.get("name", "") for s in _build_job()["steps"]]
-    cred = next(i for i, n in enumerate(names) if "Configure AWS credentials" in n)
-    build = names.index("Build desktop app")
-    assert cred < build, "AWS credentials must be configured before the build signs anything"
-
-
-def test_credential_step_skips_without_the_secret() -> None:
-    # Gated on the secret so forks build unsigned instead of failing. No
-    # per-OS condition is needed any more: this workflow is Windows-only.
-    assert "HAS_WINDOWS_SIGNING" in _step("Configure AWS credentials")["if"]
-
-
-def test_signing_gate_is_hoisted_into_job_env() -> None:
-    # `secrets.*` is not available in a step-level `if`, so the gate has to be a
-    # job-level env flag. Same pattern as sign-and-notarize.yml.
-    job_env = _build_job()["env"]
-    assert "AWS_WINDOWS_SIGNING_ROLE_ARN" in job_env["HAS_WINDOWS_SIGNING"]
-
-
-def test_the_signing_gate_also_requires_the_prod_environment() -> None:
-    """Signing needs the secret AND the environment, so the gate needs both.
-
-    The role trusts only ref:refs/heads/main and environment:prod. Gating on the
-    secret alone means that the moment the secret is added, the any-ref dispatch
-    probe starts trying to assume the role from an untrusted feature-branch ref
-    and dies at the credential step -- killing the probe the conditional
-    environment exists to protect. A probe is supposed to build unsigned.
-    """
-    gate = _build_job()["env"]["HAS_WINDOWS_SIGNING"]
-    assert "use_prod_environment" in gate, (
-        f"HAS_WINDOWS_SIGNING ({gate!r}) must also require use_prod_environment, "
-        "or adding the signing secret breaks the any-ref packaging probe."
-    )
-    assert "\n" not in gate, (
-        "keep the gate on one line: a folded block scalar preserves newlines for "
-        "more-indented continuation lines, which corrupts the expression"
-    )
-
-
 def test_the_pairing_guard_runs_before_the_upload_and_fails_hard() -> None:
-    """An orphaned installer must never be uploaded (#4301).
+    """An orphaned installer must never be uploaded.
 
     The guard exists so an .exe with no .blockmap beside it fails the build
     BEFORE the artifact is produced: the publish lane then takes its
@@ -574,7 +584,7 @@ def test_artifact_paths_contain_no_yaml_comments() -> None:
     """`path:` is a block scalar, where a '#' line is a glob, not a comment.
 
     Every line of a `|` block is literal text, so a comment written inside
-    `path:` silently becomes a pattern that matches nothing. upstream-artifact
+    `path:` silently becomes a pattern that matches nothing. upload-artifact
     only errors when NO pattern matches, so the mistake stays invisible while
     quietly widening the set of things that must keep matching.
     """
@@ -586,37 +596,6 @@ def test_artifact_paths_contain_no_yaml_comments() -> None:
         f"comment lines inside `path:` are treated as glob patterns: {offenders}. "
         "Move them above the step."
     )
-
-
-def test_the_hook_pins_the_aws_cli_output_format() -> None:
-    """The tag poll parses the CLI's stdout, so the format cannot be ambient.
-
-    `--output` defaults from config: AWS_DEFAULT_OUTPUT, or `output = text` in a
-    runner image's ~/.aws/config. Under `text`, JSON.parse throws -- and it
-    throws OUTSIDE the try that guards the call, so it would abort a signing
-    build rather than retry.
-    """
-    source = SIGN_HOOK.read_text(encoding="utf-8")
-    assert "'--output', 'json'" in source or '"--output", "json"' in source, (
-        "pin --output json in the aws() helper: the tag poll JSON.parses stdout, "
-        "and the CLI's output format is otherwise ambient configuration"
-    )
-
-
-def test_the_hook_refuses_a_partially_configured_environment() -> None:
-    """Skipping on a partial environment would be the worst available outcome.
-
-    Someone who wired signing up on purpose but missed one variable would get a
-    silently unsigned installer that reports success. The hook throws instead.
-    """
-    source = SIGN_HOOK.read_text(encoding="utf-8")
-    assert "missing.length === REQUIRED_ENV.length" in source, (
-        "sign-windows.js must distinguish a fully-unconfigured environment "
-        "(skip) from a partial one (throw)"
-    )
-    assert re.search(
-        r"missing\.length > 0[\s\S]{0,400}throw new Error", source
-    ), "a partially configured environment must throw, not skip"
 
 
 def test_promotion_verifies_the_whole_bundle_before_reading_the_installer() -> None:

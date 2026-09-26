@@ -3112,40 +3112,31 @@ class TestConfigWriteProtection:
     def test_config_json_is_write_protected(self) -> None:
         from junction.security import is_sensitive_write_path
 
-        # Data home moved to ~/.kiro/crew; the legacy ~/.kirocrew stays gated too.
-        assert is_sensitive_write_path("~/.kiro/crew/config.json")
-        assert is_sensitive_write_path(str(Path.home() / ".kiro" / "crew" / "config.json"))
-        assert is_sensitive_write_path("~/.kirocrew/config.json")
-        assert is_sensitive_write_path(str(Path.home() / ".kirocrew" / "config.json"))
+        assert is_sensitive_write_path("~/.junction/config.json")
+        assert is_sensitive_write_path(str(Path.home() / ".junction" / "config.json"))
 
     def test_config_local_json_is_write_protected(self) -> None:
         from junction.security import is_sensitive_write_path
 
-        assert is_sensitive_write_path("~/.kiro/crew/config.local.json")
-        assert is_sensitive_write_path(str(Path.home() / ".kiro" / "crew" / "config.local.json"))
-        assert is_sensitive_write_path("~/.kirocrew/config.local.json")
-        assert is_sensitive_write_path(str(Path.home() / ".kirocrew" / "config.local.json"))
+        assert is_sensitive_write_path("~/.junction/config.local.json")
+        assert is_sensitive_write_path(str(Path.home() / ".junction" / "config.local.json"))
 
     def test_config_json_reads_still_allowed(self) -> None:
         from junction.security import is_sensitive_bash_command, is_sensitive_path
 
-        assert is_sensitive_path("~/.kiro/crew/config.json") is False
-        assert is_sensitive_bash_command("cat ~/.kiro/crew/config.json") is None
-        assert is_sensitive_path("~/.kirocrew/config.json") is False
-        assert is_sensitive_bash_command("cat ~/.kirocrew/config.json") is None
+        assert is_sensitive_path("~/.junction/config.json") is False
+        assert is_sensitive_bash_command("cat ~/.junction/config.json") is None
 
     def test_write_protection_superset_of_sensitive(self) -> None:
         from junction.security import is_sensitive_write_path
 
         assert is_sensitive_write_path("~/.aws/credentials")
-        assert is_sensitive_write_path("~/.kiro/crew/security_policy.json")
-        assert is_sensitive_write_path("~/.kirocrew/security_policy.json")
+        assert is_sensitive_write_path("~/.junction/security_policy.json")
 
     def test_non_config_junction_file_not_write_protected(self) -> None:
         from junction.security import is_sensitive_write_path
 
-        assert is_sensitive_write_path("~/.kiro/crew/sessions.db") is False
-        assert is_sensitive_write_path("~/.kirocrew/sessions.db") is False
+        assert is_sensitive_write_path("~/.junction/sessions.db") is False
 
 
 class TestConfigEditToolBlocked:
@@ -3160,7 +3151,7 @@ class TestConfigEditToolBlocked:
         result = self._hooks().on_tool_call(
             "Editing config.json",
             tool_kind="edit",
-            raw_params={"path": "~/.kirocrew/config.json"},
+            raw_params={"path": "~/.junction/config.json"},
         )
         assert result.action == "deny"
         assert "write-protected config" in (result.reason or "")
@@ -3169,7 +3160,7 @@ class TestConfigEditToolBlocked:
         result = self._hooks().on_tool_call(
             "config.json",
             tool_kind="read",
-            raw_params={"path": "~/.kirocrew/config.json"},
+            raw_params={"path": "~/.junction/config.json"},
         )
         assert result.action != "deny"
 
@@ -3177,7 +3168,7 @@ class TestConfigEditToolBlocked:
         result = self._hooks().on_tool_call(
             "Editing notes.md",
             tool_kind="edit",
-            raw_params={"path": "~/.kirocrew/workspace/notes.md"},
+            raw_params={"path": "~/.junction/workspace/notes.md"},
         )
         assert result.action != "deny"
 
@@ -3743,15 +3734,15 @@ class TestOrchestratorWatchdogThemeAreParsed:
         td = cfg.to_dict()
         assert td["agents"]["pr-reviewer"]["watchdog_tool_stall_suspect_secs"] == 900.0
 
-    def test_factory_resolves_canonical_crew_identity(
+    def test_factory_resolves_canonical_agent_identity(
         self, monkeypatch: pytest.MonkeyPatch
     ) -> None:
-        """The provider factory resolves crew_agent ONCE at provider-creation:
+        """The provider factory resolves canonical_agent ONCE at provider-creation:
         an explicit kwarg wins verbatim (the dashboard's resolved identity,
-        including the authoritative ""), and absent that, a crew-name-passing
-        surface (Slack/cron — see _resolve_model_for_agent's surface
-        convention) is covered by crew-namespace membership; a non-crew name
-        (a kiro template) yields "" so no override can attach to it."""
+        including the authoritative ""), and absent that, a surface that passes
+        a Junction agent name (Slack/cron — see junction.session._session_model's
+        surface convention) is covered by agent-namespace membership; any other
+        name (a kiro template) yields "" so no override can attach to it."""
         import junction.providers.acp as acp_mod
 
         captured: list[dict] = []
@@ -3764,12 +3755,12 @@ class TestOrchestratorWatchdogThemeAreParsed:
         cfg = _load_from_dict({"agents": {"pr-reviewer": {"kiro_agent": "pr-reviewer-kiro"}}})
         factory = cfg.create_provider_factory()
 
-        factory("k1", agent="pr-reviewer-kiro", crew_agent="pr-reviewer")
-        factory("k2", agent="pr-reviewer")  # crew-name surface, no kwarg
+        factory("k1", agent="pr-reviewer-kiro", canonical_agent="pr-reviewer")
+        factory("k2", agent="pr-reviewer")  # agent-name surface, no kwarg
         factory("k3", agent="pr-reviewer-kiro")  # kiro template, no kwarg
-        factory("k4", agent="pr-reviewer-kiro", crew_agent="")  # explicit no-crew
+        factory("k4", agent="pr-reviewer-kiro", canonical_agent="")  # explicit no-agent
 
-        assert [c["crew_agent"] for c in captured] == ["pr-reviewer", "pr-reviewer", "", ""]
+        assert [c["canonical_agent"] for c in captured] == ["pr-reviewer", "pr-reviewer", "", ""]
 
     def test_dashboard_theme_fields_are_parsed(self) -> None:
         cfg = _load_from_dict(
@@ -4767,7 +4758,7 @@ class TestUnsatisfiableSubagentCwdRoots(unittest.TestCase):
 
         Widening here would admit a cwd the operator deliberately excluded.
         """
-        ghost = str(Path(tempfile.gettempdir()) / "kc-no-such-root-9f3a")
+        ghost = str(Path(tempfile.gettempdir()) / "jn-no-such-root-9f3a")
         data = self._agents() | {"agent": {"subagent_cwd_allowed_roots": [ghost]}}
         cfg, on_disk, migrated = self._load(data)
 
@@ -4782,7 +4773,7 @@ class TestUnsatisfiableSubagentCwdRoots(unittest.TestCase):
         caller, and load() is reached from the async spawn path. Nothing stats
         the configured roots today; this guards against reintroducing it.
         """
-        ghost = str(Path(tempfile.gettempdir()) / "kc-no-such-root-9f3a")
+        ghost = str(Path(tempfile.gettempdir()) / "jn-no-such-root-9f3a")
         data = self._agents() | {"agent": {"subagent_cwd_allowed_roots": [ghost]}}
         real_isdir = os.path.isdir
 
@@ -4836,12 +4827,12 @@ class TestUnsatisfiableSubagentCwdRoots(unittest.TestCase):
 
 
 def test_agent_triggers_load() -> None:
-    """`triggers` loads from config verbatim; a crew without triggers has ''."""
+    """`triggers` loads from config verbatim; an agent without triggers has ''."""
     cfg = _load_from_dict(
         {
             "agents": {
                 "oncall": {"kiro_agent": "junction", "triggers": "incident, outage"},
-                "research": {"kiro_agent": "junction", "description": "deep research crew"},
+                "research": {"kiro_agent": "junction", "description": "deep research agent"},
                 "weird": {"kiro_agent": "junction", "triggers": 1},
             },
             "default_agent": "oncall",
@@ -4850,11 +4841,11 @@ def test_agent_triggers_load() -> None:
     )
     # Explicit triggers load verbatim.
     assert cfg.agents["oncall"].triggers == "incident, outage"
-    # A crew that defines no triggers keeps an empty string — it is not a routing
+    # An agent that defines no triggers keeps an empty string — it is not a routing
     # candidate (no fallback to the description).
     assert cfg.agents["research"].triggers == ""
     # A non-string triggers value is normalized to "" on load (never survives to
-    # select_crew's .strip()).
+    # select_agent's .strip()).
     assert cfg.agents["weird"].triggers == ""
 
 

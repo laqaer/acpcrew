@@ -116,13 +116,13 @@ function findJunctionBin(
   candidates.push(
     path.join(home, ".toolbox", "bin", "junction"),
     path.join(home, ".local", "bin", "junction"),
-    path.join(home, ".kirocrew-app", ".venv", "bin", "junction")
+    path.join(home, ".junction-app", ".venv", "bin", "junction")
   );
   if (isWindows) {
     // Windows equivalents of the user-level paths above (one-liner installer
     // venv, toolbox, and local pip Scripts dirs).
     candidates.push(
-      path.join(home, ".kirocrew-app", ".venv", "Scripts", "junction.exe"),
+      path.join(home, ".junction-app", ".venv", "Scripts", "junction.exe"),
       path.join(home, ".toolbox", "bin", "junction.exe"),
       path.join(home, ".local", "bin", "junction.exe")
     );

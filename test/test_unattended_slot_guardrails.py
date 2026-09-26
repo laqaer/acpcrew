@@ -170,7 +170,7 @@ class TestUnattendedApprovalWindow:
     ) -> None:
         """The other half: persistence must not hand the 2h window to a worker.
 
-        A crew, a cron worker and an app-spawned session are exactly the slots no
+        A steward, a cron worker and an app-spawned session are exactly the slots no
         human has ever driven, so the flag is absent from their metadata and the
         deny-fast window is what they get back. Without this, the fix above could
         be written as an unconditional restore and nothing would fail.
@@ -208,7 +208,7 @@ class TestBackgroundTurnCap:
     async def test_cap_queues_the_extra_unattended_turn(self, tmp_path) -> None:
         """The named FIX 2 test: at the cap a turn QUEUES and the wait is visible.
 
-        Queue rather than reject: a rejected crew turn loses the issue it was
+        Queue rather than reject: a rejected steward turn loses the issue it was
         working; a queued one only starts late.
         """
         state = _make_state(tmp_path)
@@ -617,7 +617,7 @@ class TestIdleCleanupSparesArmedLoops:
         """
         monkeypatch.setattr("junction.dashboard.state.config_dir", lambda: tmp_path)
         state = _make_state(tmp_path)
-        state.get_or_create_slot("crew-c_1a2b3c4d", app="issue-radar")
+        state.get_or_create_slot("steward-c_1a2b3c4d", app="issue-radar")
 
         notified: list[tuple[str, str]] = []
 
@@ -630,12 +630,12 @@ class TestIdleCleanupSparesArmedLoops:
         monkeypatch.setattr("junction.autonudge.get_instance", lambda: None)
         try:
             async with TestClient(TestServer(_make_app(state))) as client:
-                resp = await client.delete("/api/chat/slots/crew-c_1a2b3c4d")
+                resp = await client.delete("/api/chat/slots/steward-c_1a2b3c4d")
                 assert resp.status == 200
         finally:
             teardown.unregister_slot_close_hook("issue-radar")
 
-        assert notified == [("issue-radar", "crew-c_1a2b3c4d")]
+        assert notified == [("issue-radar", "steward-c_1a2b3c4d")]
 
     @pytest.mark.asyncio
     async def test_an_unowned_slot_notifies_nobody(self, tmp_path, monkeypatch) -> None:
@@ -665,13 +665,13 @@ class TestIdleCleanupSparesArmedLoops:
 
         REGRESSION: the notification used to run AFTER ``sessions.remove``. An ACP
         teardown error therefore propagated out of the handler with the app never
-        told, leaving a live crew whose watchdog re-armed the very tab the user had
+        told, leaving a live steward whose watchdog re-armed the very tab the user had
         just closed — the resurrection this hook exists to prevent, reachable by an
         error in an unrelated subsystem.
         """
         monkeypatch.setattr("junction.dashboard.state.config_dir", lambda: tmp_path)
         state = _make_state(tmp_path)
-        state.get_or_create_slot("crew-c_1a2b3c4d", app="issue-radar")
+        state.get_or_create_slot("steward-c_1a2b3c4d", app="issue-radar")
 
         notified: list[str] = []
 
@@ -691,11 +691,11 @@ class TestIdleCleanupSparesArmedLoops:
                 # The request may well fail — that is not what is under test. What
                 # must hold is that the app was told BEFORE the failing step.
                 with contextlib.suppress(Exception):
-                    await client.delete("/api/chat/slots/crew-c_1a2b3c4d")
+                    await client.delete("/api/chat/slots/steward-c_1a2b3c4d")
         finally:
             teardown.unregister_slot_close_hook("issue-radar")
 
-        assert notified == ["crew-c_1a2b3c4d"], (
+        assert notified == ["steward-c_1a2b3c4d"], (
             "the session teardown raised and the owning app was never told the slot "
             "closed, so its watchdog will relaunch the closed tab"
         )
@@ -721,7 +721,7 @@ class TestIdleCleanupSparesArmedLoops:
         """
         monkeypatch.setattr("junction.dashboard.state.config_dir", lambda: tmp_path)
         state = _make_state(tmp_path)
-        state.get_or_create_slot("crew-c_1a2b3c4d", app="issue-radar")
+        state.get_or_create_slot("steward-c_1a2b3c4d", app="issue-radar")
 
         order: list[str] = []
 
@@ -740,7 +740,7 @@ class TestIdleCleanupSparesArmedLoops:
         )
         monkeypatch.setattr("junction.autonudge.get_instance", lambda: None)
         async with TestClient(TestServer(_make_app(state))) as client:
-            resp = await client.delete("/api/chat/slots/crew-c_1a2b3c4d")
+            resp = await client.delete("/api/chat/slots/steward-c_1a2b3c4d")
             assert resp.status == 200
 
         assert order == ["retire", "retire", "pop"], (
@@ -751,7 +751,7 @@ class TestIdleCleanupSparesArmedLoops:
 # ── A SCOPED grant is never cached as a session approval policy ───────────────
 
 
-_SCOPE = "issue-radar:crew:c_1a2b3c4d:autoapprove"
+_SCOPE = "steward:c_1a2b3c4d:autoapprove"
 
 
 def _trust_slot(*, trust: bool = False, scope: str = "") -> SimpleNamespace:
@@ -761,10 +761,10 @@ def _trust_slot(*, trust: bool = False, scope: str = "") -> SimpleNamespace:
     truthy child, so ``_trust_scope`` would read as set on a slot that is meant to
     carry no scope at all, and that is precisely the distinction under test.
     """
-    return SimpleNamespace(key="crew-c_1a2b3c4d", _trust=trust, _trust_scope=scope)
+    return SimpleNamespace(key="steward-c_1a2b3c4d", _trust=trust, _trust_scope=scope)
 
 
-def _crew_state():
+def _steward_state():
     state = MagicMock()
     state.context_builder.hooks.auto_approve_subagent_tools = False
     state.is_yolo_active.return_value = False
@@ -774,7 +774,7 @@ def _crew_state():
 class TestScopedGrantIsNeverPersisted:
     """``session.approval_policy`` may only cache a grant that cannot lapse.
 
-    A crew is unattended, so its auto-approval is a ``SafetyOverride`` SCOPED
+    A steward is unattended, so its auto-approval is a ``SafetyOverride`` SCOPED
     grant re-checked on every approval — the grant lapsing is what revokes trust.
     A session-level ``"auto"`` policy is the opposite: written once at turn start
     and read later by the subagent spawn gate and by each subagent's own approval
@@ -822,7 +822,7 @@ class TestScopedGrantIsNeverPersisted:
         is the one that goes RED when the fix is reverted.
         """
         slot = _trust_slot(scope=_SCOPE)
-        state = _crew_state()
+        state = _steward_state()
         tracker = {"s1": {"done": False}}
         live = {"active": True}
 
@@ -831,10 +831,10 @@ class TestScopedGrantIsNeverPersisted:
             "is_scope_active",
             side_effect=lambda scope: live["active"],
         ):
-            first = chat_runner._native_crew_should_auto_approve(tracker, state, slot)
-            # The operator pauses/retires the crew, or disables the app, mid-turn.
+            first = chat_runner._native_subagent_should_auto_approve(tracker, state, slot)
+            # The operator pauses/retires the steward, or disables the app, mid-turn.
             live["active"] = False
-            second = chat_runner._native_crew_should_auto_approve(tracker, state, slot)
+            second = chat_runner._native_subagent_should_auto_approve(tracker, state, slot)
 
             assert first is True
             assert second is False
@@ -849,19 +849,19 @@ class TestScopedGrantIsNeverPersisted:
         ):
             assert chat_runner._persistable_session_policy(slot, False) == ""
 
-    def test_a_scope_trusted_crew_still_approves_its_own_tool_call(self) -> None:
-        """The feature is not broken by the fix — the crew's own tools still pass.
+    def test_a_scope_trusted_steward_still_approves_its_own_tool_call(self) -> None:
+        """The feature is not broken by the fix — the steward's own tools still pass.
 
-        A crew's approvals never consult the persisted policy; they go through
+        A steward's approvals never consult the persisted policy; they go through
         ``_slot_is_trusted`` per event. RED if the fix were mis-applied by taking
-        the scope out of ``_slot_is_trusted`` (which would stall every crew) or by
+        the scope out of ``_slot_is_trusted`` (which would stall every steward) or by
         changing the gate the runner branches on.
         """
         slot = _trust_slot(scope=_SCOPE)
-        state = _crew_state()
+        state = _steward_state()
         with patch.object(type(safety_override()), "is_scope_active", return_value=True):
             assert chat_runner._slot_is_trusted(slot) is True
-            assert chat_runner._native_crew_should_auto_approve({"s1": {"done": False}}, state, slot)
+            assert chat_runner._native_subagent_should_auto_approve({"s1": {"done": False}}, state, slot)
 
         src = inspect.getsource(chat_runner._run_chat)
         assert "slot_trusted = _slot_is_trusted(slot)" in src

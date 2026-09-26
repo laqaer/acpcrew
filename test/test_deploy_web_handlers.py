@@ -563,7 +563,7 @@ def test_expire_manifest_uses_art_slug_not_meta_slug(monkeypatch):
     assert s3_cmd  # R12 F2: read + write — check every s3 call uses art.slug
     for cmd in s3_cmd:
         s3_args_str = " ".join(cmd)
-        assert "real-slug/.kirocrew-deploy.json" in s3_args_str
+        assert "real-slug/.junction-deploy.json" in s3_args_str
         assert "FORGED-SLUG" not in s3_args_str
 
 
@@ -820,7 +820,7 @@ def test_do_deploy_local_dir_stages_public_dir(monkeypatch, tmp_path):
 # --- item 6: ttl_hours manifest write ---
 
 def test_do_deploy_writes_manifest_with_ttl(tmp_path, monkeypatch):
-    """After successful deploy, _do_deploy writes .kirocrew-deploy.json with TTL."""
+    """After successful deploy, _do_deploy writes .junction-deploy.json with TTL."""
     public = tmp_path / "site"
     public.mkdir()
     (public / "index.html").write_text("<h1>hi</h1>")
@@ -856,9 +856,9 @@ def test_do_deploy_writes_manifest_with_ttl(tmp_path, monkeypatch):
     assert status == 200
 
     # Verify an S3 cp command was issued for the manifest
-    manifest_calls = [c for c in captured_s3_calls if ".kirocrew-deploy.json" in " ".join(c)]
+    manifest_calls = [c for c in captured_s3_calls if ".junction-deploy.json" in " ".join(c)]
     assert len(manifest_calls) == 1
-    assert "s3://test-bucket/my-ttl-app/.kirocrew-deploy.json" in " ".join(manifest_calls[0])
+    assert "s3://test-bucket/my-ttl-app/.junction-deploy.json" in " ".join(manifest_calls[0])
 
     # Verify the temp manifest file contents (the s3 cp source)
     src_file = manifest_calls[0][2]  # ["s3", "cp", <local_file>, "s3://..."]
@@ -972,10 +972,10 @@ def test_deploy_manifest_written_to_base_stack_bucket(monkeypatch):
 
     # The manifest must target the SHARED base bucket, not the per-site random one
     assert len(s3_calls) == 1
-    s3_dest = s3_calls[0][3]  # "s3://shared-base-bucket/mysite/.kirocrew-deploy.json"
+    s3_dest = s3_calls[0][3]  # "s3://shared-base-bucket/mysite/.junction-deploy.json"
     assert "shared-base-bucket" in s3_dest
     assert "junction-web-random123" not in s3_dest
-    assert "mysite/.kirocrew-deploy.json" in s3_dest
+    assert "mysite/.junction-deploy.json" in s3_dest
 
 
 # --- F1: manifest includes arch/bucket/distribution_id fields ----------------
@@ -998,7 +998,7 @@ def test_deploy_manifest_includes_engine_arch_fields(monkeypatch, tmp_path):
 
     def fake_run_aws(args, profile, timeout=30):
         # Capture the manifest write
-        if args[:2] == ["s3", "cp"] and ".kirocrew-deploy.json" in str(args):
+        if args[:2] == ["s3", "cp"] and ".junction-deploy.json" in str(args):
             import json as _json
 
             # Read the temp file that was written

@@ -3181,7 +3181,7 @@ class _ChatSlot:
         # collapses from 2h to the 180s deny-fast — a behaviour change for EVERY
         # app-owned session, not just for worker fleets. The fast deny still
         # covers every app-owned slot no human has ever touched, which is what
-        # a crew, a cron worker and an app-spawned session all are.
+        # a steward, a cron worker and an app-spawned session all are.
         self._human_seen: bool = False
         # Deliberately "" (not USER): a slot built outside get_or_create_slot
         # matches NO slots:* scope, so it stays invisible to app tokens rather
@@ -4732,7 +4732,7 @@ class DashboardState:
     # shared by every __new__-built instance. __init__ and the restore each
     # assign a fresh set(), so mutation only ever touches an instance attribute.
     unrestored_slot_keys: "frozenset[str] | set[str]" = frozenset()
-    crew: Any = None  # Crew Mode control plane (set by gateway; None = unavailable)
+    multitask: Any = None  # Multitask Mode control plane (set by gateway; None = unavailable)
 
     def __init__(
         self,
@@ -4761,9 +4761,9 @@ class DashboardState:
         # entry path is protected, including task/workflow continuations.
         self.kiro_prerequisite_service: Any = None
         self.subagents = subagents
-        # Crew Mode control plane; attached by the gateway after
-        # SubagentManager construction (None = crew mode unavailable).
-        self.crew: Any = None
+        # Multitask Mode control plane; attached by the gateway after
+        # SubagentManager construction (None = multitask mode unavailable).
+        self.multitask: Any = None
         self.channel_manager: Any = None  # lazy-init in server.py
         self.tunnel_manager: Any = None  # lazy-init in server.py (TunnelManager)
         self.instances_manager: Any = None  # lazy-init in server.py (SshTunnelManager)
@@ -5616,7 +5616,7 @@ class DashboardState:
     async def run_background_turn(self, slot: "_ChatSlot", coro: Any) -> Any:
         """Await *coro* under the unattended-turn cap.
 
-        QUEUES rather than rejects at the cap: a rejected crew turn loses the
+        QUEUES rather than rejects at the cap: a rejected steward turn loses the
         issue it was mid-way through, while a queued one only starts late. An
         attended slot is passed straight through, so this wrapper is inert for
         every human session and adds no semaphore traffic to the interactive
@@ -6219,7 +6219,7 @@ class DashboardState:
         Path resolves through ``config_dir()`` so the snapshot lives next to
         every other dashboard persistence file and honors ``JUNCTION_HOME``
         — non-default homes (dev/test instances) restore from their own file
-        instead of bleeding through ``~/.kiro/crew``.
+        instead of bleeding through ``~/.junction``.
 
         Restored on startup by ``restore_open_slots`` in chat_persistence.
         Failures are logged at debug level — losing the snapshot only

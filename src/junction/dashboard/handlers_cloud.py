@@ -292,7 +292,10 @@ async def api_cloud_launch_create(request: web.Request) -> web.Response:
             _audit("launch_create", "denied", request_id=active.id, error="already running")
             return web.json_response(
                 {
-                    "error": "a crew setup is already running; cancel it before starting another",
+                    "error": (
+                        "a remote Junction setup is already running; cancel it before "
+                        "starting another"
+                    ),
                     "code": "launch_already_running",
                     "job": active.to_dict(),
                 },
@@ -344,7 +347,7 @@ async def api_cloud_launch_cancel(request: web.Request) -> web.Response:
         # arriving here does not prove the job is still active. Writing the stale
         # snapshot would overwrite a completed launch with `cancelled` and discard what
         # the worker recorded, including the instance id the dashboard uses to tell a
-        # cloud crew from a hand-added machine.
+        # cloud instance from a hand-added machine.
         fresh = await _in_executor(store.get, job_id) or job
         if not fresh.terminal:
             for step in fresh.steps:
@@ -386,7 +389,7 @@ def _teardown_after_delete(tag: str, profile: str, region: str, instance_id: str
     Mirrors the CLI's destroy ordering (``cli_cloud.py``): confirm first, then
     unregister the instance and remove the uploaded source. If deletion does NOT
     confirm (``DELETE_FAILED``, or a gateway restart cutting this thread short),
-    both are deliberately left in place — a crew that still exists must keep its
+    both are deliberately left in place — an instance that still exists must keep its
     registration, and the archive is the cheaper thing to leak. The opposite
     ordering loses the registration for a live instance, which the user cannot
     recover from the dashboard.
@@ -451,7 +454,7 @@ async def _mutate_instance(request: web.Request, op: str) -> web.Response:
         # The instance id drives the registry cleanup below, and `unregister_instance`
         # matches it against EVERY registered box (by ssm_target, ssh_host or id) with
         # no cross-check against this tag. Accepting it from the caller therefore lets a
-        # mismatched value silently remove a *different*, still-living crew's
+        # mismatched value silently remove a *different*, still-living instance's
         # registration — the exact harm `_teardown_after_delete` documents it exists to
         # prevent, and not recoverable from the dashboard. The server can derive it
         # authoritatively, so it always does: from the stack itself, and BEFORE the
@@ -463,7 +466,7 @@ async def _mutate_instance(request: web.Request, op: str) -> web.Response:
             # Deliberately broad, and deliberately NOT falling back to a caller-supplied
             # id: an empty id skips the unregister, leaving a stale registry row the user
             # can see and remove. That is the safe direction to fail — the alternative
-            # risks dropping the registration of a crew that is still running.
+            # risks dropping the registration of an instance that is still running.
             # AWSError alone is not enough: describe shells out, so an exec/sandbox
             # failure surfaces as an unrelated exception type.
             logger.warning("Could not resolve the instance id for %s: %s", tag, e)
@@ -483,7 +486,7 @@ async def _mutate_instance(request: web.Request, op: str) -> web.Response:
         # Local teardown (registry entry + uploaded source) mirrors the CLI's
         # destroy path, but it must NOT happen here: the delete is only *accepted*
         # at this point, and a stack that later reaches DELETE_FAILED would leave
-        # a live crew whose registration and source archive we had already thrown
+        # a live instance whose registration and source archive we had already thrown
         # away. The CLI cleans up only after deletion confirms, so this waits for
         # the same confirmation on a background thread and cleans up then.
         _start_teardown_watch(tag, profile, region, iid, sync=sync_teardown)

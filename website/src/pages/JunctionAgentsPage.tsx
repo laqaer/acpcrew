@@ -17,13 +17,13 @@ import SegmentedControl from '../components/SegmentedControl'
 import InfoTip from '../components/InfoTip'
 import { FOCUSABLE } from '../hooks/useDialogFocusTrap'
 import SimpleSelect from '../components/SimpleSelect'
-import CrewAvatar from '../components/CrewAvatar'
-import CrewWakeSection from '../components/CrewWakeSection'
-import CrewWebhookSection from '../components/CrewWebhookSection'
-import CrewEditorRail from '../components/crew/CrewEditorRail'
-import CrewOverviewPane from '../components/crew/CrewOverviewPane'
-import { useCrewEditorSections, type CrewPaneKey } from '../components/crew/crewEditorSections'
-import { wakesCrew, crewWakeQueryKey, crewWebhooksQueryKey, webhookBoundToCrew, webhookCanCallIn } from '../components/crew/wakesCrew'
+import AgentAvatar from '../components/AgentAvatar'
+import AgentWakeSection from '../components/AgentWakeSection'
+import AgentWebhookSection from '../components/AgentWebhookSection'
+import AgentEditorRail from '../components/agent/AgentEditorRail'
+import AgentOverviewPane from '../components/agent/AgentOverviewPane'
+import { useAgentEditorSections, type AgentPaneKey } from '../components/agent/agentEditorSections'
+import { wakesAgent, agentWakeQueryKey, agentWebhooksQueryKey, webhookBoundToAgent, webhookCanCallIn } from '../components/agent/wakesAgent'
 import type { CronJob } from '../types'
 import type { JunctionAgent } from '../components/AgentSelector'
 import { SourceBadge } from '../components/SourceBadge'
@@ -36,7 +36,7 @@ interface AgentMutationResult {
   name?: string
 }
 
-/** Fields sent when creating a crew. */
+/** Fields sent when creating an agent. */
 interface CreatePayload {
   name: string
   kiro_agent: string
@@ -50,7 +50,7 @@ interface AgentUpdatePayload {
   kiro_agent: string
   workspace: string
   memory_store: string
-  /** Free-text routing intent for orchestrator crew selection. */
+  /** Free-text routing intent for orchestrator agent selection. */
   triggers: string
   /** '' = inherit (the kiro template's pin, then the global fallback). */
   model: string
@@ -60,20 +60,20 @@ interface AgentUpdatePayload {
  *  select shows this as a real option; the backend normalizes it back to ''. */
 const INHERIT_MODEL = 'auto'
 
-/** Which crew the editor dialog is pointed at. `null` = closed. */
+/** Which agent the editor dialog is pointed at. `null` = closed. */
 type SheetTarget = { mode: 'create' } | { mode: 'edit'; name: string } | null
 
 /** Roster layout. `cards` is the roomy grid, `list` the compact table. */
-type CrewView = 'cards' | 'list'
+type AgentView = 'cards' | 'list'
 
 /** Where the roster layout is remembered. Mirrors `mc-artifacts-view`, which is
  *  how the Artifacts page persists the same grid/table choice — one convention
  *  for both surfaces rather than a second scheme for this one. */
-const VIEW_KEY = 'mc-crews-view'
+const VIEW_KEY = 'mc-agents-view'
 
 /** Read the remembered layout. Guarded because `localStorage` throws outright
  *  in a partitioned/blocked-storage context rather than returning null. */
-function readStoredView(): CrewView {
+function readStoredView(): AgentView {
   try {
     return localStorage.getItem(VIEW_KEY) === 'list' ? 'list' : 'cards'
   } catch {
@@ -82,13 +82,13 @@ function readStoredView(): CrewView {
 }
 
 /**
- * Which of a crew's two stores another crew also points at. Drives a specific
+ * Which of an agent's two stores another agent also points at. Drives a specific
  * badge instead of a bare "Shared", which a first-run reviewer read as "shared
  * with my teammates" — the scariest possible reading and the wrong one.
  */
 type SharedKind = 'none' | 'memory' | 'files' | 'both'
 
-/* ── Workspace Creation Dialog (a nested Radix layer inside the crew editor) ── */
+/* ── Workspace Creation Dialog (a nested Radix layer inside the agent editor) ── */
 
 /** The form itself, mounted only while the dialog is open.
  *
@@ -204,7 +204,7 @@ function WorkspaceModal({
      subtree out the instant it closes skipped the layer's own deregistration —
      the editor underneath was then left believing it was no longer the top
      layer, so Escape stopped closing it. Verified in a real browser
-     (scripts/verify-crews-dialog-select.mjs), which is the only place the bug
+     (scripts/verify-agents-dialog-select.mjs), which is the only place the bug
      showed: happy-dom does not reproduce it.
 
      `z-[110]` because both layers are centered overlays and the editor's own
@@ -239,7 +239,7 @@ function Binding({ icon, label, value, muted, note }: {
   label: string
   value: string
   muted?: boolean
-  /** Warning suffix, e.g. that another crew points at this same store. */
+  /** Warning suffix, e.g. that another agent points at this same store. */
   note?: string
 }) {
   return (
@@ -294,7 +294,7 @@ export function WorkspaceField({ options, value, onChange, onNewWorkspace }: {
   return (
     <Field
       label={i18nT('pages.junctionAgentsPage.workspace_2')}
-      hint={i18nT('pages.junctionAgentsPage.isolated_memory_and_files_for_this_crew')}
+      hint={i18nT('pages.junctionAgentsPage.isolated_memory_and_files_for_this_agent')}
       info={i18nT('pages.junctionAgentsPage.bindings_preview_info')}
     >
       <SimpleSelect
@@ -392,8 +392,8 @@ function BindingFields({
   )
 }
 
-/** One crew in the roster. The whole card opens the editor panel. */
-function CrewCard({ agent, isDefault, shared, onOpen }: {
+/** One agent in the roster. The whole card opens the editor panel. */
+function AgentCard({ agent, isDefault, shared, onOpen }: {
   agent: JunctionAgent
   isDefault: boolean
   shared: SharedKind
@@ -403,18 +403,18 @@ function CrewCard({ agent, isDefault, shared, onOpen }: {
   const sharedNote = i18nT('pages.junctionAgentsPage.shared_lower')
   const filesShared = shared === 'files' || shared === 'both'
   const memoryShared = shared === 'memory' || shared === 'both'
-  const desc = describeCrew(agent, isDefault)
+  const desc = describeAgent(agent, isDefault)
   return (
     <Clickable
       onClick={onOpen}
-      aria-label={i18nT('pages.junctionAgentsPage.edit_crew_named', { name: agent.name })}
-      data-testid="crew-card"
+      aria-label={i18nT('pages.junctionAgentsPage.edit_agent_named', { name: agent.name })}
+      data-testid="agent-card"
       className={`group flex flex-col gap-3 rounded-lg border bg-card p-3.5 transition-all
                   hover:border-border-strong hover:shadow-md focus-ring
                   ${isDefault ? 'border-accent-subtle' : 'border-border'}`}
     >
       <div className="flex items-center gap-3">
-        <CrewAvatar seed={agent.name} size={38} />
+        <AgentAvatar seed={agent.name} size={38} />
         {/* Fixed height for the whole header block. Badges are slightly taller
             than plain text, so cards carrying a `default` badge would otherwise
             push their binding grid lower than a card without one, and the row
@@ -431,8 +431,8 @@ function CrewCard({ agent, isDefault, shared, onOpen }: {
             {isDefault && <Badge variant="ok" className="shrink-0">{i18nT('pages.junctionAgentsPage.default_2')}</Badge>}
             {agent.source && agent.source !== 'junction' && <SourceBadge source={agent.source} />}
           </div>
-          {/* Two lines rather than one. A crew description is a sentence about
-              what the crew is FOR, and a single truncated line cut nearly all
+          {/* Two lines rather than one. An agent description is a sentence about
+              what the agent is FOR, and a single truncated line cut nearly all
               of them mid-word. `line-clamp-2` with an explicit line-height and
               a matching fixed height: without the fixed height the clamp leaks
               a sliver of a third line at some font sizes, and cards with a
@@ -464,26 +464,26 @@ function CrewCard({ agent, isDefault, shared, onOpen }: {
 }
 
 /**
- * What a crew's description line shows, so the card and the row cannot drift.
+ * What an agent's description line shows, so the card and the row cannot drift.
  *
- * A crew with no description read as blank in the card but italic "No
- * description" in the row, i.e. the same crew looked different per view. The
- * default crew keeps its own hint instead — that line is what tells a first-run
- * user why this crew matters, and a test asserts it.
+ * An agent with no description read as blank in the card but italic "No
+ * description" in the row, i.e. the same agent looked different per view. The
+ * default agent keeps its own hint instead — that line is what tells a first-run
+ * user why this agent matters, and a test asserts it.
  *
  * Returns `text` plus whether it is real copy: a placeholder must render italic
- * and must NOT become a tooltip, or every empty crew advertises a blank bubble.
+ * and must NOT become a tooltip, or every empty agent advertises a blank bubble.
  */
-function describeCrew(agent: JunctionAgent, isDefault: boolean): { text: string; placeholder: boolean } {
+function describeAgent(agent: JunctionAgent, isDefault: boolean): { text: string; placeholder: boolean } {
   if (agent.description) return { text: agent.description, placeholder: false }
   if (isDefault) return { text: i18nT('pages.junctionAgentsPage.used_for_all_new_chats'), placeholder: true }
   return { text: i18nT('pages.junctionAgentsPage.no_description'), placeholder: true }
 }
 
-/** One crew as a table row. The row opens the editor; the accessible target is
+/** One agent as a table row. The row opens the editor; the accessible target is
  *  the real button in the name cell, so table semantics stay intact — a `<tr>`
  *  given `role="button"` stops being announced as a row at all. */
-function CrewRow({ agent, isDefault, shared, onOpen }: {
+function AgentRosterRow({ agent, isDefault, shared, onOpen }: {
   agent: JunctionAgent
   isDefault: boolean
   shared: SharedKind
@@ -492,10 +492,10 @@ function CrewRow({ agent, isDefault, shared, onOpen }: {
   const sharedNote = i18nT('pages.junctionAgentsPage.shared_lower')
   const filesShared = shared === 'files' || shared === 'both'
   const memoryShared = shared === 'memory' || shared === 'both'
-  const desc = describeCrew(agent, isDefault)
+  const desc = describeAgent(agent, isDefault)
   return (
     <TableRow
-      data-testid="crew-row"
+      data-testid="agent-roster-row"
       className={`cursor-pointer ${isDefault ? 'bg-accent-subtle/30' : ''}`}
       // Convenience only: the whole row is a click target, but a click that
       // landed on the name control must not fire this too or the editor would be
@@ -508,12 +508,12 @@ function CrewRow({ agent, isDefault, shared, onOpen }: {
     >
       <TableCell>
         <div className="flex items-center gap-2.5 min-w-0">
-          <CrewAvatar seed={agent.name} size={28} />
+          <AgentAvatar seed={agent.name} size={28} />
           <div className="min-w-0">
             <div className="flex items-center gap-2 min-w-0">
               <Clickable
                 onClick={onOpen}
-                aria-label={i18nT('pages.junctionAgentsPage.edit_crew_named', { name: agent.name })}
+                aria-label={i18nT('pages.junctionAgentsPage.edit_agent_named', { name: agent.name })}
                 className="truncate rounded font-mono text-[12.5px] font-semibold text-text-strong focus-ring"
               >
                 {agent.name}
@@ -524,7 +524,7 @@ function CrewRow({ agent, isDefault, shared, onOpen }: {
             {/* One line here is the point of this view — the row is wide, so a
                 single line already carries far more of the sentence than the
                 card's clamp does, and the full text is in the tooltip. Same
-                fallback chain as the card (see describeCrew). */}
+                fallback chain as the card (see describeAgent). */}
             <span
               className={`block max-w-[380px] truncate text-[11.5px] text-muted ${desc.placeholder ? 'italic' : ''}`}
               title={desc.placeholder ? undefined : desc.text}
@@ -589,13 +589,13 @@ export default function JunctionAgentsPage({ embedded }: { embedded?: boolean } 
   ]
 
   const [filter, setFilter] = useState('')
-  const [view, setView] = useState<CrewView>(readStoredView)
+  const [view, setView] = useState<AgentView>(readStoredView)
   const [error, setError] = useState('')
   const [sheet, setSheet] = useState<SheetTarget>(null)
   const [name, setName] = useState('')
   // Starts UNSELECTED, not at the built-in 'junction'. Pre-filling the built-in
-  // made every crew created without touching this field an alias for the DEFAULT
-  // agent: the crew is offered in the chat picker, then dispatch flattens the
+  // made every agent created without touching this field an alias for the DEFAULT
+  // agent: the new agent is offered in the chat picker, then dispatch flattens the
   // alias to its `kiro_agent` pointer and the default answers — indistinguishable
   // from "the picker reverted to default" (#1684). An empty value forces the
   // choice to be explicit and is rejected by `create()` below.
@@ -617,7 +617,7 @@ export default function JunctionAgentsPage({ embedded }: { embedded?: boolean } 
   /** Remember the layout across visits. Wrapped because `localStorage` can throw
    *  outright (blocked/partitioned storage) — losing the preference is fine,
    *  taking the roster down with it is not. */
-  const pickView = useCallback((v: CrewView) => {
+  const pickView = useCallback((v: AgentView) => {
     setView(v)
     try { localStorage.setItem(VIEW_KEY, v) } catch { /* preference is best-effort */ }
   }, [])
@@ -625,7 +625,7 @@ export default function JunctionAgentsPage({ embedded }: { embedded?: boolean } 
   const editing = sheet?.mode === 'edit' ? sheet.name : ''
   const editingAgent = agents.find(a => a.name === editing)
 
-  /** The model a new session on this crew would actually run on, resolved by
+  /** The model a new session on this agent would actually run on, resolved by
    *  the backend so the precedence is not re-derived (and drifted) here. */
   const { data: resolved } = useQuery({
     queryKey: ['agent-resolved-model', editing],
@@ -659,7 +659,7 @@ export default function JunctionAgentsPage({ embedded }: { embedded?: boolean } 
    * close.
    *
    * An async completion must only act on the panel it was fired from. Comparing
-   * the crew name is not enough: dismissing and reopening the SAME crew is a
+   * the agent name is not enough: dismissing and reopening the SAME agent is a
    * different panel holding different unsaved edits, and a name comparison
    * cannot tell those two apart. A per-opening counter can.
    */
@@ -696,7 +696,7 @@ export default function JunctionAgentsPage({ embedded }: { embedded?: boolean } 
     onError: (e: Error, vars) => settleFor(vars.epoch, e.message || i18nT('pages.junctionAgentsPage.failed_to_update_agent')),
   })
   /** Promotion is its own write, fired straight from the roster bar — it is not
-   *  part of saving a crew's bindings, so it must not wait for a Save. */
+   *  part of saving an agent's bindings, so it must not wait for a Save. */
   const defaultMut = useMutation({
     mutationFn: (n: string) => api.setDefaultAgent(n),
     onSuccess: (r: AgentMutationResult) => { if (r.error) { setError(r.error); return }; refetchAgents() },
@@ -713,7 +713,7 @@ export default function JunctionAgentsPage({ embedded }: { embedded?: boolean } 
     const n = name.trim()
     if (!n) { setError(i18nT('pages.junctionAgentsPage.name_is_required')); return }
     // Refuse an unset template rather than letting the server apply its
-    // 'junction' default: that default is what silently turns a new crew into an
+    // 'junction' default: that default is what silently turns a new agent into an
     // alias for the DEFAULT agent (#1684).
     if (!kiroAgent) { setError(i18nT('pages.junctionAgentsPage.agent_template_is_required')); return }
     createMut.mutate({ name: n, kiro_agent: kiroAgent, workspace, memory_store: memoryStore, triggers, epoch: sheetEpoch.current })
@@ -737,14 +737,14 @@ export default function JunctionAgentsPage({ embedded }: { embedded?: boolean } 
     })
   }
 
-  const chatWith = async (crew: string) => {
+  const chatWith = async (agent: string) => {
     const epoch = sheetEpoch.current
     setError('')
     try {
       // `dispatch(thunk)` resolves with a REJECTED action on failure; only
       // `unwrap()` throws. Without it a failed create still navigated to /chat
       // and silently showed whatever session happened to be active.
-      await dispatch(createSlot(crew)).unwrap()
+      await dispatch(createSlot(agent)).unwrap()
     } catch (e) {
       // `unwrap()` rethrows Redux Toolkit's SERIALIZED error, which is a plain
       // object carrying `message` rather than a real Error — an `instanceof`
@@ -764,8 +764,8 @@ export default function JunctionAgentsPage({ embedded }: { embedded?: boolean } 
     !filter || (a.name + ' ' + a.kiro_agent + ' ' + a.workspace + ' ' + a.memory_store).toLowerCase().includes(filter.toLowerCase())
   )
 
-  /** Workspaces and memory stores that more than one crew points at. Surfacing
-   *  this is the one thing a flat list cannot show: two crews on one store
+  /** Workspaces and memory stores that more than one agent points at. Surfacing
+   *  this is the one thing a flat list cannot show: two agents on one store
    *  share their lessons and history, which is easy to do by accident and
    *  confusing to debug later. Reported as WHICH store collides, because a bare
    *  "Shared" badge was read by a first-run reviewer as "shared with other
@@ -787,39 +787,39 @@ export default function JunctionAgentsPage({ embedded }: { embedded?: boolean } 
     if (files) return 'files'
     return 'none'
   }
-  /** The other crews the edited crew collides with, named so the warning in the
+  /** The other agents the edited agent collides with, named so the warning in the
    *  editor panel is concrete rather than abstract.
    *
    *  Compared against the IN-FLIGHT select values, not the persisted ones: the
    *  whole point of the warning is to catch the collision you are about to
-   *  create, and reading `editingAgent.*` here meant re-pointing a crew at a
-   *  store another crew already uses stayed silent until after a save and a
+   *  create, and reading `editingAgent.*` here meant re-pointing an agent at a
+   *  store another agent already uses stayed silent until after a save and a
    *  reopen. */
-  /** Crews sharing the IN-FLIGHT selection, split by WHICH resource collides.
+  /** Agents sharing the IN-FLIGHT selection, split by WHICH resource collides.
    *
    *  Split rather than OR-ed because the overview tags each node from its own
    *  resource: one OR-ed value labels a private workspace "Shared" whenever only
-   *  the memory store is. `collidingCrews` is their union, so the stat, the
+   *  the memory store is. `collidingAgents` is their union, so the stat, the
    *  warning and the two pills are three readings of one predicate and cannot
    *  disagree. Read off the in-flight values, never the persisted per-agent
    *  counts in `sharedTargets` — those answer a question about the ROSTER, and
    *  against a selection the user has just changed they report the collision the
-   *  crew used to have instead of the one it is about to create. */
+   *  agent used to have instead of the one it is about to create. */
   const sharingWorkspace = editing
     ? agents.filter(a => a.name !== editing && a.workspace === workspace).map(a => a.name)
     : []
   const sharingMemoryStore = editing
     ? agents.filter(a => a.name !== editing && a.memory_store === memoryStore).map(a => a.name)
     : []
-  const collidingCrews = [...new Set([...sharingWorkspace, ...sharingMemoryStore])]
+  const collidingAgents = [...new Set([...sharingWorkspace, ...sharingMemoryStore])]
 
   const creating = sheet?.mode === 'create'
   const sheetBusy = createMut.isPending || updateMut.isPending || deleteMut.isPending
 
   /** Which rail pane the editor body is showing. Reset whenever the editor is
-   *  pointed somewhere else, so a crew never opens on the pane the previous one
+   *  pointed somewhere else, so an agent never opens on the pane the previous one
    *  happened to be left on. */
-  const [pane, setPane] = useState<CrewPaneKey>('overview')
+  const [pane, setPane] = useState<AgentPaneKey>('overview')
   useEffect(() => { setPane('overview') }, [sheet])
 
   /** Pane changes driven from INSIDE a pane (an overview diagram node) rather
@@ -828,7 +828,7 @@ export default function JunctionAgentsPage({ embedded }: { embedded?: boolean } 
    *  which carries `tabIndex={-1}` for exactly this hand-off. Rail clicks keep
    *  focus on the rail row and never set this flag. */
   const paneFocusPending = useRef(false)
-  const goToPane = useCallback((key: CrewPaneKey) => {
+  const goToPane = useCallback((key: AgentPaneKey) => {
     setPane(prev => {
       // Arm only on a real change: a same-pane call never reruns the focus
       // effect, so an armed flag would fire on the NEXT rail-driven change and
@@ -838,7 +838,7 @@ export default function JunctionAgentsPage({ embedded }: { embedded?: boolean } 
       return key
     })
   }, [])
-  const panelId = `crew-editor-pane-${editing || 'new'}`
+  const panelId = `agent-editor-pane-${editing || 'new'}`
   useEffect(() => {
     if (!paneFocusPending.current) return
     paneFocusPending.current = false
@@ -848,26 +848,26 @@ export default function JunctionAgentsPage({ embedded }: { embedded?: boolean } 
   /** The rail's schedule count reads the SAME cached query the wake pane uses, so
    *  opening the editor costs one request rather than two. */
   const wakeQuery = useQuery({
-    queryKey: crewWakeQueryKey(editing),
+    queryKey: agentWakeQueryKey(editing),
     queryFn: () => api.crons(),
     enabled: !!editing,
   })
   const wakeJobs = useMemo<CronJob[]>(
     () => (wakeQuery.data?.jobs || []).filter(
-      (j: CronJob) => wakesCrew(j, editing, editing === defaultAgent)),
+      (j: CronJob) => wakesAgent(j, editing, editing === defaultAgent)),
     [wakeQuery.data, editing, defaultAgent],
   )
 
   /** Same one-fetch rule for webhooks: the rail badge, the overview node and
    *  the webhook pane all read this single cached entry. */
   const webhooksQuery = useQuery({
-    queryKey: crewWebhooksQueryKey,
+    queryKey: agentWebhooksQueryKey,
     queryFn: () => api.webhooks(),
     enabled: !!editing,
   })
   const boundWebhookTokens = useMemo(
     () => (webhooksQuery.data?.tokens || []).filter(
-      (t: WebhookTokenEntry) => webhookBoundToCrew(t, editing)),
+      (t: WebhookTokenEntry) => webhookBoundToAgent(t, editing)),
     [webhooksQuery.data, editing],
   )
   const boundWebhooks = boundWebhookTokens.length
@@ -878,10 +878,10 @@ export default function JunctionAgentsPage({ embedded }: { embedded?: boolean } 
    *  comma-separated, blanks ignored, so a trailing comma is not a keyword. */
   const routingWords = triggers.split(',').map(s => s.trim()).filter(Boolean).length
 
-  /** Which panes hold an edit not yet saved. Compared against the SAVED crew,
+  /** Which panes hold an edit not yet saved. Compared against the SAVED agent,
    *  so a value the user typed and then typed back is not reported as pending. */
   const dirtyPanes = useMemo(() => {
-    const out = new Set<CrewPaneKey>()
+    const out = new Set<AgentPaneKey>()
     if (!editingAgent) return out
     if (kiroAgent !== (editingAgent.kiro_agent || '')) out.add('template')
     if (workspace !== (editingAgent.workspace || '') || memoryStore !== (editingAgent.memory_store || '')) {
@@ -892,12 +892,12 @@ export default function JunctionAgentsPage({ embedded }: { embedded?: boolean } 
     return out
   }, [editingAgent, kiroAgent, workspace, memoryStore, editModel, triggers])
 
-  const sections = useCrewEditorSections({
+  const sections = useAgentEditorSections({
     templateLabel: provider.labels.agentTemplateField,
     activeSchedules: wakeJobs.filter(j => j.enabled).length,
     totalSchedules: wakeJobs.length,
     routingWords,
-    sharesStorage: collidingCrews.length > 0,
+    sharesStorage: collidingAgents.length > 0,
     canDelete: !!editing && editing !== defaultAgent,
     schedulesUnknown: wakeQuery.isError,
     webhookTokens: boundWebhooks,
@@ -910,9 +910,9 @@ export default function JunctionAgentsPage({ embedded }: { embedded?: boolean } 
     <>
       {!embedded && <PageHeader title={i18nT('pages.junctionAgentsPage.agents')} subtitle={i18nT('pages.junctionAgentsPage.manage_agent_workspace_memory_store_bindings')} />}
       <div className={`${embedded ? '' : 'px-4 md:px-6'} pb-8 overflow-y-auto flex-1 min-h-0`}>
-        {/* Says out loud what the bindings below cannot: a crew's workspace and
+        {/* Says out loud what the bindings below cannot: an agent's workspace and
             memory store are shown and editable, but the isolation they imply is
-            only partly built — every crew still reads one shared semantic
+            only partly built — every agent still reads one shared semantic
             memory. Page-level rather than per-card: the claim is about the whole
             surface, and repeating it on every card would put two "?" glyphs on
             each of them. The editor panel and the list header carry the same
@@ -924,12 +924,12 @@ export default function JunctionAgentsPage({ embedded }: { embedded?: boolean } 
           </span>
         </div>
 
-        {/* Which crew a new chat starts as, hoisted out of the cards. Two jobs:
+        {/* Which agent a new chat starts as, hoisted out of the cards. Two jobs:
             it answers "which one is the default" without hunting for a badge,
-            and it is the one place that CHANGES it — a per-crew toggle could
+            and it is the one place that CHANGES it — a per-agent toggle could
             only ever offer promotion (the backend refuses to unset a default
             without naming a replacement), which read as a broken switch.
-            Pointless with a single crew, so it only appears past that. */}
+            Pointless with a single agent, so it only appears past that. */}
         {agents.length > 1 && (
           <div className="mb-3.5 flex flex-wrap items-center gap-2.5 rounded-lg border border-border bg-bg-accent px-3 py-2.5">
             <Star className="lucide-inline text-accent" aria-hidden="true" />
@@ -961,15 +961,15 @@ export default function JunctionAgentsPage({ embedded }: { embedded?: boolean } 
           )}
           {/* Same control and the same persistence convention as the Artifacts
               page — NOT the same labels. Artifacts says "Gallery"/"Table"
-              because its grid really is a preview gallery; a crew card is not a
+              because its grid really is a preview gallery; an agent card is not a
               preview, so this reads "Cards"/"List". Hidden on an empty roster
               for the reason the filter is: there is no layout to choose.
               `collapse={false}` because this sits in a `flex-wrap` toolbar whose
               width the control itself contributes to — the responsive
               measurement would be circular and drop it to a dropdown. */}
           {agents.length > 0 && (
-            <SegmentedControl<CrewView>
-              layoutId="crews-view"
+            <SegmentedControl<AgentView>
+              layoutId="agents-view"
               collapse={false}
               value={view}
               onChange={pickView}
@@ -990,9 +990,9 @@ export default function JunctionAgentsPage({ embedded }: { embedded?: boolean } 
             />
           )}
           <div className="flex-1" />
-          <SendBtn onClick={openCreate} data-testid="new-crew">
+          <SendBtn onClick={openCreate} data-testid="new-agent">
             <Plus className="lucide-inline" aria-hidden="true" />
-            {i18nT('pages.junctionAgentsPage.new_crew')}
+            {i18nT('pages.junctionAgentsPage.new_agent')}
           </SendBtn>
         </div>
 
@@ -1000,30 +1000,30 @@ export default function JunctionAgentsPage({ embedded }: { embedded?: boolean } 
           <div className="flex flex-col items-center">
             <EmptyState
               icon={<Users className="lucide-inline" aria-hidden="true" />}
-              title={i18nT('pages.junctionAgentsPage.no_crews_yet')}
-              subtitle={i18nT('pages.junctionAgentsPage.create_a_crew_to_give_an_agent_its_own_workspace')}
+              title={i18nT('pages.junctionAgentsPage.no_agents_yet')}
+              subtitle={i18nT('pages.junctionAgentsPage.an_agent_is_an_assistant_with_its_own_files_and_memory')}
             />
             {/* The call to action belongs where the explanation is, not only in
                 the toolbar above it. */}
-            <SendBtn onClick={openCreate}>{i18nT('pages.junctionAgentsPage.create_your_first_crew')}</SendBtn>
+            <SendBtn onClick={openCreate}>{i18nT('pages.junctionAgentsPage.create_your_first_agent')}</SendBtn>
           </div>
         ) : filtered.length === 0 ? (
           <EmptyState
             icon={<Users className="lucide-inline" aria-hidden="true" />}
-            title={i18nT('pages.junctionAgentsPage.no_crews_match_your_filter')}
+            title={i18nT('pages.junctionAgentsPage.no_agents_match_your_filter')}
           />
         ) : view === 'list' ? (
           <div className="rounded-lg border border-border bg-card">
             <Table>
               <TableHeader>
                 <TableRow className="hover:bg-transparent">
-                  <TableHead>{i18nT('pages.junctionAgentsPage.crew_column')}</TableHead>
+                  <TableHead>{i18nT('pages.junctionAgentsPage.agent_column')}</TableHead>
                   <TableHead>{provider.labels.agentTemplateField}</TableHead>
                   {/* `aria-label` keeps the column's accessible name to the
                       label itself. Without it the InfoTip's own name is
                       concatenated into the header, and a screen reader
                       announces every cell in the column as "Workspace,
-                      Preview. Isolated memory per crew is…". */}
+                      Preview. Isolated memory per agent is…". */}
                   <TableHead aria-label={i18nT('pages.junctionAgentsPage.workspace_2')}>
                     <span className="inline-flex items-center gap-1.5">
                       {i18nT('pages.junctionAgentsPage.workspace_2')}
@@ -1041,7 +1041,7 @@ export default function JunctionAgentsPage({ embedded }: { embedded?: boolean } 
               </TableHeader>
               <TableBody>
                 {filtered.map(a => (
-                  <CrewRow
+                  <AgentRosterRow
                     key={a.name}
                     agent={a}
                     isDefault={a.name === defaultAgent}
@@ -1055,7 +1055,7 @@ export default function JunctionAgentsPage({ embedded }: { embedded?: boolean } 
         ) : (
           <div className="grid gap-3.5 grid-cols-[repeat(auto-fill,minmax(290px,1fr))]">
             {filtered.map(a => (
-              <CrewCard
+              <AgentCard
                 key={a.name}
                 agent={a}
                 isDefault={a.name === defaultAgent}
@@ -1065,13 +1065,13 @@ export default function JunctionAgentsPage({ embedded }: { embedded?: boolean } 
             ))}
             <Clickable
               onClick={openCreate}
-              aria-label={i18nT('pages.junctionAgentsPage.create_a_new_crew')}
+              aria-label={i18nT('pages.junctionAgentsPage.create_a_new_agent')}
               className="flex min-h-[150px] flex-col items-center justify-center gap-2 rounded-lg border
                          border-dashed border-border-strong text-muted transition-colors focus-ring
                          hover:border-accent hover:bg-accent-subtle hover:text-accent"
             >
               <Plus className="lucide-inline" aria-hidden="true" />
-              <span className="text-[13px]">{i18nT('pages.junctionAgentsPage.new_crew')}</span>
+              <span className="text-[13px]">{i18nT('pages.junctionAgentsPage.new_agent')}</span>
             </Clickable>
           </div>
         )}
@@ -1081,18 +1081,18 @@ export default function JunctionAgentsPage({ embedded }: { embedded?: boolean } 
         <DialogContent
           /* The rail needs horizontal room; the create form does not have one. */
           maxWidth={creating ? 560 : 790}
-          /* The visible title is just the crew name, which is not a usable
+          /* The visible title is just the agent name, which is not a usable
              accessible name on its own — it has to say what you are doing to it.
              An explicit aria-label outranks Radix's aria-labelledby, and the
              DialogTitle still has to EXIST or Radix warns. */
-          aria-label={creating ? i18nT('pages.junctionAgentsPage.create_a_new_crew') : i18nT('pages.junctionAgentsPage.edit_crew_named', { name: editing })}
+          aria-label={creating ? i18nT('pages.junctionAgentsPage.create_a_new_agent') : i18nT('pages.junctionAgentsPage.edit_agent_named', { name: editing })}
           /* Radix closes on an outside pointerdown and on Escape. Dismissing
              mid-write is DELIBERATELY still allowed: the sheetEpoch/settleFor
              machinery below exists to make the abandoned write land harmlessly,
              and suppressing it would break that. */
         >
           <DialogHeader>
-            {!creating && <CrewAvatar seed={editing} size={28} />}
+            {!creating && <AgentAvatar seed={editing} size={28} />}
             <DialogTitle className="font-mono">
               {creating ? i18nT('pages.junctionAgentsPage.create_agent') : editing}
             </DialogTitle>
@@ -1100,13 +1100,13 @@ export default function JunctionAgentsPage({ embedded }: { embedded?: boolean } 
             {!creating && (
               <Btn className="ml-auto" onClick={() => chatWith(editing)}>
                 <MessageSquare className="lucide-inline" aria-hidden="true" />
-                {i18nT('pages.junctionAgentsPage.chat_with_this_crew')}
+                {i18nT('pages.junctionAgentsPage.chat_with_this_agent')}
               </Btn>
             )}
           </DialogHeader>
 
           {/* Create is a short form and keeps the stacked layout. Edit is a rail:
-              an existing crew has surfaces (schedules, bindings, removal) that a
+              an existing agent has surfaces (schedules, bindings, removal) that a
               new one does not, and a wizard for creation is a separate decision. */}
           <DialogBody className={creating ? undefined : 'flex flex-col overflow-hidden p-0 sm:flex-row'}>
             {creating ? (
@@ -1134,13 +1134,13 @@ export default function JunctionAgentsPage({ embedded }: { embedded?: boolean } 
               </div>
             ) : (
               <>
-                <CrewEditorRail
+                <AgentEditorRail
                   sections={sections}
                   value={pane}
                   onChange={setPane}
-                  ariaLabel={i18nT('components.crewEditor.rail_label')}
-                  unsavedLabel={i18nT('components.crewEditor.unsaved_changes')}
-                  sharedLabel={i18nT('components.crewEditor.tag_shared')}
+                  ariaLabel={i18nT('components.agentEditor.rail_label')}
+                  unsavedLabel={i18nT('components.agentEditor.unsaved_changes')}
+                  sharedLabel={i18nT('components.agentEditor.tag_shared')}
                   panelIdPrefix={panelId}
                 />
                 {/* `tabIndex={-1}` so moving focus here after a rail change is
@@ -1154,8 +1154,8 @@ export default function JunctionAgentsPage({ embedded }: { embedded?: boolean } 
                   className="flex min-w-0 flex-1 flex-col gap-3.5 overflow-y-auto px-5 py-4"
                 >
                   {pane === 'overview' && (
-                    <CrewOverviewPane
-                      hub={<CrewAvatar seed={editing} size={34} />}
+                    <AgentOverviewPane
+                      hub={<AgentAvatar seed={editing} size={34} />}
                       templateLabel={provider.labels.agentTemplateField}
                       template={kiroAgent}
                       workspace={workspace}
@@ -1166,7 +1166,7 @@ export default function JunctionAgentsPage({ embedded }: { embedded?: boolean } 
                       activeSchedules={wakeJobs.filter(j => j.enabled).length}
                       schedulesUnknown={wakeQuery.isError}
                       routingWords={routingWords}
-                      sharingCrews={collidingCrews.length}
+                      sharingAgents={collidingAgents.length}
                       workspaceShared={sharingWorkspace.length > 0}
                       memoryShared={sharingMemoryStore.length > 0}
                       webhookTokens={boundWebhooks}
@@ -1194,7 +1194,7 @@ export default function JunctionAgentsPage({ embedded }: { embedded?: boolean } 
                           </span>
                           {' — '}
                           {resolved.pinned
-                            ? i18nT('pages.junctionAgentsPage.pinned_on_this_crew')
+                            ? i18nT('pages.junctionAgentsPage.pinned_on_this_agent')
                             : resolved.model
                               ? i18nT('pages.junctionAgentsPage.inherited_from_the_agent_template')
                               : i18nT('pages.junctionAgentsPage.no_pin_anywhere_the_backend_chooses')}
@@ -1212,19 +1212,19 @@ export default function JunctionAgentsPage({ embedded }: { embedded?: boolean } 
                         onNewWorkspace={() => setWsModalOpen(true)}
                       />
                       <MemoryStoreField options={memoryStoreOptions} value={memoryStore} onChange={setMemoryStore} />
-                      {collidingCrews.length > 0 && (
+                      {collidingAgents.length > 0 && (
                         <div className="rounded-md border border-warn-subtle bg-warn-subtle px-3 py-2.5 text-[11.5px] leading-relaxed text-muted">
-                          {i18nT('pages.junctionAgentsPage.also_used_by_these_crews', { crews: collidingCrews.join(', ') })}
+                          {i18nT('pages.junctionAgentsPage.also_used_by_these_agents', { agents: collidingAgents.join(', ') })}
                         </div>
                       )}
                     </>
                   )}
 
                   {pane === 'schedules' && (
-                    <CrewWakeSection crew={editing} isDefaultCrew={editing === defaultAgent} />
+                    <AgentWakeSection agent={editing} isDefaultAgent={editing === defaultAgent} />
                   )}
 
-                  {pane === 'webhook' && <CrewWebhookSection crew={editing} />}
+                  {pane === 'webhook' && <AgentWebhookSection agent={editing} />}
 
                   {pane === 'routing' && <TriggersField value={triggers} onChange={setTriggers} />}
 
@@ -1232,8 +1232,8 @@ export default function JunctionAgentsPage({ embedded }: { embedded?: boolean } 
                     <div className="flex flex-col gap-3 rounded-md border border-danger-subtle bg-danger-subtle p-3">
                       <p className="m-0 text-[12px] leading-relaxed text-muted">
                         {confirmDelete
-                          ? i18nT('pages.junctionAgentsPage.delete_crew_named_confirm', { name: editing })
-                          : i18nT('pages.junctionAgentsPage.deleting_a_crew_unbinds_it_from_new_sessions_its')}
+                          ? i18nT('pages.junctionAgentsPage.delete_agent_named_confirm', { name: editing })
+                          : i18nT('pages.junctionAgentsPage.deleting_an_agent_unbinds_it_from_new_sessions_its')}
                       </p>
                       {/* Two-step rather than a one-click destructive button: a
                           misclick in an overlay is far likelier than in a table,
@@ -1244,14 +1244,14 @@ export default function JunctionAgentsPage({ embedded }: { embedded?: boolean } 
                         <div className="flex-1" />
                         {confirmDelete ? (
                           <>
-                            <Btn onClick={() => setConfirmDelete(false)} data-testid="cancel-delete-crew">{i18nT('pages.junctionAgentsPage.cancel')}</Btn>
-                            <Btn danger onClick={() => deleteMut.mutate({ name: editing, epoch: sheetEpoch.current })} disabled={sheetBusy} data-testid="confirm-delete-crew">
+                            <Btn onClick={() => setConfirmDelete(false)} data-testid="cancel-delete-agent">{i18nT('pages.junctionAgentsPage.cancel')}</Btn>
+                            <Btn danger onClick={() => deleteMut.mutate({ name: editing, epoch: sheetEpoch.current })} disabled={sheetBusy} data-testid="confirm-delete-agent">
                               {i18nT('pages.junctionAgentsPage.yes_delete_it')}
                             </Btn>
                           </>
                         ) : (
                           <Btn danger onClick={() => setConfirmDelete(true)} disabled={sheetBusy}>
-                            {i18nT('pages.junctionAgentsPage.delete_crew')}
+                            {i18nT('pages.junctionAgentsPage.delete_agent')}
                           </Btn>
                         )}
                       </div>
@@ -1269,8 +1269,8 @@ export default function JunctionAgentsPage({ embedded }: { embedded?: boolean } 
           <DialogFooter>
             <ErrorNotice message={error} variant="inline" className="mr-auto" />
             {!creating && dirtyPanes.size > 0 && !error && (
-              <span className="mr-auto text-[11.5px] text-muted" data-testid="crew-unsaved-note">
-                {i18nT('components.crewEditor.unsaved_changes')}
+              <span className="mr-auto text-[11.5px] text-muted" data-testid="agent-unsaved-note">
+                {i18nT('components.agentEditor.unsaved_changes')}
               </span>
             )}
             <Btn onClick={closeSheet}>{i18nT('pages.junctionAgentsPage.cancel')}</Btn>

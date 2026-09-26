@@ -2,7 +2,7 @@
 get_chat_session) and their helpers in mcp_core.
 
 These exercise the acceptance criteria EB-1, EB-3, EB-4, EB-5, EB-7b from
-~/.kirocrew/workspace/design-docs/search-chat-history-design.md.
+~/.junction/workspace/design-docs/search-chat-history-design.md.
 """
 
 from __future__ import annotations

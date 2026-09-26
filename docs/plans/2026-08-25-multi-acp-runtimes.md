@@ -43,4 +43,4 @@
 
 **Files:**
 - Create: `FORK.md`
-- Modify: `README.md`, `NOTICE`, `pyproject.toml` (`acpcrew` script)
+- Modify: `README.md`, `NOTICE`, `pyproject.toml` (`junction` console script)

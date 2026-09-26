@@ -9,7 +9,7 @@ import type { ColorMap } from './colorCustomizer'
 
 /**
  * Default Mochi SVG source colors (the keys every preset maps FROM).
- * Extracted from assets/animations/mochi_idle.svg.
+ * Extracted from src/assets/pets/mochi_idle.svg.
  * Each entry maps a hex color to its body part for prompt descriptions.
  */
 export const DEFAULT_MOCHI_COLORS = [

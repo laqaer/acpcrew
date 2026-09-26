@@ -642,7 +642,7 @@ def test_deploy_skill_install_copy_fallback(tmp_path, monkeypatch):
 
 
 def test_deploy_skill_install_preserves_user_placed_dir(tmp_path, monkeypatch):
-    """A user-placed directory without .kirocrew-managed marker is never removed."""
+    """A user-placed directory without .junction-managed marker is never removed."""
     from pathlib import Path
 
     import junction.deploy as deploy_pkg
@@ -656,7 +656,7 @@ def test_deploy_skill_install_preserves_user_placed_dir(tmp_path, monkeypatch):
     user_dir.mkdir()
     (user_dir / "my-custom-file.txt").write_text("user content")
 
-    # No .kirocrew-managed marker — should survive
+    # No .junction-managed marker — should survive
     def _no_symlink(self, target, *a, **kw):
         raise OSError("symlink not permitted")
     monkeypatch.setattr(Path, "symlink_to", _no_symlink)
@@ -671,7 +671,7 @@ def test_deploy_skill_install_preserves_user_placed_dir(tmp_path, monkeypatch):
 
 
 def test_deploy_skill_install_replaces_managed_dir(tmp_path, monkeypatch):
-    """A directory WITH .kirocrew-managed marker is replaced on refresh."""
+    """A directory WITH .junction-managed marker is replaced on refresh."""
     from pathlib import Path
 
     import junction.deploy as deploy_pkg
@@ -683,7 +683,7 @@ def test_deploy_skill_install_replaces_managed_dir(tmp_path, monkeypatch):
     skills_dir.mkdir()
     managed_dir = skills_dir / "artifact-deploy"
     managed_dir.mkdir()
-    (managed_dir / ".kirocrew-managed").write_text("")
+    (managed_dir / ".junction-managed").write_text("")
     (managed_dir / "stale-file.txt").write_text("old")
 
     def _no_symlink(self, target, *a, **kw):
@@ -697,4 +697,4 @@ def test_deploy_skill_install_replaces_managed_dir(tmp_path, monkeypatch):
     assert not (managed_dir / "stale-file.txt").exists()
     assert (managed_dir / "SKILL.md").exists()
     # Marker was re-written by the copy fallback
-    assert (managed_dir / ".kirocrew-managed").exists()
+    assert (managed_dir / ".junction-managed").exists()

@@ -310,7 +310,7 @@ class TestStoreLocationAndMode:
 
         assert path.parent == paths.config_dir() / skill_trust._TRUST_SUBDIR
         assert path.name == skill_trust._STORE_FILENAME
-        assert skill_trust._TRUST_SUBDIR in security._CREW_SECRET_LEAVES
+        assert skill_trust._TRUST_SUBDIR in security._DATA_HOME_SECRET_LEAVES
 
     @pytest.mark.skipif(
         platform_compat.IS_WINDOWS,

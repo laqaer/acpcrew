@@ -81,7 +81,7 @@ const DialogContent = React.forwardRef<
       // It does NOT cost us Escape: Radix's DismissableLayer listens with
       // `{ capture: true }`, and a capture-phase listener runs BEFORE the event
       // reaches this element, so stopping bubble propagation here cannot hide it.
-      // (Asserted end-to-end in scripts/verify-crews-dialog-select.mjs.)
+      // (Asserted end-to-end in scripts/verify-agents-dialog-select.mjs.)
       onKeyDown={e => {
         onKeyDown?.(e)
         e.stopPropagation()
@@ -107,7 +107,7 @@ const DialogContent = React.forwardRef<
       {...props}
       // AFTER the spread, and conditional: `aria-labelledby` OUTRANKS
       // `aria-label` in the accname spec, and Radix always points it at the
-      // DialogTitle. A caller passing `aria-label` for a fuller name ("Edit crew
+      // DialogTitle. A caller passing `aria-label` for a fuller name ("Edit agent
       // oncall", over a title that only shows "oncall") would otherwise be
       // silently ignored. When no `aria-label` is given, leave Radix's wiring
       // alone so the visible Title still names the dialog.

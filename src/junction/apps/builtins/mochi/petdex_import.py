@@ -297,8 +297,8 @@ def list_installed() -> list[dict[str, Any]]:
             from junction.hooks import safe_read_file
 
             # Route through the sensitive-path gate: a pet.json symlinked into a
-            # protected location (~/.aws, ~/.ssh, the crew trust-root, …) is
-            # refused here and the pet is skipped, never surfaced in the picker.
+            # protected location (~/.aws, ~/.ssh, the governance trust-root, …)
+            # is refused here and the pet is skipped, never surfaced in the picker.
             meta = parse_pet_json(safe_read_file(str(pet_json)))
             if _find_sheet(entry, meta) is None:
                 continue
@@ -327,8 +327,8 @@ def read_installed(slug: str) -> dict[str, Any]:
     if not pet_json.is_file():
         raise PetdexError(f"no installed pet named {slug!r}")
     # Route both reads through the sensitive-path gate. An installed pet.json or
-    # spritesheet symlinked into a protected location (~/.aws, ~/.ssh, the crew
-    # trust-root, …) is refused here, so a crafted pet cannot exfiltrate a
+    # spritesheet symlinked into a protected location (~/.aws, ~/.ssh, the
+    # governance trust-root, …) is refused here, so a crafted pet cannot exfiltrate a
     # credential file's bytes back to the caller as base64 "image" data.
     try:
         raw_meta = safe_read_file(str(pet_json))

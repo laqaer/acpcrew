@@ -172,7 +172,7 @@ const lottie = (content = LOTTIE) => ({ content, format: 'lottie' as const })
 const sprite = (content: string) => ({ content, format: 'sprite' as const })
 
 const meta = (over: Partial<PackMeta> & { id: string; name: string }): PackMeta => ({
-  author: 'Kiro',
+  author: 'Junction',
   description: '',
   type: 'built-in',
   format: 'svg',
@@ -181,12 +181,12 @@ const meta = (over: Partial<PackMeta> & { id: string; name: string }): PackMeta 
 })
 
 const MOCHI = meta({ id: 'default-mochi', name: 'Mochi Cat', description: 'a soft round cat' })
-const GHOST = meta({ id: 'kiro-ghost', name: 'Kiro Ghost', format: 'lottie' })
+const LANTERN = meta({ id: 'lantern-pack', name: 'Lantern', format: 'lottie' })
 const PIXEL = meta({ id: 'pixel-bot', name: 'Pixel Bot', author: 'Zed', type: 'custom', format: 'sprite' })
 const DRAWN = meta({ id: 'hand-drawn', name: 'Hand Drawn', author: 'Zed', type: 'custom' })
 const BLANK = meta({ id: 'no-art', name: 'No Art', author: 'Nobody', type: 'custom' })
 
-const PACKS: PackMeta[] = [MOCHI, GHOST, PIXEL, DRAWN, BLANK]
+const PACKS: PackMeta[] = [MOCHI, LANTERN, PIXEL, DRAWN, BLANK]
 
 interface Detail {
   meta: PackMeta
@@ -212,8 +212,8 @@ const DETAILS: Record<string, Detail | null> = {
       sleepy: svg(''),
     },
   },
-  'kiro-ghost': {
-    meta: GHOST,
+  'lantern-pack': {
+    meta: LANTERN,
     animations: { idle: lottie(), walking: lottie() },
     flipX: true,
   },
@@ -319,7 +319,18 @@ describe('GalleryPanel — grid', () => {
   it('marks only the configured pack as active', async () => {
     await mount()
     expect(within(cardFor('Mochi Cat')).getByText(t('apps.mochi.gallery.active'))).toBeTruthy()
-    expect(within(cardFor('Kiro Ghost')).queryByText(t('apps.mochi.gallery.active'))).toBeNull()
+    expect(within(cardFor('Lantern')).queryByText(t('apps.mochi.gallery.active'))).toBeNull()
+  })
+
+  it('marks the default cat active when the configured id names no listed pack', async () => {
+    // The pet renders the default character for an id no pack answers to, so the
+    // gallery must say the same rather than showing nothing as in use.
+    fn('getMochiConfig').mockResolvedValue({ activeAppearance: 'retired-pack' })
+    await mount()
+    expect(within(cardFor('Mochi Cat')).getByText(t('apps.mochi.gallery.active'))).toBeTruthy()
+    for (const name of ['Lantern', 'Pixel Bot', 'Hand Drawn', 'No Art']) {
+      expect(within(cardFor(name)).queryByText(t('apps.mochi.gallery.active'))).toBeNull()
+    }
   })
 
   it('renders an svg thumbnail as an inline data URI', async () => {
@@ -331,7 +342,7 @@ describe('GalleryPanel — grid', () => {
 
   it('renders a lottie thumbnail through LottieRenderer, mirrored by the pack flag', async () => {
     await mount()
-    const stub = within(cardFor('Kiro Ghost')).getByTestId('lottie-renderer')
+    const stub = within(cardFor('Lantern')).getByTestId('lottie-renderer')
     expect(stub.getAttribute('data-anim')).toBe(LOTTIE)
     expect(stub.getAttribute('data-w')).toBe('80')
     expect((stub.parentElement as HTMLElement).style.transform).toBe('scaleX(-1)')
@@ -357,10 +368,10 @@ describe('GalleryPanel — grid', () => {
 
   it('keeps rendering when one pack detail lookup rejects', async () => {
     fn('galleryGetPackDetail').mockImplementation((id: string) =>
-      id === 'kiro-ghost' ? Promise.reject(new Error('nope')) : Promise.resolve(DETAILS[id] ?? null))
+      id === 'lantern-pack' ? Promise.reject(new Error('nope')) : Promise.resolve(DETAILS[id] ?? null))
     await mount()
-    expect(cardFor('Kiro Ghost')).toBeTruthy()
-    expect(within(cardFor('Kiro Ghost')).queryByTestId('lottie-renderer')).toBeNull()
+    expect(cardFor('Lantern')).toBeTruthy()
+    expect(within(cardFor('Lantern')).queryByTestId('lottie-renderer')).toBeNull()
     expect(screen.queryByText('nope')).toBeNull()
   })
 
@@ -410,7 +421,7 @@ describe('GalleryPanel — detail sheet', () => {
 
     const panel = sheet()
     expect(within(panel).getByText('a soft round cat')).toBeTruthy()
-    expect(within(panel).getByText('Kiro · SVG')).toBeTruthy()
+    expect(within(panel).getByText('Junction · SVG')).toBeTruthy()
     expect(within(panel).getByText(t('apps.mochi.gallery.states'))).toBeTruthy()
     expect(within(panel).getByText(t('apps.mochi.state.idle'))).toBeTruthy()
     // Optional states only appear when the pack ships them.
@@ -454,8 +465,8 @@ describe('GalleryPanel — detail sheet', () => {
 
   it('toggles the sheet closed when the same card is clicked again', async () => {
     await mount()
-    await open('Kiro Ghost')
-    fireEvent.click(cardFor('Kiro Ghost'))
+    await open('Lantern')
+    fireEvent.click(cardFor('Lantern'))
     await waitFor(() => expect(sheetNodes()).toHaveLength(0))
   })
 
@@ -526,7 +537,7 @@ describe('GalleryPanel — detail sheet', () => {
 
   it('shows apply for an inactive pack and the custom-pack actions only for custom packs', async () => {
     await mount()
-    await open('Kiro Ghost')
+    await open('Lantern')
     expect(within(sheet()).getByText(t('apps.mochi.gallery.apply'))).toBeTruthy()
     expect(within(sheet()).queryByText(t('apps.mochi.gallery.export'))).toBeNull()
     expect(within(sheet()).queryByText(t('apps.mochi.gallery.delete'))).toBeNull()
@@ -544,19 +555,19 @@ describe('GalleryPanel — detail sheet', () => {
 describe('GalleryPanel — actions', () => {
   it('marks the pack active only after the write is confirmed', async () => {
     await mount()
-    await open('Kiro Ghost')
+    await open('Lantern')
     fireEvent.click(within(sheet()).getByText(t('apps.mochi.gallery.apply')))
 
     await waitFor(() => expect(
       within(sheet()).getByText(t('apps.mochi.gallery.active'))).toBeTruthy())
-    expect(fn('gallerySetActive')).toHaveBeenCalledWith('kiro-ghost')
+    expect(fn('gallerySetActive')).toHaveBeenCalledWith('lantern-pack')
     expect(within(sheet()).queryByText(t('apps.mochi.gallery.apply'))).toBeNull()
   })
 
   it('does not mark a pack active when the write is refused', async () => {
     fn('gallerySetActive').mockResolvedValue({ ok: false, error: 'read-only disk' })
     await mount()
-    await open('Kiro Ghost')
+    await open('Lantern')
     fireEvent.click(within(sheet()).getByText(t('apps.mochi.gallery.apply')))
 
     await waitFor(() => expect(screen.getByText('read-only disk')).toBeTruthy())
@@ -566,7 +577,7 @@ describe('GalleryPanel — actions', () => {
   it('falls back to the generic apply error when the refusal carries no message', async () => {
     fn('gallerySetActive').mockResolvedValue({ ok: false })
     await mount()
-    await open('Kiro Ghost')
+    await open('Lantern')
     fireEvent.click(within(sheet()).getByText(t('apps.mochi.gallery.apply')))
 
     await waitFor(() => expect(
@@ -576,7 +587,7 @@ describe('GalleryPanel — actions', () => {
   it('banners a thrown apply', async () => {
     fn('gallerySetActive').mockRejectedValue(new Error('apply threw'))
     await mount()
-    await open('Kiro Ghost')
+    await open('Lantern')
     fireEvent.click(within(sheet()).getByText(t('apps.mochi.gallery.apply')))
 
     await waitFor(() => expect(screen.getByText('apply threw')).toBeTruthy())
@@ -844,9 +855,9 @@ describe('GalleryPanel — editor navigation', () => {
 describe('GalleryPanel — broadcasts', () => {
   it('moves the active badge when the main process names the new pack', async () => {
     await mount()
-    act(() => { H.listeners.active?.({ packId: 'kiro-ghost' }) })
+    act(() => { H.listeners.active?.({ packId: 'lantern-pack' }) })
 
-    expect(within(cardFor('Kiro Ghost')).getByText(t('apps.mochi.gallery.active'))).toBeTruthy()
+    expect(within(cardFor('Lantern')).getByText(t('apps.mochi.gallery.active'))).toBeTruthy()
     expect(within(cardFor('Mochi Cat')).queryByText(t('apps.mochi.gallery.active'))).toBeNull()
     expect(fn('getMochiConfig')).toHaveBeenCalledTimes(1)
   })

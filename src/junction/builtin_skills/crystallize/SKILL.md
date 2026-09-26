@@ -73,8 +73,8 @@ a session that touched credentials / sensitive paths. Being asked does not make 
 4. **Choose the destination — candidate by default, live only on an explicit
    request.** First resolve your Junction skills directory — the SAME directory
    that holds the `auto/` group you inspected in step 2 (honor `$JUNCTION_HOME`
-   if set; do **not** assume a literal `~/.kirocrew`, since migrated installs
-   live elsewhere).
+   if set; do **not** assume a literal `~/.junction`, since an isolated
+   instance lives elsewhere).
 
    **(a) Candidate — the default.** For "crystallize", "create a skill",
    "save this as a skill", "make this reusable" and every other phrasing, stage

@@ -19,7 +19,7 @@ surfaces exercised here had no test anywhere in the suite before this file:
 * ``_start_embeddings``' custom-model arm, ``_auto_migrate_memory``'s
   reconcile-first / audit-failure / download-error arms and
   ``_set_memory_migrated``.
-* ``_init_crew``'s failure arm, ``_init_mcp_discovery``'s populated arm,
+* ``_init_multitask``'s failure arm, ``_init_mcp_discovery``'s populated arm,
   ``_subagent_coalescer``'s broadcast closures, ``_notify_nudge_expired``'s
   runtime-budget wording, ``_persist_slot_title``'s no-log guard,
   ``_remember_options``' best-effort ``except``, ``_deliver_cron_response``'s
@@ -609,26 +609,26 @@ class TestAutoMigrateMemory:
 # ═══════════════════════════════════════════════════════════════════════════
 
 
-class TestInitCrew:
-    """Crew mode is optional: a construction failure disables it silently."""
+class TestInitMultitask:
+    """Multitask mode is optional: a construction failure disables it silently."""
 
-    def test_orchestrator_failure_disables_crew_mode(self, caplog):
+    def test_manager_failure_disables_multitask_mode(self, caplog):
         orch = _make_orchestrator()
         ds = _mock_dashboard_state()
-        ds.crew = None
+        ds.multitask = None
         orch.dashboard_state = ds
         with caplog.at_level("WARNING"):
             with patch(
-                "junction.crew_chat.CrewOrchestrator", side_effect=RuntimeError("bad wiring")
+                "junction.multitask_chat.MultitaskManager", side_effect=RuntimeError("bad wiring")
             ):
-                orch._init_crew()
-        assert "crew mode disabled" in caplog.text
+                orch._init_multitask()
+        assert "multitask mode disabled" in caplog.text
 
-    def test_no_dashboard_state_skips_crew_setup(self):
+    def test_no_dashboard_state_skips_multitask_setup(self):
         orch = _make_orchestrator()
         orch.dashboard_state = None
-        with patch("junction.crew_chat.CrewOrchestrator") as ctor:
-            orch._init_crew()
+        with patch("junction.multitask_chat.MultitaskManager") as ctor:
+            orch._init_multitask()
         ctor.assert_not_called()
 
 

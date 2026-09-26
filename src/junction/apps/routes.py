@@ -1362,7 +1362,7 @@ async def handle_enable_app(request: web.Request) -> web.Response:
     server-install app the script is part of bringing the app up, so a failure
     means the app would be enabled but broken and rolling back is right. A client
     app's script instead launches a desktop application distributed SEPARATELY
-    (``crew-companion``'s ``open "$HOME/Applications/Crew Companion.app"``), so on
+    (for example ``open "$HOME/Applications/Companion.app"``), so on
     a host where the user has not installed that application yet the script can
     only fail — and rolling back made the dashboard half of the app impossible to
     enable at all, reporting "onEnable script failed — app remains disabled" with
@@ -2044,7 +2044,7 @@ _CONTENT_TYPES = {
 async def handle_app_config(request: web.Request) -> web.Response:
     """GET/PUT /api/apps/{name}/config — read or write app config.json.
 
-    Reads/writes ``~/.kiro/crew/apps/{name}/data/config.json``.
+    Reads/writes ``~/.junction/apps/{name}/data/config.json``.
     GET returns the current config (empty ``{}`` if none exists).
     PUT replaces the config with the request body.
     """
@@ -2595,7 +2595,7 @@ async def handle_blob_proxy(request: web.Request) -> web.Response:
       ref   — git ref, defaults to "main"
 
     SECURITY: Only serves repos listed in the registry JSON (prevents SSRF).
-    Caches fetched blobs to ~/.kiro/crew/cache/blobs/{repo}/{ref}/{path}.
+    Caches fetched blobs to ~/.junction/cache/blobs/{repo}/{ref}/{path}.
     Only serves image file types.
     """
     repo = request.query.get("repo", "")
@@ -2880,7 +2880,7 @@ def _resolve_app_backend_url(name: str) -> str | None:
             pass
 
     # 3. Fallback: derive from the MCP server URL (common for self-managed apps)
-    # e.g. crew-companion declares mcpServers."crew-companion".url =
+    # e.g. an app declaring mcpServers."my-app".url =
     # "http://127.0.0.1:7778/mcp" -> the backend is at http://127.0.0.1:7778
     #
     # Shared with register_builtin_apps(), which uses the SAME function to decide

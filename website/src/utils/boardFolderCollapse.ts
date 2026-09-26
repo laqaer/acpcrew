@@ -18,7 +18,7 @@ import { safeGetItem, safeSetItem } from './safeStorage'
  *  repo's single guarded entry point for Web Storage.
  */
 
-const KEY_PREFIX = 'kc-board-folder-collapsed:'
+const KEY_PREFIX = 'jn-board-folder-collapsed:'
 
 export function boardCollapseKey(columnId: string, folderId: string): string {
   return `${columnId}:${folderId}`

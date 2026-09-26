@@ -32,4 +32,4 @@ def _mute_shared_runner_audit(monkeypatch):
 
 
 #: The rootdir ``conftest.py`` pins ``$JUNCTION_HOME`` for every testpath, which is what
-#: keeps this suite off the real data home: ``store.app_root()`` derives from ``crew_home()``.
+#: keeps this suite off the real data home: ``store.app_root()`` derives from ``data_home()``.

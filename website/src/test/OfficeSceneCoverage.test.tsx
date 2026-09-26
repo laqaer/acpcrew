@@ -238,7 +238,7 @@ const BERNADETT = 'Bernadett'
 const CONSTANZA = 'Constanza'
 
 /** Four agents already seen by the office, so they start seated. */
-function seatedCrew(prefix: string, running = true): AgentSource[] {
+function seatedAgents(prefix: string, running = true): AgentSource[] {
   const names = [ROSALINDA, FERDINAND, BERNADETT, CONSTANZA]
   const sources = names.map((name, i) => agent({ id: `slot-${prefix}-${i}`, name, running }))
   markAgentsKnown('office', sources.map(s => s.id))
@@ -287,7 +287,7 @@ describe('OfficeScene furniture', () => {
   })
 
   it('lists the running agents on the whiteboard instead of the placeholder', () => {
-    const { overlay } = mount(seatedCrew('board'))
+    const { overlay } = mount(seatedAgents('board'))
     expect(labels(overlay)).not.toContain('No tasks')
     // Cards are clipped to eight characters.
     expect(labels(overlay)).toContain(ROSALINDA.slice(0, 8))
@@ -310,7 +310,7 @@ describe('OfficeScene animated fittings', () => {
   })
 
   it('blinks a cursor on an occupied monitor', () => {
-    mount(seatedCrew('cursor'))
+    mount(seatedAgents('cursor'))
     fastForward(7)
     clearRecords()
     runFrames(1)               // tick 9 — cursor phase on
@@ -332,7 +332,7 @@ describe('OfficeScene animated fittings', () => {
   })
 
   it('steams the mug on an occupied desk only', () => {
-    mount(seatedCrew('steam'))
+    mount(seatedAgents('steam'))
     clearRecords()
     runFrames(1)               // tick 2 — steam phase off
     expect(hasColor(recorders[0], MUG_STEAM)).toBe(false)
@@ -357,7 +357,7 @@ describe('OfficeScene animated fittings', () => {
   })
 
   it('opens the agents eyes after the mount-frame blink', () => {
-    mount(seatedCrew('blink'))
+    mount(seatedAgents('blink'))
     clearRecords()
     runFrames(1)               // tick 2 — still inside the 3-frame blink window
     const closed = recorders[0].fills.filter(f => f.color === '#333' && f.h === 0.5 * S)
@@ -528,7 +528,7 @@ describe('OfficeScene live session updates', () => {
 
 describe('OfficeScene daily routine', () => {
   it('sends an agent for coffee and to the whiteboard, then back to their desks', () => {
-    const { overlay } = mount(seatedCrew('routine'))
+    const { overlay } = mount(seatedAgents('routine'))
 
     // The coffee break fires at tick 600; the walk is ~500 frames.
     const atMachine = stepUntil(() => {
@@ -553,7 +553,7 @@ describe('OfficeScene daily routine', () => {
   })
 
   it('pairs two agents up mid-room, prints their chat lines, then breaks the huddle', () => {
-    const { overlay, pixel } = mount(seatedCrew('huddle'))
+    const { overlay, pixel } = mount(seatedAgents('huddle'))
 
     // The collaboration roll lands on tick 1800; the pair then walks to the rug
     // and starts talking 60 frames after the second one arrives.

@@ -37,7 +37,7 @@ export function parseBrandingConfig(text) {
     throw new Error(`branding.json is not valid JSON: ${e instanceof Error ? e.message : e}`)
   }
   if (parsed === null || typeof parsed !== 'object' || Array.isArray(parsed)) {
-    throw new Error('branding.json must be a JSON object, e.g. {"title": "Acme Crew"}')
+    throw new Error('branding.json must be a JSON object, e.g. {"title": "Acme Assist"}')
   }
   for (const key of Object.keys(parsed)) {
     if (!BRANDING_KEYS.includes(key)) {

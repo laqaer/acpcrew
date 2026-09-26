@@ -1141,7 +1141,7 @@ describe('OpsMissionControlPage', () => {
       vi.mocked(opsApi.incident).mockResolvedValue({
         incident: closedIncident,
         log: '# Postmortem\n\nThe build host ran out of disk.',
-        log_path: '/home/u/.kiro/crew/ops/incidents/omc-9001.md',
+        log_path: '/home/u/.junction/ops/incidents/omc-9001.md',
       })
       renderWithProviders(<OpsMissionControlPage />)
       const row = await waitFor(() => screen.getAllByTestId('omc-closed-row')[0])
@@ -1150,7 +1150,7 @@ describe('OpsMissionControlPage', () => {
         expect(screen.getByRole('button', { name: /Copy postmortem/ })).toBeInTheDocument(),
       )
       expect(
-        screen.getByText('/home/u/.kiro/crew/ops/incidents/omc-9001.md'),
+        screen.getByText('/home/u/.junction/ops/incidents/omc-9001.md'),
       ).toBeInTheDocument()
       expect(screen.getByText(/The build host ran out of disk/)).toBeInTheDocument()
       fireEvent.click(screen.getByRole('button', { name: /Copy postmortem/ }))

@@ -31,10 +31,10 @@ function srcOf(container: HTMLElement): string {
 describe('windows image paths render through file-raw (issue #3497)', () => {
   it('renders an <img> for a forward-slash drive path', () => {
     const { container } = render(
-      <MarkdownRenderer content="![image](C:/Users/me/.kiro/crew/uploads/shot.png)" />,
+      <MarkdownRenderer content="![image](C:/Users/me/.junction/uploads/shot.png)" />,
     )
     expect(srcOf(container)).toBe(
-      `/api/file-raw?path=${encodeURIComponent('C:/Users/me/.kiro/crew/uploads/shot.png')}`,
+      `/api/file-raw?path=${encodeURIComponent('C:/Users/me/.junction/uploads/shot.png')}`,
     )
   })
 
@@ -52,32 +52,32 @@ describe('windows image paths render through file-raw (issue #3497)', () => {
     // reported repro path: paste image on Windows, send, look at own bubble.
     const { displayTxt } = prepareSendPayload(
       'look at this',
-      ['C:\\Users\\me\\.kiro\\crew\\uploads\\shot.png'],
+      ['C:\\Users\\me\\.junction\\uploads\\shot.png'],
     )
     const { container } = render(<MarkdownRenderer content={displayTxt} />)
     expect(srcOf(container)).toContain('/api/file-raw?path=')
     expect(srcOf(container)).toContain(
-      encodeURIComponent('C:/Users/me/.kiro/crew/uploads/shot.png'),
+      encodeURIComponent('C:/Users/me/.junction/uploads/shot.png'),
     )
   })
 
   it('POSIX paths keep rendering through file-raw (no regression)', () => {
     const { container } = render(
-      <MarkdownRenderer content="![image](/home/me/.kiro/crew/uploads/shot.png)" />,
+      <MarkdownRenderer content="![image](/home/me/.junction/uploads/shot.png)" />,
     )
     expect(srcOf(container)).toBe(
-      `/api/file-raw?path=${encodeURIComponent('/home/me/.kiro/crew/uploads/shot.png')}`,
+      `/api/file-raw?path=${encodeURIComponent('/home/me/.junction/uploads/shot.png')}`,
     )
   })
 
   it('END-TO-END: a UNC upload path (roaming profile) renders through file-raw', () => {
     const { displayTxt } = prepareSendPayload(
       '',
-      ['\\\\fileserver\\home\\me\\.kiro\\crew\\uploads\\shot.png'],
+      ['\\\\fileserver\\home\\me\\.junction\\uploads\\shot.png'],
     )
     const { container } = render(<MarkdownRenderer content={displayTxt} />)
     expect(srcOf(container)).toBe(
-      `/api/file-raw?path=${encodeURIComponent('//fileserver/home/me/.kiro/crew/uploads/shot.png')}`,
+      `/api/file-raw?path=${encodeURIComponent('//fileserver/home/me/.junction/uploads/shot.png')}`,
     )
   })
 

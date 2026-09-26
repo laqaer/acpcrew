@@ -503,12 +503,12 @@ class TestSyncRealChild:
         probe = (
             "import os,resource,sys;"
             "print(resource.getrlimit(resource.RLIMIT_NOFILE)[0], os.getpid(),"
-            " os.environ.get('KC_PROBE',''), *sys.argv[1:])"
+            " os.environ.get('SHIM_PROBE',''), *sys.argv[1:])"
         )
         proc = popen_limited(
             [sys.executable, "-c", probe, "tail-arg"],
             stdout=subprocess.PIPE,
-            env={"PATH": os.environ.get("PATH", ""), "KC_PROBE": "kept"},
+            env={"PATH": os.environ.get("PATH", ""), "SHIM_PROBE": "kept"},
         )
         out, _ = proc.communicate()
         soft, pid, marker, tail = out.decode().split()
@@ -573,7 +573,7 @@ class TestRealChild:
         probe = (
             "import os,resource,sys;"
             "print(resource.getrlimit(resource.RLIMIT_NOFILE)[0], os.getpid(),"
-            " os.environ.get('KC_PROBE',''), *sys.argv[1:])"
+            " os.environ.get('SHIM_PROBE',''), *sys.argv[1:])"
         )
         proc = await create_subprocess_limited(
             sys.executable,
@@ -581,7 +581,7 @@ class TestRealChild:
             probe,
             "tail-arg",
             stdout=asyncio.subprocess.PIPE,
-            env={"PATH": os.environ.get("PATH", ""), "KC_PROBE": "kept"},
+            env={"PATH": os.environ.get("PATH", ""), "SHIM_PROBE": "kept"},
         )
         out, _ = await proc.communicate()
         soft, pid, marker, tail = out.decode().split()

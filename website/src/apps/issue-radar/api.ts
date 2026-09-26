@@ -923,19 +923,19 @@ export function repoBody(ref: RepoRef): Record<string, string> {
   return repoQuery(ref)
 }
 
-// ── crews ───────────────────────────────────────────────────────────────────
+// ── stewards ────────────────────────────────────────────────────────────────
 //
 // Every shape below MIRRORS the backend store,
-// `src/junction/apps/builtins/issue_radar/backend/crew_store.py` — that module is
+// `src/junction/apps/builtins/issue_radar/backend/steward_store.py` — that module is
 // the SOURCE OF TRUTH for the phase list, the three phase classifications, the
-// event kinds and every record field. A crew record has no upstream to refetch
+// event kinds and every record field. A steward record has no upstream to refetch
 // from (unlike an issue, where a schema mismatch is just a cache miss), so these
 // types and that module must be changed together.
 
 /** Every phase a work item can be in, in lifecycle order — mirrors
- * `crew_store.PHASES`. `selected` is local-only and never public: it is the state
+ * `steward_store.PHASES`. `selected` is local-only and never public: it is the state
  * between "this issue looks workable" and the claim comment. */
-export const CREW_PHASES = [
+export const STEWARD_PHASES = [
   'selected',
   'claimed',
   'investigating',
@@ -951,67 +951,67 @@ export const CREW_PHASES = [
   'preempted',
 ] as const
 
-export type CrewPhase = typeof CREW_PHASES[number]
+export type StewardPhase = typeof STEWARD_PHASES[number]
 
-/** Mirrors `crew_store.EVENT_KINDS`. The store REFUSES an unknown kind, so this
+/** Mirrors `steward_store.EVENT_KINDS`. The store REFUSES an unknown kind, so this
  * union is enforced server-side rather than merely documented. */
-export const CREW_EVENT_KINDS = [
+export const STEWARD_EVENT_KINDS = [
   'claim', 'investigate', 'reply', 'implement', 'ci',
   'review', 'conflict', 'merge', 'handback', 'skip', 'yield',
 ] as const
 
-export type CrewEventKind = typeof CREW_EVENT_KINDS[number]
+export type StewardEventKind = typeof STEWARD_EVENT_KINDS[number]
 
-// The three phase classifications, mirroring `crew_store.py`'s frozensets of the
+// The three phase classifications, mirroring `steward_store.py`'s frozensets of the
 // same names. They deliberately do NOT coincide, which is why a view must read
 // them from here rather than re-deriving any of them from a phase string:
 //
 //   TERMINAL_PHASES     — the work is over, one way or another.
 //   TTL_ACTIVE_PHASES   — only these age toward the claim TTL. A parked PR is
 //                         stronger evidence of a live claim than a heartbeat, and
-//                         a crew waiting three days on a human review has no
+//                         a steward waiting three days on a human review has no
 //                         progress to record.
 //   EDITING_PHASES      — a worktree with uncommitted changes; at most one per
-//                         crew, enforced in the store's `upsert_work_item`.
+//                         steward, enforced in the store's `upsert_work_item`.
 
-/** Mirrors `crew_store.TERMINAL_PHASES`. */
-export const TERMINAL_PHASES: ReadonlySet<CrewPhase> = new Set<CrewPhase>([
+/** Mirrors `steward_store.TERMINAL_PHASES`. */
+export const TERMINAL_PHASES: ReadonlySet<StewardPhase> = new Set<StewardPhase>([
   'resolved', 'skipped', 'yielded', 'handed-back', 'preempted',
 ])
 
-/** Mirrors `crew_store.TTL_ACTIVE_PHASES`. */
-export const TTL_ACTIVE_PHASES: ReadonlySet<CrewPhase> = new Set<CrewPhase>([
+/** Mirrors `steward_store.TTL_ACTIVE_PHASES`. */
+export const TTL_ACTIVE_PHASES: ReadonlySet<StewardPhase> = new Set<StewardPhase>([
   'claimed', 'investigating', 'implementing',
 ])
 
-/** Mirrors `crew_store.EDITING_PHASES`. */
-export const EDITING_PHASES: ReadonlySet<CrewPhase> = new Set<CrewPhase>([
+/** Mirrors `steward_store.EDITING_PHASES`. */
+export const EDITING_PHASES: ReadonlySet<StewardPhase> = new Set<StewardPhase>([
   'implementing', 'addressing-review',
 ])
 
-/** Whether a work item occupies one of the crew's `max_open` slots — mirrors
- * `crew_store.open_slot_count`.
+/** Whether a work item occupies one of the steward's `max_open` slots — mirrors
+ * `steward_store.open_slot_count`.
  *
- * Every NON-TERMINAL phase: an item is either finished or it is still the crew's
- * to carry, and a crew that cannot proceed on its own records the pass on the
+ * Every NON-TERMINAL phase: an item is either finished or it is still the steward's
+ * to carry, and a steward that cannot proceed on its own records the pass on the
  * issue and moves to the next one rather than parking a slot indefinitely.
  */
-export function countsTowardOpen(phase: CrewPhase): boolean {
+export function countsTowardOpen(phase: StewardPhase): boolean {
   return !TERMINAL_PHASES.has(phase)
 }
 
-/** One approach the crew already ruled out, so a later turn (or a fresh session
+/** One approach the steward already ruled out, so a later turn (or a fresh session
  * after compaction) does not retry it. */
-export interface CrewTriedEntry {
+export interface StewardTriedEntry {
   approach: string
   rejected_because: string
   at: string
 }
 
 /** CI readings for a work item's PR. Open-ended on purpose: the store MERGES
- * whatever the crew records into the existing map, and these four keys are the
+ * whatever the steward records into the existing map, and these four keys are the
  * ones the ledger's flattened `ci_*` fields write. */
-export interface CrewCiState {
+export interface StewardCiState {
   passed?: number
   total?: number
   round?: number
@@ -1019,13 +1019,13 @@ export interface CrewCiState {
   [key: string]: unknown
 }
 
-/** One crew: a persistent worker with a name, a face and a work log.
+/** One steward: a persistent worker with a name, a face and a work log.
  *
- * `avatar_seed` is stored SEPARATELY from `name` because renaming a crew must not
+ * `avatar_seed` is stored SEPARATELY from `name` because renaming a steward must not
  * change its face. `retired_at` non-null means retired — the record, the name
  * reservation and the work log all survive, so an old claim comment can never be
- * mistaken for a live claim by a crew that reused the name. */
-export interface Crew {
+ * mistaken for a live claim by a steward that reused the name. */
+export interface Steward {
   schema: number
   id: string
   name: string
@@ -1047,26 +1047,26 @@ export interface Crew {
   retired_at: string | null
 }
 
-/** One crew × one issue. `last_progress_at` moves only on REAL progress (the
+/** One steward × one issue. `last_progress_at` moves only on REAL progress (the
  * store enforces that), because the claim TTL is measured from it — a read-back
  * must not renew a claim. */
 export interface WorkItem {
   schema: number
-  crew_id: string
+  steward_id: string
   owner: string
   repo: string
   number: number
-  phase: CrewPhase
+  phase: StewardPhase
   outcome: string | null
   decision: string
   why: string
   next: string
-  tried: CrewTriedEntry[]
+  tried: StewardTriedEntry[]
   worktree: string
   branch: string
   base_sha: string
   pr_number: number | null
-  ci_state: CrewCiState
+  ci_state: StewardCiState
   claim_comment_id: number | null
   labels_applied: string[]
   /** Null while the item is still `selected` — nothing has been claimed yet. */
@@ -1078,45 +1078,45 @@ export interface WorkItem {
 /** One line of the append-only progress ledger. `id` is content-addressed, so a
  * duplicated line merges on read instead of conflicting.
  *
- * `text` IS PUBLIC — it is rendered on the crew page AND inside the claim
+ * `text` IS PUBLIC — it is rendered on the steward page AND inside the claim
  * comment on the forge. */
-export interface CrewEvent {
+export interface StewardEvent {
   id: string
   ts: string
-  crew_id: string
+  steward_id: string
   number: number
-  kind: CrewEventKind
+  kind: StewardEventKind
   text: string
 }
 
-/** Repo-wide protocol constants. Deliberately NOT per-crew: two crews
- * negotiating with different TTLs is how a short-TTL crew steals a long-TTL
- * crew's live work. */
-export interface CrewSettings {
+/** Repo-wide protocol constants. Deliberately NOT per-steward: two stewards
+ * negotiating with different TTLs is how a short-TTL steward steals a long-TTL
+ * steward's live work. */
+export interface StewardSettings {
   schema: number
   claim_ttl_hours: number
-  /** The label a crew puts on an issue whose next step belongs to a human —
-   * mirrors `crew_store.DEFAULT_SETTINGS['needs_human_label']`. Repo-wide, because
+  /** The label a steward puts on an issue whose next step belongs to a human —
+   * mirrors `steward_store.DEFAULT_SETTINGS['needs_human_label']`. Repo-wide, because
    * it is how the person answering finds those issues in the tracker's own
-   * filters, and two crews using different labels would split that one queue. */
+   * filters, and two stewards using different labels would split that one queue. */
   needs_human_label: string
   commit_trailer: string
 }
 
-/** The crew-list header tallies, computed server-side so every view agrees. */
-export interface CrewCounts {
+/** The steward-list header tallies, computed server-side so every view agrees. */
+export interface StewardCounts {
   on_duty: number
   working: number
   paused: number
 }
 
-/** Fields a crew edit may carry. Partial — the store drops unknown keys and
+/** Fields a steward edit may carry. Partial — the store drops unknown keys and
  * validates every known one, so `{}` is a valid (no-op) patch.
  *
- * No `paused_reason`: pausing goes through `setCrewPaused`, which also stops the
- * crew's session. Writing the field alone would leave a paused-looking crew still
+ * No `paused_reason`: pausing goes through `setStewardPaused`, which also stops the
+ * steward's session. Writing the field alone would leave a paused-looking steward still
  * working. */
-export interface CrewPatch {
+export interface StewardPatch {
   name?: string
   avatar_seed?: string
   avatar_variant?: number | null
@@ -1136,7 +1136,7 @@ export interface CrewPatch {
  * field from its own defaults — and a duplicate name is refused server-side
  * (409), because the name field is free text and the suggestion chips are only a
  * convenience. */
-export interface CrewSpec extends CrewPatch {
+export interface StewardSpec extends StewardPatch {
   name: string
 }
 
@@ -1147,7 +1147,7 @@ export interface CrewSpec extends CrewPatch {
  * than replacing the list. `event` + `event_kind` append one ledger line in the
  * same request, so a phase can never change without a logged reason. */
 export interface WorkItemPatch {
-  phase?: CrewPhase
+  phase?: StewardPhase
   outcome?: string
   decision?: string
   why?: string
@@ -1156,58 +1156,58 @@ export interface WorkItemPatch {
   branch?: string
   base_sha?: string
   pr_number?: number | null
-  ci_state?: CrewCiState
+  ci_state?: StewardCiState
   claim_comment_id?: number | null
   labels_applied?: string[]
   tried_approach?: string
   tried_rejected_because?: string
-  /** The PUBLIC progress line (see `CrewEvent.text`). */
+  /** The PUBLIC progress line (see `StewardEvent.text`). */
   event?: string
-  event_kind?: CrewEventKind
+  event_kind?: StewardEventKind
 }
 
 /** Fields a settings write may carry; merged server-side. */
-export interface CrewSettingsPatch {
+export interface StewardSettingsPatch {
   claim_ttl_hours?: number
   needs_human_label?: string
   commit_trailer?: string
 }
 
-export interface CrewsResponse {
+export interface StewardsResponse {
   owner: string
   repo: string
-  crews: Crew[]
-  settings: CrewSettings
-  counts: CrewCounts
+  stewards: Steward[]
+  settings: StewardSettings
+  counts: StewardCounts
 }
 
-/** Response to every single-crew write (create / update / pause / retire). */
-export interface CrewResponse {
-  crew: Crew
+/** Response to every single-steward write (create / update / pause / retire). */
+export interface StewardResponse {
+  steward: Steward
 }
 
-export interface CrewNamesResponse {
+export interface StewardNamesResponse {
   suggestions: string[]
 }
 
-export interface CrewDetailResponse {
-  crew: Crew
+export interface StewardDetailResponse {
+  steward: Steward
   items: WorkItem[]
-  events: CrewEvent[]
-  /** Slot usage for THIS crew, against `max_open`. Served rather than counted
+  events: StewardEvent[]
+  /** Slot usage for THIS steward, against `max_open`. Served rather than counted
    * client-side: the page renders a filtered slice of `items`, so a client tally
    * would follow the filter. */
   counts: { open: number }
 }
 
 /** `event` is null when the write carried no progress line. */
-export interface CrewWorkResponse {
+export interface StewardWorkResponse {
   item: WorkItem
-  event: CrewEvent | null
+  event: StewardEvent | null
 }
 
-export interface CrewSettingsResponse {
-  settings: CrewSettings
+export interface StewardSettingsResponse {
+  settings: StewardSettings
 }
 
 export const issueRadarApi = {
@@ -1797,41 +1797,41 @@ export const issueRadarApi = {
     return r.json()
   },
 
-  // ── crews ──────────────────────────────────────────────────────────────────
+  // ── stewards ───────────────────────────────────────────────────────────────
   //
-  // Record shapes and the phase classifications mirror `crew_store.py` — see the
+  // Record shapes and the phase classifications mirror `steward_store.py` — see the
   // interface block above for which module owns each list.
   //
   // The request ENVELOPES are not uniform, and the differences are load-bearing
   // because a wrong key is a 400 rather than a type error. Checked against
-  // `crew_routes.py` handler by handler:
+  // `steward_routes.py` handler by handler:
   //
-  //   GET  /crews, /crews/names, /crews/settings   ?owner&repo
-  //   GET  /crew                     ?owner&repo&id
-  //   POST /crews                    owner/repo + the crew fields at the ROOT
-  //   PUT  /crew                     owner/repo + `id` + the patch at the ROOT
-  //   DELETE /crew                   owner/repo + `id`
-  //   POST /crew/pause               owner/repo + `id` + `paused` (bool) + `reason`
-  //   PUT  /crew/work                owner/repo + `crew_id` + `number` + patch
-  //   PUT  /crews/settings           owner/repo + a NESTED `settings` object
+  //   GET  /stewards, /stewards/names, /stewards/settings   ?owner&repo
+  //   GET  /steward                     ?owner&repo&id
+  //   POST /stewards                    owner/repo + the steward fields at the ROOT
+  //   PUT  /steward                     owner/repo + `id` + the patch at the ROOT
+  //   DELETE /steward                   owner/repo + `id`
+  //   POST /steward/pause               owner/repo + `id` + `paused` (bool) + `reason`
+  //   PUT  /steward/work                owner/repo + `steward_id` + `number` + patch
+  //   PUT  /stewards/settings           owner/repo + a NESTED `settings` object
   //
-  // The last two are the exceptions; every other write names the crew `id` and
+  // The last two are the exceptions; every other write names the steward `id` and
   // carries its payload flat.
 
-  /** Every non-retired crew in the repo, plus the repo-wide protocol settings and
-   * the header tallies. One request, because the crew list cannot be rendered
+  /** Every non-retired steward in the repo, plus the repo-wide protocol settings and
+   * the header tallies. One request, because the steward list cannot be rendered
    * without all three. */
-  crews: async (ref: RepoRef): Promise<CrewsResponse> => {
+  stewards: async (ref: RepoRef): Promise<StewardsResponse> => {
     const q = new URLSearchParams(repoQuery(ref))
-    const r = await fetch(`${API}/crews?${q.toString()}`, { credentials: 'same-origin' })
+    const r = await fetch(`${API}/stewards?${q.toString()}`, { credentials: 'same-origin' })
     if (!r.ok) throw new Error(await parseErrorBody(r))
     return r.json()
   },
 
-  /** Create a crew. A duplicate name is refused server-side (the name field is
+  /** Create a steward. A duplicate name is refused server-side (the name field is
    * free text, so uniqueness cannot live in the suggestion chips). */
-  createCrew: async (ref: RepoRef, spec: CrewSpec): Promise<CrewResponse> => {
-    const r = await fetch(`${API}/crews`, {
+  createSteward: async (ref: RepoRef, spec: StewardSpec): Promise<StewardResponse> => {
+    const r = await fetch(`${API}/stewards`, {
       method: 'POST',
       credentials: 'same-origin',
       headers: { 'Content-Type': 'application/json' },
@@ -1842,27 +1842,27 @@ export const issueRadarApi = {
   },
 
   /** Unused names for the create dialog's chips. Server-side, because taken names
-   * include RETIRED crews' — which the crew list does not return. */
-  suggestCrewNames: async (ref: RepoRef): Promise<CrewNamesResponse> => {
+   * include RETIRED stewards' — which the steward list does not return. */
+  suggestStewardNames: async (ref: RepoRef): Promise<StewardNamesResponse> => {
     const q = new URLSearchParams(repoQuery(ref))
-    const r = await fetch(`${API}/crews/names?${q.toString()}`, { credentials: 'same-origin' })
+    const r = await fetch(`${API}/stewards/names?${q.toString()}`, { credentials: 'same-origin' })
     if (!r.ok) throw new Error(await parseErrorBody(r))
     return r.json()
   },
 
-  /** One crew's page payload: the record, its work items, its recent ledger
+  /** One steward's page payload: the record, its work items, its recent ledger
    * lines, and its slot usage. */
-  crew: async (ref: RepoRef, id: string): Promise<CrewDetailResponse> => {
+  steward: async (ref: RepoRef, id: string): Promise<StewardDetailResponse> => {
     const q = new URLSearchParams({ ...repoQuery(ref), id })
-    const r = await fetch(`${API}/crew?${q.toString()}`, { credentials: 'same-origin' })
+    const r = await fetch(`${API}/steward?${q.toString()}`, { credentials: 'same-origin' })
     if (!r.ok) throw new Error(await parseErrorBody(r))
     return r.json()
   },
 
-  /** Merge a patch into one crew. A rename re-checks uniqueness but leaves
-   * `avatar_seed` alone, so the crew keeps its face. */
-  updateCrew: async (ref: RepoRef, id: string, patch: CrewPatch): Promise<CrewResponse> => {
-    const r = await fetch(`${API}/crew`, {
+  /** Merge a patch into one steward. A rename re-checks uniqueness but leaves
+   * `avatar_seed` alone, so the steward keeps its face. */
+  updateSteward: async (ref: RepoRef, id: string, patch: StewardPatch): Promise<StewardResponse> => {
+    const r = await fetch(`${API}/steward`, {
       method: 'PUT',
       credentials: 'same-origin',
       headers: { 'Content-Type': 'application/json' },
@@ -1872,11 +1872,11 @@ export const issueRadarApi = {
     return r.json()
   },
 
-  /** Retire a crew — it stops working, but its record, its NAME RESERVATION and
+  /** Retire a steward — it stops working, but its record, its NAME RESERVATION and
    * its work log all survive. Deliberately not "delete": reusing the name would
-   * make the retired crew's old claim comments read as live claims. */
-  retireCrew: async (ref: RepoRef, id: string): Promise<CrewResponse> => {
-    const r = await fetch(`${API}/crew`, {
+   * make the retired steward's old claim comments read as live claims. */
+  retireSteward: async (ref: RepoRef, id: string): Promise<StewardResponse> => {
+    const r = await fetch(`${API}/steward`, {
       method: 'DELETE',
       credentials: 'same-origin',
       headers: { 'Content-Type': 'application/json' },
@@ -1888,33 +1888,33 @@ export const issueRadarApi = {
 
   /** Upsert one work item AND append at most one ledger line, in one request —
    * see `WorkItemPatch`. Refused (409) when a second item tries to enter an
-   * editing phase while another still holds the crew's worktree. */
-  recordCrewWork: async (
+   * editing phase while another still holds the steward's worktree. */
+  recordStewardWork: async (
     ref: RepoRef, id: string, number: number, patch: WorkItemPatch,
-  ): Promise<CrewWorkResponse> => {
-    const r = await fetch(`${API}/crew/work`, {
+  ): Promise<StewardWorkResponse> => {
+    const r = await fetch(`${API}/steward/work`, {
       method: 'PUT',
       credentials: 'same-origin',
       headers: { 'Content-Type': 'application/json' },
-      // `crew_id`, NOT `id`: this route is the odd one out — `_handle_crew_work`
-      // reads `crew_id`, while /crew and /crew/pause read `id` — and it answers
-      // 400 `missing_crew_id` for the wrong spelling.
+      // `steward_id`, NOT `id`: this route is the odd one out — `_handle_steward_work`
+      // reads `steward_id`, while /steward and /steward/pause read `id` — and it answers
+      // 400 `missing_steward_id` for the wrong spelling.
       //
       // The envelope keys go LAST so no field of a future `WorkItemPatch` can
       // shadow one. The server has the mirror of this rule (`_WORK_PATCH_FIELDS`
       // is an allowlist, so the envelope cannot land in the patch either).
-      body: JSON.stringify({ ...repoBody(ref), ...patch, crew_id: id, number }),
+      body: JSON.stringify({ ...repoBody(ref), ...patch, steward_id: id, number }),
     })
     if (!r.ok) throw new Error(await parseErrorBody(r))
     return r.json()
   },
 
-  /** Pause or resume a crew. `reason` is stored on the record as
+  /** Pause or resume a steward. `reason` is stored on the record as
    * `paused_reason`; pass it only when pausing. */
-  setCrewPaused: async (
+  setStewardPaused: async (
     ref: RepoRef, id: string, paused: boolean, reason?: string,
-  ): Promise<CrewResponse> => {
-    const r = await fetch(`${API}/crew/pause`, {
+  ): Promise<StewardResponse> => {
+    const r = await fetch(`${API}/steward/pause`, {
       method: 'POST',
       credentials: 'same-origin',
       headers: { 'Content-Type': 'application/json' },
@@ -1924,9 +1924,9 @@ export const issueRadarApi = {
     return r.json()
   },
 
-  getCrewSettings: async (ref: RepoRef): Promise<CrewSettingsResponse> => {
+  getStewardSettings: async (ref: RepoRef): Promise<StewardSettingsResponse> => {
     const q = new URLSearchParams(repoQuery(ref))
-    const r = await fetch(`${API}/crews/settings?${q.toString()}`, { credentials: 'same-origin' })
+    const r = await fetch(`${API}/stewards/settings?${q.toString()}`, { credentials: 'same-origin' })
     if (!r.ok) throw new Error(await parseErrorBody(r))
     return r.json()
   },
@@ -1934,10 +1934,10 @@ export const issueRadarApi = {
   /** Merge a patch into the repo's protocol settings. A PATCH-style merge, not a
    * whole-document replace, so this needs no revision guard: two tabs editing
    * different fields cannot erase each other. */
-  putCrewSettings: async (
-    ref: RepoRef, patch: CrewSettingsPatch,
-  ): Promise<CrewSettingsResponse> => {
-    const r = await fetch(`${API}/crews/settings`, {
+  putStewardSettings: async (
+    ref: RepoRef, patch: StewardSettingsPatch,
+  ): Promise<StewardSettingsResponse> => {
+    const r = await fetch(`${API}/stewards/settings`, {
       method: 'PUT',
       credentials: 'same-origin',
       headers: { 'Content-Type': 'application/json' },

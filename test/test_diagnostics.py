@@ -654,7 +654,7 @@ def test_collect_handler_returns_download_url(tmp_path, monkeypatch):
         included=["versions.txt", "manifest.json"],
         skipped=[],
         redaction_summary={"versions.txt": 0},
-        github_issue_url="https://github.com/kirodotdev/KiroCrew/issues/new?title=x",
+        github_issue_url="https://github.com/laqaer/junction/issues/new?title=x",
     )
     monkeypatch.setattr(dh.diagnostics, "collect_bundle", lambda **kw: fake)
 

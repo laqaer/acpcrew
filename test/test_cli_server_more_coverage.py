@@ -488,7 +488,7 @@ class TestLogsCmdOtherSources:
         because the real ones are consulted otherwise and a CI runner has
         neither.
         """
-        plist = tmp_path / "crew.plist"
+        plist = tmp_path / "junction.plist"
         plist.write_text("<plist/>\n", encoding="utf-8", newline="\n")
         stdout_log = tmp_path / "launchd-gateway.log"
         stdout_log.write_text("x\n", encoding="utf-8", newline="\n")
@@ -1022,7 +1022,7 @@ def git_checkout(monkeypatch, tmp_path):
     )
     monkeypatch.setattr(
         "junction.platform.update_governance.resolve_remote_url",
-        lambda p, remote="", branch="": "https://github.com/kirodotdev/KiroCrew.git",
+        lambda p, remote="", branch="": "https://github.com/laqaer/junction.git",
     )
     monkeypatch.setattr(
         "junction.platform.update_governance.update_blocked_reason", lambda url: ""

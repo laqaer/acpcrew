@@ -84,8 +84,8 @@ in AI-SDK terms, so that I can adopt the pattern in my own app without Junction 
 
 #### Acceptance Criteria
 1. WHEN the layer models a tool call's state THEN it SHALL map to the AI-SDK `UIToolInvocation` lifecycle union (`input-streaming` | `input-available` | `output-available` | `output-error`) as the component-internal state model.
-2. WHERE the AI SDK exposes an interruption/resume seam (a tool whose execution is interrupted pending client input, resumed via `addToolResult`/a continued stream) THE layer's resume step SHALL be documented against that seam so a non-Kiro-Crew app can wire the same intercept → render → resume loop.
-3. WHEN the pattern is documented THEN it SHALL state explicitly which parts are Kiro-Crew-specific (the `on_tool_call` gate, `approveChatSlot`) and which are the portable shape (intercept before execute, render a card from the invocation state, resume on decision), so an adopter substitutes their own enforcement and transport without misreading the boundary.
+2. WHERE the AI SDK exposes an interruption/resume seam (a tool whose execution is interrupted pending client input, resumed via `addToolResult`/a continued stream) THE layer's resume step SHALL be documented against that seam so a non-Junction app can wire the same intercept → render → resume loop.
+3. WHEN the pattern is documented THEN it SHALL state explicitly which parts are Junction-specific (the `on_tool_call` gate, `approveChatSlot`) and which are the portable shape (intercept before execute, render a card from the invocation state, resume on decision), so an adopter substitutes their own enforcement and transport without misreading the boundary.
 4. WHERE Junction's transport differs from AI-SDK's typed part stream THE mapping SHALL NOT claim a wire-format equivalence that does not exist — the AI-SDK lifecycle union is reused as a state model, not as a transport claim (consistent with the App Builder Kit tool-view encoding).
 
 ### Requirement 6 — Enforcement authority is unchanged

@@ -168,8 +168,8 @@ on passphrase-protected keys or hardware tokens use key files directly or leave
 `is_sensitive_path()` is the shared read+write block, and
 `is_sensitive_write_path()` is its strict superset: it adds paths that stay
 readable but must not be modified by an agent tool (the data home's `config.json`
-/ `config.local.json`, which carry resource ceilings, and the data-home migration
-marker, whose mere presence is a trust signal). Path matching checks the fully
+/ `config.local.json`, which carry resource ceilings, and named leaves such as the
+browse launch config and the Ops Mission Control authorization inputs). Path matching checks the fully
 symlink-resolved target as well as the lexically normalized and raw forms, so a
 workspace symlink into a blocked directory is refused through the link.
 
@@ -191,8 +191,9 @@ write them could set `disable_all: true` and neuter the deny gate after a
 restart. Every legitimate reader and writer opens these paths directly rather
 than through the shared gate, so real functionality is unaffected.
 
-Each leaf is registered under every known data-home prefix, so a not-yet-migrated
-legacy home is fenced identically to the current `~/.junction`.
+Each leaf is registered under the data-home prefix (`~/.junction`) and
+re-anchored under an explicit `JUNCTION_HOME`, so the fence follows the data home
+wherever it lives.
 
 **Do not weaken this when editing the path or bash matchers.** Write and extract
 verbs must stay covered: a bash command that merely *names* a write-protected

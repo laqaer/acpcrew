@@ -74,7 +74,7 @@ class TestConfigOverlayLoad:
     """Integration tests for config.local.json merging during load()."""
 
     def test_local_overlay_merges_on_load(self, tmp_path: Path) -> None:
-        config_dir = tmp_path / ".kirocrew"
+        config_dir = tmp_path / ".junction"
         config_dir.mkdir()
         base_config = {
             "agent": {"yolo": False, "model": "opus", "provider": "acp"},
@@ -91,7 +91,7 @@ class TestConfigOverlayLoad:
         assert cfg.agent.provider == "acp"
 
     def test_load_without_local_file(self, tmp_path: Path) -> None:
-        config_dir = tmp_path / ".kirocrew"
+        config_dir = tmp_path / ".junction"
         config_dir.mkdir()
         base_config = {"agent": {"yolo": False}}
         (config_dir / "config.json").write_text(json.dumps(base_config))
@@ -102,7 +102,7 @@ class TestConfigOverlayLoad:
         assert cfg.agent.dangerously_skip_permissions is False
 
     def test_invalid_local_json_ignored(self, tmp_path: Path) -> None:
-        config_dir = tmp_path / ".kirocrew"
+        config_dir = tmp_path / ".junction"
         config_dir.mkdir()
         base_config = {"agent": {"yolo": False}}
         (config_dir / "config.json").write_text(json.dumps(base_config))
@@ -114,7 +114,7 @@ class TestConfigOverlayLoad:
         assert cfg.agent.dangerously_skip_permissions is False
 
     def test_non_dict_local_json_ignored(self, tmp_path: Path) -> None:
-        config_dir = tmp_path / ".kirocrew"
+        config_dir = tmp_path / ".junction"
         config_dir.mkdir()
         base_config = {"agent": {"yolo": False}}
         (config_dir / "config.json").write_text(json.dumps(base_config))
@@ -126,7 +126,7 @@ class TestConfigOverlayLoad:
         assert cfg.agent.dangerously_skip_permissions is False
 
     def test_local_overlay_adds_new_section(self, tmp_path: Path) -> None:
-        config_dir = tmp_path / ".kirocrew"
+        config_dir = tmp_path / ".junction"
         config_dir.mkdir()
         base_config = {"agent": {"provider": "acp"}}
         (config_dir / "config.json").write_text(json.dumps(base_config))
@@ -139,7 +139,7 @@ class TestConfigOverlayLoad:
         assert cfg.dashboard.auto_open_browser is False
 
     def test_overlay_applies_when_config_json_missing(self, tmp_path: Path) -> None:
-        config_dir = tmp_path / ".kirocrew"
+        config_dir = tmp_path / ".junction"
         config_dir.mkdir()
         local_config = {"agent": {"yolo": True, "provider": "acp"}}
         (config_dir / "config.local.json").write_text(json.dumps(local_config))
@@ -151,7 +151,7 @@ class TestConfigOverlayLoad:
         assert cfg.agent.provider == "acp"
 
     def test_overlay_applies_when_config_json_invalid(self, tmp_path: Path) -> None:
-        config_dir = tmp_path / ".kirocrew"
+        config_dir = tmp_path / ".junction"
         config_dir.mkdir()
         (config_dir / "config.json").write_text("not json {{{")
         local_config = {"agent": {"yolo": True}}
@@ -163,7 +163,7 @@ class TestConfigOverlayLoad:
         assert cfg.agent.dangerously_skip_permissions is True
 
     def test_save_does_not_leak_overlay_into_config_json(self, tmp_path: Path) -> None:
-        config_dir = tmp_path / ".kirocrew"
+        config_dir = tmp_path / ".junction"
         config_dir.mkdir()
         base_config = {"agent": {"yolo": False, "provider": "acp"}}
         (config_dir / "config.json").write_text(json.dumps(base_config))
@@ -181,7 +181,7 @@ class TestConfigOverlayLoad:
         assert "model" not in saved.get("agent", {})
 
     def test_load_warns_when_config_json_is_non_dict(self, tmp_path: Path) -> None:
-        config_dir = tmp_path / ".kirocrew"
+        config_dir = tmp_path / ".junction"
         config_dir.mkdir()
         (config_dir / "config.json").write_text("[1, 2, 3]")
 
@@ -194,7 +194,7 @@ class TestConfigOverlayLoad:
         import logging
         import os
 
-        config_dir = tmp_path / ".kirocrew"
+        config_dir = tmp_path / ".junction"
         config_dir.mkdir()
         base = {"agent": {"provider": "acp"}}
         (config_dir / "config.json").write_text(json.dumps(base))
@@ -294,7 +294,7 @@ class TestCliConfigSetLocal:
 
         from junction.cli_config import _config_cmd
 
-        config_dir = tmp_path / ".kirocrew"
+        config_dir = tmp_path / ".junction"
         config_dir.mkdir()
 
         args = argparse.Namespace(
@@ -317,7 +317,7 @@ class TestCliConfigSetLocal:
 
         from junction.cli_config import _config_cmd
 
-        config_dir = tmp_path / ".kirocrew"
+        config_dir = tmp_path / ".junction"
         config_dir.mkdir()
 
         args = argparse.Namespace(
@@ -338,7 +338,7 @@ class TestCliConfigSetLocal:
 
         from junction.cli_config import _config_cmd
 
-        config_dir = tmp_path / ".kirocrew"
+        config_dir = tmp_path / ".junction"
         config_dir.mkdir()
         base = {
             "agent": {"dangerouslySkipPermissions": False, "streaming": True, "provider": "acp"}
@@ -375,7 +375,7 @@ class TestCliConfigSetLocal:
 
         from junction.cli_config import _config_cmd
 
-        config_dir = tmp_path / ".kirocrew"
+        config_dir = tmp_path / ".junction"
         config_dir.mkdir()
         (config_dir / "config.local.json").write_text("not json {{{")
 
@@ -397,7 +397,7 @@ class TestCliConfigSetLocal:
 
         from junction.cli_config import _config_cmd
 
-        config_dir = tmp_path / ".kirocrew"
+        config_dir = tmp_path / ".junction"
         config_dir.mkdir()
         (config_dir / "config.local.json").write_text('"just a string"')
 
@@ -419,7 +419,7 @@ class TestCliConfigSetLocal:
 
         from junction.cli_config import _config_cmd
 
-        config_dir = tmp_path / ".kirocrew"
+        config_dir = tmp_path / ".junction"
         config_dir.mkdir()
         base = {"agent": {"dangerouslySkipPermissions": False, "provider": "acp"}}
         (config_dir / "config.json").write_text(json.dumps(base))

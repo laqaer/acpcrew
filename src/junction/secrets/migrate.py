@@ -1,7 +1,7 @@
 """One-time importer that moves plaintext Jira ``.env`` tokens into the vault.
 
 Junction stored the Jira API token as a plaintext ``KEY=VALUE`` line in the
-data home's ``.env`` (``~/.kiro/crew/.env``). The encrypted vault
+data home's ``.env`` (``~/.junction/.env``). The encrypted vault
 (:class:`~junction.secrets.SecretVault`) supersedes that store, and the
 ``secret://`` resolver / vault-aware Jira consumer reads the secret without
 ever exposing the plaintext to the agent.

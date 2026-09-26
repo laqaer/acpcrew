@@ -19,11 +19,11 @@ vi.mock('../apps/issue-radar/components/SettingsSection', () => ({ default: () =
 const LeftRail = (await import('../apps/issue-radar/components/LeftRail')).default
 
 const openDashboard = vi.fn()
-const openCrews = vi.fn()
-const setCrewFilter = vi.fn()
-const cycleCrewSort = vi.fn()
+const openStewards = vi.fn()
+const setStewardFilter = vi.fn()
+const cycleStewardSort = vi.fn()
 
-/** The rail's resting crew tallies. */
+/** The rail's resting steward tallies. */
 const CALM_COUNTS = { on_duty: 2, working: 1, paused: 0 }
 
 beforeEach(() => {
@@ -36,20 +36,20 @@ beforeEach(() => {
     openIssues: vi.fn(),
     openPulls: vi.fn(),
     openSettings: vi.fn(),
-    // Crews slice: the rail reads the tallies for its filter rows.
-    crews: [],
-    crewsLoading: false,
-    crewCounts: CALM_COUNTS,
-    crewView: { kind: 'crew', id: 'c1' },
+    // Stewards slice: the rail reads the tallies for its filter rows.
+    stewards: [],
+    stewardsLoading: false,
+    stewardCounts: CALM_COUNTS,
+    stewardView: { kind: 'steward', id: 'c1' },
     mainView: 'issues',
-    openCrews,
+    openStewards,
     // The roster's filter and sort controls live here, mirroring how the issue and
     // PR sections hold theirs while their list column holds the list.
-    crewFilter: 'all',
-    setCrewFilter,
-    crewSortKey: 'status',
-    crewSortDir: 'asc',
-    cycleCrewSort,
+    stewardFilter: 'all',
+    setStewardFilter,
+    stewardSortKey: 'status',
+    stewardSortDir: 'asc',
+    cycleStewardSort,
   }
 })
 
@@ -80,44 +80,46 @@ describe('LeftRail', () => {
   })
 })
 
-describe('LeftRail — crews section', () => {
-  // Queried by test id, not by copy: the `apps.issueRadar.views.crews.*` catalog
+describe('LeftRail — stewards section', () => {
+  // Queried by test id, not by copy: the `apps.issueRadar.views.stewards.*` catalog
   // keys are populated separately, so asserting on rendered English here would
   // couple the rail's behaviour to the state of the translation files.
-  it('navigates with NO argument, so the crews page you were last on is restored', async () => {
+  it('navigates with NO argument, so the stewards page you were last on is restored', async () => {
     render(<LeftRail />)
-    await userEvent.click(screen.getByText('Crews'))
-    expect(openCrews).toHaveBeenCalledWith()
+    await userEvent.click(screen.getByText('Stewards'))
+    expect(openStewards).toHaveBeenCalledWith()
   })
 
   it('carries no count badge — nothing on this surface queues for a human', () => {
-    // A crew never holds an issue waiting on a person: the one that needs a
+    // A steward never holds an issue waiting on a person: the one that needs a
     // decision says so on the issue, labels it and moves on. So there is no
     // per-repo number that has to survive the section being collapsed, and a badge
     // here would be a queue the product does not have.
-    ctx.value = { ...ctx.value, crewCounts: { on_duty: 6, working: 3, paused: 1 } }
+    ctx.value = { ...ctx.value, stewardCounts: { on_duty: 6, working: 3, paused: 1 } }
     const { container } = render(<LeftRail />)
-    const header = screen.getByText('Crews').closest('button') as HTMLButtonElement
+    const header = screen.getByText('Stewards').closest('button') as HTMLButtonElement
     expect(header).not.toBeNull()
-    expect(container.querySelector('[data-testid="crews-needs-you"]')).toBeNull()
+    // Matched by suffix, so the absence holds for any spelling of a needs-you
+    // badge (`stewards-needs-you` included), not just one exact test id.
+    expect(container.querySelector('[data-testid$="needs-you"]')).toBeNull()
     // No stray tally in the header either — the counts belong to the filter rows.
-    expect(header.textContent).toBe('Crews')
+    expect(header.textContent).toBe('Stewards')
   })
 
   it('does not repeat the roster — that list, with its status, is column 2', () => {
     ctx.value = {
       ...ctx.value,
-      expanded: 'crews',
-      mainView: 'crews',
-      crews: [
+      expanded: 'stewards',
+      mainView: 'stewards',
+      stewards: [
         { id: 'c1', name: 'Andromeda', enabled: true, retired_at: null, labels: [], status: 'working' },
         { id: 'c2', name: 'Whirlpool', enabled: true, retired_at: null, labels: [], status: 'idle' },
       ],
-      crewCounts: { on_duty: 2, working: 1, paused: 0 },
+      stewardCounts: { on_duty: 2, working: 1, paused: 0 },
     }
     render(<LeftRail />)
     // The section is a DESTINATION, not a second copy of the roster: column 2
-    // already lists every crew AND carries each one's status dot and current
+    // already lists every steward AND carries each one's status dot and current
     // work item, so repeating the names here would duplicate one list and the
     // duplicate would be the copy without the state. The issues view sets the
     // precedent — its rail holds filters, its list column holds the issues.
@@ -132,34 +134,34 @@ describe('LeftRail — crews section', () => {
   it('carries the roster filters, with the server tally on each', async () => {
     // These moved out of column 2 so the three list columns are consistent: the
     // rail narrows a list, the column shows it. The counts are the SERVER's — the
-    // roster payload has no per-crew work items to derive them from.
+    // roster payload has no per-steward work items to derive them from.
     ctx.value = {
       ...ctx.value,
-      expanded: 'crews',
-      crewCounts: { on_duty: 6, working: 3, paused: 1 },
+      expanded: 'stewards',
+      stewardCounts: { on_duty: 6, working: 3, paused: 1 },
     }
     render(<LeftRail />)
-    expect(screen.getByTestId('crew-filter-all').getAttribute('aria-pressed')).toBe('true')
-    expect(screen.getByTestId('crew-filter-working').textContent).toContain('3')
+    expect(screen.getByTestId('steward-filter-all').getAttribute('aria-pressed')).toBe('true')
+    expect(screen.getByTestId('steward-filter-working').textContent).toContain('3')
 
-    await userEvent.click(screen.getByTestId('crew-filter-paused'))
-    expect(setCrewFilter).toHaveBeenCalledWith('paused')
+    await userEvent.click(screen.getByTestId('steward-filter-paused'))
+    expect(setStewardFilter).toHaveBeenCalledWith('paused')
     // Navigates too, so picking a filter from a rail left open on another view is
     // not silent.
-    expect(openCrews).toHaveBeenCalled()
+    expect(openStewards).toHaveBeenCalled()
   })
 
   it('cycles the roster sort from the rail', async () => {
-    ctx.value = { ...ctx.value, expanded: 'crews' }
+    ctx.value = { ...ctx.value, expanded: 'stewards' }
     render(<LeftRail />)
-    expect(screen.getByTestId('crew-sort-status').getAttribute('aria-pressed')).toBe('true')
-    await userEvent.click(screen.getByTestId('crew-sort-name'))
-    expect(cycleCrewSort).toHaveBeenCalledWith('name')
+    expect(screen.getByTestId('steward-sort-status').getAttribute('aria-pressed')).toBe('true')
+    await userEvent.click(screen.getByTestId('steward-sort-name'))
+    expect(cycleStewardSort).toHaveBeenCalledWith('name')
   })
 })
 
 describe('LeftRail — collapsed strip', () => {
-  const ACTIVE = { owner: 'kirodotdev', repo: 'Junction' }
+  const ACTIVE = { owner: 'laqaer', repo: 'junction' }
   const entry = (push: boolean) => ({ ...ACTIVE, permissions: { push, triage: false } })
 
   beforeEach(() => {
@@ -169,7 +171,7 @@ describe('LeftRail — collapsed strip', () => {
   it('shows the full owner/repo turned on its side and drops the accordion', () => {
     const { container } = render(<LeftRail width={48} collapsed />)
     // The org matters: two repos can share a name across owners.
-    const name = screen.getByText('kirodotdev/KiroCrew')
+    const name = screen.getByText('laqaer/junction')
     expect(name.style.writingMode).toBe('vertical-rl')
     // The nav sections have no room in a 48px strip.
     expect(screen.queryByText('Dashboards')).toBeNull()
@@ -182,7 +184,7 @@ describe('LeftRail — collapsed strip', () => {
   it('repeats the owner/repo in the tooltip for a name too long to fit', async () => {
     render(<LeftRail width={48} collapsed />)
     const btn = screen.getByRole('button', { name: 'Expand sidebar' })
-    expect(btn.getAttribute('title')).toContain('kirodotdev/KiroCrew')
+    expect(btn.getAttribute('title')).toContain('laqaer/junction')
   })
 
   it('keeps the app mark but not its name — no room at 48px', () => {
@@ -198,7 +200,7 @@ describe('LeftRail — collapsed strip', () => {
     ctx.value = { ...ctx.value, repos: [entry(false)] }
     render(<LeftRail width={48} collapsed />)
     const tag = screen.getByText('Read Only')
-    const name = screen.getByText('kirodotdev/KiroCrew')
+    const name = screen.getByText('laqaer/junction')
     expect(tag.style.writingMode).toBe('vertical-rl')
     expect(name.parentElement).toBe(tag.parentElement)
     // DOCUMENT_POSITION_FOLLOWING — the tag comes after the name.

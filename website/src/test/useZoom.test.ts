@@ -157,8 +157,8 @@ test('setFontFamily updates state and persists', () => {
 })
 
 test('publishes the resolved family on html[data-font-family]', () => {
-  // CSS keys off this attribute to compensate for JetBrains Mono being ~20%
-  // wider than Space Grotesk — see the html[data-font-family="mono"] rule in
+  // CSS keys off this attribute to compensate for Overpass Mono being ~30%
+  // wider than Overpass — see the html[data-font-family="mono"] rule in
   // index.css. Without the attribute the nav rail's community row truncates for
   // mono users, and that failure is INVISIBLE on the default family, so it is
   // pinned here rather than left to manual checking.
@@ -181,11 +181,11 @@ test('routes Sans and Mono through the theme role tokens, System through neither
 
   act(() => result.current.setFontFamily('sans'))
   expect(readBody()).toContain('var(--theme-font-sans,')
-  expect(readBody()).toContain("'Space Grotesk'")
+  expect(readBody()).toContain("'Overpass'")
 
   act(() => result.current.setFontFamily('mono'))
   expect(readBody()).toContain('var(--theme-font-mono,')
-  expect(readBody()).toContain("'JetBrains Mono'")
+  expect(readBody()).toContain("'Overpass Mono'")
 
   act(() => result.current.setFontFamily('system'))
   expect(readBody()).not.toContain('--theme-font')
@@ -227,7 +227,7 @@ test('opendyslexic publishes data-font-family="opendyslexic" on <html>', () => {
   // The attribute survives with the user's actual choice — not auto-resolved to
   // "mono" even in CLI mode. This is asymmetric with the sans-default→mono
   // auto-resolve, and deliberately so: the mono-tuned rail letter-spacing rule
-  // in index.css (data-font-family="mono") is calibrated for JetBrains Mono's
+  // in index.css (data-font-family="mono") is calibrated for Overpass Mono's
   // metrics and would harm OpenDyslexicMono's dyslexia-friendly wider glyphs.
   const { result } = renderHook(() => useZoom())
   act(() => result.current.setFontFamily('opendyslexic'))
@@ -242,7 +242,7 @@ test('opendyslexic persists to localStorage under mc-font-family', () => {
 
 test('opendyslexic overrides --mono to OpenDyslexicMono for code blocks', () => {
   // Code blocks and inline code read var(--mono). Without this override the
-  // dashboard would render body text in OpenDyslexic but keep JetBrains Mono
+  // dashboard would render body text in OpenDyslexic but keep Overpass Mono
   // for code — inconsistent for a user who picked the font for legibility.
   const { result } = renderHook(() => useZoom())
   const readMono = () => document.documentElement.style.getPropertyValue('--mono')
@@ -253,7 +253,7 @@ test('opendyslexic overrides --mono to OpenDyslexicMono for code blocks', () => 
 })
 
 test('leaving opendyslexic clears the --mono inline override', () => {
-  // Once the user switches away, the :root default (JetBrains Mono) must take
+  // Once the user switches away, the :root default (Overpass Mono) must take
   // over again. If the inline value stuck, sans/mono/system would render body
   // in their own family but keep code blocks in OpenDyslexicMono — mismatch.
   const { result } = renderHook(() => useZoom())

@@ -21,7 +21,7 @@
 // able to break the app — a corrupt or outdated value is discarded, not trusted.
 import type { ListTab, MainView, PrRef } from './types'
 
-const PREFIX = 'kc:code-review-sage'
+const PREFIX = 'jn:code-review-sage'
 export const UI_STATE_KEY = `${PREFIX}:ui-state`
 const CACHE_PREFIX = `${PREFIX}:cache:`
 

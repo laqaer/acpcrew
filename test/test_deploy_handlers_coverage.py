@@ -1158,7 +1158,7 @@ class TestExpireManifest:
         other = json.dumps({"slug": "app", "distribution_id": "SOMEONE-ELSE"})
         monkeypatch.setattr(engine, "run_aws", _aws_router([
             ("describe-stacks", (0, _BASE_OUTPUTS, "")),
-            (".kirocrew-deploy.json -", (0, other, "")),
+            (".junction-deploy.json -", (0, other, "")),
         ]))
         assert await handlers._expire_manifest_best_effort(_art()) == "unreachable"
 
@@ -1171,7 +1171,7 @@ class TestExpireManifest:
             joined = " ".join(str(x) for x in argv)
             if "describe-stacks" in joined:
                 return (0, _BASE_OUTPUTS, "")
-            if joined.endswith(".kirocrew-deploy.json - --region us-west-2"):
+            if joined.endswith(".junction-deploy.json - --region us-west-2"):
                 return (0, mine, "")
             return (1, "", "AccessDenied")
 

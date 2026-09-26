@@ -61,7 +61,7 @@ class TestCronAddChannelCapture:
         assert matching[0].channel is None
 
     def test_cron_respects_junction_home(self, monkeypatch, tmp_path):
-        """CronService uses JUNCTION_HOME when set, not the default ~/.kirocrew."""
+        """CronService uses JUNCTION_HOME when set, not the default data home."""
         monkeypatch.setenv("JUNCTION_HOME", str(tmp_path))
         monkeypatch.delenv("JUNCTION_CHANNEL_ID", raising=False)
 
@@ -72,7 +72,7 @@ class TestCronAddChannelCapture:
         )
         assert "Added job" in result
 
-        # Job should be in tmp_path, not ~/.kirocrew
+        # Job should be in tmp_path, not the default data home
         crons_file = tmp_path / "crons.json"
         assert crons_file.exists(), "crons.json not written to JUNCTION_HOME directory"
 

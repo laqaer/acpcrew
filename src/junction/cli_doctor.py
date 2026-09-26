@@ -41,8 +41,6 @@ from junction.config.loader import (
     resolve_effective_model,
 )
 from junction.config.paths import (
-    LEGACY_CONFIG_DIR_NAME,
-    _valid_override_home,
     data_home,
     kiro_agents_dir,
     project_agents_dir,
@@ -792,69 +790,11 @@ def _doctor_mcp_governance(agent_path: Path, issues: list[str]) -> None:
     print(f"      Then have your admin allow-list, by these exact names: {names}")
 
 
-# Top-level entries that hold a Python virtual environment rather than user
-# data. An older wheel install could nest its managed venv INSIDE the legacy
-# ``~/.kirocrew`` home, so a leftover legacy dir may still contain the running
-# interpreter — deleting it would break the live install.
-_LEGACY_VENV_DIR_NAMES = ("venv", ".venv", "venvs")
-
-
-def _legacy_venv_entries(home: Path) -> list[str]:
-    """Names of virtual-environment entries at the top of *home* (best-effort)."""
-    try:
-        return sorted(name for name in _LEGACY_VENV_DIR_NAMES if (home / name).is_dir())
-    except OSError:  # pragma: no cover - defensive
-        return []
-
-
 def _doctor_data_home() -> None:
-    """Report the data home and any leftover top-level ``~/.kirocrew`` directory.
-
-    The data root is ``~/.kiro/crew`` (or a valid ``JUNCTION_HOME`` override). A
-    leftover top-level ``~/.kirocrew`` is not the data home unless an override
-    points at it; a leftover that still holds a virtual environment is flagged as
-    UNSAFE to delete (it may be the live interpreter), otherwise it is reported as
-    an unused directory. Purely informational — doctor never deletes it itself.
-    """
+    """Report the data home: ``~/.junction``, or a valid ``JUNCTION_HOME`` override."""
     print("\nData Home")
     home = config_dir()
     print(f"  location:    ✅ {home}")
-
-    legacy = Path.home() / LEGACY_CONFIG_DIR_NAME
-    if not legacy.is_dir():
-        return
-    override_home = _valid_override_home()
-    if override_home is not None:
-        try:
-            points_at_legacy = override_home == legacy.resolve()
-        except OSError:  # pragma: no cover - defensive
-            points_at_legacy = override_home == legacy
-        if points_at_legacy:
-            # The override points AT the legacy dir, so it IS the active data
-            # home — don't mislabel the home the process is actually using.
-            print(
-                f"  legacy:      ✅ {legacy} is the ACTIVE data home "
-                f"(JUNCTION_HOME override points to it)"
-            )
-            return
-    venvs = _legacy_venv_entries(legacy)
-    if venvs:
-        # A wheel install could nest its managed venv here; the dir survives to
-        # hold it. Never advise deleting it — removing it takes the running
-        # interpreter with it (`which junction` may resolve through it).
-        print(
-            f"  legacy:      ✅ {legacy} retained to hold a Junction "
-            f"virtual environment ({', '.join(venvs)})"
-        )
-        print(
-            "               Do NOT delete it while it is your active install "
-            "— removing it would delete the running interpreter."
-        )
-        return
-    print(
-        f"  legacy:      ⏹ {legacy} present but not the data home — safe to "
-        f"delete once you have confirmed it holds nothing you need"
-    )
 
 
 def _doctor_path_launcher() -> None:
@@ -873,7 +813,7 @@ def _doctor_path_launcher() -> None:
     """
     from junction.agent import _resolve_junction_bin
 
-    on_path = shutil.which("junction") or shutil.which("junction") or shutil.which("acpcrew")
+    on_path = shutil.which("junction")
     if not on_path:
         # Not an error on its own: the desktop app runs its bundled backend
         # directly, and a user who never wanted a terminal command is fine.
@@ -1478,22 +1418,22 @@ def _doctor_memory_pressure(issues: list[str]) -> None:
 
 # ── kiro-cli installer residue ────────────────────────────────────────────────
 # kiro-cli runs its auto-update check on STARTUP — the ``app.disableAutoupdates``
-# setting is documented as "Disable automatic updates on startup" — and Crew
+# setting is documented as "Disable automatic updates on startup" — and Junction
 # spawns a FRESH kiro-cli per session (``AcpRuntime`` is constructed per session
 # in ``providers/acp.py`` and ``session.py``, and again per Code Review Sage
 # worker). So that check runs once per process START, not once per host per
 # release.
 #
 # On Windows the running executable cannot be replaced, so the downloaded
-# installer can never be applied while a Crew ACP child holds the binary — and
+# installer can never be applied while a Junction ACP child holds the binary — and
 # the "update pending" state is not cleared after an upgrade either
 # (kirodotdev/Kiro#9825). Nothing in that loop is self-limiting: one installer is
 # left behind per process start. A reporting user cleared ~80 GB of them.
 #
-# Crew cannot fix the updater, and must NOT disable updates on the user's behalf:
+# Junction cannot fix the updater, and must NOT disable updates on the user's behalf:
 # ``app.disableAutoupdates`` is a per-user setting shared with their own
 # interactive CLI, so setting it silently would suppress their security updates.
-# What Crew can do is stop the residue being invisible, since it is Crew's
+# What Junction can do is stop the residue being invisible, since it is Junction's
 # per-session spawning that turns a stale flag into tens of gigabytes.
 # Upstream fix requested in kirodotdev/Kiro#10970.
 _CLI_INSTALLER_GLOB = "kiro-installer*"
@@ -1574,7 +1514,7 @@ def _doctor_cli_installer_residue(issues: list[str]) -> None:
     print(f"  files:       ⚠️  {count_label} in {temp_dir}")
     print(f"  reclaimable: {size_label}")
     print("               Auto-update downloads that could not be applied while")
-    print("               kiro-cli was running, and are not cleaned up. Crew starts")
+    print("               kiro-cli was running, and are not cleaned up. Junction starts")
     print("               a kiro-cli per session, so one accumulates per start.")
     print(f"               Fix: delete {_CLI_INSTALLER_GLOB} from {temp_dir}, then stop")
     print("               the gateway and run `kiro-cli update` deliberately.")
@@ -2088,7 +2028,7 @@ def _doctor(
             result = diagnostics.collect_bundle()
         except OSError as exc:
             print(f"  ❌ could not write the diagnostics bundle: {exc}")
-            print("     Check that ~/.kiro/crew is writable and has free space.")
+            print("     Check that ~/.junction is writable and has free space.")
             sys.exit(1)
         print(f"  ✅ bundle: {result.zip_path}")
         print(
@@ -2336,7 +2276,7 @@ def _doctor(
     # ── Stored defaults a release has since changed (#5244) ──
     render_doctor_section(issues)
 
-    # ── Data Home (+ leftover legacy home) ──
+    # ── Data Home ──
     _doctor_data_home()
     _doctor_path_launcher()
     _doctor_trust_root()
@@ -2742,7 +2682,7 @@ def _doctor(
             print(f"  {name + ':':12} ❌ enabled but missing {missing}")
             print(
                 "               The channel will not start. Set it in "
-                "Settings > Channels, or in ~/.kiro/crew/.env"
+                "Settings > Channels, or in ~/.junction/.env"
             )
             issues.append(f"{name}: missing {missing}")
 

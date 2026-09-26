@@ -2,7 +2,7 @@
 
 An AI meeting assistant. Transcribes a live meeting through Junction's own
 streaming speech-to-text, stores the finalized transcript, fans each line out to
-a small crew of background agents (structured notes, an HTML/Mermaid diagram, an
+a small team of background agents (structured notes, an HTML/Mermaid diagram, an
 action-item list), and gates the meeting's close behind a review of the extracted
 action items.
 
@@ -77,7 +77,7 @@ turns validation failures into 4xx.
 
 ## Data
 
-All under `app_data_dir("meetings")` (`~/.kiro/crew/apps/meetings/data/`):
+All under `app_data_dir("meetings")` (`~/.junction/apps/meetings/data/`):
 
 ```
 config.json                      app config (agents, providers, presets)

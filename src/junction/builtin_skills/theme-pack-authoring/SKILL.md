@@ -7,7 +7,7 @@ triggers: theme pack, custom theme, theme.json, variables.json, overrides.css, i
 # Junction theme-pack authoring
 
 House rules for building theme packs. The authoritative contract is
-[`website/docs/theming-contract.md`](https://github.com/kirodotdev/KiroCrew/blob/main/website/docs/theming-contract.md);
+[`website/docs/theming-contract.md`](https://github.com/laqaer/junction/blob/main/website/docs/theming-contract.md);
 this skill is the task-oriented digest, plus the traps that cost real
 debugging time.
 
@@ -77,7 +77,7 @@ REJECTED (install fails), so do not invent variables; the allowlist is
 `_THEME_CSS_VARS` in `src/junction/dashboard/theme_validate.py`.
 
 - To clone a built-in theme's palette, transcribe its block from
-  `website/src/index.css` (e.g. `[data-theme="kiro-dark"]`), keeping only
+  `website/src/index.css` (e.g. `[data-theme="junction-dark"]`), keeping only
   allowlisted vars.
 - `--accent-fg` and the four `--json-*` highlight colors (`--json-key`,
   `--json-str`, `--json-num`, `--json-bool`) are allowlisted — set them directly

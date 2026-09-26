@@ -1,4 +1,4 @@
-/** The remote-crew status dot must use color tokens that tailwind.config.js
+/** The remote-instance status dot must use color tokens that tailwind.config.js
  * actually defines.
  *
  * `STATE_DOT` in InstancesPanel.tsx mapped `connected` to `bg-success` and
@@ -7,7 +7,7 @@
  * utilities were never emitted into the stylesheet: the dot rendered with no
  * background at all. The bug was invisible in the two states that happen to use
  * real tokens (`disconnected` -> `bg-muted`, `error` -> `bg-danger`), which is
- * why the "Crews you can switch to" list showed a dot next to Disconnected and
+ * why the "Instances you can switch to" list showed a dot next to Disconnected and
  * nothing next to Connected.
  *
  * The allow-list here is READ OUT of tailwind.config.js (the config is
@@ -43,7 +43,7 @@ function stateDotClasses(): Record<string, string> {
   return out
 }
 
-describe('remote-crew status dot colors', () => {
+describe('remote-instance status dot colors', () => {
   it('maps every tunnel state to a color token the theme defines', () => {
     const tokens = themeColorTokens()
     // The premise the whole fix rests on: these two names are the real tokens

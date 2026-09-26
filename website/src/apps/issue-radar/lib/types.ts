@@ -38,49 +38,55 @@ export const DASHBOARD_TABS = ['overview', 'graph', 'tagging'] as const
 export type DashboardTab = (typeof DASHBOARD_TABS)[number]
 
 /** Main-area mode: a dashboard page, the issue list + detail split, the pull-
- * request list + detail split, the crew list + crew page split, or the settings
+ * request list + detail split, the steward list + steward page split, or the settings
  * page. Each corresponds to one left-rail accordion section.
  *
- * `crews` is a MainView rather than a DashboardTab because a dashboard renders
- * full-width with no list column, and the crews surface needs the list + main
- * split (roster in column 2, the selected crew's page in column 3). */
-export type MainView = 'dashboard' | 'issues' | 'pulls' | 'crews' | 'settings'
+ * `stewards` is a MainView rather than a DashboardTab because a dashboard renders
+ * full-width with no list column, and the stewards surface needs the list + main
+ * split (roster in column 2, the selected steward's page in column 3).
+ *
+ * The list is exported so a persisted view can be validated on reload: a value
+ * that is not one of these (a view that no longer exists, or a hand-edited blob)
+ * has no rail section and no main-area renderer, so it must fall back rather
+ * than restore a blank pane. */
+export const MAIN_VIEWS = ['dashboard', 'issues', 'pulls', 'stewards', 'settings'] as const
+export type MainView = (typeof MAIN_VIEWS)[number]
 
 /** Which left-rail accordion section is expanded (the others collapse to their
  * title bar). Follows MainView by default; a header click overrides. */
-export type ExpandedSection = 'dashboards' | 'filters' | 'pulls' | 'crews' | 'settings'
+export type ExpandedSection = 'dashboards' | 'filters' | 'pulls' | 'stewards' | 'settings'
 
-/** What the crews main area is showing: one crew's own page, or nothing yet.
- * The column-2 crew list drives this — each crew row sets `{kind:'crew'}` with
- * that crew's id. `{kind:'none'}` is the state before a roster has loaded, and on
- * a repo with no crews at all; `context.tsx` opens the first crew as soon as one
+/** What the stewards main area is showing: one steward's own page, or nothing yet.
+ * The column-2 steward list drives this — each steward row sets `{kind:'steward'}` with
+ * that steward's id. `{kind:'none'}` is the state before a roster has loaded, and on
+ * a repo with no stewards at all; `context.tsx` opens the first steward as soon as one
  * exists, so it is never a page a user navigates TO. */
-export type CrewView = { kind: 'none' } | { kind: 'crew'; id: string }
+export type StewardView = { kind: 'none' } | { kind: 'steward'; id: string }
 
-/** The `kind` discriminants, as a runtime list, so a persisted `CrewView` can be
+/** The `kind` discriminants, as a runtime list, so a persisted `StewardView` can be
  * validated on reload the way `SORT_KEYS` validates a persisted sort key. A
- * structurally valid kind is not enough on its own: `{kind:'crew'}` also carries
- * an id, and a crew that has since been retired (or belongs to another repo) must
+ * structurally valid kind is not enough on its own: `{kind:'steward'}` also carries
+ * an id, and a steward that has since been retired (or belongs to another repo) must
  * not survive either — see `context.tsx`, which re-points the selection once the
- * crew list has loaded without it. */
-export const CREW_VIEW_KINDS = ['none', 'crew'] as const
+ * steward list has loaded without it. */
+export const STEWARD_VIEW_KINDS = ['none', 'steward'] as const
 
-/** Chip filters over the crew roster. Independent predicates, NOT a partition:
- * the backend's own tallies are allowed to sum past the crew count (a paused crew
+/** Chip filters over the steward roster. Independent predicates, NOT a partition:
+ * the backend's own tallies are allowed to sum past the steward count (a paused steward
  * holding in-flight work counts in two), so nothing here should treat them as
  * slices of a whole. */
-export const CREW_FILTERS = ['all', 'working', 'paused'] as const
-export type CrewFilter = (typeof CREW_FILTERS)[number]
+export const STEWARD_FILTERS = ['all', 'working', 'paused'] as const
+export type StewardFilter = (typeof STEWARD_FILTERS)[number]
 
-/** Sort fields offered over the crew roster.
+/** Sort fields offered over the steward roster.
  *
- * Deliberately only three, because `GET /crews` answers with crew RECORDS plus
+ * Deliberately only three, because `GET /stewards` answers with steward RECORDS plus
  * repo-wide tallies and carries no work items: a "busiest" or "least recently
- * active" sort would need one request per crew, or a per-crew summary the payload
+ * active" sort would need one request per steward, or a per-steward summary the payload
  * does not have. These three are answerable from a record alone — `status` is
  * derived by the route and already on it. */
-export const CREW_SORT_KEYS = ['status', 'name', 'created'] as const
-export type CrewSortKey = (typeof CREW_SORT_KEYS)[number]
+export const STEWARD_SORT_KEYS = ['status', 'name', 'created'] as const
+export type StewardSortKey = (typeof STEWARD_SORT_KEYS)[number]
 
 /** Sub-sections of the General settings page the rail nav can jump to. */
 export type GeneralAnchor = 'account' | 'repos'

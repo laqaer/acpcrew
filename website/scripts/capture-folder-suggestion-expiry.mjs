@@ -78,8 +78,8 @@ const detail = {
 }
 
 const folders = [
-  { id: 'f-kc', name: 'Kiro Crew', order: 0, parent_id: '' },
-  { id: 'f-i18n', name: 'i18n', order: 1, parent_id: 'f-kc' },
+  { id: 'f-jn', name: 'Junction', order: 0, parent_id: '' },
+  { id: 'f-i18n', name: 'i18n', order: 1, parent_id: 'f-jn' },
 ]
 
 async function main() {
@@ -131,7 +131,7 @@ async function main() {
     // Push the card exactly as the backend broadcasts it.
     wsServer.send(JSON.stringify({
       type: 'slot_folder_suggestion',
-      data: { slot: SLOT, folder_id: 'f-i18n', folder_name: 'i18n', breadcrumb: 'Kiro Crew › i18n', ts: Date.now() / 1000 },
+      data: { slot: SLOT, folder_id: 'f-i18n', folder_name: 'i18n', breadcrumb: 'Junction › i18n', ts: Date.now() / 1000 },
     }))
     await page.waitForTimeout(900)
 

@@ -9,7 +9,7 @@ A typical flow:
 
 1. Agent emits an `<mcwidget>` in chat ("here's your CR queue")
 2. Agent (or user) calls `artifact_save` — the widget is persisted under
-   `~/.kiro/crew/artifacts/<slug>/current.html`
+   `~/.junction/artifacts/<slug>/current.html`
 3. Days later, in a fresh session, the user says "iterate on the cr-queue
    artifact and add an age column"
 4. Agent calls `artifact_get("cr-queue")` to read the current HTML, modifies
@@ -22,7 +22,7 @@ The dashboard provides a `/artifacts` library page for browse/search and a
 ## Storage Layout
 
 ```
-~/.kiro/crew/artifacts/
+~/.junction/artifacts/
 └── <slug>/
     ├── meta.json        canonical metadata (no content)
     ├── current.html     latest content
@@ -181,7 +181,7 @@ rename-safe membership id, tolerant-loaded for legacy meta.json.
 `ArtifactStore.set_folder()` is a metadata-only move (NO version bump);
 `list(folder=)` filters (None = all, `""` = unfiled, id = that folder).
 `ArtifactFolderStore` keeps a flat `parent_id` tree in
-`~/.kiro/crew/artifact_folders.json` — create/rename/reparent (cycle- and
+`~/.junction/artifact_folders.json` — create/rename/reparent (cycle- and
 depth-guarded, `MAX_FOLDER_DEPTH` 20)/reorder/delete, breadcrumb, item counts,
 and id-or-path resolution with mkdir -p semantics (`resolve_path`, all-or-nothing
 rollback). Folder delete is an explicit choice: keep (re-parent direct children
@@ -908,7 +908,7 @@ model:
    in the artifact metadata. The artifact is kept as deploy history.
 
 2. **Manifest expiry (best-effort):** The teardown handler rewrites the S3
-   deploy manifest (`.kirocrew-deploy.json`) with `expires_at=now`,
+   deploy manifest (`.junction-deploy.json`) with `expires_at=now`,
    `persistent=false`. This is a non-destructive S3 PUT using the deployment's
    recorded profile. If credentials are unavailable or the bucket is unreachable,
    the tombstone still stands.
@@ -946,7 +946,7 @@ agent-authored SVG as an image would reintroduce a same-origin script vector.
 ### Storage layout
 
 ```
-~/.kiro/crew/artifacts/
+~/.junction/artifacts/
 └── <slug>/
     ├── meta.json        includes the `image` block below
     ├── current.html     present but EMPTY (bytes are not text)

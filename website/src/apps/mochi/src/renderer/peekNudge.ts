@@ -2,11 +2,10 @@
  * peekNudgeFor — how far to slide the pet off-screen while it peeks.
  *
  * A "peek" is normally a POSE: a drawing of the character half-hidden behind the
- * screen edge. Only the built-in cat ships one (`peeking` / `peekThinking`); the
- * Kiro Ghost deliberately omits it, because a peek is a specific drawing and none
- * of its four float clips is one. AnimationResolver therefore falls back to
- * `idle`, and the result was a ghost sitting upright at the edge, fully visible —
- * visually identical to not peeking at all.
+ * screen edge. The built-in cat ships one (`peeking` / `peekThinking`); an
+ * imported pack often does not, because a peek is a specific drawing. The
+ * AnimationResolver then falls back to `idle`, and the pet would sit upright at the
+ * edge, fully visible — visually identical to not peeking at all.
  *
  * So for a pack with no peek art, the POSITION carries the meaning the missing
  * drawing would have: move the pet toward the edge it is hiding against until

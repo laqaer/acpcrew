@@ -29,7 +29,7 @@ const adoptDashboardTheme = vi.fn(
 )
 const watchThemeChanges = vi.fn(() => () => {})
 
-vi.mock('../apps/crew-companion/dashboardTheme', () => ({
+vi.mock('../apps/desk-companion/dashboardTheme', () => ({
   adoptDashboardTheme: () => adoptDashboardTheme(),
   watchThemeChanges: () => watchThemeChanges(),
   applyThemeId: () => {},
@@ -43,7 +43,7 @@ vi.mock('../i18n/all', () => ({ initI18n: () => initI18n(), i18next: {} }))
 
 // The panel owns the whole surface (including its own ✕ and Escape); stubbing it
 // keeps every assertion here about the entry's own bootstrap.
-vi.mock('../apps/crew-companion/GalleryPanel', () => ({
+vi.mock('../apps/desk-companion/GalleryPanel', () => ({
   GalleryPanel: () => {
     order.push('paint')
     return <div data-testid="gallery-panel" />
@@ -65,13 +65,13 @@ afterEach(() => {
   document.body.replaceChildren()
 })
 
-describe('crew-companion/gallery entry', () => {
+describe('desk-companion/gallery entry', () => {
   it('initialises i18n, waits for the theme, then paints the panel', async () => {
     const host = document.createElement('div')
     host.id = 'root'
     document.body.appendChild(host)
 
-    await import('../apps/crew-companion/gallery')
+    await import('../apps/desk-companion/gallery')
 
     // i18n is up front; nothing is painted while the theme is still pending.
     expect(initI18n).toHaveBeenCalledTimes(1)
@@ -88,7 +88,7 @@ describe('crew-companion/gallery entry', () => {
   })
 
   it('does nothing at all when the host element is absent', async () => {
-    await import('../apps/crew-companion/gallery')
+    await import('../apps/desk-companion/gallery')
     expect(initI18n).not.toHaveBeenCalled()
     expect(adoptDashboardTheme).not.toHaveBeenCalled()
     expect(document.body.innerHTML).toBe('')

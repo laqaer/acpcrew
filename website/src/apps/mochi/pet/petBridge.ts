@@ -451,7 +451,7 @@ export function onColorMapChanged(
   return onAppearanceSettings(async (settings) => {
     // Only the cat has a colour map, so the consumer's `packId ===
     // 'default-mochi'` test must go FALSE while another pack is active. Going
-    // through the shared resolver keeps that true for the ghost too.
+    // through the shared resolver keeps that true for every other pack.
     const packId = resolveActivePackId(settings)
     const colorMap = (await presetsGetColorMap()) ?? {}
     cb({ packId, colorMap })

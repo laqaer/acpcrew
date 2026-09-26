@@ -66,8 +66,8 @@ describe('loopbackPreviewSrc', () => {
 
 describe('requestPayloadPath', () => {
   it('builds the canonical queue file path from dataDir and requestId', () => {
-    const p = requestPayloadPath('/home/user/.kiro/crew/apps/design-tweak', 'req-abc')
-    expect(p).toBe('/home/user/.kiro/crew/apps/design-tweak/queue/req-abc.json')
+    const p = requestPayloadPath('/home/user/.junction/apps/design-tweak', 'req-abc')
+    expect(p).toBe('/home/user/.junction/apps/design-tweak/queue/req-abc.json')
   })
 
   it('strips trailing slashes from dataDir', () => {
@@ -143,7 +143,7 @@ describe('fetchProjects', () => {
 
 describe('fetchHealth', () => {
   it('GETs /health and returns the parsed response', async () => {
-    const payload = { status: 'ok', dataDir: '/home/.kiro/crew/apps/design-tweak' }
+    const payload = { status: 'ok', dataDir: '/home/.junction/apps/design-tweak' }
     const fetchMock = vi.fn(async () => jsonResponse(payload))
     vi.stubGlobal('fetch', fetchMock)
 

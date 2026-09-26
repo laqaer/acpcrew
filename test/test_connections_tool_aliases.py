@@ -622,10 +622,10 @@ def test_the_ownership_record_is_write_protected_from_agent_tools():
     from junction import security
     from junction.connections.alias_record import _RECORD_FILENAME
 
-    # The entry must name the file the module actually writes, in every crew home root.
+    # The entry must name the file the module actually writes, in every data-home root.
     assert record_path().name == _RECORD_FILENAME
     protected = set(security.write_protected_home_paths())
-    for prefix in security.crew_home_prefixes():
+    for prefix in security.data_home_prefixes():
         assert f"{prefix}/{_RECORD_FILENAME}" in protected, (
             f"the ownership record is agent-writable under {prefix}"
         )
@@ -635,7 +635,7 @@ def test_the_ownership_record_is_write_protected_from_the_shell(tmp_path, monkey
     """The file-tool gate alone leaves the forgery reachable through a redirect.
 
     ``is_sensitive_write_path`` screens the file-edit tool's target, so an agent refused
-    there can still reach the same file with ``echo … > ~/.kiro/crew/connections-tool-aliases.json``
+    there can still reach the same file with ``echo … > ~/.junction/connections-tool-aliases.json``
     and forge the committed record that authorizes deleting a user-authored alias. The bash
     gate is what closes that path, and it blocks VERB-INDEPENDENTLY -- any command naming the
     leaf -- so a quoted redirect, a copy, or a Python one-liner cannot walk around an
@@ -652,8 +652,8 @@ def test_the_ownership_record_is_write_protected_from_the_shell(tmp_path, monkey
     # and the anchor-independent list too: the anchored entry alone falls to one ``cd``
     assert _RECORD_FILENAME in security._BARE_TOKEN_PROTECTED_LEAVES
 
-    for prefix in security.crew_home_prefixes():
-        # The resolved literal is native-spelled on Windows (``C:\Users\u\.kiro\crew\…``),
+    for prefix in security.data_home_prefixes():
+        # The resolved literal is native-spelled on Windows (``C:\Users\u\.junction\…``),
         # which the leaf branch's Windows form gates -- see
         # test_security.py::TestWindowsPathShapes for the whole-tuple coverage.
         for record in (
@@ -675,7 +675,7 @@ def test_the_ownership_record_is_write_protected_from_the_shell(tmp_path, monkey
             ):
                 assert security.is_sensitive_bash_command(cmd) is not None, cmd
         # ANCHORING IS NOT PART OF THE CONTRACT. Every anchored spelling above requires a
-        # home and a crew prefix, so a single ``cd`` into the home defeats all of them and
+        # home and a data-home prefix, so a single ``cd`` into the home defeats all of them and
         # the forgery lands anyway. This filename authorizes deletion, so it is matched as
         # a bare path SEGMENT: naming it at all is refused, however the command spells the
         # way there. See test_security.py::TestBareTokenProtectedLeaves for the full grid.
@@ -687,7 +687,7 @@ def test_the_ownership_record_is_write_protected_from_the_shell(tmp_path, monkey
             f"echo forged > .\\{_RECORD_FILENAME}",
         ):
             assert security.is_sensitive_bash_command(cmd) is not None, cmd
-        # unrelated writes under the crew home stay allowed
+        # unrelated writes under the data home stay allowed
         assert security.is_sensitive_bash_command(f"touch ~/{prefix}/sessions.db") is None
     # and a DIFFERENT file whose name merely ends with the record's is not fenced
     assert security.is_sensitive_bash_command(f"touch my-{_RECORD_FILENAME}") is None
@@ -1241,7 +1241,7 @@ def _isolated_alias_record(tmp_path, monkeypatch):
 
     Autouse because the pass READS the record on every run: without this a test
     would consult (and :func:`_apply` would write) the developer's real
-    ``~/.kiro/crew``, and the record would leak between tests. Function-scoped, so
+    ``~/.junction``, and the record would leak between tests. Function-scoped, so
     each test starts with no record at all -- the missing-record case -- and the
     two ``_apply`` calls inside one test share the record the way two rebuilds do.
     """

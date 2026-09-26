@@ -147,7 +147,7 @@ no brokered path renders resource blobs to the model today.
 ### Inline marker format
 
 ```
-[Junction: response truncated -- full 1482937 bytes at /home/user/.kiro/crew/mcp_spill/example-mcp-gw-12345-7-1721200000.json. Read with bash: head/grep/jq.]
+[Junction: response truncated -- full 1482937 bytes at /home/user/.junction/mcp_spill/example-mcp-gw-12345-7-1721200000.json. Read with bash: head/grep/jq.]
 ```
 
 ## Troubleshooting

@@ -24,6 +24,7 @@ from junction.apps.builtins.mochi.pet_state_manager import (
     PetStateManager,
 )
 from junction.apps.builtins.mochi.soul_loader import (
+    BUILTIN_PERSONAS,
     BUILTIN_PET_NAMES,
     DEFAULT_SOUL,
     SoulLoader,
@@ -216,17 +217,23 @@ class TestAppearancePersona:
 
     def test_each_built_in_extends_the_shared_base(self) -> None:
         """The base holds the response-length rules; a pack must not lose them."""
-        for pack in ("kiro-ghost", "default-mochi"):
+        assert "default-mochi" in BUILTIN_PERSONAS
+        for pack in BUILTIN_PERSONAS:
             text = persona_for(pack)
             assert DEFAULT_SOUL in text, f"{pack} persona dropped the shared base"
             assert len(text) > len(DEFAULT_SOUL), f"{pack} added no personality"
 
-    def test_the_two_built_ins_read_differently(self) -> None:
-        assert persona_for("kiro-ghost") != persona_for("default-mochi")
+    def test_every_built_in_persona_has_a_pet_name(self) -> None:
+        """A built-in pack with a persona but no name would introduce itself generically."""
+        assert set(BUILTIN_PET_NAMES) == set(BUILTIN_PERSONAS)
 
-    def test_ghost_is_kiro_and_cat_is_mochi(self) -> None:
-        assert "ghost" in persona_for("kiro-ghost").lower()
+    def test_the_built_in_is_a_cat_named_mochi(self) -> None:
         assert "cat" in persona_for("default-mochi").lower()
+        assert BUILTIN_PET_NAMES["default-mochi"] == "Mochi"
+
+    def test_a_built_in_reads_differently_from_an_imported_pack(self) -> None:
+        imported = persona_for("some-imported-pack", "a small copper robot with tread wheels")
+        assert persona_for("default-mochi") != imported
 
     def test_unset_pack_is_a_generic_companion(self) -> None:
         assert persona_for(None) == DEFAULT_SOUL
@@ -251,8 +258,8 @@ class TestAppearancePersona:
 
     def test_loader_follows_the_selected_pack(self) -> None:
         loader = SoulLoader()
-        loader.set_appearance("kiro-ghost")
-        assert loader.get() == persona_for("kiro-ghost")
+        loader.set_appearance("my-pack", "a small copper robot")
+        assert loader.get() == persona_for("my-pack", "a small copper robot")
         loader.set_appearance("default-mochi")
         assert loader.get() == persona_for("default-mochi")
 
@@ -261,16 +268,12 @@ class TestAppearancePersona:
         loader.set_appearance("my-pack", "a tiny paper crane")
         assert "paper crane" in loader.get()
 
-    def test_switching_pack_switches_the_default_name(self) -> None:
-        """Picking the ghost must not leave it introducing itself as Mochi."""
-        loader = SoulLoader()
-        loader.set_appearance("kiro-ghost")
-        assert loader.pet_name == BUILTIN_PET_NAMES["kiro-ghost"]
-
     def test_an_explicit_pet_name_survives_a_pack_switch(self) -> None:
         loader = SoulLoader()
         loader.set_pet_name("Biscuit")
-        loader.set_appearance("kiro-ghost")
+        loader.set_appearance("my-pack", "a tiny paper crane")
+        assert loader.pet_name == "Biscuit"
+        loader.set_appearance("default-mochi")
         assert loader.pet_name == "Biscuit"
 
     def test_config_soul_still_wins(self) -> None:

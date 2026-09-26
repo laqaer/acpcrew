@@ -43,7 +43,7 @@ def die(msg: str) -> NoReturn:
 
 
 # State lives under the ACTIVE data home, not a hardcoded ~/.junction, so a
-# dev instance (JUNCTION_HOME=~/.kirocrew-dev) keeps its own pidfiles instead of
+# dev instance (JUNCTION_HOME=~/.junction-dev) keeps its own pidfiles instead of
 # sharing mirror state with a production install.
 def _resolve_home() -> Path:
     """Resolve the data home to an absolute path, or refuse.
@@ -58,7 +58,7 @@ def _resolve_home() -> Path:
     """
     raw = os.environ.get("JUNCTION_HOME") or ""
     if not raw:
-        return Path.home() / ".kiro" / "crew"
+        return Path.home() / ".junction"
     home = Path(raw).expanduser()
     if not home.is_absolute():
         die(f"JUNCTION_HOME must be an absolute path, got {raw!r} "

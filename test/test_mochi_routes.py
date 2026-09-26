@@ -431,7 +431,7 @@ class TestAppearanceBroadcasts:
 
             resp = await routes._handle_settings_update(
                 _json_request(
-                    "POST", "/api/apps/mochi/settings", {"activeAppearance": "kiro-ghost"}
+                    "POST", "/api/apps/mochi/settings", {"activeAppearance": "my-robot-pack"}
                 )
             )
             assert resp.status == 200
@@ -440,7 +440,7 @@ class TestAppearanceBroadcasts:
             # this the pet would keep describing itself as its previous character. It
             # is re-resolved from the RUNTIME (not from this payload) because a custom
             # pack's persona comes from the pack's own description.
-            assert applied == [("kiro-ghost", None)]
+            assert applied == [("my-robot-pack", None)]
 
     @pytest.mark.asyncio
     async def test_non_appearance_setting_broadcasts_nothing(self, tmp_path, monkeypatch):
@@ -463,7 +463,7 @@ class TestAppearanceBroadcasts:
             monkeypatch.setattr(runtime.soul, "set_appearance", _boom)
             resp = await routes._handle_settings_update(
                 _json_request(
-                    "POST", "/api/apps/mochi/settings", {"activeAppearance": "kiro-ghost"}
+                    "POST", "/api/apps/mochi/settings", {"activeAppearance": "my-robot-pack"}
                 )
             )
             # The user's setting IS saved; a persona refresh is best-effort.
@@ -656,11 +656,7 @@ class TestReset:
         async with _live_runtime(tmp_path):
             from junction.apps.builtins.mochi.activity_log import LOG_FILE
             from junction.apps.builtins.mochi.pinned_files_service import DATA_FILE_NAME
-            from junction.apps.builtins.mochi.settings import (
-                PACK_GHOST,
-                PACK_MOCHI,
-                save_settings,
-            )
+            from junction.apps.builtins.mochi.settings import PACK_MOCHI, save_settings
             from junction.apps.builtins.mochi.stats_service import STATS_FILE_NAME
 
             # Seed via the OWNING modules' constants. The previous version of this
@@ -670,7 +666,7 @@ class TestReset:
             (tmp_path / LOG_FILE).write_text("[]")
             (tmp_path / STATS_FILE_NAME).write_text("{}")
             (tmp_path / DATA_FILE_NAME).write_text("{}")
-            save_settings(tmp_path, {"activeAppearance": PACK_GHOST, "petName": "Spooky"})
+            save_settings(tmp_path, {"activeAppearance": "my-robot-pack", "petName": "Bolt"})
 
             res = await routes._handle_reset(_json_request("POST", "/reset", {}))
             assert res.status == 200

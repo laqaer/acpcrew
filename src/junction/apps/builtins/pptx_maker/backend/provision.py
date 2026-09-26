@@ -14,7 +14,7 @@ the engine arrives over plain HTTPS, so ``git`` is no longer required at all.
 Why this is a Python job and not a ``setup.onInstall`` shell script: a BUILTIN
 app's source lives read-only inside the installed Python package, and the
 platform only writes ``app.json``/``installed.json`` into
-``~/.kiro/crew/apps/<name>/`` — it never stages a builtin's other files there. A
+``~/.junction/apps/<name>/`` — it never stages a builtin's other files there. A
 ``setup.onInstall`` script therefore has nothing to run (the lifecycle runner
 execs with that directory as its cwd), and manifest-declared ``agents``/``skills``
 paths resolve to files that do not exist. This module closes that gap for this
@@ -378,7 +378,7 @@ def _json_escape(value: str) -> str:
     The placeholders below sit inside quoted JSON strings, so the substituted
     text has to be JSON-escaped or the rendered config is not JSON at all. This
     is not cosmetic: on Windows every one of these values is an absolute path
-    full of backslashes (``C:\\Users\\me\\.kiro\\crew\\...``), and ``\\U``/``\\c``
+    full of backslashes (``C:\\Users\\me\\.junction\\...``), and ``\\U``/``\\c``
     are invalid JSON escapes — so a naive substitution made ``json.loads`` below
     raise for EVERY template and this app shipped Windows users no agent configs
     at all.

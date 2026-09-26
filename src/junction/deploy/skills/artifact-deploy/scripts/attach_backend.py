@@ -141,9 +141,7 @@ def _validate_args(profile: str, region: str, dist_id: str, slug: str) -> None:
 
 # Sensitive paths that must never be read via --origin-verify-secret-file.
 # Standalone list (duplicated here for standalone execution where junction
-# may not be importable) — covers both the current Junction data home
-# (~/.kiro/crew) and the legacy ~/.kirocrew home, so a not-yet-migrated box
-# is covered too.
+# may not be importable) — covers the Junction data home (~/.junction).
 _SENSITIVE_PREFIXES: tuple[str, ...] = (
     ".aws",
     ".ssh",
@@ -157,14 +155,10 @@ _SENSITIVE_PREFIXES: tuple[str, ...] = (
     ".pypirc",
     ".netrc",
     ".git-credentials",
-    ".kiro/crew/.env",
-    ".kiro/crew/sel_hmac.key",
-    ".kiro/crew/trust",
-    ".kiro/crew/security_events.jsonl",
-    ".kirocrew/.env",
-    ".kirocrew/sel_hmac.key",
-    ".kirocrew/trust",
-    ".kirocrew/security_events.jsonl",
+    ".junction/.env",
+    ".junction/sel_hmac.key",
+    ".junction/trust",
+    ".junction/security_events.jsonl",
 )
 
 

@@ -77,9 +77,6 @@ junction up
 
 `junction gateway` is the same server as `junction up` and remains for scripts.
 
-Silent aliases `acpcrew` and `junction` still dispatch to the same CLI.
-User-facing help prints `junction`.
-
 Connect Slack, Discord, or other channels later from the dashboard
 (Settings → Channels).
 

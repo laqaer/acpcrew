@@ -1631,10 +1631,10 @@ class TestRelocate:
         monkeypatch.setattr("pathlib.Path.home", classmethod(lambda cls: home))
         # The barrier now shares the store's root set, which includes the DATA
         # HOME (the store root's parent). Re-root the store under the fake home
-        # — mirroring production's ~/.kiro/crew/artifacts — so "outside home"
+        # — mirroring production's ~/.junction/artifacts — so "outside home"
         # is genuinely outside every allowed root and the denial still means
         # something.
-        store = ArtifactStore(root=home / ".kiro" / "crew" / "artifacts")
+        store = ArtifactStore(root=home / ".junction" / "artifacts")
         monkeypatch.setattr(art_mod, "_default_store", store)
         # A file OUTSIDE home (sibling tmp dir) must be refused with 403.
         outside = tmp_path / "outside" / "secret.txt"
@@ -1832,7 +1832,7 @@ class TestTeardown:
         s3_calls = [c for c in calls if "s3" in c[0] and "cp" in c[0]]
         assert len(s3_calls) == 2
         for call in s3_calls:
-            assert any("expire-app/.kirocrew-deploy.json" in a for a in call[0])
+            assert any("expire-app/.junction-deploy.json" in a for a in call[0])
 
     @pytest.mark.asyncio
     async def test_teardown_fail_closed_when_aws_unreachable(self, isolated_store, patch_restricted, monkeypatch) -> None:

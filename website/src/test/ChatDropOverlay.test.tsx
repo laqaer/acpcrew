@@ -15,7 +15,7 @@ function fileTransfer(): DataTransfer {
 
 function internalTransfer(): DataTransfer {
   return {
-    types: ['application/x-kiro-session'],
+    types: ['application/x-junction-session'],
     items: [],
     files: [],
     dropEffect: 'none',
@@ -58,6 +58,16 @@ describe('ChatDropOverlay', () => {
 
     fireEvent.dragLeave(target, { dataTransfer })
     await waitFor(() => expect(screen.queryByTestId('chat-drop-overlay')).not.toBeInTheDocument())
+  })
+
+  it('draws its glyph as a decorative lucide icon, never as image art', () => {
+    render(<ChatDropOverlay active />)
+    const overlay = screen.getByTestId('chat-drop-overlay')
+    expect(overlay).toHaveAttribute('role', 'status')
+    expect(overlay.querySelector('img')).toBeNull()
+    const glyph = overlay.querySelector('svg.lucide')
+    expect(glyph).not.toBeNull()
+    expect(glyph!.closest('[aria-hidden="true"]')).not.toBeNull()
   })
 
   it('dispatches one drop through the shared handler', () => {

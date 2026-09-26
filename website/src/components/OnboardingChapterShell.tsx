@@ -12,46 +12,48 @@ import {
 } from 'react'
 import { createPortal } from 'react-dom'
 import { motion, useReducedMotion } from 'framer-motion'
-import { ArrowRight, GitMerge, Waypoints } from 'lucide-react'
+import { ArrowRight } from 'lucide-react'
 
 import { i18nT } from '../i18n/t'
+import junctionGlyphUrl from '../assets/junction-glyph.svg'
+import { BrandGlyph } from './BrandIcon'
 
-// Track lockup — Junction's switch motif instead of a mascot swarm.
-function TrackLockup() {
+// Route lockup: a trunk line crossing the upper panel with the Junction mark
+// set on it as the interchange, and one branch peeling off below. The art
+// stays in the top half so it never runs behind the headline.
+function RouteLockup() {
   const reduceMotion = useReducedMotion()
   return (
     <div aria-hidden="true" className="pointer-events-none absolute inset-0 overflow-hidden">
-      <div className="absolute inset-y-6 left-[20%] w-px bg-accent-fg/25" />
-      <div className="absolute inset-y-10 right-[26%] w-px bg-accent-fg/15" />
-      <div className="absolute left-[20%] right-[26%] top-[48%] h-px bg-accent-fg/20" />
+      <div className="absolute inset-x-0 top-[34%] h-[2px] bg-accent-fg/20" />
+      <div className="absolute left-1/2 top-[34%] h-[2px] w-[42%] origin-left rotate-[32deg] bg-accent-fg/15" />
       <motion.div
-        className="absolute left-1/2 top-[46%] -translate-x-1/2 -translate-y-1/2 text-accent-fg drop-shadow-[0_12px_20px_rgba(12,13,18,0.35)]"
+        className="absolute left-1/2 top-[34%] flex h-16 w-16 -translate-x-1/2 -translate-y-1/2 items-center justify-center rounded-2xl bg-accent-fg text-accent shadow-lg"
         initial={reduceMotion ? false : { opacity: 0, scale: 0.86 }}
         animate={{ opacity: 1, scale: 1 }}
         transition={{ duration: 0.45, type: 'spring', bounce: 0.3 }}
       >
-        <GitMerge className="lucide-inline h-16 w-16" />
+        <BrandGlyph url={junctionGlyphUrl} size={40} />
       </motion.div>
-      <Waypoints className="lucide-inline absolute bottom-8 right-8 h-8 w-8 text-accent-fg/40" />
     </div>
   )
 }
 
-// The accent left panel — brand lockup + track motif + the flow's copy.
+// The accent left panel — brand lockup + route motif + the flow's copy.
 // Factored out so the persistent HOST and the standalone shell render the exact
 // same aside; when it lives in the host it is mounted ONCE and only its copy
 // text changes between flows, so the lockup never re-runs its entrance.
 // Exported so the first-run CLI setup gate (KiroPrerequisiteGate) renders the SAME
-// panel — identical size, identical track positions — instead of a look-alike
+// panel — identical size, identical route positions — instead of a look-alike
 // copy that drifts.
 export function ShellAside({ copy }: { copy: ShellAsideCopy }) {
   return (
     <aside className="relative flex min-h-[248px] w-full shrink-0 overflow-hidden bg-accent text-accent-fg sm:min-h-0 sm:w-[36%]">
-      <TrackLockup />
+      <RouteLockup />
       <div className="relative z-10 flex w-full flex-col p-7 sm:p-10">
         <div className="flex items-center gap-3">
-          <GitMerge className="lucide-inline h-8 w-7" aria-hidden="true" />
-          <span className="text-[15px] font-semibold tracking-wide">{i18nT('components.onboardingChapterShell.junction')}</span>
+          <BrandGlyph url={junctionGlyphUrl} size={24} />
+          <span className="text-[15px] font-bold">{i18nT('components.onboardingChapterShell.junction')}</span>
         </div>
         <div className="mt-auto max-w-[290px]">
           <h1 className="text-4xl font-semibold leading-[1.05] tracking-[-0.02em] sm:text-[clamp(2.2rem,4vw,3.5rem)]">

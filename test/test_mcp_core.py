@@ -33,10 +33,9 @@ class TestSpawnRunSessionKeyRouting:
             env.pop("JUNCTION_HOME", None)  # ensure config_dir() uses patched Path.home()
             with patch.dict("os.environ", env, clear=True):
                 # The gateway writes session_pid files into the data home
-                # (config_dir() -> ~/.kiro/crew), which is where the fallback
-                # reader looks; there is no legacy fallback for these per-boot
-                # runtime files.
-                junction_dir = tmp_path / "fake_home" / ".kiro" / "crew"
+                # (config_dir() -> ~/.junction), which is where the fallback
+                # reader looks.
+                junction_dir = tmp_path / "fake_home" / ".junction"
                 junction_dir.mkdir(parents=True)
                 (junction_dir / f"session_pid_{os.getppid()}.txt").write_text("sess-from-pid")
 
@@ -84,7 +83,7 @@ class TestSendMessageCronSession:
 
     @pytest.fixture(autouse=True)
     def _permit_messaging(self, monkeypatch):
-        """Stub governance vets so a real ~/.kirocrew/profiles/cron.json that
+        """Stub governance vets so a real ~/.junction/profiles/cron.json that
         disables messaging doesn't block these payload-routing tests."""
         monkeypatch.setattr("junction.mcp_core._vet_messaging_governance", lambda _sk: None)
         monkeypatch.setattr("junction.mcp_core._vet_channel_governance", lambda _sk, _t: None)

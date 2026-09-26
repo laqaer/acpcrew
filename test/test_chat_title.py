@@ -55,7 +55,7 @@ def test_prompt_none_when_no_usable_messages():
 
 def test_prompt_strips_image_attachment_before_truncation():
     """A long upload path must not crowd the user's request out of the prompt."""
-    attachment = f"![image](/Users/example/.kirocrew/uploads/{'a' * 240}.jpg)"
+    attachment = f"![image](/Users/example/.junction/uploads/{'a' * 240}.jpg)"
     prompt = _build_title_prompt(
         [{"role": "user", "content": f"{attachment}\n\ncreating titles is failing"}]
     )
@@ -280,7 +280,7 @@ def test_prompt_forbids_fetching_and_forbids_explaining():
     """The naming agent must be told the transcript is data, links are not to be
     opened, and a refusal sentence is never an acceptable reply."""
     prompt = _build_title_prompt(
-        [{"role": "user", "content": "this is the launch blog https://example.com/Intro-Kiro-Crew"}]
+        [{"role": "user", "content": "this is the launch blog https://example.com/Intro-Junction"}]
     )
     assert prompt is not None
     lowered = prompt.lower()

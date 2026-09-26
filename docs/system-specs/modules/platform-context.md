@@ -235,7 +235,7 @@ Defense in depth, evaluated by `evaluate_admission(ep, policy)`:
    a capability category the fleet doesn't grant at all.
 
 **Trust-root invariant:** the policy loads from a fleet-controlled source
-(`JUNCTION_ADMISSION_POLICY` env path, else `~/.kiro/crew/admission_policy.json`),
+(`JUNCTION_ADMISSION_POLICY` env path, else `~/.junction/admission_policy.json`),
 **never from the plugin** — a plugin cannot approve, sign, or un-ban itself. The
 manifest is read **import-free** from the plugin's installed distribution files,
 so plugin code never runs before the decision.

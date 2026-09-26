@@ -26,7 +26,7 @@ now="$(date -u +%s)"
 aws_cli s3 ls "s3://$BUCKET/" 2>/dev/null | awk '/ PRE /{print $2}' | while read -r pfx; do
   slug="${pfx%/}"
   [[ -n "$slug" && "$slug" != _* ]] || continue
-  man="$(aws_cli s3 cp "s3://$BUCKET/$slug/.kirocrew-deploy.json" - 2>/dev/null)"
+  man="$(aws_cli s3 cp "s3://$BUCKET/$slug/.junction-deploy.json" - 2>/dev/null)"
   [[ -n "$man" ]] || continue
   line="$(printf '%s' "$man" | python3 -c 'import sys,json;m=json.load(sys.stdin);print((str(m.get("expires_at") or ""))+"|"+str(m.get("persistent")).lower())')"
   IFS='|' read -r EXP PERS <<< "$line"
@@ -108,7 +108,7 @@ aws_cli s3 ls "s3://$BUCKET/" 2>/dev/null | awk '/ PRE /{print $2}' | while read
         # Mark as reaping for next sweep.
         _reaping_manifest="$(printf '%s' "$man" | python3 -c 'import sys,json;m=json.load(sys.stdin);m["reaping"]=True;print(json.dumps(m))')"
         _tmp="$(mktemp)"; printf '%s' "$_reaping_manifest" > "$_tmp"
-        aws_cli s3 cp "$_tmp" "s3://$BUCKET/$slug/.kirocrew-deploy.json" --content-type application/json --only-show-errors
+        aws_cli s3 cp "$_tmp" "s3://$BUCKET/$slug/.junction-deploy.json" --content-type application/json --only-show-errors
         rm -f "$_tmp"
         echo "   distribution disabled, will delete on next pass"
         continue
@@ -201,7 +201,7 @@ sys.exit(0 if re.fullmatch(re.escape(prefix) + r'-[0-9a-f]{6}', name) else 1)
 
     # R16 F5: Only remove manifest when ALL deletions verified clean.
     if [[ "$_engine_all_clean" == "true" ]]; then
-      aws_cli s3 rm "s3://$BUCKET/$slug/.kirocrew-deploy.json" --only-show-errors 2>/dev/null || true
+      aws_cli s3 rm "s3://$BUCKET/$slug/.junction-deploy.json" --only-show-errors 2>/dev/null || true
       echo "   reaped (engine-arch): $slug"
     else
       echo "   engine-arch $slug: partial deletion -- manifest retained for retry"
@@ -279,7 +279,7 @@ sys.exit(0 if re.fullmatch(re.escape(prefix) + r'-[0-9a-f]{6}', name) else 1)
     # Rewrite manifest with reaping marker — S3 deletion deferred to phase B.
     _reaping_manifest="$(printf '%s' "$man" | python3 -c 'import sys,json;m=json.load(sys.stdin);m["reaping"]=True;print(json.dumps(m))')"
     _tmp="$(mktemp)"; printf '%s' "$_reaping_manifest" > "$_tmp"
-    aws_cli s3 cp "$_tmp" "s3://$BUCKET/$slug/.kirocrew-deploy.json" --content-type application/json --only-show-errors
+    aws_cli s3 cp "$_tmp" "s3://$BUCKET/$slug/.junction-deploy.json" --content-type application/json --only-show-errors
     rm -f "$_tmp"
     echo "   manifest marked as reaping -- S3 cleanup on next pass"
   else

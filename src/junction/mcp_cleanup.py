@@ -215,7 +215,7 @@ def purge_deleted_proxy_from_config(config: dict) -> list[str]:
     """Drop any MCP server entry whose argv invokes the deleted Playwright proxy.
 
     Runs on EVERY rebuild of the agent config (not behind the first-run
-    marker) because the entry can be re-injected from ~/.kiro/crew/mcp.json
+    marker) because the entry can be re-injected from ~/.junction/mcp.json
     by the merge passes that precede this call.  Matched by ARGV token, never
     by server name, so an operator's own ``playwright-mcp`` server whose
     command does not invoke the deleted subcommand is left untouched.

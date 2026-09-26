@@ -303,7 +303,7 @@ async def api_skills(request: web.Request) -> web.Response:
     """GET /api/skills — list skills from all known sources.
 
     Sources:
-    - ``junction``: ``~/.kiro/crew/skills/`` (managed by SkillsLoader; editable)
+    - ``junction``: ``~/.junction/skills/`` (managed by SkillsLoader; editable)
     - ``package``: skills an edition contributes, if any (read-only here)
     - ``kiro-user``: ``~/.kiro/skills/`` (open-standard; read-only here)
     - ``kiro-workspace``: ``<project>/.kiro/skills/`` (open-standard; read-only here)

@@ -607,7 +607,7 @@ def _candidate_ports() -> list[int]:
     _add(os.environ.get("JUNCTION_BOUND_PORT"))
     _add(os.environ.get("JUNCTION_PORT"))
     try:
-        cfg = store.crew_home() / "config.json"
+        cfg = store.data_home() / "config.json"
         if cfg.exists():
             _d = json.loads(cfg.read_text(encoding="utf-8")).get("dashboard") or {}
             url = _d.get("url") or ""
@@ -669,7 +669,7 @@ def _local_secret(port: int) -> str:
 
     The per-port-then-shared order lives in ``config.loader.read_local_secret``;
     duplicating it here would give this surface its own copy to drift. Only the
-    fallback differs: this app addresses its data home through ``store.crew_home()``,
+    fallback differs: this app addresses its data home through ``store.data_home()``,
     so a home-wide read is retried against that when the shared resolver finds
     nothing.
 
@@ -679,7 +679,7 @@ def _local_secret(port: int) -> str:
     try:
         # Optional dependency, so function-local: this app also runs STANDALONE,
         # outside the Junction package, where this import raises and the
-        # crew_home() read below is the only resolution available. A module-scope
+        # data_home() read below is the only resolution available. A module-scope
         # import would make the module itself unimportable there.
         from junction.config.loader import read_local_secret
 
@@ -689,7 +689,7 @@ def _local_secret(port: int) -> str:
     except Exception:
         pass
     try:
-        return (store.crew_home() / ".local_secret").read_text(encoding="utf-8").strip()
+        return (store.data_home() / ".local_secret").read_text(encoding="utf-8").strip()
     except Exception:
         return ""
 

@@ -348,7 +348,7 @@ async def api_instances_update(request: web.Request) -> web.Response:
     )
     # Validate the PROPOSED record before touching the tunnel. The registry
     # validates too, but that happens after the teardown — so a rejected edit
-    # would answer 400 having already disconnected a healthy crew, punishing the
+    # would answer 400 having already disconnected a healthy instance, punishing the
     # user for a typo the save never accepted.
     try:
         dataclasses.replace(current, **changes).validate()  # type: ignore[arg-type]
@@ -413,7 +413,7 @@ async def api_instances_update(request: web.Request) -> web.Response:
             {
                 "error": (
                     "could not close the current tunnel, so the new settings were "
-                    "not saved; disconnect this crew and try again"
+                    "not saved; disconnect this instance and try again"
                 ),
                 "code": "tunnel_teardown_failed",
             },

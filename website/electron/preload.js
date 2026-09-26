@@ -7,7 +7,7 @@ contextBridge.exposeInMainWorld("junction", {
   // desktop environment + operator override -- made in main.js, carried here
   // via webPreferences.additionalArguments). The SPA reserves header space
   // for the injected caption controls only when this is set.
-  linuxFrameless: process.argv.includes("--kc-linux-frameless"),
+  linuxFrameless: process.argv.includes("--jn-linux-frameless"),
   // Absolute filesystem path for a File the OS handed the renderer (drag-drop,
   // file input). Browsers deliberately hide real paths, and Electron removed
   // File.path, so webUtils in the preload is the only remaining bridge. Returns

@@ -47,7 +47,7 @@ test("the gateway UTF-8 contract is explicit and stable", () => {
 });
 
 test("Windows consumes packaged bytecode while POSIX redirects runtime caches", () => {
-  const cache = String.raw`C:\Users\test\.kiro\crew\cache\pycache`;
+  const cache = String.raw`C:\Users\test\.junction\cache\pycache`;
   assert.deepStrictEqual(gatewayBytecodeEnvironment("win32", cache, true), {
     PYTHONPYCACHEPREFIX: "",
   });

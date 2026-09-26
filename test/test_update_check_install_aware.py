@@ -36,7 +36,7 @@ _FEED_TEMPLATE = {
     "sha256": "ea681adb",
     "signature": "V9MGrlYt",
     "version": "0.1.3rc2",
-    "wheel_url": "https://download.crew.kiro.dev/cli/insider/0.1.3rc2/x.whl",
+    "wheel_url": "https://download.getjunction.dev/cli/insider/0.1.3rc2/x.whl",
 }
 
 
@@ -170,7 +170,7 @@ class TestChannelResolution:
         # only sh's status, hiding a failed download), so a pipe fed from an
         # already-checked variable preserves that; only a bare `curl … | sh`
         # would report just sh's status.
-        assert '_kc_body="$(curl' in cmd, "curl must not feed sh directly"
+        assert '_jn_body="$(curl' in cmd, "curl must not feed sh directly"
 
     def test_remediation_command_pins_https(self, monkeypatch):
         # The string is copied into a shell and runs an installer, and the base is
@@ -196,7 +196,7 @@ class TestWheelInstallCheck:
         asyncio.run(updates._do_update_check())
 
         info = updates.get_update_info()
-        assert seen["url"] == "https://updates.crew.kiro.dev/feed/insider/latest-cli.json"
+        assert seen["url"] == "https://updates.getjunction.dev/feed/insider/latest-cli.json"
         assert info["update_available"] is True
         assert info["check_status"] == "succeeded"
         assert info["error_code"] is None

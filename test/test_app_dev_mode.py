@@ -104,7 +104,7 @@ def test_set_dev_mode_rejects_traversal(tmp_path, monkeypatch):
     """Path-traversal app names must be rejected before any filesystem op.
 
     Regression guard for the HIGH finding: unchecked names like ``../../x``
-    would escape ~/.kirocrew/apps/ and read/overwrite an external installed.json.
+    would escape ~/.junction/apps/ and read/overwrite an external installed.json.
     """
     _setup_env(tmp_path, monkeypatch)
     for bad in ("../../project", "..", "a/b", "a\\b", "../evil"):

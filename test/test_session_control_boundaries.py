@@ -120,10 +120,10 @@ class TestMirroredSessionsAreOutOfBounds:
         assert sc._has_channel_mirror(state, target) is False
 
 
-class TestCrewModeTargetsAreOutOfBounds:
-    """A crew session's ingress is a durable queue entry, not a turn.
+class TestMultitaskModeTargetsAreOutOfBounds:
+    """A multitask session's ingress is a durable queue entry, not a turn.
 
-    `/api/chat` routes `mode == "crew"` to `state.crew.ingest` before anything
+    `/api/chat` routes a multitask slot to `state.multitask.ingest` before anything
     else, which queues the message durably and fans it out to topic
     sub-sessions. Delivering it here as a turn would run generic work that is
     neither queued nor routed -- and would report success for it.
@@ -135,9 +135,9 @@ class TestCrewModeTargetsAreOutOfBounds:
         target = _slot(state, "peer")
         return state, caller, target
 
-    def test_a_crew_target_is_refused(self, tmp_path):
+    def test_a_multitask_target_is_refused(self, tmp_path):
         state, caller, target = self._pair(tmp_path)
-        target.mode = "crew"
+        target.mode = "multitask"
         with pytest.raises(sc.SessionControlError) as exc:
             sc.authorize_target(
                 state,
@@ -145,11 +145,11 @@ class TestCrewModeTargetsAreOutOfBounds:
                 target=target.key,
                 operation="read",
             )
-        assert exc.value.code == "crew_mode_target"
+        assert exc.value.code == "multitask_mode_target"
 
     def test_an_ordinary_target_is_unaffected(self, tmp_path):
         state, caller, target = self._pair(tmp_path)
-        assert getattr(target, "mode", "") != "crew"
+        assert getattr(target, "mode", "") != "multitask"
         assert (
             sc.authorize_target(
                 state,
@@ -160,14 +160,14 @@ class TestCrewModeTargetsAreOutOfBounds:
             is target
         )
 
-    def test_a_crew_CALLER_may_still_control_a_peer(self, tmp_path):
+    def test_a_multitask_CALLER_may_still_control_a_peer(self, tmp_path):
         """The defect is in delivery semantics, not the caller's standing.
 
-        A crew session is still the person's own; only its own INGRESS differs.
+        A multitask session is still the person's own; only its own INGRESS differs.
         Refusing it as a caller would narrow the surface for no stated reason.
         """
         state, caller, target = self._pair(tmp_path)
-        caller.mode = "crew"
+        caller.mode = "multitask"
         assert (
             sc.authorize_target(
                 state,
@@ -177,6 +177,54 @@ class TestCrewModeTargetsAreOutOfBounds:
             )
             is target
         )
+
+
+class TestMultitaskContainmentKey:
+    """The queue-entry containment snapshot records multitask mode under its own
+    key, and still reads the key earlier builds stamped it under.
+
+    A missing key reads as "not held at admission", so without the legacy read
+    an entry queued on a multitask slot before an upgrade would be dropped at
+    the drain as a constraint change, losing the user's message.
+    """
+
+    @staticmethod
+    def _now(multitask: bool) -> dict:
+        return {
+            "linked": False,
+            "mirrored": False,
+            sc.MULTITASK_CONTAINMENT_KEY: multitask,
+            "ephemeral": False,
+            "app": False,
+            "unattended": False,
+            "workspace": "default",
+        }
+
+    @staticmethod
+    def _stamped(recorded: dict) -> dict:
+        return {sc.QUEUED_CONTAINMENT_META_KEY: recorded}
+
+    def test_the_snapshot_records_multitask_mode(self, tmp_path):
+        state = _make_state(tmp_path)
+        slot = _slot(state, "peer")
+        slot.mode = "multitask"
+        snap = sc.containment_snapshot(state, slot, on_probe_failure=False)
+        assert snap[sc.MULTITASK_CONTAINMENT_KEY] is True
+        assert sc.LEGACY_MULTITASK_CONTAINMENT_KEY not in snap
+
+    def test_a_legacy_stamp_admits_the_multitask_constraint(self):
+        meta = self._stamped({sc.LEGACY_MULTITASK_CONTAINMENT_KEY: True})
+        assert sc.newly_held_constraints(self._now(True), meta) == []
+
+    def test_a_legacy_stamp_still_detects_a_later_switch(self):
+        meta = self._stamped({sc.LEGACY_MULTITASK_CONTAINMENT_KEY: False})
+        assert sc.newly_held_constraints(self._now(True), meta) == [sc.MULTITASK_CONTAINMENT_KEY]
+
+    def test_the_current_key_wins_over_the_legacy_one(self):
+        meta = self._stamped(
+            {sc.MULTITASK_CONTAINMENT_KEY: False, sc.LEGACY_MULTITASK_CONTAINMENT_KEY: True}
+        )
+        assert sc.newly_held_constraints(self._now(True), meta) == [sc.MULTITASK_CONTAINMENT_KEY]
 
 
 # -- cross-form target ambiguity ---------------------------------------------

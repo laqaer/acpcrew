@@ -108,10 +108,10 @@ class TestChildEnv:
     def test_strips_all_junction_prefixed(self):
         """Forward-compatible prefix strip catches vars added later upstream."""
         injected = {
-            "JUNCTION_HOME": "/home/u/.kiro/crew",
+            "JUNCTION_HOME": "/home/u/.junction",
             "JUNCTION_APP_PORT": "9999",
             "JUNCTION_PROJECT_DIR": "/proj",
-            "KIRO_CREW_SOMETHING": "v",
+            "JUNCTION_SOMETHING_LATER": "v",
         }
         with patch.dict(os.environ, injected):
             env = server._child_env(Path("/usr/bin"))

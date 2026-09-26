@@ -318,7 +318,7 @@ def _title_stem(window_title: str) -> str:
     """The leading, un-truncated part of a CoreGraphics window title.
 
     CoreGraphics elides the middle of a long title with U+2026 (verified:
-    ``'fix(ci): keep GHCR package priv…est #621 · kirodotdev/KiroCrew'``), so only
+    ``'fix(ci): keep GHCR package priv…est #621 · laqaer/junction'``), so only
     the text BEFORE the ellipsis is a reliable prefix of the AX title. Returns
     ``""`` for a stem too short to identify a window — a 3-character prefix would
     match the wrong window more often than the right one, and the ``AXMain``

@@ -120,7 +120,7 @@ def _staged_sibling(directory: Path, base: str) -> bool:
     ``Path.iterdir`` uses ``scandir``, so it does not re-enter a patched
     ``os.stat``.
     """
-    prefix = f".{base}.kirocrew-"
+    prefix = f".{base}.junction-"
     return any(p.name.startswith(prefix) for p in directory.iterdir())
 
 

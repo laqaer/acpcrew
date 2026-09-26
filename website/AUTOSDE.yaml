@@ -1,4 +1,4 @@
-# JunctionWebsite AutoSDE Rules
+# Junction Website AutoSDE Rules
 #
 # This package is the Junction dashboard frontend (React + TypeScript).
 # Backend-only rules (Python security, hooks.py, SEL audit, etc.) live in
@@ -379,9 +379,9 @@ custom-rules:
       Existing inline SVGs are grandfathered but all new icons must use lucide-react.
 
       BRAND-MARK EXCEPTION (narrow; documents existing practice, adds no new latitude):
-      lucide-react deliberately ships no brand, product, or mascot marks, so a logo /
-      wordmark / mascot has no Lucide equivalent to use. Such a mark is exempt from the
-      "use lucide-react" requirement ONLY when ALL of the following hold:
+      lucide-react deliberately ships no brand or product marks, so a logo or wordmark
+      has no Lucide equivalent to use. Such a mark is exempt from the "use
+      lucide-react" requirement ONLY when ALL of the following hold:
 
         1. Asset, not code — the art lives in its own image file (`.svg`, or `.png` when
            no vector original exists), either under `src/assets/` or co-located beside
@@ -397,17 +397,19 @@ custom-rules:
            mark whose identity depends on its own colours (the channel logos) is rendered
            as a plain `<img>` — do not flatten it to `currentColor`.
         3. Brand identity, not affordance — it depicts an identity (a product, a
-           company, the Kiro ghost). Anything lucide-react can express — actions,
-           objects, status, navigation verbs — MUST use lucide-react. "No exact Lucide
-           match for the concept I want" is NOT a brand mark and does NOT qualify.
+           company, the Junction J-and-switch mark). Anything lucide-react can
+           express — actions, objects, status, navigation verbs — MUST use
+           lucide-react. "No exact Lucide match for the concept I want" is NOT a
+           brand mark and does NOT qualify.
 
       In-tree precedent this codifies — monochrome, CSS-mask over `currentColor`:
       `components/BrandIcon.tsx` (GitHub, Discord marks — "lucide-react ships no brand
-      icons"), `components/icons/GithubLogo.tsx`, `components/icons/GitlabLogo.tsx`.
+      icons"), `components/icons/GithubLogo.tsx`, `components/icons/GitlabLogo.tsx`,
+      and the Junction mark `assets/junction-glyph.svg`, painted through `BrandGlyph`
+      in `components/WelcomeView.tsx` and `components/OnboardingChapterShell.tsx`.
       Full-colour, plain `<img>`: `components/SlackIcon.tsx`,
       `components/TelegramLogo.tsx`, `components/WebexIcon.tsx`,
-      `components/WeComLogo.tsx` (all used as Settings tab glyphs at `size={16}`), and
-      `assets/onboarding/GhostIcons.tsx` (onboarding mascot).
+      `components/WeComLogo.tsx` (all used as Settings tab glyphs at `size={16}`).
 
       Why write it down: the exception was already being applied per-PR from those
       precedents, which made every branded-mark change an argument about intent rather

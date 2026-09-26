@@ -19,9 +19,9 @@
  * hex digest as a checksum mismatch, which surfaces as a confusing download
  * failure rather than a format error.
  *
- * files[].url is emitted ABSOLUTE, matching production, where the metadata is
- * served from the pointer host (updates.crew.kiro.dev) while the bytes live on
- * the byte host (download.crew.kiro.dev). electron-updater resolves file urls
+ * files[].url is emitted ABSOLUTE, matching the production feed layout, where the
+ * metadata is served from the pointer host (updates.getjunction.dev) and the bytes
+ * from the byte host (download.getjunction.dev). electron-updater resolves file urls
  * with `new URL(fileUrl, base)`, which ignores the base for absolute urls.
  *
  * Usage:

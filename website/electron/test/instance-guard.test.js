@@ -109,7 +109,7 @@ test("omitting the locality input defaults to no eviction", () => {
 
 test("a genuine local rival install still prompts (cross-app mutex preserved)", () => {
   // Regression pin for the case the takeover was built for (#193): two installs
-  // on ONE machine sharing ~/.kiro/crew and :5476. The guard must keep working.
+  // on ONE machine sharing ~/.junction and :5476. The guard must keep working.
   const d = decideGatewayAction(NIGHTLY_SHELL, CROSS_FAMILY_HEALTH, { localOwner: "junction" });
   assert.equal(d.action, "takeover-prompt");
   assert.equal(d.otherFamily, "prod");

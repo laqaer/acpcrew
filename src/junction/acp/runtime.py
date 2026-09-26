@@ -619,7 +619,7 @@ class AcpRuntime:
         model: str | None = None,
         expect_mcp_reports: bool = True,
         acp_backend: str = ACP_BACKEND_KIRO,
-        crew_agent: str = "",
+        canonical_agent: str = "",
     ):
         if work_dir:
             self._work_dir = Path(work_dir)
@@ -634,8 +634,8 @@ class AcpRuntime:
         # surface that created this runtime — a DIFFERENT namespace from
         # ``agent`` (the kiro template the process spawns with). Default for
         # sessions created on this runtime; a warm-pool rekey overwrites it so
-        # later sessions inherit the claiming crew, not the pool's spawn state.
-        self._crew_agent = crew_agent
+        # later sessions inherit the claiming agent, not the pool's spawn state.
+        self._canonical_agent = canonical_agent
         self._acp_backend = acp_backend
         if model is not None:
             if not MODEL_ID_RE.match(model):
@@ -980,13 +980,13 @@ class AcpRuntime:
         # foreign MCP subprocesses (which bundle their own interpreter + deps).
         # is_kiro_cli drives the reviewed Kiro internal-sandbox delegation: on
         # macOS wrap_argv skips its seatbelt because the two cannot nest; on
-        # Windows the official Kiro backend delegates by default because Crew
+        # Windows the official Kiro backend delegates by default because Junction
         # has no native OS sandbox there. Granted by membership in
         # ACP_BACKENDS_INTERNAL_SANDBOX (harness-parity H7), never as "not KAS":
         # this test fails OPEN, so a harness that inherited a negative test would
-        # have Crew's seatbelt skipped in favour of an internal sandbox that never
+        # have Junction's seatbelt skipped in favour of an internal sandbox that never
         # starts. KAS is a Node process with no internal sandbox, so it takes
-        # Crew's seatbelt directly, and so does every harness added later.
+        # Junction's seatbelt directly, and so does every harness added later.
         argv, self._sandbox_cleanup = wrap_argv(
             argv,
             mode=self._sandbox_mode,
@@ -1905,7 +1905,7 @@ class AcpRuntime:
                         #
                         # - session/update: routed so the consumer's
                         #   per-toolCallId caches capture the child's REAL
-                        #   command bytes; the handle re-tags them as crew
+                        #   command bytes; the handle re-tags them as subagent
                         #   activity, never as parent transcript.
                         # - session/request_permission: routed so the child's
                         #   approval flows through the exact policy pipeline a
@@ -1958,8 +1958,8 @@ class AcpRuntime:
                         else:
                             # Hang-resilience series: a child permission
                             # request delivered to the mode-parity pipeline —
-                            # each one is a request that, before #3786, was
-                            # silently dropped and wedged its crew for 2h.
+                            # each one is a request that, dropped, would wedge
+                            # the subagent that raised it.
                             if msg.id is not None and msg.is_method(METHOD_REQUEST_PERMISSION):
                                 emit_counter(CHILD_PERMISSION_ROUTED, {"surface": "runtime"})
                             await next(iter(self._session_queues.values())).put(msg)
@@ -2593,11 +2593,11 @@ class AcpRuntime:
         cwd: str | Path | None = None,
         agent: str | None = None,
         mcp_servers: list[dict[str, Any]] | None = None,
-        crew_agent: str | None = None,
+        canonical_agent: str | None = None,
     ) -> AcpSessionHandle:
         """Create a new ACP session on this runtime. Returns a session handle.
 
-        ``crew_agent`` is the canonical Junction identity for THIS session;
+        ``canonical_agent`` is the canonical Junction identity for THIS session;
         None falls back to the runtime's own (spawn-time or rekeyed) identity.
         """
         if not self._initialized:
@@ -2650,17 +2650,17 @@ class AcpRuntime:
 
         # Resolve the watchdog snapshot OFF the loop before constructing the
         # handle: the load is config file reads + jsonschema validation on a
-        # config change, and the handle constructor is synchronous. The crew
+        # config change, and the handle constructor is synchronous. The agent
         # identity is canonical (a cfg.agents key) — the kiro ``agent`` name
         # is a different namespace and is not stored on the handle.
-        _crew = crew_agent if crew_agent is not None else self._crew_agent
-        _wd = await asyncio.to_thread(_load_watchdog_settings, _crew)
+        canonical = canonical_agent if canonical_agent is not None else self._canonical_agent
+        _wd = await asyncio.to_thread(_load_watchdog_settings, canonical)
         handle = AcpSessionHandle(
             session_id=session_id,
             queue=queue,
             runtime=self,
             watchdog=_wd,
-            crew_agent=_crew,
+            canonical_agent=canonical,
         )
 
         # Populate state from session/new response (configOptions, available models)
@@ -2739,7 +2739,7 @@ class AcpRuntime:
         resume_sid: str,
         cwd: str | Path | None = None,
         agent: str | None = None,
-        crew_agent: str | None = None,
+        canonical_agent: str | None = None,
     ) -> AcpSessionHandle:
         """Resume a prior session via session/load — mirrors AcpClient.
 
@@ -2839,15 +2839,15 @@ class AcpRuntime:
             queue.put_nowait(msg)
 
         # Mirrors create_session: a resumed session gets the same
-        # canonical-crew watchdog snapshot, resolved off-loop.
-        _crew = crew_agent if crew_agent is not None else self._crew_agent
-        _wd = await asyncio.to_thread(_load_watchdog_settings, _crew)
+        # canonical-agent watchdog snapshot, resolved off-loop.
+        canonical = canonical_agent if canonical_agent is not None else self._canonical_agent
+        _wd = await asyncio.to_thread(_load_watchdog_settings, canonical)
         handle = AcpSessionHandle(
             session_id=resume_sid,
             queue=queue,
             runtime=self,
             watchdog=_wd,
-            crew_agent=_crew,
+            canonical_agent=canonical,
         )
         handle.store_session_config(resp)
 

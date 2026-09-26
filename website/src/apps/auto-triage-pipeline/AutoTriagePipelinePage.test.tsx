@@ -4,7 +4,7 @@
  *
  * The page carries TWO views over two different data sources, so what is worth
  * pinning here is the routing between them, not their internals: that it defaults
- * to the pipeline view, that the lanes tab really mounts the crew-fabric view, and
+ * to the pipeline view, that the lanes tab really mounts the steward-fabric view, and
  * that the page still gives whichever view is showing the full-height chrome the
  * drawing needs. Each view's own contract is covered in its own render test.
  *
@@ -16,11 +16,11 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import userEvent from '@testing-library/user-event'
 
 vi.mock('./api', () => ({
-  // The crew-fabric seam the LANES tab reads. No repo connected -> that view's
+  // The steward-fabric seam the LANES tab reads. No repo connected -> that view's
   // genuine empty state, which is the only thing it can produce without a fetch.
   autoTriagePipelineApi: {
     listConnectedRepos: vi.fn(async () => []),
-    crewFabric: vi.fn(async () => ({ items: [] })),
+    stewardFabric: vi.fn(async () => ({ items: [] })),
   },
   // The fold seam the PIPELINE tab reads. An empty overview is a real answer: a
   // machine whose pipeline has never run has no steps to draw.

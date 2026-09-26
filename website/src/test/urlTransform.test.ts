@@ -48,7 +48,7 @@ describe('urlTransform', () => {
   // empty src). The pass-through is scoped to image `src` only.
   describe('windows absolute paths', () => {
     it('passes a drive path through for image src', () => {
-      const url = 'C:/Users/me/.kiro/crew/uploads/shot.png'
+      const url = 'C:/Users/me/.junction/uploads/shot.png'
       expect(urlTransform(url, 'src')).toBe(url)
     })
 

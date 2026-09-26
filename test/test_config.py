@@ -25,7 +25,7 @@ class TestJunctionConfig:
         assert cfg.agent.approval_mode == "auto"
 
     def test_load_from_file(self, tmp_path, monkeypatch):
-        cfg_file = tmp_path / ".kirocrew" / "config.json"
+        cfg_file = tmp_path / ".junction" / "config.json"
         cfg_file.parent.mkdir(parents=True)
         cfg_file.write_text(
             json.dumps(
@@ -92,7 +92,7 @@ class TestChannelConfig:
         assert ch.activation == ACTIVATION_MENTION
 
     def test_load_channels_from_file(self, tmp_path, monkeypatch):
-        cfg_file = tmp_path / ".kirocrew" / "config.json"
+        cfg_file = tmp_path / ".junction" / "config.json"
         cfg_file.parent.mkdir(parents=True)
         cfg_file.write_text(
             json.dumps(
@@ -117,7 +117,7 @@ class TestChannelConfig:
         assert cfg.slack_dm_activation == ACTIVATION_MENTION
 
     def test_invalid_dm_activation_falls_back_to_mention(self, tmp_path, monkeypatch):
-        cfg_file = tmp_path / ".kirocrew" / "config.json"
+        cfg_file = tmp_path / ".junction" / "config.json"
         cfg_file.parent.mkdir(parents=True)
         cfg_file.write_text(json.dumps({"slack": {"dm_activation": "bogus"}}))
         monkeypatch.setattr("junction.config.loader.config_path", lambda: cfg_file)
@@ -145,7 +145,7 @@ class TestTrustedBotIds:
         assert cfg.slack.trusted_bot_ids == set()
 
     def test_load_from_file(self, tmp_path, monkeypatch):
-        cfg_file = tmp_path / ".kirocrew" / "config.json"
+        cfg_file = tmp_path / ".junction" / "config.json"
         cfg_file.parent.mkdir(parents=True)
         cfg_file.write_text(json.dumps({"slack": {"trusted_bot_ids": ["B07AAA", "B07BBB"]}}))
         monkeypatch.setattr("junction.config.loader.config_path", lambda: cfg_file)

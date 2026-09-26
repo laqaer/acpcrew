@@ -1220,12 +1220,11 @@ function startMochiWatcher() {
   /**
    * Core's instance list for THIS MACHINE's host gateway.
    *
-   * The switcher used to fetch `/api/instances` same-origin, which meant that
-   * once the pet was on a remote it listed the REMOTE's registry — a different
-   * set of crews, or none at all if that gateway has the feature off, so the crew
-   * the user wanted to return to could be missing from the list entirely. The
-   * host owns the registry that the pointer's ids refer to, so the shell answers
-   * from there.
+   * A same-origin `/api/instances` fetch from a pet that is showing a remote
+   * lists the REMOTE's registry — a different set of instances, or none at all if
+   * that gateway has the feature off, so the instance the user wants to return to
+   * can be missing from the list entirely. The host owns the registry that the
+   * pointer's ids refer to, so the shell answers from there.
    */
   ipcMain.handle("mochi-instances:list", async () => {
     try {

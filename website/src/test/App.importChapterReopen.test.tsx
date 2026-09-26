@@ -27,7 +27,7 @@ import type { ReactNode } from 'react'
 
 /** Mutable so a test can flip a flag and re-render, the way boot resolving does. */
 const themeState = {
-  colorTheme: 'kiro',
+  colorTheme: 'junction',
   theme: 'dark' as const,
   mode: 'dark' as const,
   onboarded: true,
@@ -59,7 +59,7 @@ import App from '../App'
 
 /** The Import chapter renders nothing at all while closed. */
 function importChapterOpen(): boolean {
-  return screen.queryByText(/bring your crew with you/i) !== null
+  return screen.queryByText(/bring your setup with you/i) !== null
 }
 
 beforeEach(() => {

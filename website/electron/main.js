@@ -86,7 +86,7 @@ const { createPierrePerfLog } = require("./pierre-perf-log");
 const { identityFamily, decideGatewayAction, classifyGatewayReadiness, FAMILY_META, HEALTH_IDENTITY_PATH, READY_PATH } = require("./instance-guard");
 const { initMochi, shutdownMochi } = require("./mochi/index");
 const { borrowSessionToken } = require("./mochi-session-token");
-const { initCrewCompanion, shutdownCrewCompanion } = require("./crew-companion/index");
+const { initDeskCompanion, shutdownDeskCompanion } = require("./desk-companion/index");
 const { clampZoomFactor, stepZoomFactor } = require("./zoom");
 const { createBrowserViewManager, isUntrustedContents } = require("./browser-view");
 const {
@@ -179,7 +179,7 @@ const store = new Store({
 let runLocalGateway = isLocalGatewayEnabled(store);
 
 // The data home whose config.json governs this launch (see home-dir.js): a
-// valid JUNCTION_HOME override, else the default ~/.kiro/crew -- mirroring the
+// valid JUNCTION_HOME override, else the default ~/.junction -- mirroring the
 // backend resolver in config/paths.py. Boot-time WRITES (mkdir, pycache prefix)
 // use canonicalHome() so an override is honored without a stray write.
 const { resolveHome, canonicalHome } = require("./home-dir");
@@ -237,7 +237,7 @@ const LINUX_FRAME_DECISION = IS_LINUX
   ? decideLinuxFrame({ env: process.env, override: store.get("linuxFrameless") })
   : null;
 const LINUX_FRAMELESS = !!(LINUX_FRAME_DECISION && LINUX_FRAME_DECISION.frameless);
-const DEFAULT_THEME_ACCENT = "#e4a54a";
+const DEFAULT_THEME_ACCENT = "#5c8dff";
 // Loading-screen status for a refused spawn on a bundle that is still being
 // written. Deliberately not "Gateway failed": nothing failed, so the line must
 // not contradict the dialog that follows.
@@ -268,11 +268,11 @@ app.name = identityFamily(app.getVersion()) === "nightly" ? "Junction Nightly" :
 // Windows taskbar identity. Without an explicit AppUserModelID, Windows groups
 // the app under the generic Electron host (wrong icon in the taskbar/jumplist,
 // pinning targets Electron rather than Junction). Match the packaged appId
-// (build.appId = "com.amazon.kiro.crew"); nightly gets a distinct id so it
+// (build.appId = "dev.junction.desktop"); nightly gets a distinct id so it
 // pins/groups side-by-side with stable, mirroring the app.name split above.
 if (IS_WIN) {
   const appUserModelId = identityFamily(app.getVersion()) === "nightly"
-    ? "com.amazon.kiro.crew.nightly" : "com.amazon.kiro.crew";
+    ? "dev.junction.desktop.nightly" : "dev.junction.desktop";
   app.setAppUserModelId(appUserModelId);
 }
 
@@ -280,7 +280,7 @@ if (IS_WIN) {
 // when the user relaunches from the Dock / Spotlight, so a second instance is
 // harmless (a no-op there). The fork's supported non-mac target is the Linux
 // AppImage, which has no such reuse — double-clicking the AppImage again spawns
-// a fresh process. Two instances against the same ~/.kiro/crew racing
+// a fresh process. Two instances against the same ~/.junction racing
 // .local_secret and stopping each other's gateway on before-quit is bad news
 // (kills the shared gateway out from under the other instance). Grab the lock;
 // if we can't, exit immediately and let the existing instance surface itself.
@@ -420,7 +420,7 @@ function glog(line) {
 // its capacity, and writes nothing until a crash.
 const pierrePerfLog = createPierrePerfLog();
 
-// ── Cross-app gateway ownership (shared ~/.kiro/crew, shared port) ─────────
+// ── Cross-app gateway ownership (shared ~/.junction, shared port) ─────────
 // The nightly app and the production app are different bundles sharing one
 // data home and one port, so the port is the mutex. When a gateway is already
 // listening, we must decide REUSE (same family / dev / legacy) vs TAKEOVER
@@ -469,7 +469,7 @@ function fetchGatewayReadiness(readyUrl = `${BACKEND_URL}${READY_PATH}`) {
 // before-quit stops its own gateway). Never kill the gateway out from under
 // its shell — the shell's exit watcher would treat that as a crash.
 // Targets by app NAME: both installs share one bundle identifier
-// (com.amazon.kiro.crew), so `quit app id` would be ambiguous.
+// (dev.junction.desktop), so `quit app id` would be ambiguous.
 function quitOtherApp(appName) {
   return new Promise((resolve) => {
     if (process.platform !== "darwin") { resolve(false); return; }
@@ -684,8 +684,8 @@ async function resolveGatewayConflict(rebindDepth = 0) {
     title: `${other.displayName} is running`,
     message: `${other.displayName} (${decision.otherVersion}) is already running with your Junction data.`,
     detail: canTakeover
-      ? `Only one Junction app can use ~/.kiro/crew at a time. Quit ${other.displayName} and continue here?`
-      : `Only one Junction app can use ~/.kiro/crew at a time. Quit ${other.displayName}, then reopen this app.`,
+      ? `Only one Junction app can use ~/.junction at a time. Quit ${other.displayName} and continue here?`
+      : `Only one Junction app can use ~/.junction at a time. Quit ${other.displayName}, then reopen this app.`,
     buttons: canTakeover ? [`Quit ${other.displayName} & Continue`, "Cancel"] : ["OK"],
     defaultId: 0,
     cancelId: canTakeover ? 1 : 0,
@@ -1464,7 +1464,7 @@ function setupWindowContents(win, backendUrl) {
       // only when the window is actually frameless -- a runtime decision
       // (desktop environment + override), not a platform constant, so it is
       // carried to the preload explicitly (read back via process.argv there).
-      additionalArguments: LINUX_FRAMELESS ? ["--kc-linux-frameless"] : [],
+      additionalArguments: LINUX_FRAMELESS ? ["--jn-linux-frameless"] : [],
     },
   });
   view.setBackgroundColor("#00000000");
@@ -2201,7 +2201,7 @@ function createWindow() {
     height: state.height,
     minWidth: 550,
     minHeight: 600,
-    backgroundColor: "#0f1117",
+    backgroundColor: "#0b0e13",
   };
   // Frameless chrome: the dashboard's 42px header doubles as the title bar.
   // macOS: titleBarStyle:"hidden" + native traffic lights inset into it.
@@ -3021,7 +3021,7 @@ async function showLoadingThenConnect(win, backendUrl = BACKEND_URL) {
   const healthUrl = `${backendUrl}/api/status`;
   const wc = win.webContents;
   // Paint the splash in the user's chosen accent (persisted from a prior session
-  // via the "theme-accent-changed" IPC). Defaults to the Kiro brand purple.
+  // via the "theme-accent-changed" IPC). Defaults to Junction's signal blue.
   wc.loadFile(path.join(__dirname, "loading.html"), {
     query: { accent: currentThemeAccent() },
   });
@@ -3297,7 +3297,7 @@ async function openNewConnectionWindow() {
       height: 860,
       minWidth: 550,
       minHeight: 600,
-      backgroundColor: "#0f1117",
+      backgroundColor: "#0b0e13",
     };
     // Same platform-conditional chrome as the main window (see createWindow):
     // frameless + inset traffic lights on macOS, titleBarOverlay on Windows,
@@ -3366,7 +3366,7 @@ function renameCurrentWindow() {
     .check-row label { margin:0; font-size:12px; }
   </style></head><body>
     <label>Window name</label>
-    <input id="n" value="${esc(currentTitle.replace(/^Kiro ?Crew /g, ''))}" autofocus>
+    <input id="n" value="${esc(currentTitle.replace(/^Junction /, ''))}" autofocus>
     <div class="row"><button class="ok" onclick="go()">Rename</button>
     <button class="cancel" onclick="window.close()">Cancel</button></div>
     <div class="check-row"><input type="checkbox" id="d"><label for="d">Set as default name for :${port} windows</label></div>
@@ -4190,9 +4190,9 @@ app.whenReady().then(async () => {
   // Same shape and the same best-effort contract: the companion's windows follow
   // the app's enabled state, and a failure here must never block the dashboard.
   try {
-    initCrewCompanion({ backendUrl: BACKEND_URL, fetchLocalToken, glog });
+    initDeskCompanion({ backendUrl: BACKEND_URL, fetchLocalToken, glog });
   } catch (err) {
-    glog(`crew-companion: init failed — ${err && err.message}`);
+    glog(`desk-companion: init failed — ${err && err.message}`);
   }
 
   app.on("activate", () => {
@@ -4211,7 +4211,7 @@ app.on("before-quit", () => {
   // Flush the final metrics window before the gateway teardown begins.
   try { if (desktopMetricsRecorder) desktopMetricsRecorder.stop(); } catch { /* best effort */ }
   shutdownMochi();
-  try { shutdownCrewCompanion(); } catch { /* best effort */ }
+  try { shutdownDeskCompanion(); } catch { /* best effort */ }
   stopGateway();
 });
 

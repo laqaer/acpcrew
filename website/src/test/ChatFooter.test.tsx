@@ -1,7 +1,6 @@
 import { describe, it, expect, afterEach, vi } from 'vitest'
 import { render, screen, act } from '@testing-library/react'
 import ChatFooter, { pickDistinct, resolveLoader, resolveLoaderIcons, SwapCarousel, STREAM_IDLE_MS } from '../pages/chat/ChatFooter'
-import { GHOST_POSE_ICONS } from '../components/GhostPoses'
 import { registerThemeBranding } from '../themeBranding'
 
 const base = { running: false, stopping: false, state: '', lastRole: '', avatar: '/logo.png', botName: 'Junction' }
@@ -104,17 +103,17 @@ describe('ChatFooter', () => {
   })
 
   it('uses track marks on the default Junction theme', () => {
-    document.documentElement.setAttribute('data-theme', 'kiro-dark')
+    document.documentElement.setAttribute('data-theme', 'junction-dark')
     const { container } = render(<ChatFooter {...base} running={true} lastRole="user" />)
-    expect(container.querySelectorAll('.csb4 svg').length).toBeGreaterThan(0)
-    expect(container.querySelector('.csb4 img.kp')).toBeNull()
+    expect(container.querySelectorAll('.csb4 svg.lucide').length).toBeGreaterThan(0)
+    expect(container.querySelector('.csb4 img')).toBeNull()
   })
 
   it('uses track marks on a theme with no registered artwork', () => {
     document.documentElement.setAttribute('data-theme', 'dark')
     const { container } = render(<ChatFooter {...base} running={true} lastRole="user" />)
-    expect(container.querySelectorAll('.csb4 svg').length).toBeGreaterThan(0)
-    expect(container.querySelector('.csb4 img.kp')).toBeNull()
+    expect(container.querySelectorAll('.csb4 svg.lucide').length).toBeGreaterThan(0)
+    expect(container.querySelector('.csb4 img')).toBeNull()
   })
 })
 
@@ -132,12 +131,11 @@ describe('loader — theme seam', () => {
     expect(got.kind === 'icons' && got.icons.length).toBeGreaterThanOrEqual(4)
   })
 
-  it('serves track marks as the default pool, not the mascot poses', () => {
-    const got = resolveLoader('kiro')
+  it('serves one shared track-mark pool to every theme without artwork', () => {
+    const got = resolveLoader('junction')
     expect(got.kind).toBe('icons')
-    expect(got.kind === 'icons' && got.icons).not.toBe(GHOST_POSE_ICONS)
     expect(got.kind === 'icons' && got.icons.length).toBeGreaterThanOrEqual(4)
-    expect(resolveLoaderIcons('emerald')).not.toBe(GHOST_POSE_ICONS)
+    expect(got.kind === 'icons' && got.icons).toBe(resolveLoaderIcons('emerald'))
   })
 
   it('lets a newly registered theme supply its own icons', () => {
@@ -322,7 +320,7 @@ describe('pickDistinct', () => {
   const total = 8
 
   it('the default loader pool has 8 marks', () => {
-    const got = resolveLoader('kiro')
+    const got = resolveLoader('junction')
     expect(got.kind).toBe('icons')
     expect(got.kind === 'icons' && got.icons.length).toBe(total)
   })

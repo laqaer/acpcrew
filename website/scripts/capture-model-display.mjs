@@ -113,7 +113,7 @@ async function main() {
     // The builtin agent + its kiro template file, which pins a DIFFERENT model.
     if (path === '/api/agents') {
       return json(route, {
-        agents: [{ name: 'default', kiro_agent: 'junction', description: 'Default crew agent' }],
+        agents: [{ name: 'default', kiro_agent: 'junction', description: 'Default agent' }],
         default_agent: 'default',
       })
     }

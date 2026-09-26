@@ -41,7 +41,7 @@ const burstCount = Math.max(2, Number(params.get('bursts') || 6))
 // keeps growing, so the recording shows the live "Thinking" shimmer + tail.
 const stream = params.get('stream') === '1'
 
-document.documentElement.setAttribute('data-theme', theme === 'light' ? 'kiro-light' : 'kiro-dark')
+document.documentElement.setAttribute('data-theme', theme === 'light' ? 'junction-light' : 'junction-dark')
 
 /** A distinct, sentence-shaped reasoning body per burst, so a stack of them is
  *  visibly a stack (not one repeated line) and the merged form visibly carries

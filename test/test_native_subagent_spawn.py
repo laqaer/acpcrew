@@ -1,6 +1,6 @@
 """Unit tests for native subagent card sync in chat_runner.
 
-Native (use_subagent) crews surface in the Activity tab via kiro-cli's
+Native (use_subagent) subagents surface in the Activity tab via kiro-cli's
 ``_kiro.dev/subagent/list_update`` notification. ``_native_subagent_sync``
 reconciles one Activity card per sub-agent (spawn / done) from that list.
 """
@@ -14,9 +14,9 @@ import pytest
 
 from junction.dashboard.chat_runner import (
     _append_native_output,
-    _native_crew_should_auto_approve,
     _native_done_result,
     _native_subagent_close_all,
+    _native_subagent_should_auto_approve,
     _native_subagent_sync,
     _retain_terminal_native,
 )
@@ -780,7 +780,7 @@ class TestNativeTerminalHydration:
         assert DashboardState.native_subagent_snapshots(state) == []
 
     def test_terminal_retention_is_bounded(self):
-        # A native crew that completes many sub-agents in one turn must not
+        # A turn that completes many native sub-agents must not
         # replay every terminal card; retention caps to the most recent N.
         state = _make_state()
         slot = _make_slot()
@@ -975,12 +975,12 @@ class TestRetainTerminalNative:
         assert _retain_terminal_native(tracker) == {}
 
 
-class TestNativeCrewAutoApproveGate:
-    """Gate for the native-crew auto-approve path in chat_runner (CWE-1188).
+class TestNativeSubagentAutoApproveGate:
+    """Gate for the native-subagent auto-approve path in chat_runner (CWE-1188).
 
-    Secure default: a tool is auto-approved on this path ONLY when a native crew
+    Secure default: a tool is auto-approved on this path ONLY when a native subagent
     subagent is ACTIVE *and* at least one trust signal (auto_approve_subagent_tools
-    hook / slot._trust / yolo) is set. With no active crew — or with all signals
+    hook / slot._trust / yolo) is set. With no active subagent — or with all signals
     false — the predicate is False and the tool falls through to the normal
     interactive/trust gate instead of being silently approved.
     """
@@ -997,72 +997,72 @@ class TestNativeCrewAutoApproveGate:
         slot._trust = trust
         return slot
 
-    def test_no_active_crew_all_conditions_false_denies(self):
-        # The core negative case: no crew active AND every trust signal false →
+    def test_no_active_subagent_all_conditions_false_denies(self):
+        # The core negative case: no subagent active AND every trust signal false →
         # NOT auto-approved.
         state = self._state(hook=False, yolo=False)
         slot = self._slot(trust=False)
-        assert _native_crew_should_auto_approve({}, state, slot) is False
+        assert _native_subagent_should_auto_approve({}, state, slot) is False
 
-    def test_no_active_crew_all_done_denies(self):
+    def test_no_active_subagent_all_done_denies(self):
         # A tracker with only finished subagents is not "active".
         tracker = {"s1": {"done": True}, "s2": {"done": True}}
         state = self._state(hook=False, yolo=False)
         slot = self._slot(trust=False)
-        assert _native_crew_should_auto_approve(tracker, state, slot) is False
+        assert _native_subagent_should_auto_approve(tracker, state, slot) is False
 
-    def test_no_active_crew_ignores_trust_signals(self):
-        # Active-crew is a NECESSARY precondition: even with yolo/trust/hook all
-        # ON, no active crew means this path must not auto-approve.
+    def test_no_active_subagent_ignores_trust_signals(self):
+        # Active-subagent is a NECESSARY precondition: even with yolo/trust/hook all
+        # ON, no active subagent means this path must not auto-approve.
         state = self._state(hook=True, yolo=True)
         slot = self._slot(trust=True)
-        assert _native_crew_should_auto_approve({}, state, slot) is False
+        assert _native_subagent_should_auto_approve({}, state, slot) is False
 
-    def test_active_crew_all_conditions_false_denies(self):
-        # Deny-by-default: an active crew alone does not grant approval — a trust
+    def test_active_subagent_all_conditions_false_denies(self):
+        # Deny-by-default: an active subagent alone does not grant approval — a trust
         # signal must also be present.
         tracker = {"s1": {"done": False}}
         state = self._state(hook=False, yolo=False)
         slot = self._slot(trust=False)
-        assert _native_crew_should_auto_approve(tracker, state, slot) is False
+        assert _native_subagent_should_auto_approve(tracker, state, slot) is False
 
-    def test_active_crew_with_hook_approves(self):
+    def test_active_subagent_with_hook_approves(self):
         tracker = {"s1": {"done": False}}
         state = self._state(hook=True, yolo=False)
         slot = self._slot(trust=False)
-        assert _native_crew_should_auto_approve(tracker, state, slot) is True
+        assert _native_subagent_should_auto_approve(tracker, state, slot) is True
 
-    def test_active_crew_with_slot_trust_approves(self):
+    def test_active_subagent_with_slot_trust_approves(self):
         tracker = {"s1": {"done": False}}
         state = self._state(hook=False, yolo=False)
         slot = self._slot(trust=True)
-        assert _native_crew_should_auto_approve(tracker, state, slot) is True
+        assert _native_subagent_should_auto_approve(tracker, state, slot) is True
 
-    def test_active_crew_with_yolo_approves(self):
+    def test_active_subagent_with_yolo_approves(self):
         tracker = {"s1": {"done": False}}
         state = self._state(hook=False, yolo=True)
         slot = self._slot(trust=False)
-        assert _native_crew_should_auto_approve(tracker, state, slot) is True
+        assert _native_subagent_should_auto_approve(tracker, state, slot) is True
 
 
 class TestNativeAutoApproveLogSanitization:
-    """Regression for CWE-117 log forging in the native-crew auto-approve
+    """Regression for CWE-117 log forging in the native-subagent auto-approve
     debug line.
 
-    Driving the full ``_native_crew_should_auto_approve`` -> ``logger.debug``
+    Driving the full ``_native_subagent_should_auto_approve`` -> ``logger.debug``
     path requires the whole chat_runner ACP event loop with a live client and
     request stream, which is impractical to stand up in a unit test. Instead
-    this exercises the PRODUCTION helper ``_safe_native_crew_debug_title`` that
+    this exercises the PRODUCTION helper ``_safe_native_subagent_debug_title`` that
     the handler applies to the tool title before logging, plus the ``%r``
     formatting at the log call site. Reverting the redaction in chat_runner.py
     therefore breaks these assertions.
     """
 
     def test_newline_is_escaped_not_forged(self) -> None:
-        from junction.dashboard.chat_runner import _safe_native_crew_debug_title
+        from junction.dashboard.chat_runner import _safe_native_subagent_debug_title
 
         forged = "innocent\nERROR: forged admin line"
-        safe = _safe_native_crew_debug_title(forged)
+        safe = _safe_native_subagent_debug_title(forged)
         # The log call site renders the (already-redacted) title with %r; the
         # raw newline must survive to the helper output (redaction does not
         # strip it) but be escaped by repr into the literal two-char \n.
@@ -1073,10 +1073,10 @@ class TestNativeAutoApproveLogSanitization:
         assert "\nERROR: forged admin line" not in rendered
 
     def test_credential_redacted_before_logging(self) -> None:
-        from junction.dashboard.chat_runner import _safe_native_crew_debug_title
+        from junction.dashboard.chat_runner import _safe_native_subagent_debug_title
 
         cred = "ghp_" + "a" * 36
-        safe = _safe_native_crew_debug_title("call " + cred + "\ntrailer")
+        safe = _safe_native_subagent_debug_title("call " + cred + "\ntrailer")
         # Credential is replaced with the redaction marker.
         assert cred not in safe
         assert "REDACTED" in safe

@@ -13,7 +13,7 @@
   ],
   "highlights": [
     "Live transcription through Junction's own speech-to-text — no extra daemon, no cloud account beyond what you already use",
-    "A crew of agents works the meeting in parallel: structured notes, an HTML/Mermaid diagram, and an action-item list",
+    "A team of agents works the meeting in parallel: structured notes, an HTML/Mermaid diagram, and an action-item list",
     "Correct recurring speech-to-text mistakes once with a domain dictionary and every later meeting gets them right",
     "Review extracted action items before anything is filed — archive the noise, file the rest",
     "Pluggable task and calendar providers: ships a local task ledger and an iCalendar (.ics) reader, and an organization can register its own"

@@ -402,7 +402,7 @@ walk is `want_image=False`, so no behavioural test in that file would notice a
 
 ## The keystone primary enable
 
-The primary enable lives at **`~/.kiro/crew/computer_use.json`**, NOT in
+The primary enable lives at **`~/.junction/computer_use.json`**, NOT in
 `config.json`:
 
 ```json
@@ -410,13 +410,13 @@ The primary enable lives at **`~/.kiro/crew/computer_use.json`**, NOT in
 ```
 
 Why not `config.json` — verified, and with a precedent in this repo:
-`is_sensitive_write_path("~/.kiro/crew/config.json")` is `True` (the tool path is
-protected) but `is_sensitive_bash_command("echo x > ~/.kiro/crew/config.json")` is
+`is_sensitive_write_path("~/.junction/config.json")` is `True` (the tool path is
+protected) but `is_sensitive_bash_command("echo x > ~/.junction/config.json")` is
 `None` and `is_denied(...)` is `None`. `security.py` states the governing
 precedent outright: the denied-command opt-out is deliberately kept OFF
 `config.json` **because it is a security ceiling**. A primary enable for full
 desktop observation plus input synthesis is the same class of control, so
-`computer_use.json` is added to `security._CREW_SECRET_LEAVES`, which gets
+`computer_use.json` is added to `security._DATA_HOME_SECRET_LEAVES`, which gets
 read+write protection on both the tool path (`is_sensitive_path`) and the shell
 forms (`is_sensitive_bash_command`, including `cat`, `>`, `tee`, and
 `tar -C`/`unzip -d` extraction into the trust root).
@@ -2393,7 +2393,7 @@ ONLY one, and the consequences should be stated rather than discovered:
   tab must refuse the whole browser, not just that window.
 
   Accepted false positive, stated rather than discovered: any window whose title
-  merely contains "kiro crew" is refused — an editor with this repo open, a browser
+  merely contains "junction" is refused — an editor with this repo open, a browser
   reading this PR. The failure directions are not symmetric. Refusing an unrelated
   window is visible and recoverable (the refusal names the target); failing to refuse
   our own dashboard silently hands the agent its own security settings. A title is

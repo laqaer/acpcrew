@@ -124,9 +124,9 @@ test("buildFeedBase url-encodes the channel segment", () => {
 test("buildFeedBase defaults to the public pointer host (DEFAULT_FEED_BASE)", () => {
   assert.strictEqual(
     buildFeedBase({ channel: "nightly" }),
-    "https://updates.crew.kiro.dev/feed/nightly/",
+    "https://updates.getjunction.dev/feed/nightly/",
   );
-  assert.strictEqual(DEFAULT_FEED_BASE, "https://updates.crew.kiro.dev/feed");
+  assert.strictEqual(DEFAULT_FEED_BASE, "https://updates.getjunction.dev/feed");
 });
 
 test("buildFeedBase THROWS for plain http on non-loopback hosts", () => {
@@ -409,7 +409,7 @@ test("configureUpdater: allowPrerelease=true (nightly/insider stamps are semver 
 // ---------------------------------------------------------------------------
 // CONTRACT with electron-updater internals: the generic provider resolves
 // artifact urls via newUrlFromBase(fileUrl, base). Our pointer/bytes host
-// split (updates.crew.kiro.dev pointers, download.crew.kiro.dev bytes) relies
+// split (updates.getjunction.dev pointers, download.getjunction.dev bytes) relies
 // on the UNDOCUMENTED-but-structural behaviour that an ABSOLUTE file url
 // ignores the base. A library upgrade that changes this must fail CI here,
 // not strand installs in the field.
@@ -417,18 +417,18 @@ test("configureUpdater: allowPrerelease=true (nightly/insider stamps are semver 
 
 test("CONTRACT: absolute artifact urls pass through newUrlFromBase unchanged (pointer/bytes split)", () => {
   const { newBaseUrl, newUrlFromBase } = require("electron-updater/out/util");
-  const base = newBaseUrl(buildFeedBase({ base: "https://updates.crew.kiro.dev/feed", channel: "nightly" }));
-  const absolute = "https://download.crew.kiro.dev/desktop/nightly/0.1.0-nightly.20260728t112233/Junction-arm64.dmg";
+  const base = newBaseUrl(buildFeedBase({ base: "https://updates.getjunction.dev/feed", channel: "nightly" }));
+  const absolute = "https://download.getjunction.dev/desktop/nightly/0.1.0-nightly.20260728t112233/Junction-arm64.dmg";
   // Base is on a DIFFERENT host than the artifact: the absolute url must win.
   assert.strictEqual(newUrlFromBase(absolute, base).href, absolute);
 });
 
 test("CONTRACT: relative channel-file names resolve under the feed base directory", () => {
   const { newBaseUrl, newUrlFromBase } = require("electron-updater/out/util");
-  const base = newBaseUrl(buildFeedBase({ base: "https://updates.crew.kiro.dev/feed", channel: "nightly" }));
+  const base = newBaseUrl(buildFeedBase({ base: "https://updates.getjunction.dev/feed", channel: "nightly" }));
   assert.strictEqual(
     newUrlFromBase("latest-mac.yml", base).href,
-    "https://updates.crew.kiro.dev/feed/nightly/latest-mac.yml",
+    "https://updates.getjunction.dev/feed/nightly/latest-mac.yml",
   );
 });
 
@@ -1085,7 +1085,7 @@ test("readExternallyManaged: absent marker -> null", (t) => {
   const fs = require("node:fs");
   const os = require("node:os");
   const path = require("node:path");
-  const dir = fs.mkdtempSync(path.join(os.tmpdir(), "kc-ext-"));
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), "jn-ext-"));
   t.after(() => fs.rmSync(dir, { recursive: true, force: true }));
   assert.strictEqual(readExternallyManaged({ env: {}, resourcesPath: dir }), null);
 });
@@ -1094,7 +1094,7 @@ test("readExternallyManaged: JSON marker carries metadata", (t) => {
   const fs = require("node:fs");
   const os = require("node:os");
   const path = require("node:path");
-  const dir = fs.mkdtempSync(path.join(os.tmpdir(), "kc-ext-"));
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), "jn-ext-"));
   t.after(() => fs.rmSync(dir, { recursive: true, force: true }));
   fs.writeFileSync(
     path.join(dir, "EXTERNALLY-MANAGED"),
@@ -1111,7 +1111,7 @@ test("readExternallyManaged: bare/unparsable marker still means managed", (t) =>
   const fs = require("node:fs");
   const os = require("node:os");
   const path = require("node:path");
-  const dir = fs.mkdtempSync(path.join(os.tmpdir(), "kc-ext-"));
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), "jn-ext-"));
   t.after(() => fs.rmSync(dir, { recursive: true, force: true }));
   fs.writeFileSync(path.join(dir, "EXTERNALLY-MANAGED"), "not json {");
   assert.deepStrictEqual(readExternallyManaged({ env: {}, resourcesPath: dir }), {
@@ -1126,7 +1126,7 @@ test("readExternallyManaged: degenerate markers (oversized, symlink, directory) 
   const os = require("node:os");
   const path = require("node:path");
   // Oversized: presence still wins, the body is never read into memory.
-  const big = fs.mkdtempSync(path.join(os.tmpdir(), "kc-ext-"));
+  const big = fs.mkdtempSync(path.join(os.tmpdir(), "jn-ext-"));
   t.after(() => fs.rmSync(big, { recursive: true, force: true }));
   fs.writeFileSync(path.join(big, "EXTERNALLY-MANAGED"), "x".repeat(9000));
   assert.deepStrictEqual(readExternallyManaged({ env: {}, resourcesPath: big }), {
@@ -1136,7 +1136,7 @@ test("readExternallyManaged: degenerate markers (oversized, symlink, directory) 
   });
   // Symlink (even dangling): lstat'ed, never followed — a link into a FIFO or
   // device must not be able to stall this startup-path read.
-  const sym = fs.mkdtempSync(path.join(os.tmpdir(), "kc-ext-"));
+  const sym = fs.mkdtempSync(path.join(os.tmpdir(), "jn-ext-"));
   t.after(() => fs.rmSync(sym, { recursive: true, force: true }));
   try {
     fs.symlinkSync(path.join(sym, "nowhere"), path.join(sym, "EXTERNALLY-MANAGED"));
@@ -1155,7 +1155,7 @@ test("readExternallyManaged: degenerate markers (oversized, symlink, directory) 
     t.diagnostic("symlink assertion omitted: host cannot create symlinks");
   }
   // Directory named like the marker: present = managed, nothing to parse.
-  const dirCase = fs.mkdtempSync(path.join(os.tmpdir(), "kc-ext-"));
+  const dirCase = fs.mkdtempSync(path.join(os.tmpdir(), "jn-ext-"));
   t.after(() => fs.rmSync(dirCase, { recursive: true, force: true }));
   fs.mkdirSync(path.join(dirCase, "EXTERNALLY-MANAGED"));
   assert.deepStrictEqual(readExternallyManaged({ env: {}, resourcesPath: dirCase }), {
@@ -1169,7 +1169,7 @@ test("readExternallyManaged: metadata fields are length-capped", (t) => {
   const fs = require("node:fs");
   const os = require("node:os");
   const path = require("node:path");
-  const dir = fs.mkdtempSync(path.join(os.tmpdir(), "kc-ext-"));
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), "jn-ext-"));
   t.after(() => fs.rmSync(dir, { recursive: true, force: true }));
   fs.writeFileSync(
     path.join(dir, "EXTERNALLY-MANAGED"),
@@ -1185,7 +1185,7 @@ test("readExternallyManaged: env override points at a marker file", (t) => {
   const fs = require("node:fs");
   const os = require("node:os");
   const path = require("node:path");
-  const dir = fs.mkdtempSync(path.join(os.tmpdir(), "kc-ext-"));
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), "jn-ext-"));
   t.after(() => fs.rmSync(dir, { recursive: true, force: true }));
   const marker = path.join(dir, "custom-marker.json");
   fs.writeFileSync(marker, JSON.stringify({ managedBy: "harness", updateCommand: "" }));

@@ -11,11 +11,11 @@ const { resolveHome, secretCandidates, canonicalHome } = require("../home-dir");
 // platform-independent, rather than about path syntax, which is not.
 const HOME = path.resolve(path.sep, "mock", "home");
 const fakeOs = { homedir: () => HOME };
-const CANONICAL = path.join(HOME, ".kiro", "crew");
+const CANONICAL = path.join(HOME, ".junction");
 const OVERRIDE = path.resolve(path.sep, "custom", "home");
 
 describe("resolveHome", () => {
-  it("returns the default ~/.kiro/crew when no override is set", () => {
+  it("returns the default ~/.junction when no override is set", () => {
     assert.equal(resolveHome({ env: {}, os: fakeOs, path }), CANONICAL);
   });
 
@@ -97,7 +97,7 @@ describe("secretCandidates (post-spawn, call-time resolution)", () => {
 });
 
 describe("path shape helpers", () => {
-  it("canonical nests under ~/.kiro", () => {
+  it("canonical is ~/.junction", () => {
     assert.equal(canonicalHome(fakeOs, path), CANONICAL);
   });
 });

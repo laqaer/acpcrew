@@ -99,12 +99,12 @@ Parameters:
     MinValue: 1024
     MaxValue: 65535
     Description: >-
-      Port the crew's gateway listens on. The launcher registers the instance
-      with the registry's own stock remote-port default, so this Default must
-      equal DEFAULT_REMOTE_DASHBOARD_PORT in cloud/connect.py -- a test pins
-      the two together. Crews may share this value: the hub allocates its LOCAL
-      forward port independently, so simultaneously-connected crews do not
-      collide. Override only for a direct (non-launcher) deploy.
+      Port the remote Junction's gateway listens on. The launcher registers the
+      instance with the registry's own stock remote-port default, so this Default
+      must equal DEFAULT_REMOTE_DASHBOARD_PORT in cloud/connect.py -- a test pins
+      the two together. Instances may share this value: the hub allocates its
+      LOCAL forward port independently, so simultaneously-connected instances do
+      not collide. Override only for a direct (non-launcher) deploy.
   AllowSshCidr:
     Type: String
     Default: ""
@@ -385,15 +385,15 @@ Resources:
       # "Dashboard build verification": install.sh treats a frontend build
       #   failure as a NON-FATAL warning (it falls back to a "legacy" page) --
       #   correct for a local CLI user who may not even have Node, wrong for a
-      #   cloud crew whose entire purpose is the remote dashboard. With no
+      #   cloud gateway whose entire purpose is the remote dashboard. With no
       #   built SPA the gateway serves a ~782-byte "not built" stub that still
       #   returns HTTP 200, so the health probe passes and the stack reaches
-      #   CREATE_COMPLETE while the crew's pane can never load -- a green
+      #   CREATE_COMPLETE while the instance's pane can never load -- a green
       #   launch that hands the user a dead, billing box. So a missing build
       #   is FATAL here, and the failure reason greps the actual npm/vite/tsc
       #   error out of the setup log (fail() otherwise only carries the log
       #   tail, which at that point is install.sh's success banner, not the
-      #   earlier build error) -- diagnosable even when the crew installed
+      #   earlier build error) -- diagnosable even when the instance installed
       #   from a CLONED source whose install.sh does not itself hard-fail
       #   (the default clone-of-main path). install.sh stages website/dist ->
       #   src/junction/static/dist.

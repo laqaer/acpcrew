@@ -5,11 +5,11 @@ Storage layout:
     <config_dir>/.vault/.vault_key     — 256-bit key file (mode 0600, O_CREAT|O_EXCL)
 
 Agent isolation:
-    The whole ``.vault`` directory is a keystone leaf in _CREW_SECRET_LEAVES
+    The whole ``.vault`` directory is a keystone leaf in _DATA_HOME_SECRET_LEAVES
     (security.py), so the verb-independent sensitive-path backstop blocks every
     Junction-mediated read of these files — tool reads (is_sensitive_path) and
     shell commands (is_sensitive_bash_command), including a scripted
-    ``python -c "open('~/.kiro/crew/.vault/...')"``. This is the same
+    ``python -c "open('~/.junction/.vault/...')"``. This is the same
     application-level trust model as ``.local_secret`` and SSH keys; direct
     OS-level UID isolation is out of scope.
 """

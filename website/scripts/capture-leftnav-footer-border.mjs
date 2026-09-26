@@ -4,8 +4,8 @@
  * The row holding "Star us · Report issue" drew its divider with
  * `border-border-strong` (--border-strong) while every other separator in the
  * rail — including the hairline directly above it, under the brand mark — uses
- * `border-border` (--border). At the default kiro-dark values that is #4a464f
- * against #352f3d: one contrast step apart, and visible as a mismatched pair of
+ * `border-border` (--border). At the default junction-dark values that is #313a48
+ * against #232a35: one contrast step apart, and visible as a mismatched pair of
  * lines in the same card.
  *
  * The subject is a single border-top-color, so each theme is photographed twice
@@ -32,8 +32,8 @@ import { logPageProblems, stubDashboardApi } from './lib/stub-dashboard-api.mjs'
 const OUT = process.argv[2] || '../temp-screenshots/leftnav-footer-border'
 
 const SCENES = [
-  { name: 'dark', theme: 'dark', attr: 'kiro-dark' },
-  { name: 'light', theme: 'light', attr: 'kiro-light' },
+  { name: 'dark', theme: 'dark', attr: 'junction-dark' },
+  { name: 'light', theme: 'light', attr: 'junction-light' },
 ]
 
 const slots = [
@@ -78,7 +78,7 @@ async function main() {
       // carries no role or test id of its own. The hook is `border-t` — the
       // side utility, which this change leaves alone — never the colour token
       // being compared, so the locator cannot drift with the thing under test.
-      const row = page.locator('a[href="https://github.com/kirodotdev/KiroCrew"]')
+      const row = page.locator('a[href="https://github.com/laqaer/junction"]')
         .locator('xpath=ancestor::div[contains(@class,"border-t")][1]')
       await row.waitFor({ state: 'visible', timeout: 15000 })
 

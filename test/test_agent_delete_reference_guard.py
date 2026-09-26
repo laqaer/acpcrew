@@ -1,7 +1,7 @@
 """Tests for the api_agent_detail DELETE reference guard.
 
 Deleting an agent template that config still points at leaves a dangling
-reference: the kiro-cli fallback, or a crew's ``kiro_agent`` binding, would name
+reference: the kiro-cli fallback, or an agent's ``kiro_agent`` binding, would name
 a template that no longer exists. The dashboard withholds the control, but that
 check reads a cached snapshot and cannot be race-free — so the handler is the
 authority and refuses with 409.
@@ -67,7 +67,7 @@ async def test_delete_refuses_the_fallback_template(tmp_path):
 
 
 @pytest.mark.asyncio
-async def test_delete_refuses_a_crew_bound_template(tmp_path):
+async def test_delete_refuses_an_agent_bound_template(tmp_path):
     f = _agent_file(tmp_path, "scratch")
     cfg = JunctionConfig()
     cfg.agents = {"researcher": JunctionAgentConfig(kiro_agent="scratch")}
@@ -75,7 +75,7 @@ async def test_delete_refuses_a_crew_bound_template(tmp_path):
     resp = await _delete(tmp_path, "scratch", cfg)
 
     assert resp.status == 409
-    # The message names the crews so the caller can act without guessing.
+    # The message names the agents so the caller can act without guessing.
     assert "researcher" in json.loads(resp.body)["error"]
     assert json.loads(resp.body)["code"] == "agent_in_use"
     assert f.exists()
@@ -107,7 +107,7 @@ async def test_delete_refuses_when_config_records_the_stem_but_request_uses_the_
     resp = await _delete(tmp_path, "Scratch Pad", cfg)
 
     assert resp.status == 409
-    assert f.exists(), "a crew bound by the stem still pins this template"
+    assert f.exists(), "an agent bound by the stem still pins this template"
 
 
 @pytest.mark.asyncio

@@ -25,7 +25,7 @@ mkdirSync(OUT, { recursive: true })
 const INSTALLED = [
   {
     name: 'junction',
-    description: 'Full crew agent — memory, crons, subagents, browser and the whole skill catalog.',
+    description: 'Full Junction agent — memory, crons, subagents, browser and the whole skill catalog.',
     source: 'junction',
     model: 'claude-opus-5',
     skills: ['prepare-pr', 'babysit', 'llm-council'],
@@ -52,7 +52,7 @@ const INSTALLED = [
   },
   {
     name: 'scratch',
-    description: 'A copy to experiment on. No crew points at it, so it can be deleted.',
+    description: 'A copy to experiment on. No agent points at it, so it can be deleted.',
     source: 'user',
     model: '',
     skills: [],
@@ -73,7 +73,7 @@ const INSTALLED = [
 
 const DETAIL = {
   junction: {
-    prompt: 'file://~/.kiro/crew/prompts/junction.md',
+    prompt: 'file://~/.junction/prompts/junction.md',
     tools: ['fs_read', 'fs_write', 'execute_bash', 'use_aws', 'report_issue'],
     allowedTools: ['fs_read', 'use_aws'],
     mcpServers: { 'junction-core': {}, playwright: { args: ['--include-tools', 'browser_navigate,browser_click'] } },
@@ -100,7 +100,7 @@ const DETAIL = {
   },
 }
 
-const CREWS = [
+const AGENTS = [
   { name: 'default', kiro_agent: 'junction', workspace: 'default', memory_store: 'default', description: '', source: 'user' },
   { name: 'oncall', kiro_agent: 'junction', workspace: 'oncall', memory_store: 'oncall', description: '', source: 'user' },
   { name: 'research', kiro_agent: 'reviewer', workspace: 'research', memory_store: 'research', description: '', source: 'user' },
@@ -122,7 +122,7 @@ function templatesApi(installed) {
         : ''
       return json(route, { content }), true
     }
-    if (path === '/api/agents') return json(route, { agents: CREWS, default_agent: 'default' }), true
+    if (path === '/api/agents') return json(route, { agents: AGENTS, default_agent: 'default' }), true
     if (path === '/api/config/default-agent') return json(route, { default_agent: 'junction' }), true
     if (path === '/api/sessions/context') return json(route, { sessions: [] }), true
     if (path === '/api/sessions/usage') return json(route, { usage: null }), true
@@ -171,7 +171,7 @@ async function main() {
     shot.push(`${PREFIX}-guardrails.png`)
   }
 
-  // Delete withheld, and saying why: `reviewer` is bound by a crew, so the
+  // Delete withheld, and saying why: `reviewer` is bound by an agent, so the
   // guard refuses it rather than leaving a dangling reference behind.
   const boundRow = page.locator('#main-content [role="option"]', { hasText: 'reviewer' }).first()
   if (await boundRow.count()) {

@@ -32,7 +32,7 @@ The script sleeps 10 seconds (giving the session time to respond), then invokes 
 
 ```powershell
 $kiroBin = (Get-Command junction).Source
-$logFile = Join-Path $env:USERPROFILE ".kiro\crew\logs\restart.log"
+$logFile = Join-Path $env:USERPROFILE ".junction\logs\restart.log"
 Start-Process -WindowStyle Hidden powershell -ArgumentList "-ExecutionPolicy", "Bypass", "-File", "`"<path>\do-restart.ps1`"", "-JunctionBin", "`"$kiroBin`"", "-LogFile", "`"$logFile`""
 ```
 
@@ -97,14 +97,14 @@ nohup /path/to/skills/gateway-restart/do-restart.sh >/dev/null 2>&1 & disown
 ```powershell
 $kiroBin = (Get-Command junction).Source
 $scriptPath = Join-Path (Split-Path $PSScriptRoot) "skills\gateway-restart\do-restart.ps1"
-if (-not (Test-Path $scriptPath)) { $scriptPath = "$env:USERPROFILE\.kiro\crew\skills\gateway-restart\do-restart.ps1" }
-$logFile = "$env:USERPROFILE\.kiro\crew\logs\restart.log"
+if (-not (Test-Path $scriptPath)) { $scriptPath = "$env:USERPROFILE\.junction\skills\gateway-restart\do-restart.ps1" }
+$logFile = "$env:USERPROFILE\.junction\logs\restart.log"
 Start-Process -WindowStyle Hidden powershell -ArgumentList "-ExecutionPolicy", "Bypass", "-File", "`"$scriptPath`"", "-JunctionBin", "`"$kiroBin`"", "-LogFile", "`"$logFile`""
 ```
 
 The script's 10-second delay gives the current session time to finish responding.
 
-> **Path resolution:** On both platforms, use the installed skill path (`~/.kiro/crew/skills/gateway-restart/`). The `<path>` in the Restart Mechanism section above is the same directory.
+> **Path resolution:** On both platforms, use the installed skill path (`~/.junction/skills/gateway-restart/`). The `<path>` in the Restart Mechanism section above is the same directory.
 
 ### 4. Confirm to user
 

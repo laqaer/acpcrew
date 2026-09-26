@@ -64,7 +64,7 @@ class TestCardShape:
         for action in actions:
             assert action["data"]["rid"] == "7"
             assert action["data"]["nonce"] == "n1"
-            assert action["data"]["kc"] == KIND_APPROVAL
+            assert action["data"]["jn"] == KIND_APPROVAL
 
     def test_a_settled_card_has_no_actions_left(self) -> None:
         """An answered prompt must stop looking clickable."""
@@ -76,7 +76,7 @@ class TestCardShape:
         actions = card["content"]["actions"]
         assert [a["title"] for a in actions] == ["yes", "no"]
         assert [a["data"]["index"] for a in actions] == [0, 1]
-        assert all(a["data"]["kc"] == KIND_OPTION for a in actions)
+        assert all(a["data"]["jn"] == KIND_OPTION for a in actions)
 
     def test_nonces_are_unique_per_prompt(self) -> None:
         assert new_approval_nonce() != new_approval_nonce()
@@ -87,10 +87,10 @@ class TestParseSubmitRefusals:
 
     def test_a_valid_approval_payload_round_trips(self) -> None:
         parsed = parse_submit(
-            {"kc": KIND_APPROVAL, "rid": "7", "nonce": "n1", "decision": DECISION_APPROVE}
+            {"jn": KIND_APPROVAL, "rid": "7", "nonce": "n1", "decision": DECISION_APPROVE}
         )
         assert parsed == {
-            "kc": KIND_APPROVAL,
+            "jn": KIND_APPROVAL,
             "rid": "7",
             "nonce": "n1",
             "decision": DECISION_APPROVE,
@@ -102,16 +102,16 @@ class TestParseSubmitRefusals:
             None,
             "not-a-dict",
             {},
-            {"kc": KIND_APPROVAL, "rid": "7", "decision": DECISION_APPROVE},  # no nonce
-            {"kc": KIND_APPROVAL, "nonce": "n", "decision": DECISION_APPROVE},  # no rid
-            {"kc": KIND_APPROVAL, "rid": "7", "nonce": "n"},  # no decision
+            {"jn": KIND_APPROVAL, "rid": "7", "decision": DECISION_APPROVE},  # no nonce
+            {"jn": KIND_APPROVAL, "nonce": "n", "decision": DECISION_APPROVE},  # no rid
+            {"jn": KIND_APPROVAL, "rid": "7", "nonce": "n"},  # no decision
             # An unknown decision must not be coerced into an approval.
-            {"kc": KIND_APPROVAL, "rid": "7", "nonce": "n", "decision": "yes-please"},
-            {"kc": "something_else", "rid": "7", "nonce": "n", "decision": DECISION_APPROVE},
-            {"kc": KIND_OPTION, "nonce": "n", "label": "yes", "index": "abc"},  # non-numeric
-            {"kc": KIND_OPTION, "nonce": "n", "index": 0},  # no label
+            {"jn": KIND_APPROVAL, "rid": "7", "nonce": "n", "decision": "yes-please"},
+            {"jn": "something_else", "rid": "7", "nonce": "n", "decision": DECISION_APPROVE},
+            {"jn": KIND_OPTION, "nonce": "n", "label": "yes", "index": "abc"},  # non-numeric
+            {"jn": KIND_OPTION, "nonce": "n", "index": 0},  # no label
             {
-                "kc": KIND_OPTION,
+                "jn": KIND_OPTION,
                 "nonce": "n",
                 "label": "yes",
                 "index": True,
@@ -124,7 +124,7 @@ class TestParseSubmitRefusals:
     def test_an_option_index_is_accepted_as_int_or_string(self) -> None:
         """Teams clients differ on whether a number survives as a number."""
         for index in (0, "0"):
-            parsed = parse_submit({"kc": KIND_OPTION, "nonce": "n", "label": "yes", "index": index})
+            parsed = parse_submit({"jn": KIND_OPTION, "nonce": "n", "label": "yes", "index": index})
             assert parsed is not None and parsed["index"] == "0"
 
 
@@ -469,7 +469,7 @@ class TestCardActionRouting:
         d = _dispatcher(client)
 
         await d._handle_card_action(
-            _click({"kc": KIND_APPROVAL, "rid": "7", "nonce": "n", "decision": DECISION_APPROVE})
+            _click({"jn": KIND_APPROVAL, "rid": "7", "nonce": "n", "decision": DECISION_APPROVE})
         )
 
         assert client.sent and "no longer waiting" in client.sent[-1]
@@ -504,7 +504,7 @@ class TestCardActionRouting:
         d._active_renderers[session_key] = renderer
 
         await d._handle_card_action(
-            _click({"kc": KIND_APPROVAL, "rid": "7", "nonce": "n1", "decision": DECISION_DENY})
+            _click({"jn": KIND_APPROVAL, "rid": "7", "nonce": "n1", "decision": DECISION_DENY})
         )
 
         assert await task is False
@@ -522,7 +522,7 @@ class TestCardActionRouting:
         await asyncio.sleep(0)
 
         await d._handle_card_action(
-            _click({"kc": KIND_APPROVAL, "rid": "7", "nonce": "n1", "decision": DECISION_TRUST})
+            _click({"jn": KIND_APPROVAL, "rid": "7", "nonce": "n1", "decision": DECISION_TRUST})
         )
 
         assert await task is True
@@ -573,7 +573,7 @@ class TestCardActionRouting:
         await asyncio.sleep(0)
         try:
             await d._handle_card_action(
-                _click({"kc": KIND_APPROVAL, "rid": "7", "nonce": "n1", "decision": DECISION_TRUST})
+                _click({"jn": KIND_APPROVAL, "rid": "7", "nonce": "n1", "decision": DECISION_TRUST})
             )
             assert await task is True
             # The SAME predicate the running turn holds now answers True.
@@ -587,7 +587,7 @@ class TestCardActionRouting:
         d = _dispatcher(client)
 
         await d._handle_card_action(
-            _click({"kc": KIND_OPTION, "nonce": "old", "index": 0, "label": "yes"})
+            _click({"jn": KIND_OPTION, "nonce": "old", "index": 0, "label": "yes"})
         )
 
         assert client.sent and "earlier reply" in client.sent[-1]
@@ -628,7 +628,7 @@ class TestCardActionRouting:
             d.handle_message = _record  # type: ignore[method-assign]
             d._handle_dashboard = _explode  # type: ignore[method-assign]
             await d._handle_card_action(
-                _click({"kc": KIND_OPTION, "nonce": "n9", "index": 0, "label": "x"})
+                _click({"jn": KIND_OPTION, "nonce": "n9", "index": 0, "label": "x"})
             )
         finally:
             d.handle_message, d._handle_dashboard = real_handle, real_dashboard  # type: ignore
@@ -683,7 +683,7 @@ class TestTheProductionEntrypoint:
 
         # The real entrypoint, with a real card-action activity.
         await d.handle_message(
-            _click({"kc": KIND_APPROVAL, "rid": "7", "nonce": "n1", "decision": DECISION_APPROVE})
+            _click({"jn": KIND_APPROVAL, "rid": "7", "nonce": "n1", "decision": DECISION_APPROVE})
         )
 
         assert await task is True, "the awaiting prompt was not resolved by the activity"
@@ -706,7 +706,7 @@ class TestTheProductionEntrypoint:
         await asyncio.sleep(0)
 
         await d.handle_message(
-            _click({"kc": KIND_APPROVAL, "rid": "7", "nonce": "n1", "decision": DECISION_APPROVE})
+            _click({"jn": KIND_APPROVAL, "rid": "7", "nonce": "n1", "decision": DECISION_APPROVE})
         )
 
         assert not task.done(), "a governance-denied click must not resolve the prompt"
@@ -731,7 +731,7 @@ class TestTheTrustButtonArmsTheSharedGrant:
         assert safety_override().is_active() is False
 
         await d._handle_card_action(
-            _click({"kc": KIND_APPROVAL, "rid": "7", "nonce": "n1", "decision": DECISION_TRUST})
+            _click({"jn": KIND_APPROVAL, "rid": "7", "nonce": "n1", "decision": DECISION_TRUST})
         )
 
         assert await task is True
@@ -750,7 +750,7 @@ class TestTheTrustButtonArmsTheSharedGrant:
         await asyncio.sleep(0)
 
         await d._handle_card_action(
-            _click({"kc": KIND_APPROVAL, "rid": "7", "nonce": "n1", "decision": DECISION_APPROVE})
+            _click({"jn": KIND_APPROVAL, "rid": "7", "nonce": "n1", "decision": DECISION_APPROVE})
         )
 
         assert await task is True
@@ -768,7 +768,7 @@ class TestTheTrustButtonArmsTheSharedGrant:
         await asyncio.sleep(0)
 
         await d._handle_card_action(
-            _click({"kc": KIND_APPROVAL, "rid": "7", "nonce": "stale", "decision": DECISION_TRUST})
+            _click({"jn": KIND_APPROVAL, "rid": "7", "nonce": "stale", "decision": DECISION_TRUST})
         )
 
         assert safety_override().is_active() is False, "a stale press must arm nothing"

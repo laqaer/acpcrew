@@ -157,47 +157,40 @@ _JUNCTION_SAFE_SUBDIRS = {
     "crons",
 }
 
-# The Junction data home is ~/.kiro/crew (nested under kiro-cli's ~/.kiro), with
-# a legacy location at ~/.kirocrew. The granular deny-by-default listing policy
-# must recognize the home wherever it lives: the current ~/.kiro/crew, and the
-# legacy ~/.kirocrew.
+# The Junction data home is ~/.junction. The granular deny-by-default listing
+# policy must recognize it wherever a path names it.
 # Each marker is the tuple of trailing path segments that identify the home dir;
 # the segment(s) AFTER the marker are matched against _JUNCTION_SAFE_SUBDIRS.
-# Note ~/.kiro alone is NOT a marker — that is kiro-cli's own dir (agents,
+# Note ~/.kiro is NOT a marker — that is kiro-cli's own dir (agents,
 # sessions, settings), gated separately by the shared is_sensitive_path().
 # Markers are stored casefolded and matched casefold-insensitively (see
-# _crew_home_index): on a case-INSENSITIVE filesystem (macOS APFS/HFS+ default,
-# Windows) ``~/.KIRO/crew/config.json`` opens the SAME inode as ``~/.kiro/crew``
+# _data_home_index): on a case-INSENSITIVE filesystem (macOS APFS/HFS+ default,
+# Windows) ``~/.JUNCTION/config.json`` opens the SAME inode as ``~/.junction``
 # but ``Path.resolve()`` preserves the caller's typed case, so a case-sensitive
 # match would let an uppercase ``?path=`` slip past this deny-by-default gate and
-# expose the crew home's non-keystone files (config.json's Slack tokens,
+# expose the data home's non-keystone files (config.json's Slack tokens,
 # sessions, contacts). The shared is_sensitive_path() already casefolds for the
 # same reason; this mirrors it so the two gates agree.
-_CREW_HOME_MARKERS: tuple[tuple[str, ...], ...] = (
-    (".kiro", "crew"),
-    (".kirocrew",),
-)
-_CREW_HOME_MARKERS_CF: tuple[tuple[str, ...], ...] = tuple(
-    tuple(seg.casefold() for seg in marker) for marker in _CREW_HOME_MARKERS
+_DATA_HOME_MARKERS: tuple[tuple[str, ...], ...] = ((".junction",),)
+_DATA_HOME_MARKERS_CF: tuple[tuple[str, ...], ...] = tuple(
+    tuple(seg.casefold() for seg in marker) for marker in _DATA_HOME_MARKERS
 )
 
 
-def _crew_home_index(parts: tuple[str, ...]) -> int:
-    """Return the index of the segment JUST AFTER a crew-home marker in *parts*.
+def _data_home_index(parts: tuple[str, ...]) -> int:
+    """Return the index of the segment JUST AFTER a data-home marker in *parts*.
 
-    e.g. for ``(..., ".kiro", "crew", "skills")`` returns the index of
-    ``"skills"``; for ``(..., ".kirocrew", "config.json")`` the index of
-    ``"config.json"``. Returns -1 when no crew-home marker is present. The
-    longest (most specific) marker wins so ``.kiro/crew`` is preferred over any
-    shorter match.
+    e.g. for ``(..., ".junction", "skills")`` returns the index of ``"skills"``.
+    Returns -1 when no data-home marker is present. The longest (most specific)
+    marker wins.
 
-    Matching is CASE-INSENSITIVE (casefold): on macOS/Windows the on-disk crew
+    Matching is CASE-INSENSITIVE (casefold): on macOS/Windows the on-disk data
     home is reachable under any letter case, and ``Path.resolve()`` keeps the
     typed case, so a case-sensitive compare here would be a deny-by-default
     bypass. Both the parts and the markers are casefolded before comparison.
     """
     cf_parts = tuple(p.casefold() for p in parts)
-    for marker in _CREW_HOME_MARKERS_CF:
+    for marker in _DATA_HOME_MARKERS_CF:
         n = len(marker)
         for i in range(len(cf_parts) - n + 1):
             if cf_parts[i : i + n] == marker:
@@ -205,14 +198,14 @@ def _crew_home_index(parts: tuple[str, ...]) -> int:
     return -1
 
 
-def _is_crew_home_root(p: Path) -> bool:
-    """True if *p* is itself a crew data-home root (its parts END at a marker)."""
-    return _crew_home_index(p.parts) == len(p.parts)
+def _is_data_home_root(p: Path) -> bool:
+    """True if *p* is itself a data-home root (its parts END at a marker)."""
+    return _data_home_index(p.parts) == len(p.parts)
 
 
-def _under_crew_home(p: Path) -> bool:
-    """True if *p* is at or under any crew data-home root."""
-    return _crew_home_index(p.parts) != -1
+def _under_data_home(p: Path) -> bool:
+    """True if *p* is at or under any data-home root."""
+    return _data_home_index(p.parts) != -1
 
 
 # Binary extensions short-circuited from /read content fetch
@@ -317,7 +310,7 @@ def _contain_in_allowed_roots(path: Path, *, operation: str, audit_denial: bool 
     """Resolve *path* and confirm it lands inside an allowed root, else 403.
 
     The single sanitizer for user-derived paths that bypass ``_safe_path`` (the
-    crew-home tree-list special case): ``resolve()`` collapses ``..`` traversal
+    data-home tree-list special case): ``resolve()`` collapses ``..`` traversal
     and follows symlinks, then containment is checked against ``ALLOWED_ROOTS``.
     A violation is SEL-audited and raises ``PathError`` — so the RETURNED path is
     always inside the allow-list and safe to stat/read. Callers must use the
@@ -352,16 +345,15 @@ def _is_sensitive(p: Path) -> bool:
     ``SENSITIVE_DIRS`` set so the access-deny gate can never be narrower than
     the listing-hide filter.
 
-    For the Junction data home (``~/.kiro/crew``, plus the legacy variant), a
-    granular policy applies: only subdirectories listed in
+    For the Junction data home (``~/.junction``), a granular policy applies: only subdirectories listed in
     ``_JUNCTION_SAFE_SUBDIRS`` are accessible; everything else (keys, tokens,
     DB, sessions) is blocked.
     """
     if any(part in SENSITIVE_DIRS for part in p.parts):
         return True
     # Granular data-home policy: block unless the path descends into a safe
-    # subdir of the crew home (~/.kiro/crew or the legacy variant).
-    after = _crew_home_index(p.parts)
+    # subdir of the data home (~/.junction).
+    after = _data_home_index(p.parts)
     if after != -1:
         # The home root itself is blocked (deny-by-default). Listing endpoints
         # use _junction_safe_children() to enumerate only safe subdirs.
@@ -374,7 +366,7 @@ def _is_sensitive(p: Path) -> bool:
 
 
 def _junction_safe_children(junction_dir: Path) -> list[dict]:
-    """Return entry metadata for only the safe subdirs of a .kirocrew/ directory.
+    """Return entry metadata for only the safe subdirs of a .junction/ directory.
 
     This is the single enforcement point for deny-by-default .junction listing:
     callers get back only entries that are in ``_JUNCTION_SAFE_SUBDIRS``.
@@ -483,13 +475,13 @@ def _list_dir(p: Path, depth: int = 1, ignore: bool = True) -> tuple[list[dict],
                 break
             if child.name in SENSITIVE_DIRS:
                 continue
-            # Deny-by-default for the crew data-home root listing: show ONLY the
+            # Deny-by-default for the data-home root listing: show ONLY the
             # safe subdirs. Even exposing the *names* of credential material
             # (config.json, *.key, memory.db) is an information leak. ``d`` is
-            # the crew home when its own path parts end exactly at a marker (so
+            # the data home when its own path parts end exactly at a marker (so
             # the next-segment index points one past the end).
             if (
-                _crew_home_index(d.parts) == len(d.parts)
+                _data_home_index(d.parts) == len(d.parts)
                 and child.name not in _JUNCTION_SAFE_SUBDIRS
             ):
                 continue
@@ -675,19 +667,17 @@ def _search_rg(root: Path, query: str, include: str, exclude: str) -> list[dict]
     # Sensitive exclusions LAST — always enforced, cannot be overridden by user globs
     for sd in SENSITIVE_DIRS:
         cmd += ["--glob", f"!**/{sd}"]
-    # Crew data-home handling. NOTE: in ripgrep, the presence of ANY non-negated
+    # Data-home handling. NOTE: in ripgrep, the presence of ANY non-negated
     # --glob turns the glob set into an allowlist (only matching files are
     # searched), so we must use ONLY negated globs here or every file outside
     # the data home would be silently excluded from results.
-    #  - Root inside a crew-home safe subdir: no glob needed — the request-path
+    #  - Root inside a data-home safe subdir: no glob needed — the request-path
     #    gate (_is_sensitive) already confirmed the subtree is safe.
-    #  - Root outside the crew home: exclude the whole data-home tree
+    #  - Root outside the data home: exclude the whole data-home tree
     #    (deny-by-default; safe subdirs are reachable by searching them
-    #    directly, which takes the branch above). Cover both home spellings:
-    #    ~/.kiro/crew and the legacy home.
-    if not _under_crew_home(root):
-        cmd += ["--glob", "!**/.kiro/crew/**"]
-        cmd += ["--glob", "!**/.kirocrew/**"]
+    #    directly, which takes the branch above).
+    if not _under_data_home(root):
+        cmd += ["--glob", "!**/.junction/**"]
     # macOS TCC: when the search root is the bare $HOME, exclude the gated
     # top-level folders so ripgrep never descends into ~/Pictures (the Photos
     # library) or ~/Music (the media library). Recursing into them makes macOS
@@ -780,18 +770,18 @@ def _search_python(root: Path, query: str, include: str, exclude: str) -> list[d
             gated = platform_compat.tcc_protected_dirs_for_walk(root)
             if gated:
                 dirnames[:] = [d for d in dirnames if d not in gated]
-        # Crew data-home deny-by-default: match rg behavior.
-        # - If search root is OUTSIDE the crew home: skip entirely (rg blocks all).
+        # Data-home deny-by-default: match rg behavior.
+        # - If search root is OUTSIDE the data home: skip entirely (rg blocks all).
         # - If search root is INSIDE a safe subdir: allow safe subdirs only.
         dp = Path(dirpath)
-        if _is_crew_home_root(dp):
-            if not _under_crew_home(root):
+        if _is_data_home_root(dp):
+            if not _under_data_home(root):
                 # Root is outside — deny-by-default, match rg behavior
                 dirnames[:] = []
             else:
-                # Root is inside the crew home — allow safe subdirs only
+                # Root is inside the data home — allow safe subdirs only
                 dirnames[:] = [d for d in dirnames if d in _JUNCTION_SAFE_SUBDIRS]
-            filenames[:] = []  # never surface crew-home root files
+            filenames[:] = []  # never surface data-home root files
         for fn in filenames:
             if len(out) >= MAX_SEARCH_RESULTS:
                 return out
@@ -943,7 +933,7 @@ class FileExplorerHandler(BaseHTTPRequestHandler):
         depth = int((qs.get("depth") or ["1"])[0])
         depth = max(1, min(depth, 4))
         ignore = (qs.get("ignore") or ["1"])[0] not in {"0", "false"}
-        # Special case: crew data-home root — deny-by-default blocks it in
+        # Special case: data-home root — deny-by-default blocks it in
         # _safe_path, but we expose only safe children via the dedicated helper.
         # SECURITY: the user-derived path is fully sanitized BEFORE any filesystem
         # access — ``_expand`` + ``.resolve()`` collapse ``..`` and symlinks, and
@@ -953,7 +943,7 @@ class FileExplorerHandler(BaseHTTPRequestHandler):
         # untrusted value reaches a filesystem operation (closes CodeQL
         # py/path-injection: the guard dominates every path use below).
         expanded = _expand(raw)
-        if _is_crew_home_root(expanded):
+        if _is_data_home_root(expanded):
             resolved = _contain_in_allowed_roots(expanded, operation="tree_list")
             # ``resolved`` is the return of the raising ALLOWED_ROOTS barrier, so
             # it is contained; CodeQL doesn't trace the barrier across the call,
@@ -1152,9 +1142,9 @@ class FileExplorerHandler(BaseHTTPRequestHandler):
                 continue
             if name in SENSITIVE_DIRS:
                 continue
-            # Deny-by-default for the crew data-home root: only safe subdir names
+            # Deny-by-default for the data-home root: only safe subdir names
             # may appear in completions (see _list_dir for rationale).
-            if _is_crew_home_root(parent) and name not in _JUNCTION_SAFE_SUBDIRS:
+            if _is_data_home_root(parent) and name not in _JUNCTION_SAFE_SUBDIRS:
                 continue
             if plower and not name.lower().startswith(plower):
                 continue

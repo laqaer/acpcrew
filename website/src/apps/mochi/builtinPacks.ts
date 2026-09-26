@@ -6,33 +6,29 @@
  * in-memory map at startup, so the gallery always had at least one entry. The
  * Python port only scans the data directory for USER packs, so a fresh install
  * would show an empty Avatars window. The art also lives in this bundle (Vite
- * `?raw` imports, not files the Python package ships), so the backend has
- * nothing to serve — registering here is the adaptation.
+ * `?raw` imports of the dashboard's default pet, `src/assets/pets/`, not files
+ * the Python package ships), so the backend has nothing to serve — registering
+ * here is the adaptation.
  *
  * **One identity key.** `activeAppearance` (a pack id) is the whole answer: it
  * drives the art, the persona, and the default pet name together. The original
  * had a second key, `pet.character`, and migrated it away for exactly that
- * reason; this port briefly re-created the split as `avatar`, which let the pet
- * render an imported pack while its prompt described the built-in cat. The
- * built-in packs below ARE the two characters — there is nothing else to select.
+ * reason; a split key lets the pet render an imported pack while its prompt
+ * describes the built-in cat. The built-in pack below IS the character; every
+ * other pack is one the user imported.
  */
 
 import type { PackManifest } from './src/shared/appearanceTypes'
 
-import idleSvg from './assets/animations/mochi_idle.svg?raw'
-import walkingSvg from './assets/animations/mochi_walking.svg?raw'
-import thinkingSvg from './assets/animations/mochi_thinking.svg?raw'
-import workingSvg from './assets/animations/mochi_working.svg?raw'
-import errorSvg from './assets/animations/mochi_error.svg?raw'
-import sleepingSvg from './assets/animations/mochi_sleeping.svg?raw'
-import peekSvg from './assets/animations/mochi_peek.svg?raw'
-import peekThinkingSvg from './assets/animations/mochi_peek_thinking.svg?raw'
-import doneSvg from './assets/animations/mochi_done.svg?raw'
-
-import ghostIdle from './assets/animations/kiro_idle_mid.json?raw'
-import ghostIdleBlink from './assets/animations/kiro_idle_mid_blink.json?raw'
-import ghostStaticBlink from './assets/animations/kiro_static_blink.json?raw'
-import ghostFlying from './assets/animations/kiro_flying.json?raw'
+import idleSvg from '../../assets/pets/mochi_idle.svg?raw'
+import walkingSvg from '../../assets/pets/mochi_walking.svg?raw'
+import thinkingSvg from '../../assets/pets/mochi_thinking.svg?raw'
+import workingSvg from '../../assets/pets/mochi_working.svg?raw'
+import errorSvg from '../../assets/pets/mochi_error.svg?raw'
+import sleepingSvg from '../../assets/pets/mochi_sleeping.svg?raw'
+import peekSvg from '../../assets/pets/mochi_peek.svg?raw'
+import peekThinkingSvg from '../../assets/pets/mochi_peek_thinking.svg?raw'
+import doneSvg from '../../assets/pets/mochi_done.svg?raw'
 
 export interface InlineAnimation {
   content: string
@@ -45,18 +41,15 @@ export interface PackDetail extends PackManifest {
 }
 
 export const BUILTIN_MOCHI_ID = 'default-mochi'
-export const BUILTIN_GHOST_ID = 'kiro-ghost'
 
 interface BuiltinPack {
   meta: PackManifest['meta']
   /** Slot -> animation CONTENT (not a filename: the art is compiled in). */
   states: Record<string, string>
   moods: Record<string, string>
-  format: 'svg' | 'lottie'
+  format: 'svg'
   /** Extension used for the synthetic manifest filenames. */
-  ext: 'svg' | 'json'
-  /** The art faces left; every surface mirrors it. See PackManifest.flipX. */
-  flipX?: boolean
+  ext: 'svg'
 }
 
 const MOCHI_PACK: BuiltinPack = {
@@ -92,63 +85,12 @@ const MOCHI_PACK: BuiltinPack = {
   },
 }
 
-/**
- * The Kiro ghost, built from the four delivered idle/fly Lotties.
- *
- * There are four clips for six states, so several states share one — accepted
- * deliberately: a ghost that reuses a float for "working" reads fine, whereas
- * leaving the avatar unregistered (its previous state — the files sat in the
- * bundle with zero importers) meant it could not be chosen at all.
- *
- * `peeking` / `peekThinking` are OMITTED rather than filled with a float. They
- * are optional, and the resolver falls back to `idle` / `thinking` for them; a
- * peek pose is a specific half-off-screen drawing that none of these clips is.
- */
-const GHOST_PACK: BuiltinPack = {
-  format: 'lottie',
-  ext: 'json',
-  // The delivered clips are mirrored: the ghost's tail trails to the RIGHT, so it
-  // reads as drifting right-to-left while every other pack (and the pet's own
-  // walk logic) assumes art that faces right. Declared here rather than
-  // compensated for at each render site, and rather than un-mirroring the art:
-  // the eyes are parented into BODY's already-negated coordinate space, so
-  // flipping the layer scales would move them to the wrong side of the face.
-  flipX: true,
-  meta: {
-    id: BUILTIN_GHOST_ID,
-    name: 'Drift',
-    author: 'Junction',
-    description:
-      'A small track sprite that waits at the switch. Calm and attentive, ' +
-      'it holds the junction while it works.',
-    type: 'built-in',
-    format: 'lottie',
-    thumbnail: 'idle.json',
-  },
-  states: {
-    idle: ghostIdle,
-    walking: ghostFlying,
-    thinking: ghostIdleBlink,
-    working: ghostFlying,
-    error: ghostStaticBlink,
-    offline: ghostStaticBlink,
-  },
-  moods: {
-    happy: ghostIdleBlink,
-    sleepy: ghostStaticBlink,
-    curious: ghostIdle,
-    busy: ghostFlying,
-    scared: ghostStaticBlink,
-  },
-}
-
 const BUILTIN_PACKS: Record<string, BuiltinPack> = {
   [BUILTIN_MOCHI_ID]: MOCHI_PACK,
-  [BUILTIN_GHOST_ID]: GHOST_PACK,
 }
 
 /** Gallery order: the default avatar first. */
-export const BUILTIN_PACK_IDS: readonly string[] = [BUILTIN_MOCHI_ID, BUILTIN_GHOST_ID]
+export const BUILTIN_PACK_IDS: readonly string[] = [BUILTIN_MOCHI_ID]
 
 export function isBuiltinPack(packId: string): boolean {
   return packId in BUILTIN_PACKS
@@ -185,11 +127,10 @@ export function resolveActivePackId(
  * chat and another in its own title bar.
  *
  * Deliberately NOT `meta.name`: that names the character DESIGN in the picker
- * ("Drift" / "Mochi Cat"), while this is how the pet refers to itself.
+ * ("Mochi Cat"), while this is how the pet refers to itself.
  */
 const BUILTIN_PET_NAMES: Record<string, string> = {
   [BUILTIN_MOCHI_ID]: 'Mochi',
-  [BUILTIN_GHOST_ID]: 'Drift',
 }
 
 /** Last-resort name, matching ``soul_loader.DEFAULT_PET_NAME``. */
@@ -199,11 +140,11 @@ export const DEFAULT_PET_NAME = 'Mochi'
  * The name to address the pet by.
  *
  * Precedence: the user's explicit `petName`, else the ACTIVE PACK's own name,
- * else 'Mochi'. Every renderer used to do `useState('Mochi')` +
- * `if (c?.petName) setPetName(c.petName)`, which silently collapses the middle
+ * else 'Mochi'. Every renderer resolves it here rather than defaulting to
+ * 'Mochi' and overriding with `petName`, which would silently collapse the middle
  * rung: `petName` defaults to `""` and means "use the avatar's own name" (see
- * settings.py), so a user on the ghost with no custom name was told "Ask Mochi
- * to watch a price…" while the pet itself introduced itself as Kiro.
+ * settings.py), so the panel and the pet would name a built-in character
+ * differently.
  *
  * A user-imported pack has no name of its own here, so it falls through to the
  * default rather than borrowing its display title — the pack's `meta.name` is a
@@ -233,7 +174,6 @@ export function builtinPackDetail(packId: string): PackDetail | null {
   }
   return {
     meta: pack.meta,
-    ...(pack.flipX === true ? { flipX: true } : {}),
     states: Object.fromEntries(
       Object.keys(pack.states).map((k) => [k, `${k}.${pack.ext}`]),
     ) as unknown as PackManifest['states'],

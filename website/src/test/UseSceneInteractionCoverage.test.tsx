@@ -15,7 +15,7 @@
 
 import React, { useRef } from 'react'
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
-import { render, screen, fireEvent, act, cleanup } from '@testing-library/react'
+import { render, screen, fireEvent, act, cleanup, within } from '@testing-library/react'
 
 import {
   useSceneInteraction,
@@ -133,7 +133,7 @@ const rect = (): DOMRect => ({
   toJSON: () => ({}),
 }) as DOMRect
 
-/** happy-dom has no 2D context; MiniGhost needs one to paint its pixel rows. */
+/** happy-dom has no 2D context; a stub keeps any canvas paint in the harness inert. */
 const stubCtx = () => ({
   clearRect: vi.fn(), fillRect: vi.fn(), fillStyle: '',
 }) as unknown as CanvasRenderingContext2D
@@ -315,7 +315,8 @@ describe('useSceneInteraction — thread popover lifecycle', () => {
     expect(screen.queryByText('oldest-user')).not.toBeInTheDocument()
     expect(screen.queryByText('oldest-reply')).not.toBeInTheDocument()
     expect(screen.getAllByText('you')).toHaveLength(4)
-    expect(screen.getAllByText('kiro')).toHaveLength(4)
+    // Replies are labelled with the agent's own name; the popover header carries it once more.
+    expect(within(screen.getByRole('dialog')).getAllByText('Alpha')).toHaveLength(5)
     expect(screen.getByText('a5')).toBeInTheDocument()
   })
 
@@ -414,14 +415,14 @@ describe('useSceneInteraction — thread popover lifecycle', () => {
   it('shows a working footer line when the live source is mid-turn', async () => {
     renderScene({ sources: [source({ id: 'slot-a', running: true })] })
     await clickAt(100, 100)
-    expect(screen.getByText(i18nT('hooks.useSceneInteraction.kiro_is_working'))).toBeInTheDocument()
+    expect(screen.getByText(i18nT('hooks.useSceneInteraction.agent_is_working'))).toBeInTheDocument()
   })
 
   it('omits the working footer line for an idle source', async () => {
     renderScene({ sources: [source({ id: 'slot-a', running: false })] })
     await clickAt(100, 100)
     expect(
-      screen.queryByText(i18nT('hooks.useSceneInteraction.kiro_is_working')),
+      screen.queryByText(i18nT('hooks.useSceneInteraction.agent_is_working')),
     ).not.toBeInTheDocument()
   })
 

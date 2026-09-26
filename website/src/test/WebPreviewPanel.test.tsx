@@ -130,7 +130,7 @@ describe('isDashboardOrigin', () => {
   it('never matches when the dashboard itself is remote', () => {
     // Over a tunnel or a LAN address, a loopback target is the USER's own
     // machine — an ordinary dev server — not this gateway.
-    expect(isDashboardOrigin('http://localhost:443/', 'https://crew.example.com/')).toBe(false)
+    expect(isDashboardOrigin('http://localhost:443/', 'https://junction.example.com/')).toBe(false)
     expect(isDashboardOrigin('http://localhost:6776/', 'http://192.168.1.4:6776/')).toBe(false)
   })
   it('returns false for an unparseable url or an unknown dashboard origin', () => {

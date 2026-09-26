@@ -68,7 +68,7 @@ def test_plist_boots_the_named_pod_through_python(cfg):
     body = launchd.render_plist(cfg, "smoke")
     argv = body["ProgramArguments"]
     assert argv[-3:] == ["pod", "_run", "smoke"]
-    assert body["Label"] == "dev.junction.pod.kirocrew-pod.smoke"
+    assert body["Label"] == "dev.junction.pod.junction-pod.smoke"
     assert body["RunAtLoad"] is True
     # Restart on crash, but never fight a deliberate bootout.
     assert body["KeepAlive"] == {"SuccessfulExit": False}
@@ -83,7 +83,7 @@ def test_plist_routes_logs_to_files_since_launchd_has_no_journal(cfg):
 
 def test_plist_is_valid_and_written_per_pod(cfg):
     dst = launchd.write_plist(cfg, "smoke")
-    assert dst.name == "dev.junction.pod.kirocrew-pod.smoke.plist"
+    assert dst.name == "dev.junction.pod.junction-pod.smoke.plist"
     # Deliberately NOT ~/Library/LaunchAgents: launchd loads that directory at
     # login, which would resurrect pods after a reboot — the systemd path is
     # transient (start, never enable) and macOS must match.
@@ -91,18 +91,18 @@ def test_plist_is_valid_and_written_per_pod(cfg):
     assert "LaunchAgents" not in str(dst)
     with dst.open("rb") as fh:
         parsed = plistlib.load(fh)
-    assert parsed["Label"] == "dev.junction.pod.kirocrew-pod.smoke"
+    assert parsed["Label"] == "dev.junction.pod.junction-pod.smoke"
 
 
 def test_label_honours_a_hermetic_unit_prefix(cfg, monkeypatch):
     """A test plane must not be able to collide with a developer's real pods."""
     monkeypatch.setenv("JUNCTION_POD_UNIT_PREFIX", "junction-pod-test")
     hermetic = PodConfig.load()
-    assert launchd.pod_label(hermetic, "smoke") == "dev.junction.pod.kirocrew-pod-test.smoke"
+    assert launchd.pod_label(hermetic, "smoke") == "dev.junction.pod.junction-pod-test.smoke"
     # The default plane carries its prefix segment too: without it, the default
     # prefix was a strict prefix of every custom plane's labels and a hermetic
     # plane's pods surfaced in the default plane's listing (review finding).
-    assert launchd.pod_label(cfg, "smoke") == "dev.junction.pod.kirocrew-pod.smoke"
+    assert launchd.pod_label(cfg, "smoke") == "dev.junction.pod.junction-pod.smoke"
     assert not launchd.pod_label(cfg, "").startswith(launchd.pod_label(hermetic, ""))
     assert not launchd.pod_label(hermetic, "").startswith(launchd.pod_label(cfg, ""))
 
@@ -170,8 +170,8 @@ def test_unit_state_inactive_when_not_loaded(cfg, monkeypatch):
 
 def test_active_names_filters_to_our_prefix_and_liveness(cfg, monkeypatch):
     domain_dump = (
-        "dev.junction.pod.kirocrew-pod.alpha\n"
-        "dev.junction.pod.kirocrew-pod.beta\n"
+        "dev.junction.pod.junction-pod.alpha\n"
+        "dev.junction.pod.junction-pod.beta\n"
         "com.apple.something\n"
         "dev.other.pod.gamma\n"
     )

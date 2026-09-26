@@ -15,9 +15,9 @@ import { renderWithProviders } from './helpers'
 import { api } from '../api/client'
 
 const BUNDLE = {
-  zip_path: '/home/builder/.kiro/crew/diagnostics/report-2026-08-13.zip',
+  zip_path: '/home/builder/.junction/diagnostics/report-2026-08-13.zip',
   download_url: '/api/diagnostics/report-2026-08-13.zip',
-  github_issue_url: 'https://github.com/kirodotdev/KiroCrew/issues/new?title=x',
+  github_issue_url: 'https://github.com/laqaer/junction/issues/new?title=x',
   total_redactions: 3,
   included: ['gateway.log', 'kiro-cli.log'],
 }

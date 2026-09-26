@@ -623,12 +623,12 @@ _MIXED_INTERNAL_API_PATHS = frozenset(
         "/api/apps/ops-mission-control/incident/transition",
         "/api/apps/ops-mission-control/incident/claim",
         "/api/apps/ops-mission-control/incident/action",
-        # Issue Radar crew ledger — the read leg and the work-item write leg, for
-        # the ``issue_radar_crew_read`` / ``issue_radar_crew_record`` MCP tools. A
-        # crew agent has no dashboard token (same three reasons as the
+        # Issue Radar steward ledger — the read leg and the work-item write leg,
+        # for the ``issue_radar_steward_read`` / ``issue_radar_steward_record`` MCP
+        # tools. A steward agent has no dashboard token (same three reasons as the
         # investigation entry above), and the ledger is the ONLY thing that
         # survives its compaction, its per-turn ceiling and a gateway restart, so
-        # without these entries an unattended crew has no memory at all.
+        # without these entries an unattended steward has no memory at all.
         #
         # FULL paths, never the ``/api/apps/issue-radar`` prefix — for the reason
         # spelled out on the investigation entry: prefix-matching there would also
@@ -636,17 +636,19 @@ _MIXED_INTERNAL_API_PATHS = frozenset(
         # comment) to anything holding the internal secret.
         #
         # Read this pair as ONE admission, not two. Matching is
-        # ``path == p or path.startswith(p + "/")``, so the ``/crew`` entry
-        # already covers ``/crew/work`` and EVERY future ``/crew/...`` sub-route:
-        # anything added under that segment becomes agent-reachable the moment it
-        # is routed, with no further edit here. So a forge-write or destructive
-        # route must not live under ``/crew/`` — put it on its own path, or refuse
-        # an internal-secret caller at the handler the way
-        # ``api_skills_discover_install`` does below.
-        "/api/apps/issue-radar/crew",
+        # ``path == p or path.startswith(p + "/")``, so the ``/steward`` entry
+        # already covers ``/steward/work`` and EVERY future ``/steward/...``
+        # sub-route: anything added under that segment becomes agent-reachable the
+        # moment it is routed, with no further edit here. So a forge-write or
+        # destructive route must not live under ``/steward/`` — put it on its own
+        # path, or refuse an internal-secret caller at the handler the way
+        # ``api_skills_discover_install`` does below. The plural ``/stewards``
+        # routes (list, create, names, settings) are a different segment and are
+        # NOT admitted: ``"/stewards".startswith("/steward/")`` is false.
+        "/api/apps/issue-radar/steward",
         # Redundant under the prefix match above; kept explicit so a reader sees
-        # both routes the crew tools actually call.
-        "/api/apps/issue-radar/crew/work",
+        # both routes the steward tools actually call.
+        "/api/apps/issue-radar/steward/work",
         # Registry skill discovery — the READ leg only, for the
         # ``skill_discover`` / ``skill_fetch`` MCP tools. The Skills page calls
         # the same two routes with cookie auth, hence mixed rather than strict.
@@ -683,17 +685,13 @@ _BASE_CSP = (
     "script-src 'self' 'unsafe-inline' "
     "https://cdn.tailwindcss.com https://cdn.jsdelivr.net https://cdnjs.cloudflare.com "
     "https://esm.sh; "
-    # https://fonts.googleapis.com + https://fonts.gstatic.com: index.html loads
-    # the UI's two brand faces (Space Grotesk, JetBrains Mono) from Google Fonts.
-    # Without these the stylesheet is refused and BOTH families fall through the
-    # stack. macOS lands on -apple-system and looks deliberate; Windows has no
-    # such entry, so it drops to the generic sans-serif/monospace and the whole
-    # dashboard renders in a face the design never targeted (metrics tuned for
-    # Space Grotesk/JetBrains Mono then mis-fit, so chrome text also mis-sizes).
+    # No font CDN: the UI's typefaces (Overpass, Overpass Mono) are bundled and
+    # served from /fonts on this origin, so 'self' covers them and the
+    # dashboard renders its own faces offline too.
     "style-src 'self' 'unsafe-inline' https://cdn.tailwindcss.com https://cdn.jsdelivr.net "
-    "https://esm.sh https://fonts.googleapis.com; "
+    "https://esm.sh; "
     "img-src 'self' data: blob: https:; "
-    "font-src 'self' data: https://esm.sh https://fonts.gstatic.com; "
+    "font-src 'self' data: https://esm.sh; "
     # Loopback http(s) origins ({connect_src_extra}) mirror the frame-src note
     # below: WebPreviewPanel does not merely FRAME the local dev server, it also
     # polls it with a no-cors `fetch` liveness probe (a cross-origin iframe
@@ -3292,7 +3290,7 @@ async def start_dashboard(
     # the PID by hand.
     #
     # Crash-dump discoverability: route dumps to a dedicated file under
-    # ~/.kiro/crew/logs/crash-dumps/ so they are findable via `junction doctor`
+    # ~/.junction/logs/crash-dumps/ so they are findable via `junction doctor`
     # and startup warnings, rather than buried in interleaved stderr/journal.
     # Crash-dump hygiene: sweep header-only dumps left by prior sessions that
     # exited without ever wedging (every startup pre-creates one for

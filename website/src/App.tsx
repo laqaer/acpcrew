@@ -43,7 +43,7 @@ import { safeSetItem } from './utils/safeStorage'
 import { gcOrphanedStorage } from './utils/storageGc'
 import { isMetricNumber, metricNumber } from './utils/metrics'
 import { Rocket, Bell, Code, RefreshCw, Package, Loader2, Download, Hammer, XCircle, Check, AlertTriangle, CheckCircle, X, AudioWaveform, ChevronUp, MoreHorizontal, Coins, ArrowLeftToLine, LayoutGrid, Fullscreen, SquareTerminal, Bot, Search as SearchIcon } from 'lucide-react'
-import { GithubIcon, DiscordIcon } from './components/BrandIcon'
+import { GithubIcon } from './components/BrandIcon'
 import { Toggle } from './components/ui'
 import OnboardingFlow from './components/OnboardingFlow'
 import AgentImportFlow from './components/AgentImportFlow'
@@ -3000,18 +3000,19 @@ export default function App() {
                       animate={{ opacity: 1, x: 0 }}
                       exit={{ opacity: 0, x: -6, transition: { duration: 0.12, ease: 'easeIn' } }}
                       transition={{ duration: 0.2, ease: 'easeOut' }}
-                      className="text-[13px] font-bold tracking-[.14em] uppercase whitespace-nowrap truncate min-w-0"
+                      className="text-[15px] font-extrabold tracking-[-0.01em] whitespace-nowrap truncate min-w-0"
                     >
-                      {/* Product name in copper. A two-word custom bot name
-                          keeps the last word on accent so a renamed instance
-                          still reads as a lockup, not a sentence. */}
+                      {/* Set like the Junction wordmark: heavy, sentence case,
+                          in the strongest text colour. A two-word custom bot
+                          name keeps its last word on the accent so a renamed
+                          instance still reads as a lockup, not a sentence. */}
                       {botName.includes(' ') ? (
                         <>
                           <span className="text-text-strong">{botName.slice(0, botName.lastIndexOf(' ') + 1)}</span>
-                          <span className="text-accent/90">{botName.slice(botName.lastIndexOf(' ') + 1)}</span>
+                          <span className="text-accent">{botName.slice(botName.lastIndexOf(' ') + 1)}</span>
                         </>
                       ) : (
-                        <span className="text-accent/90">{botName}</span>
+                        <span className="text-text-strong">{botName}</span>
                       )}
                     </motion.span>
                   )}
@@ -3215,29 +3216,27 @@ export default function App() {
                 badge={updateAvailable ? <span title={i18nT('app.update_available')} role="status" aria-label={i18nT('app.update_available_2')} className={effectiveCollapsed ? 'absolute top-1 right-1 w-2 h-2 bg-accent rounded-full z-10' : 'absolute top-1/2 -translate-y-1/2 right-2 w-2 h-2 bg-accent rounded-full z-10'} /> : undefined}
               />
               {/* Community row — a leading GitHub mark, then two links on ONE
-                  line separated by a middot, then the icon-only Discord link.
+                  line separated by a middot.
 
                   This line is tight by construction, and the numbers are
                   MEASURED against real font advance widths, not estimated.
-                  The rail is 236px, which leaves a 143px text group after the
-                  mark, the Discord icon and padding; the middot plus its gaps
-                  costs ~10-15px depending on family.
+                  The rail is 236px, which leaves a 171px text group after the
+                  mark and padding; the middot plus its gaps costs ~10-15px
+                  depending on family.
 
                   CRITICAL: size this against the WIDEST font the user can pick,
                   not the default. `useZoom` lets them set --font-body to sans
-                  (Space Grotesk), mono (JetBrains Mono) or system (-apple-system),
-                  and mono is ~20% wider. A 12px row measured only against Space
-                  Grotesk truncates for every mono user.
+                  (Overpass), mono (Overpass Mono) or system (-apple-system),
+                  and mono is ~30% wider. A 12px row measured only against
+                  Overpass truncates for every mono user.
 
                   "Star us · Report issue" at 12px, measured:
-                    Space Grotesk   114.0px against a 132.8px budget — 18.7 spare
-                    JetBrains Mono  136.8px against a 127.8px budget — 9.0 OVER
-                  Rather than shrink the type for everyone or drop the Discord
-                  link, mono alone is tightened to -0.05em, which brings it to
-                  125.4px (+3.0 spare). That rule lives in index.css keyed on
+                    Overpass        107.0px against a 160.8px budget — 53.8 spare
+                    Overpass Mono   140.4px against a 155.8px budget — 15.4 spare
+                  Mono's spacing is retuned in index.css keyed on
                   html[data-font-family="mono"] via the `rail-community-links`
-                  class, and its measurement table is there. Mono's margin is only
-                  ~3px, so ANY copy growth here must be re-measured IN MONO first.
+                  class, and its measurement table is there. Mono's margin is
+                  ~15px, so copy growth here must be re-measured IN MONO first.
 
                   The separator is a middot because " / " is wider, and the row's
                   right padding is trimmed for the same budget reason.
@@ -3267,10 +3266,10 @@ export default function App() {
                 <div className="flex items-center border-t border-border pl-3 pr-0.5 pt-2.5 pb-0.5 whitespace-nowrap">
                   {/* pl-3 puts the mark on the same 12px x-offset as the
                       nav-item icons above. No `gap` on this row ON PURPOSE: a row
-                      gap applies between ALL THREE children (mark, links,
-                      Discord), so pairing it with ml-0.5 would silently double
-                      the mark-to-text distance to 6px and cost 4px the budget
-                      below never accounts for. Spacing is explicit per child instead. */}
+                      gap would sit between the mark and the links, so pairing it
+                      with ml-0.5 would silently double the mark-to-text distance
+                      and cost width the budget above never accounts for. Spacing
+                      is explicit per child instead. */}
                   <span className="flex items-center shrink-0 text-muted"><GithubIcon size={15} /></span>
                   <div className="rail-community-links flex items-center gap-[5px] flex-1 min-w-0 ml-1.5 text-[12px]">
                     <a href="https://github.com/laqaer/junction" target="_blank" rel="noopener noreferrer" title={i18nT('app.star_junction_on_github')} aria-label={i18nT('app.star_junction_on_github')} className="shrink-0 rounded text-muted hover:text-text transition-colors">{i18nT('app.star_us')}</a>
@@ -3286,7 +3285,6 @@ export default function App() {
                         its sibling link so the row's width budget above is unchanged. */}
                     <button type="button" onClick={() => setReportProblemOpen(true)} title={i18nT('app.report_a_problem_with_diagnostics')} aria-label={i18nT('app.report_a_problem_with_diagnostics')} className="min-w-0 overflow-hidden text-ellipsis rounded text-muted hover:text-text transition-colors cursor-pointer bg-transparent border-0 p-0 text-[12px]">{i18nT('app.report_issue')}</button>
                   </div>
-                  <a href="https://kiro.dev/discord/" target="_blank" rel="noopener noreferrer" title={i18nT('app.discord_community')} aria-label={i18nT('app.kiro_discord_community')} className="flex items-center justify-center ml-1 w-6 h-6 rounded-md text-muted hover:text-text hover:bg-bg-hover transition-colors shrink-0"><DiscordIcon size={15} /></a>
                 </div>
               </div>
             </div>

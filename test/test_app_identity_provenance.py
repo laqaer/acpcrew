@@ -180,7 +180,7 @@ class TestProvenanceCapture:
     @pytest.fixture()
     def signing_home(self, tmp_path, monkeypatch) -> Path:
         """An explicitly-isolated JUNCTION_HOME, so writing an admission policy
-        below can never reach the developer's real ``~/.kiro/crew``."""
+        below can never reach the developer's real ``~/.junction``."""
         home = tmp_path / "junction-home"
         home.mkdir()
         monkeypatch.setenv("JUNCTION_HOME", str(home))

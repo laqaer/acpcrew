@@ -40,7 +40,7 @@ vi.mock('../components/MarkdownRenderer', () => ({ default: ({ content }: { cont
 // and writes the same slice the preloaded state seeds, so a fixed fetch payload
 // silently clobbers whatever a test set up and every case would test one shape.
 const { COMMAND, statusOverride } = vi.hoisted(() => ({
-  COMMAND: 'python3 -m pip install --upgrade kiro-crew',
+  COMMAND: 'python3 -m pip install --upgrade junction',
   statusOverride: { value: {} as Record<string, unknown> },
 }))
 
@@ -124,7 +124,7 @@ describe('changelog modal apply affordance', () => {
     expect(await screen.findByTestId('modal-update-command')).toBeTruthy()
     // The exact command is whatever the gateway composed for this install shape;
     // the fixture only has to be recognisable here.
-    expect(screen.getByTestId('modal-update-command').textContent).toContain('kiro-crew')
+    expect(screen.getByTestId('modal-update-command').textContent).toContain('pip install --upgrade junction')
     // The regression guard: this button is a guaranteed 400/409 here.
     expect(screen.queryByText('Update Now')).toBeNull()
   })

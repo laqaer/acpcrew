@@ -147,10 +147,10 @@ export const PANEL_TAB_MAP: Record<string, PanelTarget> = {
   'DeveloperPanel.tsx': 'developer',
   'AboutPanel.tsx': 'about',
   'SttSettings.tsx': 'voice',
-  // The `instances` tab mounts RemoteCrewPanel (SettingsPage.tsx), which also
+  // The `instances` tab mounts RemoteInstancesPanel (SettingsPage.tsx), which also
   // renders InstancesPanel.tsx's AddInstanceForm — both files map to the same
   // tab so a primitive added to either lands on the right deep link.
-  'RemoteCrewPanel.tsx': 'instances',
+  'RemoteInstancesPanel.tsx': 'instances',
 }
 
 /** Map component name → our type enum. */

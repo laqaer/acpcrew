@@ -92,9 +92,9 @@ _STATE_FILE = "state.json"
 _KEY_FILE = "slot_key"
 _LOCK_FILE = ".lock"
 
-#: Identical fold to ``crew_chat._store_name`` — kept in lockstep so a slot
+#: Identical fold to ``multitask_chat._store_name`` — kept in lockstep so a slot
 #: key and its stores share one spelling family. Reimplemented rather than
-#: imported: ``crew_chat`` drags the whole crew orchestrator import graph into
+#: imported: ``multitask_chat`` drags the whole Multitask Mode import graph into
 #: what must stay a leaf module usable from the gateway boot path. The fold
 #: shapes only the READABLE half of a directory name; identity is the digest
 #: over the exact key.
@@ -313,7 +313,7 @@ def record(
 ) -> dict[str, Any]:
     """Apply one partial update to the state record, in one locked transaction.
 
-    Enforces the crew-ledger discipline: passing *phase* without *event* and a
+    Enforces the ledger discipline: passing *phase* without *event* and a
     recognized *event_kind* is refused with ``ValueError`` — a phase must
     never move without a logged, classified reason. State and event land in
     the SAME atomic write, so the invariant holds across crashes too.

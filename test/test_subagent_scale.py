@@ -205,7 +205,7 @@ class TestBatchIdentity:
     async def test_a_drained_rejection_is_announced(self):
         """A drained spawn has no synchronous reader, so a terminal rejection there
         used to vanish: no completion event, and the caller still believed the run
-        was going (crew left the topic `running` forever). `_announce_rejection`
+        was going (Multitask Mode left the topic `running` forever). `_announce_rejection`
         gates on batch_id because a DIRECT caller reads the error off the return
         value -- that does not hold for a timer-driven drain.
         """

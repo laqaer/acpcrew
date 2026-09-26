@@ -280,7 +280,7 @@ const BERNADETT = 'Bernadett'
 const CONSTANZA = 'Constanza'
 
 /** Four pandas the den has already met, so they start seated at desks 0-3. */
-function seatedCrew(prefix: string, running = true): AgentSource[] {
+function seatedAgents(prefix: string, running = true): AgentSource[] {
   const names = [ROSALINDA, FERDINAND, BERNADETT, CONSTANZA]
   const sources = names.map((name, i) => agent({ id: `slot-${prefix}-${i}`, name, running, detail: '3 msgs' }))
   markAgentsKnown('panda-office', sources.map(s => s.id))
@@ -332,7 +332,7 @@ describe('PandaOfficeScene fittings', () => {
   })
 
   it('lists the running pandas on the whiteboard instead of the placeholder', () => {
-    const { overlay } = mount(seatedCrew('board'))
+    const { overlay } = mount(seatedAgents('board'))
     expect(labels(overlay)).not.toContain('No tasks')
     // Cards are clipped to eight characters.
     expect(labels(overlay)).toContain(ROSALINDA.slice(0, 8))
@@ -354,7 +354,7 @@ describe('PandaOfficeScene animated fittings', () => {
   })
 
   it('blinks a cursor on an occupied monitor', () => {
-    const { pixel } = mount(seatedCrew('cursor'))
+    const { pixel } = mount(seatedAgents('cursor'))
     fastForward(7)
     clearRecords()
     runFrames(1)               // tick 9 — cursor phase on
@@ -375,7 +375,7 @@ describe('PandaOfficeScene animated fittings', () => {
   })
 
   it('steams the mug on an occupied desk only', () => {
-    const { pixel } = mount(seatedCrew('steam'))
+    const { pixel } = mount(seatedAgents('steam'))
     clearRecords()
     runFrames(1)               // tick 2 — steam phase off
     expect(hasColor(pixel, MUG_STEAM)).toBe(false)
@@ -400,7 +400,7 @@ describe('PandaOfficeScene animated fittings', () => {
   })
 
   it('opens the pandas eyes after the mount-frame blink', () => {
-    const { pixel } = mount(seatedCrew('blink'))
+    const { pixel } = mount(seatedAgents('blink'))
     const seat = { x: DESKS[0].x + 10, y: DESKS[0].y + 20 }
     // Eye whites sit inside the black patches, offset by the facing direction.
     const leftEye = () => fillAt(pixel, '#fff', (seat.x + 2.5) * S, (seat.y - 4) * S, S, S)
@@ -538,7 +538,7 @@ describe('PandaOfficeScene live session updates', () => {
 
 describe('PandaOfficeScene daily routine', () => {
   it('sends one panda for bamboo and another to the whiteboard, then walks them back', () => {
-    const { overlay, pixel } = mount(seatedCrew('routine'))
+    const { overlay, pixel } = mount(seatedAgents('routine'))
 
     // The bamboo break rolls at tick 600; the walk across the den is ~525 frames.
     const atMachine = stepUntil(() => {
@@ -569,7 +569,7 @@ describe('PandaOfficeScene daily routine', () => {
   })
 
   it('pairs two pandas mid-room, prints both chat lines, then breaks the huddle', () => {
-    const { overlay, pixel } = mount(seatedCrew('huddle'))
+    const { overlay, pixel } = mount(seatedAgents('huddle'))
 
     // Refuse every break roll on the way up so all four stay seated, then arm a
     // value that passes the huddle roll (< 0.3) and picks the second chat pair.
@@ -600,8 +600,8 @@ describe('PandaOfficeScene daily routine', () => {
   })
 
   it('sends the surviving partner home when the other leaves mid-huddle', () => {
-    const crew = seatedCrew('departed')
-    const { overlay, rerender } = mount(crew)
+    const agents = seatedAgents('departed')
+    const { overlay, rerender } = mount(agents)
 
     rand = 0.9
     fastForward(1798)
@@ -611,7 +611,7 @@ describe('PandaOfficeScene daily routine', () => {
     expect(labels(overlay)).toContain('CR approved!')
 
     // The first partner's session ends while the two are still talking.
-    rerender(crew.slice(1))
+    rerender(agents.slice(1))
     advanceTimers(5_000)
     clearRecords()
     runFrames(1)

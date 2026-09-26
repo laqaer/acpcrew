@@ -1,5 +1,5 @@
 /**
- * The Crew Companion dashboard sections and the desktop panel card.
+ * The Companion dashboard sections and the desktop panel card.
  *
  * All three are conditional surfaces whose interesting states only appear when
  * the desktop app is unreachable, a write fails, or a reminder repeats:
@@ -17,12 +17,12 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { render, screen, fireEvent, waitFor } from '@testing-library/react'
 
-import SettingsSection from '../apps/crew-companion/SettingsSection'
-import RemindersSection from '../apps/crew-companion/RemindersSection'
-import { BREAK_PRESETS, BREAK_MAX_MINS, BREAK_MIN_MINS } from '../apps/crew-companion/constants'
-import type { RemindersPayload } from '../apps/crew-companion/types'
+import SettingsSection from '../apps/desk-companion/SettingsSection'
+import RemindersSection from '../apps/desk-companion/RemindersSection'
+import { BREAK_PRESETS, BREAK_MAX_MINS, BREAK_MIN_MINS } from '../apps/desk-companion/constants'
+import type { RemindersPayload } from '../apps/desk-companion/types'
 
-vi.mock('../apps/crew-companion/PanelViews', () => ({
+vi.mock('../apps/desk-companion/PanelViews', () => ({
   ViewHeader: ({ title, onBack }: { title: string; onBack: () => void }) => (
     <button type="button" data-testid="view-back" onClick={onBack}>{title}</button>
   ),
@@ -31,7 +31,7 @@ vi.mock('../apps/crew-companion/PanelViews', () => ({
   SettingsView: () => <div data-testid="view-settings" />,
 }))
 
-const { PanelCard } = await import('../apps/crew-companion/PanelCard')
+const { PanelCard } = await import('../apps/desk-companion/PanelCard')
 
 function payload(over: Partial<RemindersPayload> = {}): RemindersPayload {
   return {
@@ -45,7 +45,7 @@ function payload(over: Partial<RemindersPayload> = {}): RemindersPayload {
   }
 }
 
-describe('crew-companion/SettingsSection', () => {
+describe('desk-companion/SettingsSection', () => {
   it('renders its controls disabled, with a reason, when the app is unreachable', () => {
     const { container } = render(
       <SettingsSection rem={null} remError="offline" onCfg={vi.fn()} customMins={null} setCustomMins={vi.fn()} />,
@@ -176,7 +176,7 @@ describe('crew-companion/SettingsSection', () => {
   })
 })
 
-describe('crew-companion/RemindersSection', () => {
+describe('desk-companion/RemindersSection', () => {
   const base = {
     onSkip: vi.fn(),
     onRemove: vi.fn(),
@@ -284,7 +284,7 @@ describe('crew-companion/RemindersSection', () => {
   })
 })
 
-describe('crew-companion/PanelCard', () => {
+describe('desk-companion/PanelCard', () => {
   const item = {
     id: 'zz1',
     text: 'zz-text',

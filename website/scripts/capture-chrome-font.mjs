@@ -43,7 +43,7 @@ const OUT = process.argv[2] || '../temp-screenshots/chrome-font'
 const SLOT = 'chat-chrome-font'
 // Basename is what the shelf shows, so the fixture ends in the folder a
 // Junction user actually sees there.
-const PROJECT = '/home/user/.kiro/crew/workspace'
+const PROJECT = '/home/user/.junction/workspace'
 const VIEW = { width: 1500, height: 1000 }
 
 mkdirSync(OUT, { recursive: true })
@@ -52,8 +52,8 @@ mkdirSync(OUT, { recursive: true })
 const AGENTS = [
   {
     id: '1713e7d0',
-    task: 'You are auditing the GitHub PR history of the repo kirodotdev/KiroCrew for a translation gap.',
-    tool: 'gh pr list --repo kirodotdev/KiroCrew --state all --limit 700 --json number,title,state',
+    task: 'You are auditing the GitHub PR history of the repo laqaer/junction for a translation gap.',
+    tool: 'gh pr list --repo laqaer/junction --state all --limit 700 --json number,title,state',
     tool_count: 5,
   },
   {
@@ -161,7 +161,7 @@ async function main() {
     if (path.startsWith('/api/effort-levels')) return json(route, ['low', 'medium', 'high', 'xhigh', 'max'])
     if (path === '/api/agents') {
       return json(route, {
-        agents: [{ name: 'default', kiro_agent: 'junction', description: 'Default crew agent' }],
+        agents: [{ name: 'default', kiro_agent: 'junction', description: 'Default agent' }],
         default_agent: 'default',
       })
     }

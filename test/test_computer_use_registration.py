@@ -494,15 +494,12 @@ def test_subcommand_matches_the_discovery_mapping():
 
 
 def test_computer_use_sources_are_scrub_lint_clean():
-    """Every computer-use source file passes the De-Amazon scrub-lint pattern.
+    """Every computer-use source file passes the internal-marker scrub-lint pattern.
 
     ``scripts/scrub-lint.sh`` is a BLOCKING CI job, and its ``INTERNAL_PATTERN``
-    includes a bare ``\\.amazon\\.`` — which matches the product's own macOS bundle
-    id (``com.amazon.kiro.crew``). That id is genuinely needed by the self-denylist
-    (Junction's dashboard can flip this feature's own primary enable, so driving our
-    own window must be refused), so the fix is an anchored
-    ``scripts/scrub-allowlist.txt`` entry for the one file that needs it — not
-    deleting the denylist row and not broadening the pattern.
+    includes a bare ``\\.amazon\\.``, so a bundle id or host in that namespace
+    anywhere under ``computer_use/`` would fail it. The self-denylist names only
+    Junction's own ``dev.junction`` bundle prefix, so no allowlist entry is needed.
 
     This test exists because the scrub gate lives in a shell script that only runs
     as its own CI job: a Python-suite failure here surfaces the same problem in the
@@ -558,7 +555,7 @@ def test_computer_use_sources_are_scrub_lint_clean():
             offenders.append(hit)
 
     assert offenders == [], (
-        "these lines trip the BLOCKING De-Amazon scrub-lint job; add an anchored "
+        "these lines trip the BLOCKING internal-marker scrub-lint job; add an anchored "
         f"scripts/scrub-allowlist.txt entry for each: {offenders}"
     )
 
@@ -570,7 +567,7 @@ class TestGatedEntryIsNotPreserved:
     the user's own ``env`` keys) are genuinely lost — an off/on cycle resets them
     and the operator re-applies them. That is a real cost, accepted for a reason:
     the only place to stash them would be the ``agent_state`` sidecar, which is an
-    ORDINARY file under the data home (not on ``security._CREW_SECRET_LEAVES``,
+    ORDINARY file under the data home (not on ``security._DATA_HOME_SECRET_LEAVES``,
     not write-protected), so the agent can write it. A restored ``autoApprove``
     would then be an agent-authored auto-approve, and kiro-cli approves an
     auto-approved MCP tool LOCALLY — no permission request, so

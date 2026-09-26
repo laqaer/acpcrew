@@ -19,7 +19,7 @@ Source: `src/junction/metrics/` — `schema.py`, `recorder.py`, `provider.py`,
 | `schema.py` | Namespace constants (`NS_CORE = "junction."`, `NS_GENAI = "gen_ai."`, `NS_APP_PREFIX = "app."`) + `validate_name` / `validate_attrs` / `redact` guardrails. Documents the low-cardinality contract. |
 | `recorder.py` | `MetricsRecorder` — facade over the OTEL `Meter`. Every metric passes namespace + privacy guardrails BEFORE reaching an instrument. Instrument-cache creation is lock-guarded (atomic check-then-create). Best-effort: a telemetry failure never propagates to the caller. `meter=None` = no-op recorder. |
 | `provider.py` | Consent gate + process-global recorder (`get_recorder()`) + graceful `shutdown()` / `reset_for_testing()`. `get_recorder()` serves a memoized recorder and re-resolves the `telemetry.enabled` consent value every `_CONSENT_RECHECK_SECS` (30s), rebuilding when it moved — see "Recorder lifecycle & threading" below. Public consent surface: `env_pin()` / `TELEMETRY_ENV_VAR`. When enabled, wires a `PeriodicExportingMetricReader` to the local JSONL exporter. Installs **one `View` per instrument** from `_HISTOGRAM_BUCKETS_MS`, each with its own `ExplicitBucketHistogramAggregation` boundaries (see below) — deliberately NOT a catch-all `instrument_type=Histogram` View. |
-| `local_exporter.py` | `JsonlMetricExporter` — appends one JSON line per export cycle to `<dir>/metrics-YYYY-MM-DD-<pid>.jsonl` (default dir `~/.kiro/crew/metrics`). Per-PID single-writer shards keep append + rotation lock-free, so concurrent exporters do not lose DELTA cycles. A private `.metrics.lock` serializes only retention sweeps; pruning skips canonical shards owned by live PIDs or modified within the safety window. **Bounded retention (rec #14):** shards rotate before an append exceeds `max_total_mb`; closed/expired shards are pruned directly by age and oldest-first size. Pruning is throttled to at most once per 300s and fully best-effort. Dir mode is 0o700, file mode 0o600, and nothing egresses the host. Declares DELTA `preferred_temporality` for Counter/UpDownCounter/Histogram so daily aggregation is an element-wise sum across cycles/PIDs. Observable counters are deliberately NOT mapped and export CUMULATIVE: the delta baseline lives in the provider, which is rebuilt in-process on a telemetry consent change, so DELTA would re-emit the process-lifetime total once per rebuild; the aggregator instead reduces cumulative streams window-relative (deterministic identity boundary + time-ordered legacy reset detection + first-in-window baseline), which is rebuild-idempotent. **Process identity:** each record is stamped once at resource level with `junction.process.start_time` (`schema.RESOURCE_ATTR_PROCESS_START_TIME`) — the writing process's OS start-time token from `platform_compat.own_process_start_time()`, module-cached so provider rebuilds inside one process stamp the SAME value, and reboot-unique (Linux start ticks + boot UUID; macOS microsecond `proc_pidinfo` instant; Windows creation FILETIME). A read that cannot honor one-token-one-process (unreadable boot UUID, no `libproc`, 1s-only sources) emits NO token rather than an aliasable coarse one — a degraded token would merge lifetimes AND mute the reset heuristic that catches merges. The shard-filename PID plus this token identify a process beyond PID reuse, making the aggregator's cumulative reset detection deterministic. The stamp lands on the serialized JSONL line, never on the SDK `Resource` — that `Resource` also feeds the opt-in OTLP reader, and this host-local token must not egress. Fail-soft: when the platform read is unavailable the field is absent and the aggregator's legacy value heuristic applies. Resource level, not a metric attribute, so it never multiplies series cardinality. |
+| `local_exporter.py` | `JsonlMetricExporter` — appends one JSON line per export cycle to `<dir>/metrics-YYYY-MM-DD-<pid>.jsonl` (default dir `~/.junction/metrics`). Per-PID single-writer shards keep append + rotation lock-free, so concurrent exporters do not lose DELTA cycles. A private `.metrics.lock` serializes only retention sweeps; pruning skips canonical shards owned by live PIDs or modified within the safety window. **Bounded retention (rec #14):** shards rotate before an append exceeds `max_total_mb`; closed/expired shards are pruned directly by age and oldest-first size. Pruning is throttled to at most once per 300s and fully best-effort. Dir mode is 0o700, file mode 0o600, and nothing egresses the host. Declares DELTA `preferred_temporality` for Counter/UpDownCounter/Histogram so daily aggregation is an element-wise sum across cycles/PIDs. Observable counters are deliberately NOT mapped and export CUMULATIVE: the delta baseline lives in the provider, which is rebuilt in-process on a telemetry consent change, so DELTA would re-emit the process-lifetime total once per rebuild; the aggregator instead reduces cumulative streams window-relative (deterministic identity boundary + time-ordered legacy reset detection + first-in-window baseline), which is rebuild-idempotent. **Process identity:** each record is stamped once at resource level with `junction.process.start_time` (`schema.RESOURCE_ATTR_PROCESS_START_TIME`) — the writing process's OS start-time token from `platform_compat.own_process_start_time()`, module-cached so provider rebuilds inside one process stamp the SAME value, and reboot-unique (Linux start ticks + boot UUID; macOS microsecond `proc_pidinfo` instant; Windows creation FILETIME). A read that cannot honor one-token-one-process (unreadable boot UUID, no `libproc`, 1s-only sources) emits NO token rather than an aliasable coarse one — a degraded token would merge lifetimes AND mute the reset heuristic that catches merges. The shard-filename PID plus this token identify a process beyond PID reuse, making the aggregator's cumulative reset detection deterministic. The stamp lands on the serialized JSONL line, never on the SDK `Resource` — that `Resource` also feeds the opt-in OTLP reader, and this host-local token must not egress. Fail-soft: when the platform read is unavailable the field is absent and the aggregator's legacy value heuristic applies. Resource level, not a metric attribute, so it never multiplies series cardinality. |
 | `http_metrics.py` | Gateway HTTP observability (rec #1): `record_boot_to_ready()` (boot-to-ready histogram) + `make_route_latency_middleware()` (per-route latency, wired as the outermost middleware on both `start_dashboard`/`start_api_server`). Bounds `route_template` cardinality via `collect_route_templates()` (build-time snapshot) + `route_template()` (`__unknown__` fallback); clamps `method` to a fixed allowlist and `status_class` to `1xx`..`5xx`/`other`. Upgraded WebSocket connections and `text/event-stream` SSE responses are excluded because their handler elapsed time is connection/turn lifetime, not HTTP request latency. Best-effort — a telemetry failure never alters a response. |
 
 ## Recorder lifecycle & threading
@@ -122,12 +122,12 @@ worst case is one dropped export cycle rather than a corrupt shard.
 ## Configuration
 
 `TelemetryConfig` in `config/loader.py` (section `telemetry` in
-`~/.kiro/crew/config.json`):
+`~/.junction/config.json`):
 
 | Field | Default | Meaning |
 |-------|---------|---------|
 | `enabled` | `false` | Main switch. Off = no-op recorder, nothing written. Editable from the dashboard (Settings → Privacy) as well as the config file, `junction config set`, and the env var; re-resolved live, so a change takes effect without a restart. |
-| `local_dir` | `""` | JSONL shard dir; empty = `~/.kiro/crew/metrics`. `~` expansion supported. |
+| `local_dir` | `""` | JSONL shard dir; empty = `~/.junction/metrics`. `~` expansion supported. |
 | `export_interval_seconds` | `60` | Flush interval (floored to 1). |
 | `retention_days` | `0` | Age pruning is disabled by default to preserve pre-existing history on upgrade. Set a positive day window to opt in (rec #14). |
 | `max_total_mb` | `0` | Size pruning is disabled by default to preserve pre-existing history on upgrade. Set a positive opportunistic directory budget to opt in; protected active writers can temporarily exceed it (rec #14). |
@@ -146,7 +146,7 @@ defaults empty, so **no data ever leaves the machine unless the operator
 explicitly sets an OTLP endpoint.**
 
 **Easy opt-in (four equivalent ways):**
-- **Config flag:** set `"telemetry": {"enabled": true}` in `~/.kiro/crew/config.json`.
+- **Config flag:** set `"telemetry": {"enabled": true}` in `~/.junction/config.json`.
 - **CLI:** `junction config set telemetry.enabled true`.
 - **Dashboard:** the recording switch in Settings → Privacy, which writes the same
   key through `PATCH /api/config/junction` (`telemetry.enabled` is in
@@ -523,7 +523,7 @@ written (the panel therefore renders it even with OTEL export off).
 
 ## Per-turn token usage row store
 
-Separate from the OTEL histogram sink above (`~/.kiro/crew/metrics/`, DELTA
+Separate from the OTEL histogram sink above (`~/.junction/metrics/`, DELTA
 histograms for trends/alerting), the gateway also keeps a **per-turn row store**
 for cost and context analytics: one JSON object per model-spending turn appended
 to `<data home>/usage/tokens/YYYY-MM-DD.jsonl` (shards partitioned by the user's
@@ -1212,7 +1212,7 @@ heartbeat lands a `governance_decision` record. `status()` passes `audit=False`
 because it backs `GET /api/telemetry/beacon`, which the Privacy panel refetches —
 auditing an inspection would flood the trail.
 
-`is_default_home()` compares against `~/.kiro/crew` **directly, never against
+`is_default_home()` compares against `~/.junction` **directly, never against
 `config_dir()`** — `config_dir()` *honors* `JUNCTION_HOME`, so comparing the two
 always matches and the suppression would never fire (a real bug caught by
 `TestDefaultHomeDetection`).
@@ -1419,115 +1419,33 @@ absent/corrupt — so the id regenerates rather than merely not crashing. The
 `/dev/zero` and FIFO tests use a real thread timeout, because the failure mode is
 "never returns", which a plain assertion cannot catch.
 
-### Server side (account 116101834266, us-west-2)
+### Server side: no collector ships
 
-Zero application code — the access log **is** the data product:
+Junction ships **without** a beacon collector. `telemetry.beacon_endpoint`
+defaults to empty, and `beacon.send()` returns before building a request when
+the endpoint is empty, so a default install never sends a heartbeat anywhere,
+whatever `telemetry.beacon_enabled` says. `junction telemetry status` reports
+this as `no_endpoint`.
+
+An operator who wants the heartbeat points `telemetry.beacon_endpoint` at an
+HTTPS collector they run. The wire contract is the one `beacon_url()` builds:
 
 ```
-client ─GET /b/1/<id>?v&py&dist&first_seen─> CloudFront E1YM983XX3ASBM
-                                     │ CloudFront Function returns 204 at the edge
-                                     ▼
-        standard logging v2 → s3://junction-beacon-logs (PERMANENT, tiered)
-                                     ▼
-              Athena junction_analytics.beacon_logs (partition projection)
-                                     ▼
-        junction-beacon-aggregator Lambda (daily 00:20 UTC) writes BOTH:
-                    ├── CloudWatch Junction/Product  → dashboard (~15-month view)
-                    └── junction_analytics.beacon_daily → PERMANENT record
+GET <endpoint>/b/<BEACON_SCHEMA>/<install-id>?v=<release>&py=<minor>&dist=<channel>&first_seen=<0|1>
 ```
 
-**Metrics published.** `DailyActiveInstances`, `BeaconPings`, `NewInstallations`,
-`ActiveByVersion`, `ActiveByPython`, `ActiveByDistribution`, and `ActiveByCountry`.
-`ActiveByChannel` / `ActiveByOS` / `ActiveByArch` were removed with their source
-fields; their historical CloudWatch points and rollup rows are left in place (the
-data is real for the days it covers — deleting it would be rewriting history to
-match a current schema).
+A 2xx response marks the day as sent; a network error or a non-2xx status
+leaves it unmarked, so the client tries again later. The cheapest correct
+collector therefore answers `204` and keeps the request line in an access log. Two properties keep the heartbeat as anonymous server-side as it is
+on the wire, and a collector should preserve both:
 
-**`country` is retained, and is the one field the client does not send.** It is
-derived at the CloudFront edge and is coarse (a 2-letter code); the IP it comes
-from is never written to storage, since the log delivery does not select `c-ip` at
-all. Dropping it would mean removing `c-country` from the delivery's
-`recordFields`, which shifts every column in the TSV — the Glue table's six columns
-are positional, so new log lines would silently misparse (the `status = '204'`
-filter would match nothing) until the table was migrated. Keeping the least
-identifying field in the set was the better trade than a schema migration on a live
-pipeline.
+- **Do not store the client IP.** Log only the path, the query and the time;
+  derive anything coarser (for example a country code) at the edge and drop the
+  address before the log is written.
+- **Keep the raw log as the record.** The five fields are the whole payload, so
+  an access log is already the complete dataset; any rollup is derived from it
+  and must be rebuildable from it.
 
-### Retention: S3/Athena is permanent, CloudWatch is a 15-month view
-
-**CloudWatch cannot be the durable store.** Metric data is retained for at most
-**15 months** and expires on a **rolling** basis (1-min → 15 days, 5-min → 63
-days, 1-hour → 455 days), and that ceiling is not configurable. So the dashboard
-is inherently a ~15-month window, by AWS design rather than by our choice.
-
-The permanent record is therefore two things in S3:
-
-- **Raw logs** — `s3://junction-beacon-logs`. The lifecycle policy has **no
-  `Expiration` on any rule**; objects only *transition* (Standard → Standard-IA
-  at 90d → Glacier Instant Retrieval at 365d) to cut cost. Glacier **Flexible
-  Retrieval / Deep Archive are deliberately avoided** — they require an async
-  restore before a read, which would silently break the long-range Athena
-  queries this design exists to support. Versioning is on; only *noncurrent*
-  versions are pruned (365d).
-- **Daily rollup** — `junction_analytics.beacon_daily` (Parquet, stays in
-  Standard forever). One small row per `(day, metric, dimension, value)`. This
-  is what makes "permanent" *useful*: raw logs grow linearly forever, so a
-  multi-year dashboard query would scan every line ever written, while the
-  rollup keeps such queries fast and cheap.
-
-`_persist_rollup()` is **idempotent** — it deletes the target day's rows before
-inserting, so a backfill or a retry after a partial failure cannot double-count.
-It runs **last** in the handler, after the CloudWatch puts, because CloudWatch is
-best-effort presentation while the rollup is the durable store: a rollup failure
-must surface as a Lambda invocation error (visible on the dashboard's error
-widget) rather than being masked by an otherwise-successful metric write.
-
-**Destructive-rewrite guard (do not remove).** That same idempotent delete makes
-an empty query result *destructive*: it rewrites a day to nothing. A `if not
-facts` check is **not** sufficient, because `DailyActiveInstances`, `BeaconPings`
-and `NewInstallations` are appended **unconditionally** — as zeros — so an empty
-day still reaches the delete with three all-zero rows.
-
-This is not hypothetical: on **2026-07-31** the scheduled 00:20 UTC run queried
-`day=30`, a partition whose logs did not exist (the feature shipped at 02:36 UTC
-that morning, and the first delivered log object was `2026-07-31-04`). The run
-reported `SUCCEEDED` with no error, published zeros, and **wiped the rollup to
-zero rows** — the durable record was destroyed by a "successful" invocation. The
-guard now skips the rewrite unless at least one fact is non-zero (an all-zero day
-carries no information, so skipping is lossless), and an empty partition logs an
-explicit `WARNING` naming the partition, because a silent success was what made
-the failure hard to see.
-
-**Object Lock is deliberately NOT enabled.** It would make the logs literally
-undeletable, which sounds like "permanent" but is the wrong trade for a
-privacy-sensitive dataset: it would also remove our own ability to purge after an
-operator mistake, a schema error, or a future deletion obligation. The goal is
-"retained indefinitely by policy", not "physically impossible to delete".
-
-**The aggregator cannot delete the permanent record.** Its IAM policy grants
-`s3:PutObject`/`s3:DeleteObject` on `junction-beacon-logs/rollup/*` **only** —
-raw-log access is read-only, so the component that consumes the history has no
-permission to destroy it.
-
-**No client IP is ever stored.** The log delivery's `recordFields` selects only
-`date`, `time`, `cs-uri-stem`, `cs-uri-query`, `c-country`, `sc-status` —
-`c-ip`, `x-forwarded-for`, User-Agent and Cookie are simply not delivered.
-Verified against a real delivered log file. This is why the design uses a
-Lambda-free CDN log path rather than CDN logging with default fields, and it is
-what makes the "no IP" claim structural rather than a promise.
-
-**Aggregator timestamp rule (load-bearing):** metrics are stamped at the
-**end** of the target day, clamped to `now - 1min`. CloudWatch accepts
-timestamps up to two weeks old but points **24h+ old can take 48 hours** to
-become queryable, while <3h old are near-immediate. Stamping midnight-of-
-yesterday from an 02:30 run put every point in the 48-hour bucket and the
-dashboard rendered **empty** despite the data being accepted; the clamp is
-needed because a same-day backfill's 23:59 is in the future and
-`PutMetricData` rejects >2h ahead. Both failure modes were hit in development.
-
-**Model CDN.** `embeddings.py::_DEFAULT_MODEL_URL` points at
-`junction-models` (distribution E2UX23B48LKM6V, OAC-only bucket access). The
-`_GGUF_SHA256` pin remains the sole integrity gate, so a tampered CDN object can
-only fail verification. Because `_ensure_downloaded()` returns early when
-`model_ready()`, a CDN request is a **first-install** signal, not a DAU signal —
-the dashboard shows it as "downloads", deliberately separate from DAI.
+The embedding-model download (`embeddings.py::_DEFAULT_MODEL_URL`) is a
+separate network touchpoint with no telemetry role here. Its integrity gate is
+the `_GGUF_SHA256` pin, whatever host serves the bytes.

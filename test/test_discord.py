@@ -2318,7 +2318,7 @@ class TestDispatcher:
         prompt = d.ctx_builder.messages[-1]
         assert prompt.splitlines()[0] == "!help"
         assert prompt.splitlines()[1].endswith(".png")
-        assert "Kiro Crew — Discord" not in "\n".join(text for text, _ in cli.sent)
+        assert "Junction — Discord" not in "\n".join(text for text, _ in cli.sent)
 
     @pytest.mark.asyncio
     async def test_attachment_rejection_is_not_silent(self) -> None:

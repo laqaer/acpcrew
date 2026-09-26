@@ -53,7 +53,7 @@ const collection = (over: Record<string, unknown> = {}) => ({
   env_var: 'JUNCTION_TELEMETRY',
   overlay_override: false,
   otlp_configured: false,
-  metrics_dir: '/home/u/.kiro/crew/metrics',
+  metrics_dir: '/home/u/.junction/metrics',
   ...over,
 })
 

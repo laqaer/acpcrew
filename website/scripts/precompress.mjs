@@ -2,7 +2,7 @@
  * Build-time asset pre-compression.
  *
  * The gateway serves the SPA over HTTP and does NOT compress responses — a fact
- * Kiro Crew's own SSH-tunnel code documents as the reason `ssh -C` exists
+ * Junction's own SSH-tunnel code documents as the reason `ssh -C` exists
  * (`src/junction/instances/constants.py`, `ssh_tunnel_manager.py`). A cold
  * dashboard load therefore transfers ~7.8 MB of uncompressed JS, which is felt
  * as lag whenever the dashboard is reached over a tunnel or a slow link.

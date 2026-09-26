@@ -187,13 +187,20 @@ class TestSpillFailure:
         }
         line = json.dumps(msg, separators=(",", ":")).encode("utf-8") + b"\n"
 
-        # Point at a non-existent path that can't be created
-        fake_home = "/nonexistent/path/that/cannot/be/created"
-        with patch.dict(os.environ, {"JUNCTION_HOME": fake_home}):
+        # A regular FILE on the home's path makes every mkdir beneath it fail
+        # with NotADirectoryError (FileExistsError on Windows), whoever runs
+        # the test. A root-level path such as /nonexistent is only uncreatable
+        # for an unprivileged user: under root the data-home mkdir succeeds,
+        # the spill lands outside tmp_path, and the stray directory changes
+        # the verdict of later tests that expect that path to be absent.
+        blocker = tmp_path / "blocker"
+        blocker.write_text("not a directory", encoding="utf-8")
+        with patch.dict(os.environ, {"JUNCTION_HOME": str(blocker / "home")}):
             result = maybe_spill_response(line, "server", 100_000)
 
         # Original returned unmodified
         assert result == line
+        assert blocker.is_file()
 
 
 # --- (f) Non-tool-result frames over threshold pass through ---

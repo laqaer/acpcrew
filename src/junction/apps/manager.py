@@ -1,6 +1,6 @@
 """App Manager — install, uninstall, enable, disable lifecycle for Junction apps.
 
-Apps are installed to ``~/.kiro/crew/apps/{name}/``.  Each installed app has an
+Apps are installed to ``~/.junction/apps/{name}/``.  Each installed app has an
 ``installed.json`` metadata file tracking version, timestamp, and enabled state.
 
 The manager validates manifests, copies app files, and delegates resource
@@ -55,7 +55,7 @@ INSTALLED_META_FILENAME = "installed.json"
 
 
 def apps_dir() -> Path:
-    """Return the root directory for installed apps: ``~/.kiro/crew/apps/``."""
+    """Return the root directory for installed apps: ``~/.junction/apps/``."""
     return config_dir() / "apps"
 
 
@@ -65,7 +65,7 @@ def app_dir(name: str) -> Path:
 
 
 def app_data_dir(name: str) -> Path:
-    """Return the app-scoped data directory: ``~/.kiro/crew/apps/{name}/data/``."""
+    """Return the app-scoped data directory: ``~/.junction/apps/{name}/data/``."""
     d = app_dir(name) / "data"
     d.mkdir(parents=True, exist_ok=True)
     return d
@@ -512,7 +512,7 @@ def install_app(
     """Install an app from a local directory path.
 
     1. Validate manifest and any caller-pinned app identity
-    2. Copy to ``~/.kiro/crew/apps/{name}/``
+    2. Copy to ``~/.junction/apps/{name}/``
     3. Write ``installed.json``
 
     Resource registration (agents, skills, crons) is handled separately
@@ -2234,7 +2234,7 @@ def resolve_mcp_backend_url(mcp_servers: Any) -> str | None:
     """Derive an app backend's base URL from its ``mcpServers`` declaration.
 
     This is the single definition of that rule.  Self-managed apps -- ones the
-    gateway does not spawn, like the Crew Companion desktop app on :7778 --
+    gateway does not spawn, like the Companion desktop app on :7778 --
     declare no ``backend.entryPoint``, so their backend is discovered from the
     MCP URL instead, with the path stripped.
 
@@ -2332,6 +2332,26 @@ def _app_declares_backend(app_data: dict[str, Any]) -> bool:
     return resolve_mcp_backend_url(app_data.get("mcpServers")) is not None
 
 
+def _adopt_renamed_builtin_installs() -> None:
+    """Move an install made under a builtin's earlier app id to its current id.
+
+    Runs before registration, so a renamed builtin finds the user's record, data and
+    enabled state under its current name instead of registering a fresh, empty
+    install beside the old one. A failure is logged and registration carries on: the
+    old directory stays where it was and the next start retries, whereas an
+    exception here would stop every builtin from registering.
+    """
+    try:
+        # circular import: the companion package imports this module at load time.
+        from junction.apps.builtins.desk_companion.install_migration import (
+            adopt_legacy_install,
+        )
+
+        adopt_legacy_install()
+    except Exception:  # noqa: BLE001 -- see docstring
+        logger.warning("Adopting a renamed builtin's earlier install failed", exc_info=True)
+
+
 def register_builtin_apps() -> int:
     """Register built-in dashboard features as app entries.
 
@@ -2341,6 +2361,10 @@ def register_builtin_apps() -> int:
 
     Each app definition is validated before registration.  Invalid definitions
     are skipped with a warning log — they do not affect other apps.
+
+    Before anything registers, an install made under a renamed builtin's earlier
+    app id moves to its current id (``_adopt_renamed_builtin_installs``), so the
+    existing record and its enabled state are the ones updated below.
 
     The ``defaultEnabled`` field (default: True) controls the initial enabled
     state for newly registered apps.  Existing apps preserve their user-set
@@ -2355,6 +2379,8 @@ def register_builtin_apps() -> int:
        companion contributes its feature apps).  ADD-only: the hardcoded list
        and the package's own builtins still take precedence on name collision.
     """
+    _adopt_renamed_builtin_installs()
+
     # Merge hardcoded list with auto-discovered builtins + edition-contributed
     # builtins (PlatformContext).  Standalone contributes nothing extra
     # (manifest_sources == []), so ``discovered`` is exactly the package's

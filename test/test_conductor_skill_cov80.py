@@ -3,7 +3,7 @@
 The generated SKILL.md is injected into every default-agent turn, so the
 contract worth pinning is: it lands at ``<loader._dir>/conductor/SKILL.md``
 (creating the directory), it is marked ``always: true``, it points the model at
-``select_crew`` rather than inlining a roster, and regenerating overwrites in
+``select_agent`` rather than inlining a roster, and regenerating overwrites in
 place instead of appending.
 """
 
@@ -28,12 +28,12 @@ def test_writes_skill_under_conductor_dir(tmp_path: Path) -> None:
     assert body.startswith("---\nalways: true\n---")
 
 
-def test_roster_is_resolved_via_select_crew_not_inlined(tmp_path: Path) -> None:
+def test_roster_is_resolved_via_select_agent_not_inlined(tmp_path: Path) -> None:
     """The roster must come from the tool at decision time — an inlined roster
-    would go stale whenever crews change and bloat an always-on skill."""
+    would go stale whenever agents change and bloat an always-on skill."""
     body = generate_conductor_skill(_loader(tmp_path)).read_text(encoding="utf-8")
 
-    assert 'select_crew(crew="<name>")' in body
+    assert 'select_agent(agent="<name>")' in body
     assert 'spawn_run(agent="<name>"' in body
 
 

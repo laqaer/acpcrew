@@ -920,7 +920,7 @@ def run_command_sandboxed(command: str, timeout: int = 300, job_id: str | None =
     # mode="cc" (not "standard"): the command string is fully model-supplied via
     # cron_add and executes outside the kiro-cli ACP permission/hook flow, so this
     # is a low-trust exec path. "cc" hides the credential dirs/files (.aws, .kube,
-    # .netrc, .git-credentials, .npmrc, .pypirc, .kirocrew/.env) and scrubs the
+    # .netrc, .git-credentials, .npmrc, .pypirc, .junction/.env) and scrubs the
     # agent-denied env keys, while deliberately leaving ~/.ssh reachable so a
     # legitimate command cron can still do git/scp/rsync over SSH. "strict" would
     # additionally hide ~/.ssh but break those workflows; the residual .ssh

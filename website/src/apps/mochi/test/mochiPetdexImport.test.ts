@@ -11,14 +11,13 @@
  * 2. **One identity key.** `activeAppearance` is the whole answer -- the pack id
  *    IS the character, and it drives the art, the persona, and the default pet
  *    name together. The original had a second key (`pet.character`) and migrated
- *    it away; this port briefly re-created the split as `avatar`, which let the
- *    pet render an imported pack while its prompt described the built-in cat.
- *    `resolveActivePackId` is the single resolver every surface uses.
+ *    it away, because a split key lets the pet render an imported pack while its
+ *    prompt describes the built-in cat. `resolveActivePackId` is the single
+ *    resolver every surface uses.
  */
 import { describe, expect, it } from 'vitest'
 
 import {
-  BUILTIN_GHOST_ID,
   BUILTIN_MOCHI_ID,
   builtinPackDetail,
   builtinPackMetas,
@@ -127,32 +126,34 @@ describe('petdexPrefill', () => {
 })
 
 describe('built-in packs', () => {
-  it('registers both avatars, default first', () => {
-    expect(builtinPackMetas().map((m) => m.id)).toEqual([BUILTIN_MOCHI_ID, BUILTIN_GHOST_ID])
-    expect(isBuiltinPack(BUILTIN_GHOST_ID)).toBe(true)
+  it('registers the cat as the one built-in avatar', () => {
+    expect(builtinPackMetas().map((m) => m.id)).toEqual([BUILTIN_MOCHI_ID])
+    expect(isBuiltinPack(BUILTIN_MOCHI_ID)).toBe(true)
     expect(isBuiltinPack('some-user-pack')).toBe(false)
   })
 
-  it('gives the ghost every required state with real Lottie content', () => {
-    const detail = builtinPackDetail(BUILTIN_GHOST_ID)!
+  it('gives the cat every required state with real SVG content', () => {
+    const detail = builtinPackDetail(BUILTIN_MOCHI_ID)!
     expect(detail).not.toBeNull()
     for (const state of REQUIRED_STATES) {
       const anim = detail.animations[state]
-      expect(anim, `ghost has no ${state}`).toBeDefined()
-      expect(anim.format).toBe('lottie')
-      // Real Lottie, not a placeholder: the fields the renderer needs.
-      const parsed = JSON.parse(anim.content)
-      expect(parsed).toHaveProperty('layers')
-      expect(parsed).toHaveProperty('fr')
+      expect(anim, `cat has no ${state}`).toBeDefined()
+      expect(anim.format).toBe('svg')
+      expect(anim.content).toContain('<svg')
     }
   })
 
-  it('omits the peek poses rather than substituting a float', () => {
-    // They are optional and the resolver falls back to idle/thinking; a peek is
-    // a specific half-off-screen drawing none of the delivered clips is.
-    const detail = builtinPackDetail(BUILTIN_GHOST_ID)!
-    expect(detail.animations.peeking).toBeUndefined()
-    expect(detail.animations.peekThinking).toBeUndefined()
+  it('ships the peek poses the resolver would otherwise fake', () => {
+    const detail = builtinPackDetail(BUILTIN_MOCHI_ID)!
+    expect(detail.animations.peeking).toBeDefined()
+    expect(detail.animations.peekThinking).toBeDefined()
+  })
+
+  it('leaves flipX absent, not false, because the cat faces the normal way', () => {
+    // Kept absent so the wire format matches the store's convention of omitting
+    // optional keys — and so `flipX ?? sprite?.flipX` still falls through to a
+    // sprite sheet's own flag rather than being shadowed by an explicit `false`.
+    expect('flipX' in (builtinPackDetail(BUILTIN_MOCHI_ID) as object)).toBe(false)
   })
 
   it('returns null for an unknown pack instead of an empty detail', () => {
@@ -162,7 +163,7 @@ describe('built-in packs', () => {
 
 describe('resolveActivePackId', () => {
   it('returns the stored pack id, built-in or imported', () => {
-    expect(resolveActivePackId({ activeAppearance: BUILTIN_GHOST_ID })).toBe(BUILTIN_GHOST_ID)
+    expect(resolveActivePackId({ activeAppearance: BUILTIN_MOCHI_ID })).toBe(BUILTIN_MOCHI_ID)
     expect(resolveActivePackId({ activeAppearance: 'user-pack' })).toBe('user-pack')
   })
 
@@ -179,7 +180,7 @@ describe('resolveActivePackId', () => {
     // The two-key era let `avatar` and `activeAppearance` name different
     // characters. A stray legacy key must be inert here -- the backend migrates
     // it, and nothing in the renderer may start reading it again.
-    const withLegacy = { activeAppearance: 'user-pack', avatar: 'ghost' } as {
+    const withLegacy = { activeAppearance: 'user-pack', avatar: 'mochi' } as {
       activeAppearance: string
     }
     expect(resolveActivePackId(withLegacy)).toBe('user-pack')

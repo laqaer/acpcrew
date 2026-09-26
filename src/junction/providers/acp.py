@@ -297,7 +297,7 @@ class AcpProvider(LLMProvider):
         mcp_gateway_settings_mcp_json: str | Path | None = None,
         mcp_gateway_socket: str | Path | None = None,
         permission_mode: str | None = None,
-        crew_agent: str | None = None,
+        canonical_agent: str | None = None,
     ) -> None:
         # An unrecognized backend would pass every ``_is_<backend>`` check and
         # spawn kiro-cli, so a typo'd config would drive the wrong agent with no
@@ -334,9 +334,9 @@ class AcpProvider(LLMProvider):
         # Canonical Junction identity (a cfg.agents key), resolved by the
         # factory at provider-creation time — ``agent`` above is the bound kiro
         # template, a different namespace. Threaded into the kiro-shared
-        # runtime so per-agent watchdog windows key off the crew, never off a
-        # cross-namespace name match.
-        self._crew_agent: str = crew_agent or ""
+        # runtime so per-agent watchdog windows key off the canonical agent,
+        # never off a cross-namespace name match.
+        self._canonical_agent: str = canonical_agent or ""
         # F2 load-recovery: set True by _start_kiro_runtime_impl when a resume
         # falls back to a FRESH native session (the prior session's lock never
         # cleared). Signals SessionManager.get_or_create to replay Junction's
@@ -727,7 +727,7 @@ class AcpProvider(LLMProvider):
             mcp_gateway_settings_mcp_json=mcp_gateway_settings_mcp_json,
             mcp_gateway_socket=mcp_gateway_socket,
             acp_backend=self._client.backend,
-            crew_agent=self._crew_agent,
+            canonical_agent=self._canonical_agent,
         )
         _t_spawn = time.monotonic()
         try:
@@ -827,7 +827,7 @@ class AcpProvider(LLMProvider):
                         mcp_gateway_settings_mcp_json=mcp_gateway_settings_mcp_json,
                         mcp_gateway_socket=mcp_gateway_socket,
                         acp_backend=self._client.backend,
-                        crew_agent=self._crew_agent,
+                        canonical_agent=self._canonical_agent,
                     )
                     try:
                         await runtime.spawn()

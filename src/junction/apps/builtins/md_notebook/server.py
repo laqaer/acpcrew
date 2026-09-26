@@ -51,47 +51,47 @@ PORT = int(os.environ.get("PORT", 9137))
 APP_NAME = os.environ.get("JUNCTION_APP_NAME", "md-notebook")
 
 
-# Data-home paths are resolved LAZILY, never at import time (issue #874): the
-# active Junction home depends on JUNCTION_HOME, which a pod, the legacy-home
-# migration, or the test-isolation fixture can change AFTER this module is
-# imported. `_HOME` is the override hook (None = live-resolve); tests do
-# `monkeypatch.setattr(server, "_HOME", tmp)`. See config/paths.py / issue #874.
+# Data-home paths are resolved LAZILY, never at import time: the active Junction
+# home depends on JUNCTION_HOME, which a pod or the test-isolation fixture can
+# change AFTER this module is imported. `_HOME` is the override hook (None =
+# live-resolve); tests do `monkeypatch.setattr(server, "_HOME", tmp)`. See
+# config/paths.py.
 _HOME: Optional[Path] = None
 
 
 def _default_home() -> Path:
     """The app's data root under the active Junction home.
 
-    ``config_dir()`` follows ``JUNCTION_HOME`` (default ``~/.kiro/crew``), so an
-    isolated dev instance (``JUNCTION_HOME=.kirocrew-dev``) keeps its own vaults
+    ``config_dir()`` follows ``JUNCTION_HOME`` (default ``~/.junction``), so an
+    isolated dev instance (``JUNCTION_HOME=.junction-dev``) keeps its own vaults
     instead of loading — and editing — the production notes. ``MD_NOTEBOOK_HOME``
     still wins when set. Falls back to the default root when run outside the
-    package. Mirrors ``code_review_sage``'s ``crew_home()``.
+    package. Mirrors ``code_review_sage``'s ``data_home()``.
     """
     env = os.environ.get("MD_NOTEBOOK_HOME")
     if env:
         return Path(env)
-    return _crew_data_home()
+    return _protected_app_home()
 
 
-def _crew_data_home() -> Path:
+def _protected_app_home() -> Path:
     """The app's data root under the Junction data home, IGNORING
     ``MD_NOTEBOOK_HOME``.
 
     The PAT is stored here (never under ``MD_NOTEBOOK_HOME``) so it always sits
     behind ``is_sensitive_path()``'s floor, which protects
-    ``<crew-home>/workspace/md-notebook/pat``. A user pointing
+    ``<data-home>/workspace/md-notebook/pat``. A user pointing
     ``MD_NOTEBOOK_HOME`` at an unprotected directory must not be able to relocate
     the live GitHub credential out from behind that floor.
     """
-    # config_dir is imported at module scope but CALLED here (lazily) — issue
-    # #874 forbids resolving the data home at import time, not importing the
-    # resolver. It honors JUNCTION_HOME on every call.
+    # config_dir is imported at module scope but CALLED here (lazily): the data
+    # home must never be resolved at import time, but importing the resolver is
+    # fine. It honors JUNCTION_HOME on every call.
     try:
         base = config_dir()
     except Exception:
         override = os.environ.get("JUNCTION_HOME")
-        base = Path(override) if override else Path.home() / ".kiro" / "crew"
+        base = Path(override) if override else Path.home() / ".junction"
     return base / "workspace" / APP_NAME
 
 
@@ -103,31 +103,31 @@ def _vaults_json() -> Path:
     # The vault REGISTRY carries each vault's remoteUrl/gitDir, which the
     # unattended auto-sync loop trusts as the `git push` target and its anti-tamper
     # pins. Like the PAT and the sync settings it therefore MUST live under the
-    # protected crew data home, never under MD_NOTEBOOK_HOME — otherwise an
+    # protected data home, never under MD_NOTEBOOK_HOME — otherwise an
     # operator's (or a prompt-injected agent's) MD_NOTEBOOK_HOME could relocate the
     # registry outside is_sensitive_path()'s fence and repoint the push. The clone
     # DATA (`_clone_root`) stays under _home(): it is bulk per-instance content, not
     # an authorization surface. The _HOME test hook still applies for tmp isolation.
-    base = _HOME if _HOME is not None else _crew_data_home()
+    base = _HOME if _HOME is not None else _protected_app_home()
     return base / "vaults.json"
 
 
 def _settings_json() -> Path:
-    # Like the PAT, the sync settings MUST live under the protected crew data
-    # home, never under MD_NOTEBOOK_HOME, so the `autoSync` bit — which authorizes
+    # Like the PAT, the sync settings MUST live under the protected data home,
+    # never under MD_NOTEBOOK_HOME, so the `autoSync` bit — which authorizes
     # the background loop's unattended `git push` — always sits behind
     # is_sensitive_path()'s floor. Resolving via `_home()` would let an operator's
     # MD_NOTEBOOK_HOME relocate it outside the fence, where an agent could flip it.
     # The _HOME test hook still applies so tests keep their tmp isolation.
-    base = _HOME if _HOME is not None else _crew_data_home()
+    base = _HOME if _HOME is not None else _protected_app_home()
     return base / "settings.json"
 
 
 def _pat_file() -> Path:
-    # The PAT MUST live under the protected crew data home, never under
+    # The PAT MUST live under the protected data home, never under
     # MD_NOTEBOOK_HOME, so it stays behind is_sensitive_path()'s floor. The
     # _HOME test hook still applies so tests keep their tmp isolation.
-    base = _HOME if _HOME is not None else _crew_data_home()
+    base = _HOME if _HOME is not None else _protected_app_home()
     return base / "pat"
 
 
@@ -522,7 +522,7 @@ def _read_settings_sync() -> dict[str, Any]:
 
 def _write_settings_sync(settings: dict[str, Any]) -> None:
     # Create the settings file's OWN parent, like the PAT write does — since
-    # settings.json now resolves under the crew data home (or the _HOME test
+    # settings.json now resolves under the data home (or the _HOME test
     # hook), not under _home(), the two dirs diverge and mkdir'ing _home() would
     # leave the settings dir absent and the write failing with ENOENT.
     target = _settings_json()
@@ -1143,7 +1143,7 @@ def _safe_error(exc: BaseException) -> str:
     stderr. Both branches of ``error_middleware`` send their text to the browser.
 
     The path pass is the load-bearing one: the dominant shape here is an OS error
-    like ``[Errno 2] No such file or directory: '/home/<user>/.kiro/crew/...'``,
+    like ``[Errno 2] No such file or directory: '/home/<user>/.junction/...'``,
     which the credential and URL passes do not match at all.
     """
     text, _ = security.redact_credentials(str(exc))
@@ -1263,13 +1263,13 @@ async def api_vault_attach(request: web.Request) -> web.Response:
     # A vault's sync runs `git add -A` over its whole content root, which stages
     # files WITHOUT passing through the per-file sensitive-path gate. So refuse
     # to attach a folder that resolves into a protected location (~/.ssh,
-    # ~/.aws, the crew data home, ...) — otherwise a checkout planted under a
+    # ~/.aws, the data home, ...) — otherwise a checkout planted under a
     # credential store could be committed and pushed.
     if await asyncio.to_thread(hooks.is_sensitive_path, dir_):
         raise ApiError("that folder is a protected location", 403, code="sensitive_path")
     # ...and the REVERSE direction: a folder that CONTAINS a protected location
     # must be refused too. Attaching the home directory (or any ancestor of
-    # ~/.ssh, ~/.aws, the crew data home, ...) passes the check above — home is
+    # ~/.ssh, ~/.aws, the data home, ...) passes the check above — home is
     # not itself sensitive — yet `git add -A` from that root would stage and
     # push the credential stores wholesale. List-based prefix check, no
     # filesystem walk, so attaching a huge tree stays cheap.

@@ -27,7 +27,7 @@ import { serveDist } from './lib/serve-dist.mjs'
 import { makeFixedApi, handleBootRoute } from './lib/boot-api.mjs'
 
 const OUT = process.argv[2] || '../temp-screenshots/terminal-font-picker'
-const PROJECT = '/home/user/.kiro/crew/workspace'
+const PROJECT = '/home/user/.junction/workspace'
 
 mkdirSync(OUT, { recursive: true })
 

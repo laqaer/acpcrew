@@ -40,8 +40,8 @@ CHILD_PERMISSION_DENIED = "junction.acp.child_permission.denied"
 
 #: Every backend-child permission request successfully ROUTED into the
 #: mode-parity pipeline (owner queue → policy gates / interactive card).
-#: This is the impact numerator: each increment is a request that, before
-#: #3786, was silently dropped and wedged its crew until the 2h ceiling.
+#: This is the impact numerator: each increment is a request that, unrouted,
+#: would be silently dropped and wedge its native subagent until the 2h ceiling.
 #: ``routed + denied`` ≈ total child permission requests handled.
 CHILD_PERMISSION_ROUTED = "junction.acp.child_permission.routed"
 

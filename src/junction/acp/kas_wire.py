@@ -1,9 +1,9 @@
 """Localized parsing for the second ACP backend's ``session/update`` frames.
 
 Some of that backend's display/telemetry signals arrive in a different shape
-than ``kiro-cli``'s. This module is the ONE place Crew reads that shape, so an
+than ``kiro-cli``'s. This module is the ONE place Junction reads that shape, so an
 adjustment is a single-file edit; the handlers that act on a parsed frame live
-in :mod:`junction.acp.session_handle`. The literals below are only what Crew
+in :mod:`junction.acp.session_handle`. The literals below are only what Junction
 must match to route a frame — the backend's own internals are not documented
 here.
 """
@@ -17,7 +17,7 @@ from typing import Any
 META_KEY = "_meta"
 KIRO_KEY = "kiro"
 
-# ── Frame discriminants Crew matches on ──
+# ── Frame discriminants Junction matches on ──
 KIND_CONTEXT_USAGE = "context_usage"
 KIND_TURN_COMPLETION = "turn_completion"
 KIND_SUMMARIZATION_STARTED = "summarization_started"
@@ -28,7 +28,7 @@ KIND_STEERING_INJECTED = "steering_injected"
 KIND_STEERING_CLEARED = "steering_cleared"
 KIND_AGENT_SUBTASK = "agent-subtask"  # hyphenated, not underscored
 
-# Summarization maps to Crew's compaction status; steering to mid-turn steer.
+# Summarization maps to Junction's compaction status; steering to mid-turn steer.
 SUMMARIZATION_KINDS = frozenset(
     {KIND_SUMMARIZATION_STARTED, KIND_SUMMARIZATION_COMPLETED, KIND_SUMMARIZATION_FAILED}
 )
@@ -36,7 +36,7 @@ STEERING_KINDS = frozenset(
     {KIND_STEERING_QUEUED, KIND_STEERING_INJECTED, KIND_STEERING_CLEARED}
 )
 
-# ── Payload fields Crew reads ──
+# ── Payload fields Junction reads ──
 FIELD_KIND = "kind"
 FIELD_USAGE_PERCENTAGE = "usagePercentage"
 FIELD_CONVERSATION_SUMMARY = "conversationSummary"

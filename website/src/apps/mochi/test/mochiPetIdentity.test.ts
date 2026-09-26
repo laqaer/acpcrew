@@ -5,9 +5,8 @@
  * re-derived in the renderer with a hardcoded fallback that skipped a rung.
  *
  *  - `petName` defaults to `""`, meaning "use the active avatar's own name"
- *    (settings.py / soul_loader.BUILTIN_PET_NAMES). Every renderer read the raw
- *    field with `|| 'Mochi'`, so a ghost user was told to "Ask Mochi" to watch a
- *    page while the pet introduced itself as Kiro.
+ *    (settings.py / soul_loader.BUILTIN_PET_NAMES). A renderer that reads the raw
+ *    field with `|| 'Mochi'` names the pet differently from the backend.
  *  - `/pet-state` answers `{state, mood}`, but the bridge returned only the
  *    state, so nothing could seed a mood on mount. Moods self-clear after a few
  *    seconds, so the chat title bar effectively never showed one.
@@ -18,13 +17,11 @@ import { DEFAULT_PET_NAME, resolvePetName } from '../builtinPacks'
 
 describe('resolvePetName', () => {
   it('prefers the name the user typed', () => {
-    expect(resolvePetName({ petName: 'Tofu', activeAppearance: 'kiro-ghost' })).toBe('Tofu')
+    expect(resolvePetName({ petName: 'Tofu', activeAppearance: 'default-mochi' })).toBe('Tofu')
   })
 
-  it('falls back to the ACTIVE avatar, not to the cat', () => {
-    // The whole point: an unnamed ghost pack is Drift, and mirrors
-    // soul_loader.BUILTIN_PET_NAMES so chat and UI agree.
-            expect(resolvePetName({ petName: '', activeAppearance: 'kiro-ghost' })).toBe('Drift')
+  it('falls back to the ACTIVE avatar\u2019s own name', () => {
+    // Mirrors soul_loader.BUILTIN_PET_NAMES so chat and UI agree.
     expect(resolvePetName({ petName: '', activeAppearance: 'default-mochi' })).toBe('Mochi')
   })
 
@@ -35,7 +32,7 @@ describe('resolvePetName', () => {
   })
 
   it('trims, so a pasted name with whitespace is not treated as custom', () => {
-    expect(resolvePetName({ petName: '   ', activeAppearance: 'kiro-ghost' })).toBe('Drift')
+    expect(resolvePetName({ petName: '   ', activeAppearance: 'default-mochi' })).toBe('Mochi')
     expect(resolvePetName({ petName: ' Tofu ' })).toBe('Tofu')
   })
 })

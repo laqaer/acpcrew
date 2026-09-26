@@ -86,7 +86,7 @@ const apiExtra = async (path, route) => {
  *  to a tautology so the (otherwise unreachable-in-Chromium) branch applies.
  *  The rule body is untouched — this forces the guard, not the behavior. */
 function makeForcedDist() {
-  const scratch = mkdtempSync(join(tmpdir(), 'kc-1817-forced-dist-'))
+  const scratch = mkdtempSync(join(tmpdir(), 'jn-1817-forced-dist-'))
   cpSync('dist', scratch, { recursive: true })
   const assets = join(scratch, 'assets')
   let rewrote = 0

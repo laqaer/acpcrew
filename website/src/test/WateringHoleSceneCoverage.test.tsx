@@ -416,12 +416,12 @@ describe('WateringHoleScene arrivals', () => {
       warthog: idOf('warthog', 'mix'),
       elephant: idOf('elephant', 'mix'),
     }
-    const crew = [
+    const agents = [
       known({ id: ids.giraffe, name: ROSALINDA }),
       known({ id: ids.warthog, name: FERDINAND }),
       known({ id: ids.elephant, name: BERNADETT }),
     ]
-    const first = mount(crew)
+    const first = mount(agents)
     expect(hasRect(first.pixel, GIRAFFE_BODY, 14, 7)).toBe(true)
     expect(hasRect(first.pixel, WARTHOG_BODY, 11, 5)).toBe(true)
     expect(hasRect(first.pixel, ELEPHANT_BODY, 15, 9)).toBe(true)
@@ -429,7 +429,7 @@ describe('WateringHoleScene arrivals', () => {
     // Species is hashed from the id, not drawn from a queue, so remounting the
     // same ids reproduces the same three animals.
     act(() => { first.unmount() })
-    const again = mount(crew)
+    const again = mount(agents)
     expect(hasRect(again.pixel, GIRAFFE_BODY, 14, 7)).toBe(true)
     expect(hasRect(again.pixel, WARTHOG_BODY, 11, 5)).toBe(true)
     expect(hasRect(again.pixel, ELEPHANT_BODY, 15, 9)).toBe(true)

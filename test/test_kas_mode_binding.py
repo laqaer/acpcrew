@@ -1,7 +1,7 @@
 """Agent binding on KAS: inject the definition, then activate it as a mode.
 
 KAS has no ``--agent`` flag and advertises only its own built-in modes, so a
-``session/set_mode`` naming Crew's agent fails against a stock KAS. The agent has
+``session/set_mode`` naming Junction's agent fails against a stock KAS. The agent has
 to travel on ``session/new`` as ``_meta.kiro.customAgents``; KAS registers it, it
 surfaces as a mode, and the ordinary activation then works.
 
@@ -108,7 +108,7 @@ def mode_stub(tmp_path, monkeypatch):
 
 
 @pytest.fixture
-def crew_agent(tmp_path, monkeypatch):
+def junction_agent_spec(tmp_path, monkeypatch):
     """A materialized agent spec the projection can read, in an isolated dir."""
     agents_dir = tmp_path / "agents"
     agents_dir.mkdir()
@@ -116,7 +116,7 @@ def crew_agent(tmp_path, monkeypatch):
         json.dumps(
             {
                 "name": "junction",
-                "description": "test crew agent",
+                "description": "test Junction agent",
                 "prompt": "You are Kiro.",
                 "tools": ["fs_read", "@junction-core"],
             }
@@ -132,7 +132,7 @@ def crew_agent(tmp_path, monkeypatch):
 class TestModeBinding:
     @pytest.mark.asyncio
     async def test_injected_agent_becomes_the_active_mode(
-        self, mode_stub, crew_agent, tmp_path
+        self, mode_stub, junction_agent_spec, tmp_path
     ):
         """The whole chain: inject -> advertised as a mode -> activated."""
         runtime = AcpRuntime(
@@ -158,7 +158,7 @@ class TestModeBinding:
 
     @pytest.mark.asyncio
     async def test_runtime_default_agent_is_activated_without_explicit_request(
-        self, mode_stub, crew_agent, tmp_path
+        self, mode_stub, junction_agent_spec, tmp_path
     ):
         """A KAS session created with no explicit agent must still ACTIVATE the
         runtime default. KAS has no --agent flag, so injecting the default via
@@ -186,12 +186,12 @@ class TestModeBinding:
 
     @pytest.mark.asyncio
     async def test_prompt_is_inlined_not_sent_as_a_file_uri(
-        self, mode_stub, crew_agent, tmp_path
+        self, mode_stub, junction_agent_spec, tmp_path
     ):
         """KAS rejects ``file://`` here; the client owns the read."""
         prompt_file = tmp_path / "prompt.md"
         prompt_file.write_text("inlined from disk", encoding="utf-8")
-        (crew_agent / "junction.json").write_text(
+        (junction_agent_spec / "junction.json").write_text(
             json.dumps(
                 {"name": "junction", "prompt": f"file://{prompt_file}", "tools": ["fs_read"]}
             ),
@@ -214,15 +214,15 @@ class TestModeBinding:
 
     @pytest.mark.asyncio
     async def test_a_prompt_less_agent_falls_back_to_the_kas_prompt(
-        self, mode_stub, crew_agent, tmp_path
+        self, mode_stub, junction_agent_spec, tmp_path
     ):
         """KAS requires a non-empty prompt where kiro-cli tolerates an empty
-        one. Crew's own prompt-less utility agents (e.g. ``junction-lite``, which
+        one. Junction's own prompt-less utility agents (e.g. ``junction-lite``, which
         ships ``"prompt": ""``) must fall back to the small inline KAS prompt
         rather than crash the session. The tool allowlist still comes from the
         spec, so the fallback never widens the agent's capabilities.
         """
-        (crew_agent / "junction.json").write_text(
+        (junction_agent_spec / "junction.json").write_text(
             json.dumps({"name": "junction", "tools": ["fs_read"], "prompt": ""}),
             encoding="utf-8",
         )
@@ -244,7 +244,9 @@ class TestModeBinding:
         assert seen["injected"][0]["tools"] == ["fs_read"]
 
     @pytest.mark.asyncio
-    async def test_an_unprojectable_agent_fails_loud(self, mode_stub, crew_agent, tmp_path):
+    async def test_an_unprojectable_agent_fails_loud(
+        self, mode_stub, junction_agent_spec, tmp_path
+    ):
         """A prompt that cannot be resolved AT ALL still fails loud.
 
         The base-prompt fallback only covers an empty/absent prompt. A
@@ -253,7 +255,7 @@ class TestModeBinding:
         for a restricted app or subagent agent means a BROADER agent than the
         caller asked for, so this must raise rather than degrade.
         """
-        (crew_agent / "junction.json").write_text(
+        (junction_agent_spec / "junction.json").write_text(
             json.dumps(
                 {
                     "name": "junction",
@@ -287,7 +289,9 @@ class TestKiroPathUntouched:
     """
 
     @pytest.mark.asyncio
-    async def test_no_custom_agents_for_the_kiro_backend(self, mode_stub, crew_agent, tmp_path):
+    async def test_no_custom_agents_for_the_kiro_backend(
+        self, mode_stub, junction_agent_spec, tmp_path
+    ):
         runtime = AcpRuntime(
             work_dir=tmp_path / "ws4",
             agent="junction",

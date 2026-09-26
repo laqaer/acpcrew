@@ -86,13 +86,13 @@ prompt: those are the user's to complete, and working around them is not on the
 table. When they confirm they are in:
 
 ```bash
-playwright-cli state-save ~/.kiro/crew/browser-state/example.json
+playwright-cli state-save ~/.junction/browser-state/example.json
 ```
 
 **Replay it later.**
 
 ```bash
-playwright-cli state-load ~/.kiro/crew/browser-state/example.json
+playwright-cli state-load ~/.junction/browser-state/example.json
 playwright-cli goto https://internal.example.com/dashboard
 ```
 

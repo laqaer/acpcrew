@@ -81,7 +81,7 @@ const LAST_TS = '2026-08-13T18:00:00Z'
 // two plain tags exercise the multi-tag run; the status tag exercises ordering.
 const TAGS = [
   { id: 'junction', name: 'backend', color: '#6b7280', order: 5, status: false },
-  { id: 'themes', name: 'kc-themes', color: '#6b7280', order: 6, status: false },
+  { id: 'themes', name: 'jn-themes', color: '#6b7280', order: 6, status: false },
   { id: 'review', name: 'Review', color: '#f59e0b', order: 3, status: true },
 ]
 

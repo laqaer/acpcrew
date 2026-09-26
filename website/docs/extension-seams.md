@@ -121,7 +121,7 @@ them. The edition plugin patches them instead — the HTML fields on every build
 and dev transform, the `public/` overlay at build emit — from two optional
 inputs in the edition dir:
 
-- **`branding.json`** — `{"title": "Acme Crew", "themeColor": "#0055aa"}`. Both
+- **`branding.json`** — `{"title": "Acme Assist", "themeColor": "#0055aa"}`. Both
   keys optional; values are HTML-escaped into the root `index.html` only (app
   panel pages are untouched). An unknown key, a non-string value, or malformed
   JSON **fails the build** — a typoed key silently shipping the stock title is

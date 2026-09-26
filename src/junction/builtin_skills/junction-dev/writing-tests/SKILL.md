@@ -75,7 +75,7 @@ it is a "your shell stops working" issue.
 
 `JUNCTION_HOME` is pinned per test at the rootdir, which is what makes `config_dir()`
 safe — and it needs to be, because resolving it is **not a read**: it creates the home
-and its marker, and can run the `~/.kirocrew` → `~/.junction` migration.
+and refreshes its recovery breadcrumb.
 
 Two shapes escape the env var:
 
@@ -268,7 +268,7 @@ bisector — use it instead of guessing:
 
 ```bash
 JUNCTION_TMP_PER_TEST=1 pytest src/junction/apps/builtins/<app>/tests -n0 -q
-# AssertionError: 1 temporary entry outlived this run under /tmp/kc-pytest-you-951504:
+# AssertionError: 1 temporary entry outlived this run under /tmp/jn-pytest-you-951504:
 #     test_provider_listing_never_contains_a_token/tmpw2kvty2z
 ```
 

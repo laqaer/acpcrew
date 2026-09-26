@@ -297,7 +297,7 @@ def _cache_dir() -> Path:
     written here, so an agent-writable location would turn "the agent can write a
     file" into "the agent can run code as the gateway" — it could replace the
     compiled helper and have the next transcription execute it. ``run`` is on
-    ``security._CREW_SECRET_LEAVES``, so ``is_sensitive_path`` refuses agent reads
+    ``security._DATA_HOME_SECRET_LEAVES``, so ``is_sensitive_path`` refuses agent reads
     and writes for the whole subtree, the same fence that protects
     ``.local_secret`` and the governance trust root.
     """

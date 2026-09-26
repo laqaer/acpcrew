@@ -60,7 +60,7 @@ export function groupShortcuts(group: string, macCtrl: boolean) {
   // plain browser those chords are reserved for browser tab switching and the
   // handler never binds (see useInstanceShortcuts). Don't advertise a binding
   // the host environment will steal.
-  if (group === 'remote-crews' && !isElectron) return []
+  if (group === 'remote-instances' && !isElectron) return []
   return DEFAULT_SHORTCUTS.filter(s => s.group === group).map(s => {
     // When Mac user toggles back to Alt+digit, adjust the display
     if (IS_MAC && !macCtrl && s.id.startsWith('chat-') && s.ctrl) {

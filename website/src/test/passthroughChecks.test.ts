@@ -83,7 +83,7 @@ describe('untranslated-script — a value must carry its locale’s script', () 
 
   it('ignores a value that is only placeholders, markup and noise', () => {
     for (const v of ['{{count}} cron', '(v{{from}} → v{{to}})', '`npm ci`', '0 B', '120s',
-      'https://example.com/docs', '~/.kiro/crew', '--no-verify']) {
+      'https://example.com/docs', '~/.junction', '--no-verify']) {
       expect(flagsScript(v, 'ru'), v).toBe(false)
     }
   })

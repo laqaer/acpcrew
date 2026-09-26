@@ -36,7 +36,7 @@ export default function CapabilitiesPage() {
 
   const tabs = useMemo(() => {
     return [
-      { key: 'crews', label: t('pages.capabilitiesPage.crews_label'), icon: <Users size={16} />, description: t('pages.capabilitiesPage.crews_description') },
+      { key: 'agents', label: t('pages.capabilitiesPage.agents_label'), icon: <Users size={16} />, description: t('pages.capabilitiesPage.agents_description') },
       { key: 'templates', label: t('pages.capabilitiesPage.templates_label'), icon: <LayoutTemplate size={16} />, description: t('pages.capabilitiesPage.templates_description') },
       // The label and description are deliberately unchanged. Substituting the
       // pre-gallery "MCP Servers" strings was tried and reverted: those keys were
@@ -58,7 +58,7 @@ export default function CapabilitiesPage() {
   return (
     <SidePanelLayout title={t('pages.capabilitiesPage.agent_capabilities')} tabs={tabs} rememberKey="capabilities" headerRight={<RestartButton />}>
       {tab => <>
-        {tab === 'crews' && <JunctionAgentsPage embedded />}
+        {tab === 'agents' && <JunctionAgentsPage embedded />}
         {tab === 'templates' && <AgentsPage embedded />}
         {tab === 'mcp' && <ConnectionsPage servicesEnabled={connectionsUiEnabled} />}
         {tab === 'skills' && <SkillsTab />}

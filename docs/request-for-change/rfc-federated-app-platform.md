@@ -354,14 +354,14 @@ Install flow:
 2. Junction downloads `app.json` from `manifestUrl`
 3. Junction downloads `index.mjs` from `bundleUrl`
 4. Verifies `bundleHash` matches the downloaded file
-5. Stores both in `~/.kirocrew/apps/agent-worlds/`
+5. Stores both in `~/.junction/apps/agent-worlds/`
 6. Registers agents, skills, crons via existing bridge system
 7. Adds route to sidebar — no restart needed
 
 ### 3.8 App File Layout (Installed)
 
 ```
-~/.kirocrew/apps/
+~/.junction/apps/
   agent-worlds/
     app.json              ← manifest
     ui/
@@ -374,7 +374,7 @@ Install flow:
     installed.json         ← install metadata (version, date, source)
 ```
 
-The Junction backend serves `~/.kirocrew/apps/{name}/ui/*` at `/apps/{name}/ui/*` as static files. The import in `AppHost` resolves to `/apps/agent-worlds/ui/index.mjs`.
+The Junction backend serves `~/.junction/apps/{name}/ui/*` at `/apps/{name}/ui/*` as static files. The import in `AppHost` resolves to `/apps/agent-worlds/ui/index.mjs`.
 
 ## 4. Developer Experience
 
@@ -384,7 +384,7 @@ The Junction backend serves `~/.kirocrew/apps/{name}/ui/*` at `/apps/{name}/ui/*
 junction app init agent-worlds --with-ui
 ```
 
-Creates a package `KiroCrewApp-AgentWorlds` with:
+Creates a package `JunctionApp-AgentWorlds` with:
 - `app.json` (manifest with sensible defaults)
 - `vite.config.ts` (pre-configured externals, library mode)
 - `src/index.tsx` (hello-world React component)
@@ -506,7 +506,7 @@ The app author doesn't think about:
 ### Phase 2: First App Extraction
 
 - Extract Agent Worlds as the proof-of-concept app
-  - Create `KiroCrewApp-AgentWorlds` package
+  - Create `JunctionApp-AgentWorlds` package
   - Move scene components from `frontend/src/pages/scenes/` to the app
   - Move `WorldsPage.tsx` logic into the app's `index.tsx`
   - Remove Worlds from Junction core's router and sidebar

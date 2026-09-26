@@ -44,7 +44,7 @@ def symlinked_home(tmp_path, monkeypatch):
     ``Path.resolve()`` returns. On a platform without usable symlinks the test
     is skipped rather than silently asserting nothing.
     """
-    real = tmp_path / "local" / "home" / "u" / ".kiro" / "crew"
+    real = tmp_path / "local" / "home" / "u" / ".junction"
     real.mkdir(parents=True)
     link_root = tmp_path / "home"
     link_root.mkdir()
@@ -53,7 +53,7 @@ def symlinked_home(tmp_path, monkeypatch):
     except (OSError, NotImplementedError):  # pragma: no cover - platform guard
         pytest.skip("symlinks unavailable on this platform")
 
-    declared = link_root / "u" / ".kiro" / "crew"
+    declared = link_root / "u" / ".junction"
     if declared.resolve() == declared:  # pragma: no cover - platform guard
         pytest.skip("symlink not resolved distinctly on this platform")
 

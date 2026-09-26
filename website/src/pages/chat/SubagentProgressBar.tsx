@@ -143,7 +143,7 @@ const SubagentProgressBar = memo(function SubagentProgressBar({ slot }: { slot: 
         {/* Chrome type, so no `font-mono`: the wave chip is prose and labels,
             and Tailwind's `font-mono` pins `var(--mono)` — a token the Font
             Family setting never writes, so a hardcoded one here overrode the
-            user's choice and put JetBrains Mono (no CJK coverage) under a
+            user's choice and put Overpass Mono (no CJK coverage) under a
             translated UI. Mono is re-applied below on the parts that earn it:
             the tree glyphs, the elapsed/tool counter and the tool command. */}
         <div className="flex items-center gap-2 px-3 py-1.5 text-[13px]">

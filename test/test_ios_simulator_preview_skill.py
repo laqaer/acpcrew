@@ -176,8 +176,8 @@ class TestReviewFindings:
         assert re.fullmatch(r"\d+\.\d+\.\d+", pin.group(1)), pin.group(1)
 
     def test_state_dir_honors_junction_home(self, launcher: str) -> None:
-        """Hardcoding ~/.kiro/crew makes a dev instance
-        (JUNCTION_HOME=~/.kirocrew-dev) share pidfile state with a production
+        """Hardcoding ~/.junction makes a dev instance
+        (JUNCTION_HOME=~/.junction-dev) share pidfile state with a production
         install, so one's `stop` reaches into the other's mirrors."""
         assert 'os.environ.get("JUNCTION_HOME")' in launcher
         assert "STATE_DIR = _HOME" in launcher
@@ -382,11 +382,11 @@ class TestReviewFindings:
         import subprocess
 
         fake_home = tmp_path / "fakehome"
-        (fake_home / "crewhome" / "workspace" / "sim-mirror").mkdir(parents=True)
+        (fake_home / "datahome" / "workspace" / "sim-mirror").mkdir(parents=True)
         p = subprocess.run(
             [sys.executable, str(SKILL_DIR / "scripts" / "sim_mirror.py"), "status"],
             capture_output=True, text=True, timeout=60,
-            env={**os.environ, "HOME": str(fake_home), "JUNCTION_HOME": "~/crewhome"},
+            env={**os.environ, "HOME": str(fake_home), "JUNCTION_HOME": "~/datahome"},
         )
         assert p.returncode == 0, p.stderr
         assert json.loads(p.stdout) == {"mirrors": []}

@@ -183,7 +183,7 @@ describe('RegistryManager', () => {
       ['https://github.com/zzq/reg', 'https://github.com/zzq/reg'],
       ['git@zzq.invalid:org/repo.git', 'https://zzq.invalid/org/repo'],
       ['ssh://git@zzq.invalid/org/repo.git', 'https://zzq.invalid/org/repo'],
-      ['zzq-bare', 'https://github.com/kirodotdev-labs/zzq-bare'],
+      ['zzq-bare', 'https://github.com/laqaer/zzq-bare'],
     ]
     for (const [repo, expected] of forms) {
       open.mockClear()

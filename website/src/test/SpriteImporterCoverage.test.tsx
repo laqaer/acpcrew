@@ -1,6 +1,6 @@
 /**
- * Crew Companion sprite importer — first tests for
- * `apps/crew-companion/SpriteImporter.tsx`.
+ * Companion sprite importer — first tests for
+ * `apps/desk-companion/SpriteImporter.tsx`.
  *
  * The importer is the whole "turn a sprite sheet into an appearance pack" screen:
  * pick a sheet, detect its grid, slice it into rows, map each row onto one of the
@@ -33,7 +33,7 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest'
 import { render, screen, fireEvent, act, cleanup, within } from '@testing-library/react'
 
-import type { PackMeta } from '../apps/crew-companion/appearanceTypes'
+import type { PackMeta } from '../apps/desk-companion/appearanceTypes'
 
 // ── Bridge double ──────────────────────────────────────────────────────────
 
@@ -42,13 +42,13 @@ const mocks = vi.hoisted(() => ({
     importSpriteFile: vi.fn<() => Promise<unknown>>(),
     galleryGetPackDetail: vi.fn<(packId: string) => Promise<unknown>>(),
     galleryReadPackFile: vi.fn<(packId: string, file: string) => Promise<string | null>>(),
-    getCrewCompanionConfig: vi.fn<() => Promise<unknown>>(),
+    getDeskCompanionConfig: vi.fn<() => Promise<unknown>>(),
   },
 }))
 
-vi.mock('../apps/crew-companion/petBridge', () => ({ galleryApi: mocks.api }))
+vi.mock('../apps/desk-companion/petBridge', () => ({ galleryApi: mocks.api }))
 
-vi.mock('../apps/crew-companion/SpriteRenderer', () => ({
+vi.mock('../apps/desk-companion/SpriteRenderer', () => ({
   SpriteRenderer: ({ src, frameWidth, frameHeight, fps, displaySize }: {
     src: string
     frameWidth: number
@@ -82,7 +82,7 @@ vi.mock('../components/SimpleSelect', () => ({
   ),
 }))
 
-import { SpriteImporter } from '../apps/crew-companion/SpriteImporter'
+import { SpriteImporter } from '../apps/desk-companion/SpriteImporter'
 
 const api = mocks.api
 
@@ -224,9 +224,9 @@ async function pickSheet(content = 'SHEETBYTES'): Promise<void> {
 
 const existingPack: PackMeta = {
   id: 'pack-77',
-  name: 'Pixel Ghost',
+  name: 'Pixel Fox',
   author: 'Zed',
-  description: 'a small pixel ghost',
+  description: 'a small pixel fox',
   type: 'custom',
   format: 'sprite',
   thumbnail: 'thumb.png',
@@ -241,7 +241,7 @@ beforeEach(() => {
   api.galleryGetPackDetail.mockResolvedValue(null)
   api.galleryReadPackFile.mockResolvedValue(null)
   api.importSpriteFile.mockResolvedValue(null)
-  api.getCrewCompanionConfig.mockResolvedValue({ language: 'en' })
+  api.getDeskCompanionConfig.mockResolvedValue({ language: 'en' })
 
   vi.stubGlobal('Image', FakeImage)
   realGetContext = canvasProto.getContext
@@ -592,7 +592,7 @@ describe('SpriteImporter — editing an existing pack', () => {
     expect(api.galleryGetPackDetail).toHaveBeenCalledWith('pack-77')
     expect(api.galleryReadPackFile).toHaveBeenCalledWith('pack-77', 'sheet.png')
     expect(document.querySelector('img')?.getAttribute('src')).toBe('data:image/png;base64,STOREDSHEET')
-    expect(fieldInput('Name *').value).toBe('Pixel Ghost')
+    expect(fieldInput('Name *').value).toBe('Pixel Fox')
     expect(fieldInput('Author').value).toBe('Zed')
     expect(fieldInput('FPS').value).toBe('12')
     expect(screen.getByRole('switch')).toHaveAttribute('aria-checked', 'true')
@@ -620,14 +620,14 @@ describe('SpriteImporter — editing an existing pack', () => {
     api.galleryReadPackFile.mockResolvedValue('STOREDSHEET')
     const onDone = await mountEdit(spriteDetail())
 
-    fireEvent.change(fieldInput('Name *'), { target: { value: 'Pixel Ghost v2' } })
+    fireEvent.change(fieldInput('Name *'), { target: { value: 'Pixel Fox v2' } })
     fireEvent.click(saveButton())
 
     expect(onDone).not.toHaveBeenCalled()
     fireEvent.click(within(saveDialog()).getByRole('button', { name: 'Overwrite' }))
 
     expect(onDone).toHaveBeenCalledTimes(1)
-    expect(onDone.mock.calls[0][0]).toMatchObject({ overwriteId: 'pack-77', name: 'Pixel Ghost v2' })
+    expect(onDone.mock.calls[0][0]).toMatchObject({ overwriteId: 'pack-77', name: 'Pixel Fox v2' })
     expect(screen.queryByText('Overwrite existing or save as new?')).not.toBeInTheDocument()
   })
 
@@ -635,7 +635,7 @@ describe('SpriteImporter — editing an existing pack', () => {
     api.galleryReadPackFile.mockResolvedValue('STOREDSHEET')
     const onDone = await mountEdit(spriteDetail())
 
-    fireEvent.change(fieldInput('Name *'), { target: { value: 'Pixel Ghost v2' } })
+    fireEvent.change(fieldInput('Name *'), { target: { value: 'Pixel Fox v2' } })
     fireEvent.click(saveButton())
     fireEvent.click(within(saveDialog()).getByRole('button', { name: 'Save as New' }))
 
@@ -647,13 +647,13 @@ describe('SpriteImporter — editing an existing pack', () => {
     api.galleryReadPackFile.mockResolvedValue('STOREDSHEET')
     const onDone = await mountEdit(spriteDetail())
 
-    fireEvent.change(fieldInput('Name *'), { target: { value: 'Pixel Ghost v2' } })
+    fireEvent.change(fieldInput('Name *'), { target: { value: 'Pixel Fox v2' } })
     fireEvent.click(saveButton())
     fireEvent.click(within(saveDialog()).getByRole('button', { name: 'Cancel' }))
 
     expect(onDone).not.toHaveBeenCalled()
     expect(screen.queryByText('Overwrite existing or save as new?')).not.toBeInTheDocument()
-    expect(fieldInput('Name *').value).toBe('Pixel Ghost v2')
+    expect(fieldInput('Name *').value).toBe('Pixel Fox v2')
     expect(saveButton()).toBeEnabled()
   })
 
@@ -764,7 +764,7 @@ describe('SpriteImporter — editing an existing pack', () => {
     await mountEdit(null)
 
     expect(screen.getByText('Edit Sprite Pack')).toBeInTheDocument()
-    expect(fieldInput('Name *').value).toBe('Pixel Ghost')
+    expect(fieldInput('Name *').value).toBe('Pixel Fox')
     expect(fieldInput('Frame W').value).toBe('32')
     expect(saveButton()).toBeDisabled()
   })

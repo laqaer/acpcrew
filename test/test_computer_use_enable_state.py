@@ -7,7 +7,7 @@ Two properties, and both are security properties:
   hands out the operator's whole desktop. Modeled on
   ``hooks.load_denied_commands_state()``, which has the identical contract.
 * **The agent can neither read nor write it.** The leaf is on
-  ``security._CREW_SECRET_LEAVES``, so ``is_sensitive_path`` blocks the tool path
+  ``security._DATA_HOME_SECRET_LEAVES``, so ``is_sensitive_path`` blocks the tool path
   and ``is_sensitive_bash_command`` blocks every shell form. That is the single
   mechanism that makes the enable un-flippable by a prompt-injected agent, so it is
   asserted directly rather than assumed from the list membership.
@@ -45,7 +45,7 @@ def state_dir(tmp_path, monkeypatch):
     attribute rather than a direct import, so this single patch redirects it — and a
     test that patched only ``config_dir`` would still work.
     """
-    directory = tmp_path / "crew"
+    directory = tmp_path / "data-home"
     directory.mkdir()
     monkeypatch.setattr(
         config_loader, "computer_use_state_path", lambda: directory / STATE_FILE_NAME
@@ -221,8 +221,8 @@ class TestPolicyConfig:
         # (driving our own Settings UI would route around the keystone that holds
         # the primary enable). The terminal / password-manager / system-settings
         # entries were removed by product decision.
-        ours = AppRef(name="Junction", pid=1, bundle_id="dev.kiro.crew")
-        cfg = PolicyConfig(allowed_apps=("dev.kiro.crew",), extra_denied_apps=())
+        ours = AppRef(name="Junction", pid=1, bundle_id="dev.junction.desktop")
+        cfg = PolicyConfig(allowed_apps=("dev.junction.desktop",), extra_denied_apps=())
         # Even an explicit operator allow-list entry cannot lift the built-in floor.
         assert policy.check_app(ours, cfg) is not None
 
@@ -290,13 +290,13 @@ class TestSaveState:
 # ──────────────────────────────────────────────────────────────────────────
 class TestKeystoneProtection:
     def test_leaf_is_registered_on_the_secret_floor(self):
-        assert STATE_FILE_NAME in security._CREW_SECRET_LEAVES
+        assert STATE_FILE_NAME in security._DATA_HOME_SECRET_LEAVES
 
     @pytest.mark.parametrize(
         "path",
         [
-            "~/.kiro/crew/computer_use.json",
-            "~/.kirocrew/computer_use.json",
+            "~/.junction/computer_use.json",
+            "~/.junction/computer_use.json",
         ],
     )
     def test_agent_cannot_read_or_write_it_on_the_tool_path(self, path):
@@ -308,13 +308,13 @@ class TestKeystoneProtection:
     @pytest.mark.parametrize(
         "command",
         [
-            "cat ~/.kiro/crew/computer_use.json",
-            "less ~/.kiro/crew/computer_use.json",
-            "echo '{\"enabled\":true}' > ~/.kiro/crew/computer_use.json",
-            "echo x >> ~/.kiro/crew/computer_use.json",
-            "tee ~/.kiro/crew/computer_use.json",
-            "cp /tmp/evil.json ~/.kiro/crew/computer_use.json",
-            "python -c \"open('~/.kiro/crew/computer_use.json','w')\"",
+            "cat ~/.junction/computer_use.json",
+            "less ~/.junction/computer_use.json",
+            "echo '{\"enabled\":true}' > ~/.junction/computer_use.json",
+            "echo x >> ~/.junction/computer_use.json",
+            "tee ~/.junction/computer_use.json",
+            "cp /tmp/evil.json ~/.junction/computer_use.json",
+            "python -c \"open('~/.junction/computer_use.json','w')\"",
         ],
     )
     def test_agent_cannot_reach_it_from_a_shell(self, command):
@@ -326,8 +326,8 @@ class TestKeystoneProtection:
         # The ``tar -C`` / ``unzip -d`` drop would land a replacement file without
         # ever naming it.
         for command in (
-            "tar -xf payload.tar -C ~/.kiro/crew",
-            "unzip payload.zip -d ~/.kiro/crew",
+            "tar -xf payload.tar -C ~/.junction",
+            "unzip payload.zip -d ~/.junction",
         ):
             assert security.is_sensitive_bash_command(command), command
 

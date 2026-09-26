@@ -109,9 +109,9 @@ class TestTheTailnetUrlIsPrinted:
 
     def test_both_a_custom_domain_and_the_tailnet_are_printed(self, home, monkeypatch, capsys):
         """A reverse proxy and a tailnet can be reachable at the same time."""
-        _write_cfg(home, enabled=True, url="https://crew.example.com")
+        _write_cfg(home, enabled=True, url="https://junction.example.com")
         out = _run(monkeypatch, capsys, name="box.example-tailnet.ts.net")
-        assert f"https://crew.example.com/?token={SESSION}" in out.out
+        assert f"https://junction.example.com/?token={SESSION}" in out.out
         assert f"https://box.example-tailnet.ts.net/?token={SESSION}" in out.out
 
 

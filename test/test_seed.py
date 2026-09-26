@@ -148,7 +148,7 @@ def test_seed_cmd_exit_code_on_unset(
     ``sel`` is patched to keep the test hermetic: the real ``sel()``
     singleton resolves its log dir from ``Path.home()``, NOT
     ``$JUNCTION_HOME``, and would otherwise append real audit events to
-    the dev's own ``~/.kirocrew/security_events.jsonl`` HMAC chain.
+    the dev's own ``~/.junction/security_events.jsonl`` HMAC chain.
     """
     monkeypatch.delenv("JUNCTION_HOME", raising=False)
 
@@ -416,18 +416,18 @@ def test_seed_cmd_safe_audit_logs_warning_on_swallowed_failure(
 def test_seed_main_home_rail_refuses(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
-    """``$JUNCTION_HOME=~/.kirocrew`` exits 2 with 'refusing to seed main
+    """``$JUNCTION_HOME=~/.junction`` exits 2 with 'refusing to seed main
     gateway home' message, even when the path doesn't exist yet.
 
     PRD acceptance test 4. Monkeypatches ``$HOME`` so ``Path.home() /
-    '.kirocrew'`` points into ``tmp_path`` — catching developers who set
+    '.junction'`` points into ``tmp_path`` — catching developers who set
     ``JUNCTION_HOME`` to their real main home would be the worst possible
     test failure mode.
     """
     fake_home = tmp_path / "fake_home"
     fake_home.mkdir()
     monkeypatch.setenv("HOME", str(fake_home))
-    target = fake_home / ".kirocrew"
+    target = fake_home / ".junction"
     monkeypatch.setenv("JUNCTION_HOME", str(target))
 
     with pytest.raises(seed_mod.SeedError) as excinfo:
@@ -439,39 +439,18 @@ def test_seed_main_home_rail_refuses(
     assert not target.exists()
 
 
-def test_seed_new_home_rail_refuses(
-    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
-) -> None:
-    """``$JUNCTION_HOME=~/.kiro/crew`` (the post-move default home) is refused
-    too — the guardrail protects the CURRENT main gateway home, not just the
-    pre-move legacy ``~/.kirocrew``.
-    """
-    fake_home = tmp_path / "fake_home"
-    fake_home.mkdir()
-    monkeypatch.setenv("HOME", str(fake_home))
-    target = fake_home / ".kiro" / "crew"
-    monkeypatch.setenv("JUNCTION_HOME", str(target))
-
-    with pytest.raises(seed_mod.SeedError) as excinfo:
-        seed_mod.seed("empty")
-
-    assert excinfo.value.code == seed_mod.EXIT_GUARDRAIL
-    assert "refusing to seed main gateway home" in str(excinfo.value)
-    assert not target.exists()
-
-
 def test_seed_main_home_rail_refuses_even_with_replace(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
     """``--seed-replace`` does NOT override the main-home guardrail.
 
     PRD guardrail precedence constraint. This is the single most important
-    test of this CR — ``--seed-replace`` on ``$JUNCTION_HOME=~/.kirocrew``
+    test of this CR — ``--seed-replace`` on ``$JUNCTION_HOME=~/.junction``
     would silently ``rmtree`` the user's live gateway state.
     """
     fake_home = tmp_path / "fake_home"
     fake_home.mkdir()
-    target = fake_home / ".kirocrew"
+    target = fake_home / ".junction"
     target.mkdir()
     (target / "real_user_data.txt").write_text("don't delete me")
     monkeypatch.setenv("HOME", str(fake_home))
@@ -492,15 +471,15 @@ def test_seed_main_home_rail_refuses_even_with_replace(
 def test_seed_main_home_rail_catches_symlink(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
-    """Symlinked ``$JUNCTION_HOME`` resolving to ``~/.kirocrew`` is caught.
+    """Symlinked ``$JUNCTION_HOME`` resolving to ``~/.junction`` is caught.
 
-    PRD acceptance test 6. Developer might symlink ``~/dev-home -> ~/.kirocrew``
+    PRD acceptance test 6. Developer might symlink ``~/dev-home -> ~/.junction``
     and point ``$JUNCTION_HOME`` at the symlink; the resolved comparison
     must still hit the main-home guardrail.
     """
     fake_home = tmp_path / "fake_home"
     fake_home.mkdir()
-    real_main = fake_home / ".kirocrew"
+    real_main = fake_home / ".junction"
     real_main.mkdir()
     (real_main / "user_data.txt").write_text("preserved")
     symlinked_target = fake_home / "dev-home"
@@ -820,7 +799,7 @@ def test_seed_audit_uses_rail_tag_not_raw_path(
         if setup == "main_home":
             fake_home = tmp_path / "fake_home"
             fake_home.mkdir()
-            target = fake_home / ".kirocrew"
+            target = fake_home / ".junction"
             target.mkdir()
             monkeypatch.setenv("HOME", str(fake_home))
             monkeypatch.setenv("JUNCTION_HOME", str(target))

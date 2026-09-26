@@ -648,7 +648,7 @@ def spawn_run(name: str, args: dict[str, Any]) -> str:
         spawn_lines.append(
             "⚠ parent_session UNRESOLVED — these subagents are orphaned: "
             "completion events will NOT arrive in this conversation. "
-            "Poll spawn_list and read ~/.kiro/crew/subagents/<id>/result.txt "
+            "Poll spawn_list and read ~/.junction/subagents/<id>/result.txt "
             "instead. (Identity plumbing issue — check JUNCTION_HOST_PID / "
             "session_pid / claim-push.)"
         )

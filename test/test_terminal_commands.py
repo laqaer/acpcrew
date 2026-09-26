@@ -814,7 +814,7 @@ class TestCompleteOrchestration:
         run = AsyncMock()
         with patch.object(tc, "_resolve_and_vet", return_value=(("/usr/bin/gh", ("x", 1, 2)), None)), \
              patch.object(tc, "_run_probe", run):
-            entries, reason = await tc.complete(["gh"], "", "/home/u/.kiro/crew")
+            entries, reason = await tc.complete(["gh"], "", "/home/u/.junction")
         assert (entries, reason) == ([], "sensitive_path")
         run.assert_not_awaited()
 
@@ -1127,7 +1127,10 @@ class TestRunProbe:
         # cannot cover the ones it does not — `GH_TOKEN`, `KUBECONFIG`, `NPM_TOKEN`
         # and every future tool's variable would have reached the child. So the
         # environment is built from nothing instead of filtered down.
-        for name in ("GH_TOKEN", "GITHUB_TOKEN", "KUBECONFIG", "NPM_TOKEN"):
+        # GRADLE_OPTS is also a name the sandbox launcher sets in the child, so
+        # seeding it here proves the child's copy is the launcher's own value and
+        # never the parent's.
+        for name in ("GH_TOKEN", "GITHUB_TOKEN", "KUBECONFIG", "NPM_TOKEN", "GRADLE_OPTS"):
             monkeypatch.setenv(name, f"leaked-{name}")
         # HOME keeps the `leaked-` marker but must be an ABSOLUTE path: on hosts
         # where the userns sandbox is unavailable the probe child runs unsandboxed
@@ -1141,12 +1144,15 @@ class TestRunProbe:
         assert out is not None
         assert "leaked-" not in out
         # And the allowlist really is minimal. The extras are not ours: the sandbox
-        # launcher injects its own markers (`JUNCTION_*`, `GIT_SSH_COMMAND`) and the
-        # shell adds `PWD`/`SHLVL`/`_`, so they are named rather than blanket-allowed
-        # — a NEW name appearing here should fail this and be looked at.
+        # launcher injects its own markers (`JUNCTION_*`, `GIT_SSH_COMMAND`, and
+        # `GRADLE_OPTS` carrying `-Dorg.gradle.daemon=false` so no Gradle daemon
+        # outlives the sandbox) and the shell adds `PWD`/`SHLVL`/`_`, so they are
+        # named rather than blanket-allowed — a NEW name appearing here should
+        # fail this and be looked at. They appear only where the sandbox runs.
         ours = {"TERM", "NO_COLOR", "PAGER", "GIT_PAGER", "PATH", "LANG", "LC_ALL", "LC_CTYPE"}
         sandbox_injected = {"JUNCTION_HOST_PID", "JUNCTION_SANDBOX_ACTIVE",
-                            "JUNCTION_SANDBOX_LEVEL", "JUNCTION_SPAWNED", "GIT_SSH_COMMAND"}
+                            "JUNCTION_SANDBOX_LEVEL", "JUNCTION_SPAWNED", "GIT_SSH_COMMAND",
+                            "GRADLE_OPTS"}
         shell_added = {"PWD", "SHLVL", "_"}
         # macOS injects __CF_USER_TEXT_ENCODING into every spawned process
         # unconditionally (CoreFoundation per-user encoding preference). This is

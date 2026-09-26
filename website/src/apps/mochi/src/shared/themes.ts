@@ -30,25 +30,25 @@
 import coreCss from '../../../../index.css?inline'
 
 export const FALLBACK_PALETTE: Record<string, string> = {
-  '--bg': '#0c0d12',
-  '--bg-elevated': '#16171f',
-  '--bg-input': '#1e2029',
-  '--border': '#27272a',
-  '--border-focus': 'rgba(228,165,74,0.4)',
-  '--text': '#e4e4e7',
-  '--text-muted': '#7f7f88',
-  '--text-faint': '#52525b',
-  '--bubble-user': 'rgba(228,165,74,0.16)',
+  '--bg': '#0b0e13',
+  '--bg-elevated': '#161b24',
+  '--bg-input': '#1d232e',
+  '--border': '#232a35',
+  '--border-focus': 'rgba(92,141,255,0.4)',
+  '--text': '#d8dee7',
+  '--text-muted': '#8591a3',
+  '--text-faint': '#566275',
+  '--bubble-user': 'rgba(92,141,255,0.16)',
   '--bubble-assistant': 'rgba(255,255,255,0.04)',
-  '--accent': '#e4a54a',
-  '--accent-text': '#0c0d12',
-  '--accent-glow': 'rgba(228,165,74,0.28)',
-  '--danger': '#ef4444',
-  '--success': '#22c55e',
-  '--header-bg': 'rgba(12,13,18,0.95)',
+  '--accent': '#5c8dff',
+  '--accent-text': '#06112b',
+  '--accent-glow': 'rgba(92,141,255,0.3)',
+  '--danger': '#f0525a',
+  '--success': '#2fbf71',
+  '--header-bg': 'rgba(11,14,19,0.94)',
   '--shadow': 'rgba(0,0,0,0.35)',
-  '--scrollbar': 'rgba(228,228,231,0.08)',
-  '--scrollbar-hover': 'rgba(228,228,231,0.15)',
+  '--scrollbar': 'rgba(216,222,231,0.08)',
+  '--scrollbar-hover': 'rgba(216,222,231,0.15)',
 }
 
 export function applyFallbackTheme(root: HTMLElement = document.documentElement): void {
@@ -88,10 +88,10 @@ const ALIAS_VARS: Record<string, string> = {
  * there — do not let these drift). Reimplemented because importing the hook
  * would drag the SPA's api client into every Mochi window bundle. */
 function computeDatasetTheme(): { theme: string; mode: string } {
-  let colorTheme = 'kiro'
+  let colorTheme = 'junction'
   let modePref = 'system'
   try {
-    colorTheme = localStorage.getItem('mc-color-theme') || 'kiro'
+    colorTheme = localStorage.getItem('mc-color-theme') || 'junction'
     modePref = localStorage.getItem('mc-theme') || 'system'
   } catch {
     /* storage unavailable: defaults stand */

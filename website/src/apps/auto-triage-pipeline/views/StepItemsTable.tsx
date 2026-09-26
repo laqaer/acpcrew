@@ -160,7 +160,7 @@ function ItemRow({
 
         {item.pr ? (
           <a
-            href={`https://github.com/kirodotdev/KiroCrew/pull/${item.pr}`}
+            href={`https://github.com/laqaer/junction/pull/${item.pr}`}
             target="_blank"
             rel="noreferrer"
             className="flex shrink-0 items-center gap-1 text-[11px] tabular-nums sm:w-16"

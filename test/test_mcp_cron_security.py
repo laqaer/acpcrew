@@ -214,7 +214,7 @@ BENIGN_LOOKALIKE_COMMANDS = [
     # start rejecting these.
     "TZ=UTC date",
     "TZ=UTC LANG=C date",
-    "PYTHONUNBUFFERED=1 python3 ~/.kiro/crew/crons/report.py",
+    "PYTHONUNBUFFERED=1 python3 ~/.junction/crons/report.py",
     # The reassignment case with the two values swapped: `B` captures `x`, so sh
     # reads `xsh` and no credential path is reachable. Resolution must be
     # ORDER-SENSITIVE in both directions — a scan that just unions every value
@@ -240,7 +240,7 @@ BENIGN_COMMANDS = [
     "aws s3 ls s3://my-bucket/",
     "ls -la /tmp",
     "git status",
-    "python3 ~/.kiro/crew/crons/report.py",
+    "python3 ~/.junction/crons/report.py",
     # An ordinary single-quoted argument must not be mistaken for ANSI-C `$'...'`
     # — the `$` immediately before the quote is what makes it ANSI-C, so a plain
     # `-m 'msg'` (space before the quote) stays allowed.

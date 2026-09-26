@@ -1,9 +1,8 @@
 import type { CSSProperties } from 'react'
 import githubMarkUrl from '../assets/github-mark.svg'
-import discordMarkUrl from '../assets/discord-mark.svg'
 
 /**
- * Monochrome brand marks (GitHub, Discord, the Kiro ghost) tinted via CSS
+ * Monochrome brand marks (GitHub, the Junction glyph) tinted via CSS
  * `mask` so they follow `currentColor` — matching the muted/hover treatment of
  * adjacent lucide icons. Same asset-file pattern as `SlackIcon` (Vite emits a
  * hashed URL under /assets); lucide-react ships no brand icons.
@@ -57,6 +56,3 @@ export function GithubIcon({ size = 16 }: { size?: number }) {
   return <BrandGlyph url={githubMarkUrl} size={size} />
 }
 
-export function DiscordIcon({ size = 16 }: { size?: number }) {
-  return <BrandGlyph url={discordMarkUrl} size={size} />
-}

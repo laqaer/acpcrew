@@ -38,7 +38,7 @@ const JOBS = [
   },
   {
     id: 'job-2', name: 'Feed poller', schedule: 'every 300s', enabled: true, folder_id: 'fld-prod',
-    script: '~/.kiro/crew/crons/feed.py:check', message: '',
+    script: '~/.junction/crons/feed.py:check', message: '',
     last_status: 'error', last_error: 'HTTP 502 from upstream', last_run_ts: now - 240,
     next_run_ts: now + 60, is_running: true, running_since: now - 20,
   },

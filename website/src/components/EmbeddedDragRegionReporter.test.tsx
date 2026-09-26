@@ -14,7 +14,7 @@ function model(over: Partial<HostModel> = {}): HostModel {
     self: null,
     macInset: false,
     electron: true,
-    pinnedCrews: [],
+    pinnedInstances: [],
     stableOrder: false,
     ...over,
   }

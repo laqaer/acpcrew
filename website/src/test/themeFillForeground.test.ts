@@ -12,8 +12,9 @@
  *    improvement if the token beats what it replaced — otherwise a theme is
  *    quietly made LESS readable by "fixing" it. This is the assertion that
  *    caught rosepine-light (`#d7827e` + white = 2.84:1, against 5.34:1 for
- *    text-strong) and kiro-light's undeclared `--danger-fg` (4.30:1 inherited
- *    from the dark defaults, since `:root` matches `<html>` in every theme).
+ *    text-strong) and the factory light theme's undeclared `--danger-fg`
+ *    (4.30:1 inherited from the dark defaults, since `:root` matches `<html>`
+ *    in every theme).
  *
  * The CSS is parsed rather than rendered because jsdom resolves no cascade: it
  * would report every var as empty and the whole suite would pass vacuously.
@@ -77,7 +78,7 @@ describe('theme fill/foreground pairs', () => {
     // every assertion below pass without testing anything.
     expect(THEMES.length).toBeGreaterThanOrEqual(30)
     expect(THEMES).toContain('dracula-light')
-    expect(THEMES).toContain('kiro-light')
+    expect(THEMES).toContain('junction-light')
   })
 
   for (const theme of THEMES) {

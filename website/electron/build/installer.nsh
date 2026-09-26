@@ -20,7 +20,7 @@
 ; channel's pending update download, its differential baseline, and its window
 ; state. Orphaned bytes are a cost; reaching into a live install is a defect.
 ;
-; The Kiro Crew data home (~/.kiro/crew) is deliberately NOT touched: it holds
+; The Junction data home (~/.junction) is deliberately NOT touched: it holds
 ; sessions, memory and the database, is outside the install tree, and survives an
 ; uninstall by design (`nsis.deleteAppDataOnUninstall` stays false for the same
 ; reason). Neither is another product's data, e.g. %LOCALAPPDATA%\Kiro-Cli, which
@@ -368,9 +368,9 @@ FunctionEnd
   StrCpy $KiroVisibleUpdate 0
   ${If} ${isUpdated}
     StrCpy $KiroVisibleUpdate 1
-    ; Older Kiro Crew clients launch every NSIS update with /S. Convert that
-    ; legacy handoff to the visible, non-interactive update path so users see
-    ; progress on the very first upgrade that contains this fix.
+    ; A client that hands an update to NSIS with /S still gets the visible,
+    ; non-interactive update path, so the user sees progress while the update
+    ; installs.
     ${If} ${Silent}
       SetSilent normal
     ${EndIf}

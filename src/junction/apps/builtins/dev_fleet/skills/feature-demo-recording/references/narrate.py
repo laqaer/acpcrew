@@ -354,8 +354,8 @@ def main() -> int:
     ap.add_argument("--piper-binary", default="", help="piper executable, if not on PATH")
     ap.add_argument(
         "--piper-model",
-        default=os.environ.get("KC_VIDEO_PIPER_MODEL", ""),
-        help="piper .onnx voice model (defaults to KC_VIDEO_PIPER_MODEL)",
+        default=os.environ.get("JUNCTION_VIDEO_PIPER_MODEL", ""),
+        help="piper .onnx voice model (defaults to JUNCTION_VIDEO_PIPER_MODEL)",
     )
     ap.add_argument("--polly-voice", default="Matthew", help="Polly voice id")
     ap.add_argument("--aws-profile", default="")

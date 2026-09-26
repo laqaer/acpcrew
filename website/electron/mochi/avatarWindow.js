@@ -2,7 +2,7 @@
  * avatarWindow.js — the Avatars window.
  *
  * This is ONE window with two jobs, deliberately not two:
- *  - on first enable it is the picker (Kiro ghost or Mochi cat);
+ *  - on first enable it is the picker (the built-in pet or an imported pack);
  *  - afterwards it is the Avatars surface the user re-opens to change their
  *    mind, and where imported packs will live.
  * The original shipped these as a separate first-run flow and a "Gallery"

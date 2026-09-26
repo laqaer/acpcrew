@@ -92,14 +92,6 @@ describe('live appearance switch payload', () => {
     expect(animations?.idle?.format).toBe('svg')
   })
 
-  it('produces a built-in\u2019s art locally (the packs route would 404)', async () => {
-    const [data] = await applyAppearance('kiro-ghost')
-
-    expect(galleryGetPackDetail).not.toHaveBeenCalled()
-    expect(data?.packId).toBe('kiro-ghost')
-    expect(Object.keys(data?.animations as object)).toContain('idle')
-  })
-
   it('names the pack when it has no readable detail', async () => {
     galleryGetPackDetail.mockResolvedValue(null)
     const err = vi.spyOn(console, 'error').mockImplementation(() => {})

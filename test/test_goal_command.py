@@ -94,13 +94,12 @@ async def test_arm_default_budget(
     svc = _fake_service(loop=None)
     audit = _install(monkeypatch, svc)
     monkeypatch.setattr(chat_runner.Path, "home", classmethod(lambda cls: tmp_path))
-    # The goal-stop sentinel now derives from data_home() (data home moved to
-    # ~/.kiro/crew). data_home() reads JUNCTION_HOME (pinned elsewhere by
-    # conftest), so redirect it to track the patched home and keep the
-    # ~/.kirocrew/goal-stop layout this test builds authoritative.
-    monkeypatch.setattr(chat_runner, "data_home", lambda: tmp_path / ".kirocrew")
+    # The goal-stop sentinel derives from data_home(), which reads JUNCTION_HOME
+    # (pinned elsewhere by conftest), so redirect it to track the patched home
+    # and keep the ~/.junction/goal-stop layout this test builds authoritative.
+    monkeypatch.setattr(chat_runner, "data_home", lambda: tmp_path / ".junction")
     slot, state = _make_slot(key="a/b:c"), _make_state()
-    stale_sentinel = tmp_path / ".kirocrew" / "goal-stop" / "a_b_c.stop"
+    stale_sentinel = tmp_path / ".junction" / "goal-stop" / "a_b_c.stop"
     stale_sentinel.parent.mkdir(parents=True)
     stale_sentinel.write_text("stop", encoding="utf-8")
 

@@ -66,8 +66,8 @@ class TestBuildTarball:
     def test_tar_fallback_excludes_secrets(self, tmp_path):
         # Secret-bearing files/dirs must never be packaged by the fallback.
         (tmp_path / "install.sh").write_text("echo hi\n")
-        (tmp_path / ".kirocrew-dev").mkdir()
-        (tmp_path / ".kirocrew-dev" / "config.json").write_text('{"token":"secret"}\n')
+        (tmp_path / ".junction-dev").mkdir()
+        (tmp_path / ".junction-dev" / "config.json").write_text('{"token":"secret"}\n')
         (tmp_path / ".env").write_text("SLACK_BOT_TOKEN=xoxb-secret\n")
         (tmp_path / "server.pem").write_text("-----BEGIN KEY-----\n")
         (tmp_path / "id_rsa.key").write_text("privatekey\n")
@@ -78,7 +78,7 @@ class TestBuildTarball:
             with tarfile.open(tarball) as tf:
                 names = tf.getnames()
             assert any(n.endswith("ok.py") for n in names)  # normal file shipped
-            assert not any(".kirocrew-dev" in n for n in names)
+            assert not any(".junction-dev" in n for n in names)
             assert not any(n.endswith(".env") for n in names)
             assert not any(n.endswith(".pem") for n in names)
             assert not any(n.endswith(".key") for n in names)
@@ -106,10 +106,10 @@ class TestBuildTarball:
             tarball.unlink()
 
     def test_tar_fallback_excludes_nested_custom_home(self, monkeypatch, tmp_path):
-        # A custom JUNCTION_HOME nested below the repo root (root/data/kc-home)
+        # A custom JUNCTION_HOME nested below the repo root (root/data/jn-home)
         # must also be excluded from the tarfile fallback.
         (tmp_path / "install.sh").write_text("echo hi\n")
-        home = tmp_path / "data" / "kc-home"
+        home = tmp_path / "data" / "jn-home"
         home.mkdir(parents=True)
         (home / "secrets.json").write_text('{"k":"v"}\n')
         (tmp_path / "data" / "keep.txt").write_text("keep\n")  # sibling stays
@@ -119,19 +119,19 @@ class TestBuildTarball:
         try:
             with tarfile.open(tarball) as tf:
                 names = tf.getnames()
-            assert not any("kc-home" in n for n in names)
+            assert not any("jn-home" in n for n in names)
             assert any(n.endswith("data/keep.txt") for n in names)  # sibling not dropped
         finally:
             tarball.unlink()
 
     def test_custom_home_not_excluded_when_outside_repo(self, monkeypatch, tmp_path):
-        # An absolute ~/.kirocrew OUTSIDE the repo root isn't in the tarball
+        # An absolute ~/.junction OUTSIDE the repo root isn't in the tarball
         # anyway; _custom_home_rel_parts must return None so we don't accidentally
         # drop a same-named dir that legitimately lives in the repo. Use a
         # sibling dir that is genuinely not under the packaged root.
         repo = tmp_path / "repo"
         repo.mkdir()
-        outside = tmp_path / "home" / ".kirocrew"
+        outside = tmp_path / "home" / ".junction"
         monkeypatch.setenv("JUNCTION_HOME", str(outside))
         assert source._custom_home_rel_parts(repo) is None
 
@@ -240,7 +240,7 @@ class TestBuildTarball:
                 ("src/app.py", b"x=1\n"),
                 ("server.pem", b"-----BEGIN KEY-----\n"),
                 (".env", b"TOKEN=secret\n"),
-                (".kirocrew/config.json", b"{}\n"),
+                (".junction/config.json", b"{}\n"),
             ):
                 ti = tarfile.TarInfo(name)
                 ti.size = len(data)
@@ -569,9 +569,9 @@ class TestUploadDelete:
             "checked",
             lambda args, *a, action="", **k: cp.update(args=args, action=action) or "",
         )
-        bucket, key = source.upload_source("kc-1", "dev", "us-east-1")
+        bucket, key = source.upload_source("jn-1", "dev", "us-east-1")
         assert bucket == _BUCKET
-        assert key == "kc-1/junction-src.tar.gz"
+        assert key == "jn-1/junction-src.tar.gz"
         # low-level s3api put-object (only it accepts --expected-bucket-owner)
         assert cp["args"][:2] == ["s3api", "put-object"]
         assert "--bucket" in cp["args"] and bucket in cp["args"]
@@ -597,7 +597,7 @@ class TestUploadDelete:
             aws, "checked", lambda *a, **k: pytest.fail("must not call s3api put-object")
         )
         with pytest.raises(aws.AWSError, match="expected-bucket-owner"):
-            source.upload_source("kc-1", "dev", "us-east-1")
+            source.upload_source("jn-1", "dev", "us-east-1")
 
     def test_delete_source(self, monkeypatch):
         monkeypatch.setattr(source, "bucket_name", lambda *a: _BUCKET)
@@ -605,15 +605,15 @@ class TestUploadDelete:
         monkeypatch.setattr(
             aws, "run_aws", lambda args, *a, **k: rm.update(args=args) or (0, "", "")
         )
-        res = source.delete_source("kc-1", "dev", "us-east-1")
+        res = source.delete_source("jn-1", "dev", "us-east-1")
         # low-level s3api delete-object (only it accepts --expected-bucket-owner)
         assert rm["args"][:2] == ["s3api", "delete-object"]
         assert "--bucket" in rm["args"] and _BUCKET in rm["args"]
-        assert "--key" in rm["args"] and "kc-1/junction-src.tar.gz" in rm["args"]
+        assert "--key" in rm["args"] and "jn-1/junction-src.tar.gz" in rm["args"]
         assert "--expected-bucket-owner" in rm["args"] and _ACCT in rm["args"]
         assert res["removed"] is True
         assert res["error"] == ""
-        assert res["uri"] == f"s3://{_BUCKET}/kc-1/junction-src.tar.gz"
+        assert res["uri"] == f"s3://{_BUCKET}/jn-1/junction-src.tar.gz"
 
     def test_delete_source_fails_closed_when_owner_underivable(self, monkeypatch):
         # bucket_name fell back to unknown → skip the unpinned delete, report it.
@@ -621,7 +621,7 @@ class TestUploadDelete:
         monkeypatch.setattr(
             aws, "run_aws", lambda *a, **k: pytest.fail("must not issue unpinned delete")
         )
-        res = source.delete_source("kc-1", "dev", "us-east-1")
+        res = source.delete_source("jn-1", "dev", "us-east-1")
         assert res["removed"] is False
         assert "expected-bucket-owner" in res["error"]
 
@@ -630,6 +630,6 @@ class TestUploadDelete:
         # swallowed — teardown otherwise leaves a private tarball billing.
         monkeypatch.setattr(source, "bucket_name", lambda *a: _BUCKET)
         monkeypatch.setattr(aws, "run_aws", lambda *a, **k: (255, "", "AccessDenied"))
-        res = source.delete_source("kc-1", "dev", "us-east-1")
+        res = source.delete_source("jn-1", "dev", "us-east-1")
         assert res["removed"] is False
         assert "AccessDenied" in res["error"]

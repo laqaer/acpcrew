@@ -121,7 +121,6 @@ class TestFormatRuntimeRpcError:
 
         assert f"'{agent}.json'" in text  # names the file that is missing
         assert str(tmp_path) in text  # names where it was looked for
-        assert "junction setup --agent-only --clean" not in text
         assert "junction setup --agent-only --clean" in text  # names the repair
         assert "-32603" not in text and "Mode" not in text  # no raw protocol noise
 

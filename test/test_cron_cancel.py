@@ -104,7 +104,7 @@ class TestCronServiceCancel:
         sessions = _mock_sessions()
         svc._sessions = sessions
 
-        job = _make_job("script1", script="~/.kirocrew/crons/x.py:run")
+        job = _make_job("script1", script="~/.junction/crons/x.py:run")
         svc._jobs = [job]
         svc._executing.add("script1")
         svc._job_start_times["script1"] = time.time() - 10

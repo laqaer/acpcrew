@@ -82,7 +82,7 @@ export function AddInstanceForm({ onAdded }: { onAdded: () => void }) {
   const err = addMutation.error
     ? addMutation.error instanceof ApiError
       ? addMutation.error.message
-      : i18nT('pages.settings.instancesPanel.failed_to_add_remote_crew')
+      : i18nT('pages.settings.instancesPanel.failed_to_add_remote_instance')
     : ''
 
   return (
@@ -94,7 +94,7 @@ export function AddInstanceForm({ onAdded }: { onAdded: () => void }) {
       <ErrorNotice message={err} className="mt-3" />
       <div className="mt-3">
         <Btn primary onClick={() => addMutation.mutate()} disabled={addMutation.isPending || !form.valid}>
-          {addMutation.isPending ? i18nT('pages.settings.instancesPanel.adding') : i18nT('pages.settings.instancesPanel.add_remote_crew')}
+          {addMutation.isPending ? i18nT('pages.settings.instancesPanel.adding') : i18nT('pages.settings.instancesPanel.add_remote_instance')}
         </Btn>
       </div>
       <p className="mt-2 text-[12px] text-muted">
@@ -190,7 +190,7 @@ export function InstancesPanel() {
     instancesQuery.error && !disabled
       ? instancesQuery.error instanceof ApiError
         ? instancesQuery.error.message
-        : i18nT('pages.settings.instancesPanel.failed_to_load_remote_crews')
+        : i18nT('pages.settings.instancesPanel.failed_to_load_remote_instances')
       : ''
   const loading = instancesQuery.isLoading
   const instances = useMemo(() => instancesQuery.data?.instances ?? [], [instancesQuery.data])
@@ -297,7 +297,7 @@ export function InstancesPanel() {
           </div>
         )}
         <Btn primary onClick={() => setEnabledMutation.mutate(true)} disabled={setEnabledMutation.isPending}>
-          <Power className="lucide-inline" /> {setEnabledMutation.isPending ? i18nT('pages.settings.instancesPanel.enabling') : i18nT('pages.settings.instancesPanel.enable_remote_crew_management')}
+          <Power className="lucide-inline" /> {setEnabledMutation.isPending ? i18nT('pages.settings.instancesPanel.enabling') : i18nT('pages.settings.instancesPanel.enable_multi_instance_management')}
         </Btn>
         <ErrorNotice message={actionErr} askAgent className="mt-2" />
         <p className="mt-2 text-[12px] text-muted">

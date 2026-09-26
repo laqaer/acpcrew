@@ -325,7 +325,7 @@ class TestSpawnSubAgentsSummarization:
             large_result = "word " * 1000  # ~5000 chars, well over 3K
             mock_get.return_value = {"done": True, "agent": "w", "result": large_result}
             mock_summarize.return_value = (
-                "Full transcript: /home/user/.kirocrew/subagents/agent123/result.txt\n"
+                "Full transcript: /home/user/.junction/subagents/agent123/result.txt\n"
                 "Preview (first+last 100 words):\nword word word...\n\n"
                 "The full result is on disk."
             )

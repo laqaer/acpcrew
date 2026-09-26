@@ -29,7 +29,9 @@ _spec.loader.exec_module(verifier)
 MACHINE_I386 = 0x014C
 MACHINE_AMD64 = 0x8664
 MACHINE_ARM64 = 0xAA64
-PUBLISHER = "Amazon Web Services, Inc."
+# A legal-entity CN with a comma inside it, which is the shape that breaks a
+# parser splitting RDNs on every comma.
+PUBLISHER = "Example Corp, Inc."
 
 pytestmark = pytest.mark.skipif(
     shutil.which("openssl") is None, reason="openssl is required to build a PKCS#7 fixture"
@@ -365,8 +367,8 @@ def test_the_signer_is_matched_through_a_real_chain(
 def test_a_common_name_containing_a_comma_is_matched_whole(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
-    # The real publisher CN is "Amazon Web Services, Inc.". A parser that treats
-    # every comma as an RDN separator reads it as "Amazon Web Services" and
+    # A publisher CN routinely carries a comma ("Example Corp, Inc."). A parser
+    # that treats every comma as an RDN separator reads it as "Example Corp" and
     # refuses the genuine installer, which is a publish-blocking false negative
     # rather than a cosmetic bug.
     blob = _pkcs7(tmp_path, PUBLISHER)

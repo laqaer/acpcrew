@@ -95,7 +95,7 @@ async function main() {
     extra: async (path, route) => {
       if (path === '/api/upload/file') {
         uploadRequests += 1
-        await json(route, { paths: ['/home/user/.kiro/crew/uploads/abc123_pasted-image-20260810-091500123.png'] })
+        await json(route, { paths: ['/home/user/.junction/uploads/abc123_pasted-image-20260810-091500123.png'] })
         return true
       }
       if (path === '/api/file-raw') {

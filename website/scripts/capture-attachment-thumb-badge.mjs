@@ -51,7 +51,7 @@ async function mockShot(browser, w, h) {
   return buf
 }
 
-const UPLOAD_DIR = '/home/user/.kiro/crew/uploads'
+const UPLOAD_DIR = '/home/user/.junction/uploads'
 const PATHS = [
   `${UPLOAD_DIR}/phone-1.png`,
   `${UPLOAD_DIR}/phone-2.png`,

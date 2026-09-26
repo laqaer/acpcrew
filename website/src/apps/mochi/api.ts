@@ -296,7 +296,7 @@ export interface MochiSettings {
    */
   allowMcpServers: boolean
   /**
-   * Display name. Empty means "use the avatar's own name" (Kiro / Mochi), so a
+   * Display name. Empty means "use the avatar's own name" (Mochi), so a
    * rename follows the avatar until the user overrides it. Reaches the agent
    * prompt via soul_loader as well as the panel and pet title bars.
    */
@@ -313,7 +313,7 @@ export interface MochiSettings {
    */
   silentSubagents: boolean
   /**
-   * The pet's identity: a built-in pack id ('default-mochi' / 'kiro-ghost') or a
+   * The pet's identity: the built-in pack id ('default-mochi') or a
    * user pack in the appearance store. This ONE key drives the art, the persona,
    * and the default pet name. Owned by the Avatars window.
    */

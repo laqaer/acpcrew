@@ -58,8 +58,8 @@ logger = logging.getLogger(__name__)
 # Where kiro-cli looks for agent definitions.
 #
 # Resolved per call, never captured at import: an import-time binding freezes
-# the data home and defeats pod isolation, the lazy legacy-home migration and
-# test isolation. The name below is an opt-in override (None = live home) so
+# the data home and defeats pod isolation and test
+# isolation. The name below is an opt-in override (None = live home) so
 # existing monkeypatch call sites keep working. See config.md "Data Home" and
 # issue #874; dashboard/handlers/usage.py is the reference implementation.
 KIRO_AGENTS_DIR: Path | None = None
@@ -913,9 +913,9 @@ def _register_agents(app_name: str, manifest: AppManifest, app_root: Path) -> li
         # The agent name is app-controlled (read from the agent JSON) and is
         # about to become a filesystem path component. Reject any path separator
         # or parent-dir token BEFORE constructing link_path: on Windows a name
-        # like "..\\..\\crew\\config" would otherwise traverse out of the agents
+        # like "..\\..\\.junction\\config" would otherwise traverse out of the agents
         # dir (backslash is a separator there) and atomic_write would overwrite
-        # an arbitrary JSON file such as ~/.kiro/crew/config.json.
+        # an arbitrary JSON file such as ~/.junction/config.json.
         if (
             not isinstance(agent_name, str)
             or "/" in agent_name
@@ -1053,7 +1053,7 @@ _RESERVED_SKILL_DIRS = {"auto"}
 
 
 def _register_skills(app_name: str, manifest: AppManifest, app_root: Path) -> list[str]:
-    """Symlink app skill directories into ~/.kiro/crew/skills/.
+    """Symlink app skill directories into ~/.junction/skills/.
 
     Creates both a namespaced link (``skills/{app_name}/{skill_name}``) and a
     flat link (``skills/{skill_name}``) so the skill scanner finds the skill
@@ -1088,7 +1088,7 @@ def _register_skills(app_name: str, manifest: AppManifest, app_root: Path) -> li
 
         skill_name = skill_path.name
 
-        # Namespaced link: ~/.kiro/crew/skills/{app_name}/{skill_name}
+        # Namespaced link: ~/.junction/skills/{app_name}/{skill_name}
         link_path = app_skills_dir / skill_name
         if link_path.exists() or platform_compat.is_link_or_junction(link_path):
             if platform_compat.is_link_or_junction(link_path):
@@ -1097,7 +1097,7 @@ def _register_skills(app_name: str, manifest: AppManifest, app_root: Path) -> li
             else:
                 shutil.rmtree(link_path)
 
-        # Flat link: ~/.kiro/crew/skills/{skill_name} (for skill scanner)
+        # Flat link: ~/.junction/skills/{skill_name} (for skill scanner)
         if skill_name in _RESERVED_SKILL_DIRS:
             logger.info("App %s: skipping flat link for reserved name %s", app_name, skill_name)
             flat_link = None
@@ -1151,7 +1151,7 @@ def _register_skills(app_name: str, manifest: AppManifest, app_root: Path) -> li
 
 
 def _deregister_skills(app_name: str) -> int:
-    """Remove the app's skill symlinks from ~/.kiro/crew/skills/.
+    """Remove the app's skill symlinks from ~/.junction/skills/.
 
     Removes **only what registration created** — the symlinks, and the directory
     itself once it holds nothing else. It must NOT ``rmtree`` unconditionally: when a

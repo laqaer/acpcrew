@@ -103,7 +103,7 @@ an Orchestrator agent as the first member.
 
 ## Persistence
 
-Channels saved to `~/.kiro/crew/channels/{id}.json` on every state change.
+Channels saved to `~/.junction/channels/{id}.json` on every state change.
 Restored on gateway startup via `ChannelManager._load_all()`. Agents
 restored as `done` and relaunched with fresh sessions.
 

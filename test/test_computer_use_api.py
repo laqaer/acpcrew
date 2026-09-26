@@ -857,18 +857,18 @@ class TestConfigSection:
     def test_state_path_is_on_the_keystone_floor(self):
         from junction.config.loader import computer_use_state_path
         from junction.security import (
-            _CREW_SECRET_LEAVES,
+            _DATA_HOME_SECRET_LEAVES,
             is_sensitive_bash_command,
             is_sensitive_path,
         )
 
-        assert "computer_use.json" in _CREW_SECRET_LEAVES
+        assert "computer_use.json" in _DATA_HOME_SECRET_LEAVES
         assert computer_use_state_path().name == "computer_use.json"
-        assert is_sensitive_path("~/.kiro/crew/computer_use.json") is True
+        assert is_sensitive_path("~/.junction/computer_use.json") is True
         for command in (
-            "cat ~/.kiro/crew/computer_use.json",
-            "echo x > ~/.kiro/crew/computer_use.json",
-            "tee ~/.kiro/crew/computer_use.json",
+            "cat ~/.junction/computer_use.json",
+            "echo x > ~/.junction/computer_use.json",
+            "tee ~/.junction/computer_use.json",
         ):
             assert is_sensitive_bash_command(command)
 

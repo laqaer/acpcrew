@@ -28,12 +28,15 @@
   <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, interactive-widget=resizes-content, viewport-fit=cover" />
   <link rel="icon" href="/logo.png" type="image/png" />
   <link rel="manifest" href="/manifest.json" />
-  <meta name="theme-color" content="#0c0d12" />
+  <meta name="theme-color" content="#0b0e13" />
   <link rel="apple-touch-icon" href="/icon-192.png" />
-  <link rel="preconnect" href="https://fonts.googleapis.com" />
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-  <link rel="preload" as="style" href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" onload="this.rel='stylesheet'" />
-  <noscript><link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" /></noscript>
+  <!-- Overpass and Overpass Mono are bundled (see the @font-face block in
+       src/index.css), so the dashboard makes no font request off this host.
+       Preloading the Latin files starts them with the HTML instead of after
+       the stylesheet parses, which keeps the first paint from reflowing when
+       the faces swap in. Other scripts load on demand through unicode-range. -->
+  <link rel="preload" as="font" type="font/woff2" href="/fonts/overpass/overpass-latin-wght-normal.woff2" crossorigin />
+  <link rel="preload" as="font" type="font/woff2" href="/fonts/overpass/overpass-mono-latin-wght-normal.woff2" crossorigin />
   <title>Junction</title>
   <script>
     // Set data-ui from localStorage before React hydrates to prevent flash of

@@ -2061,7 +2061,7 @@ def _norm_update(update: dict, closed_states: frozenset[str]) -> list[dict]:
 def _norm_work_item_comment(comment: dict) -> dict:
     """One work item comment -> the normalized ``comment`` timeline entry.
 
-    ``id`` and ``updated_at`` are load-bearing rather than decoration: the crew
+    ``id`` and ``updated_at`` are load-bearing rather than decoration: the steward
     claim protocol keeps ONE comment as its public ledger and rewrites it, so it
     needs the id to address its own comment and the modified time to prove the
     claim is alive (``created_at`` on an edited comment is still the original post
@@ -2631,14 +2631,14 @@ def _comment_text(body: str) -> str:
     """The vetted text for a comment this app is about to publish.
 
     Refuses an empty body, then REDACTS before the text can reach a provider. A
-    comment body is frequently model-authored (a crew's reply, an AI summary the
+    comment body is frequently model-authored (a steward's reply, an AI summary the
     user accepted), and posting it puts that text somewhere public and permanent,
     so a leaked credential or an exfiltration URL cannot be walked back.
 
     Both redactions run because they catch different things: one strips URLs that
     would smuggle data out to a third party, the other strips secrets that appear
     in the text itself. Redaction is idempotent, so a caller that already redacted
-    (the crew path does) loses nothing by passing through here.
+    (the steward path does) loses nothing by passing through here.
     """
     text = (body or "").strip()
     if not text:

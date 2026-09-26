@@ -236,48 +236,48 @@ class TestEffectiveModelPrecedence:
     """One resolver owns the chain, so display and execution cannot diverge."""
 
     def test_agent_model_outranks_the_global(self, specs_dir: Path) -> None:
-        cfg = _cfg({"crew": {"kiro_agent": "junction", "model": "claude-opus-5"}}, "claude-haiku-4.5")
-        assert resolve_effective_model(cfg, "crew") == "claude-opus-5"
+        cfg = _cfg({"research": {"kiro_agent": "junction", "model": "claude-opus-5"}}, "claude-haiku-4.5")
+        assert resolve_effective_model(cfg, "research") == "claude-opus-5"
 
     def test_agent_model_outranks_a_template_pin(self, specs_dir: Path) -> None:
-        cfg = _cfg({"crew": {"kiro_agent": "pinned", "model": "claude-opus-5"}}, "")
-        assert resolve_effective_model(cfg, "crew") == "claude-opus-5"
+        cfg = _cfg({"research": {"kiro_agent": "pinned", "model": "claude-opus-5"}}, "")
+        assert resolve_effective_model(cfg, "research") == "claude-opus-5"
 
     def test_template_pin_applies_when_the_agent_defers(self, specs_dir: Path) -> None:
-        cfg = _cfg({"crew": {"kiro_agent": "pinned", "model": ""}}, "claude-haiku-4.5")
-        assert resolve_effective_model(cfg, "crew") == "claude-sonnet-4.6"
+        cfg = _cfg({"research": {"kiro_agent": "pinned", "model": ""}}, "claude-haiku-4.5")
+        assert resolve_effective_model(cfg, "research") == "claude-sonnet-4.6"
 
     def test_global_is_the_fallback_when_nothing_pins(self, specs_dir: Path) -> None:
-        cfg = _cfg({"crew": {"kiro_agent": "junction", "model": ""}}, "claude-haiku-4.5")
-        assert resolve_effective_model(cfg, "crew") == "claude-haiku-4.5"
+        cfg = _cfg({"research": {"kiro_agent": "junction", "model": ""}}, "claude-haiku-4.5")
+        assert resolve_effective_model(cfg, "research") == "claude-haiku-4.5"
 
     def test_global_reaches_a_named_template_that_pins_nothing(self, specs_dir: Path) -> None:
         """Previously the global was skipped entirely for non-junction templates,
         so it was not really a global default. It is now a real fallback."""
-        cfg = _cfg({"crew": {"kiro_agent": "unpinned", "model": ""}}, "claude-haiku-4.5")
-        assert resolve_effective_model(cfg, "crew") == "claude-haiku-4.5"
+        cfg = _cfg({"research": {"kiro_agent": "unpinned", "model": ""}}, "claude-haiku-4.5")
+        assert resolve_effective_model(cfg, "research") == "claude-haiku-4.5"
 
     def test_auto_global_is_never_returned_verbatim(self, specs_dir: Path) -> None:
         """"auto" is the inherit spelling; returning it would pin the chip to a
         value no tier actually chose."""
-        cfg = _cfg({"crew": {"kiro_agent": "junction", "model": ""}}, "auto")
-        assert resolve_effective_model(cfg, "crew") != "auto"
+        cfg = _cfg({"research": {"kiro_agent": "junction", "model": ""}}, "auto")
+        assert resolve_effective_model(cfg, "research") != "auto"
 
     def test_unknown_agent_falls_back_to_the_default_agent(self, specs_dir: Path) -> None:
-        cfg = _cfg({"crew": {"kiro_agent": "junction", "model": "claude-opus-5"}}, "")
+        cfg = _cfg({"research": {"kiro_agent": "junction", "model": "claude-opus-5"}}, "")
         assert resolve_effective_model(cfg, "no-such-agent") == "claude-opus-5"
 
     def test_blank_agent_resolves_the_default_agent(self, specs_dir: Path) -> None:
-        cfg = _cfg({"crew": {"kiro_agent": "junction", "model": "claude-opus-5"}}, "")
+        cfg = _cfg({"research": {"kiro_agent": "junction", "model": "claude-opus-5"}}, "")
         assert resolve_effective_model(cfg, None) == "claude-opus-5"
 
 
 class TestSessionModelCoversEverySurface:
-    """The crew tier must apply to Slack / cron / spawn, not just dashboard chat.
+    """The agent tier must apply to Slack / cron / spawn, not just dashboard chat.
 
     Those surfaces reach ``SessionManager.get_or_create`` directly, which used to
-    resolve only the kiro pin and the global — so a crew pinned in the Crews
-    table still ran the template/global model there, and the same crew ran
+    resolve only the kiro pin and the global — so an agent pinned in the Agents
+    table still ran the template/global model there, and the same agent ran
     different models per surface.
 
     ``_session_model`` is the shared resolver ``get_or_create`` now uses. Callers
@@ -286,21 +286,21 @@ class TestSessionModelCoversEverySurface:
     agent name), so both namespaces must work.
     """
 
-    def test_crew_name_resolves_its_own_model(self, specs_dir: Path) -> None:
+    def test_agent_name_resolves_its_own_model(self, specs_dir: Path) -> None:
         cfg = _cfg({"oncall": {"kiro_agent": "junction", "model": "claude-opus-5"}}, "claude-haiku-4.5")
         assert _session_model(cfg, "oncall") == "claude-opus-5"
 
-    def test_crew_pin_outranks_the_bound_template_pin(self, specs_dir: Path) -> None:
+    def test_agent_pin_outranks_the_bound_template_pin(self, specs_dir: Path) -> None:
         cfg = _cfg({"oncall": {"kiro_agent": "pinned", "model": "claude-opus-5"}}, "")
         assert _session_model(cfg, "oncall") == "claude-opus-5"
 
-    def test_crew_deferring_falls_through_to_its_template(self, specs_dir: Path) -> None:
-        """An unpinned crew must not shadow the template it binds: returning None
+    def test_agent_deferring_falls_through_to_its_template(self, specs_dir: Path) -> None:
+        """An unpinned agent must not shadow the template it binds: returning None
         lets the provider factory resolve that template's own model."""
         cfg = _cfg({"oncall": {"kiro_agent": "pinned", "model": ""}}, "claude-haiku-4.5")
         assert _session_model(cfg, "oncall") is None
 
-    def test_crew_deferring_with_unpinned_template_reaches_the_global(
+    def test_agent_deferring_with_unpinned_template_reaches_the_global(
         self, specs_dir: Path
     ) -> None:
         cfg = _cfg({"oncall": {"kiro_agent": "unpinned", "model": ""}}, "claude-haiku-4.5")
@@ -320,7 +320,7 @@ class TestSessionModelCoversEverySurface:
         cfg = _cfg({"oncall": {"kiro_agent": "unpinned", "model": ""}}, "auto")
         assert _session_model(cfg, "oncall") is None
 
-    def test_non_string_crew_model_does_not_crash_the_session_path(
+    def test_non_string_agent_model_does_not_crash_the_session_path(
         self, specs_dir: Path
     ) -> None:
         cfg = _load_from_dict(

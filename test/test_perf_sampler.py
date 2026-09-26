@@ -337,14 +337,14 @@ class TestCliSample:
         import sys
         import types
 
-        module = types.ModuleType("_kc_perf_probe")
+        module = types.ModuleType("_jn_perf_probe")
         module.work = _recognisable_workload  # type: ignore[attr-defined]
         module.boom = _raises_after_work  # type: ignore[attr-defined]
-        sys.modules["_kc_perf_probe"] = module
+        sys.modules["_jn_perf_probe"] = module
         try:
-            yield "_kc_perf_probe"
+            yield "_jn_perf_probe"
         finally:
-            sys.modules.pop("_kc_perf_probe", None)
+            sys.modules.pop("_jn_perf_probe", None)
 
     def test_in_process_run_writes_a_private_artifact(self, monkeypatch, tmp_path, probe_module):
         monkeypatch.setenv(perf_sampler.DEBUG_ENV_VAR, "1")
@@ -534,21 +534,21 @@ class TestArtifactWriteFailure:
         import sys as _sys
         import types
 
-        module = types.ModuleType("_kc_perf_probe_w")
+        module = types.ModuleType("_jn_perf_probe_w")
         module.work = _recognisable_workload  # type: ignore[attr-defined]
-        _sys.modules["_kc_perf_probe_w"] = module
+        _sys.modules["_jn_perf_probe_w"] = module
         try:
             unwritable = tmp_path / "adir"
             unwritable.mkdir()
             args = _sample_args(
-                perf_call="_kc_perf_probe_w:work", interval=0.002, output=unwritable
+                perf_call="_jn_perf_probe_w:work", interval=0.002, output=unwritable
             )
             # Sampling succeeded; only the write failed, so this must be a clean
             # nonzero exit with a diagnostic rather than an uncaught OSError.
             assert cli_perf._perf_sample(args) == 6
             assert "Could not write the profile" in capsys.readouterr().err
         finally:
-            _sys.modules.pop("_kc_perf_probe_w", None)
+            _sys.modules.pop("_jn_perf_probe_w", None)
 
 
 class TestPySpyPathShortening:

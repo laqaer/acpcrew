@@ -276,7 +276,7 @@ class TestInstallAgent:
         assert config["hooks"] == {"preToolUse": "audit"}
 
     def test_junction_mcp_json_overrides_kiro_mcp(self, tmp_path: Path):
-        """~/.kirocrew/mcp.json overrides ~/.kiro/settings/mcp.json for junction agent."""
+        """~/.junction/mcp.json overrides ~/.kiro/settings/mcp.json for junction agent."""
         cfg_dir = _bundled_defaults(tmp_path)
         kiro_dir = tmp_path / "kiro_agents"
         kiro_dir.mkdir(exist_ok=True)
@@ -1659,7 +1659,7 @@ class TestKiroHooksFiltering:
         actually meant to be internal (kiro-cli would then reject the whole spec at
         runtime). This ratchet forces an explicit choice: adding a bundled hook key
         means updating either this set (a real event) or _INTERNAL_HOOK_KEYS
-        (Kiro-Crew-internal), never neither (#3362 fail-loud guard)."""
+        (Junction-internal), never neither (#3362 fail-loud guard)."""
         from junction.agent import _BUNDLED_CFG_DIR, _load_json
 
         bundled = _load_json(_BUNDLED_CFG_DIR / "defaults.json")
@@ -1667,7 +1667,7 @@ class TestKiroHooksFiltering:
         assert bundled_hook_keys == {"auto_approve_tools", "postToolUse"}, (
             f"bundled defaults.json hooks keys changed to {bundled_hook_keys} -- "
             "classify any new key as a real kiro-cli event (covered automatically "
-            "via _VALID_HOOK_EVENTS) or Kiro-Crew-internal (add to "
+            "via _VALID_HOOK_EVENTS) or Junction-internal (add to "
             "_INTERNAL_HOOK_KEYS), then update this pinned set."
         )
 
@@ -4339,9 +4339,9 @@ def _run_install_mcp_merge(
     kiro_mcp.write_text(json.dumps({"mcpServers": kiro_servers}))
     cc_mcp.write_text(json.dumps({"mcpServers": cc_servers}))
     if junction_servers is not None:
-        kc_home = tmp_path / "junction_home"
-        kc_home.mkdir(parents=True, exist_ok=True)
-        (kc_home / "mcp.json").write_text(json.dumps({"mcpServers": junction_servers}))
+        data_home = tmp_path / "junction_home"
+        data_home.mkdir(parents=True, exist_ok=True)
+        (data_home / "mcp.json").write_text(json.dumps({"mcpServers": junction_servers}))
 
     _user_home = tmp_path / "junction_home"
     patches = [

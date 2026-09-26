@@ -100,7 +100,7 @@ def test_persist_overwrites_atomically(tmp_path, monkeypatch):
 
 
 def test_persist_honors_junction_home_env(tmp_path, monkeypatch):
-    """Snapshot lands in JUNCTION_HOME, not ~/.kirocrew -- proves the env-var path."""
+    """Snapshot lands in JUNCTION_HOME, not ~/.junction -- proves the env-var path."""
     custom_home = tmp_path / "custom-junction-home"
     monkeypatch.setenv("JUNCTION_HOME", str(custom_home))
     state = _make_state(tmp_path / "sessions")

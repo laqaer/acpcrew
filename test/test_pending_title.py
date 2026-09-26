@@ -76,7 +76,7 @@ class TestFallbackTitle:
         assert long.startswith(out[:-1])
 
     def test_strips_image_attachment_and_keeps_user_text(self):
-        attachment = f"![image](/Users/example/.kirocrew/uploads/{'b' * 240}.jpg)"
+        attachment = f"![image](/Users/example/.junction/uploads/{'b' * 240}.jpg)"
         msgs = [{"role": "user", "content": f"{attachment}\n\nsubagents seem to be failing"}]
         assert _fallback_title_from_messages(msgs) == "subagents seem to be failing"
 

@@ -2410,7 +2410,7 @@ class SubagentManager:
     def _record_slow_command(info: SubagentInfo, idle: float) -> None:
         """Best-effort append of a stalled subagent's slow command for analysis.
 
-        Writes to ``~/.kiro/crew/subagents/slow_commands.jsonl`` (append-only,
+        Writes to ``~/.junction/subagents/slow_commands.jsonl`` (append-only,
         survives per-agent folder cleanup). Deliberately separate from the
         tombstone path, which marks an agent dead — a stalled agent is still
         running.
@@ -3938,8 +3938,8 @@ class SubagentManager:
         # synchronous and runs on the gateway's event loop, so probing the recorded
         # path (`is_dir()`) would freeze the gateway for as long as a stalled
         # network mount takes to answer. Async callers resolve it off-loop instead:
-        # crew passes its slot project, and `recorded_cwd()` gives the others the
-        # run's own recorded path to hand back in.
+        # Multitask Mode passes its slot project, and `recorded_cwd()` gives the
+        # others the run's own recorded path to hand back in.
         return self.spawn(
             task,
             _preassigned_id=_preassigned_id,
@@ -4419,8 +4419,8 @@ class SubagentManager:
         # callback, and the original caller was handed a queued info long ago. So a
         # terminal rejection here — the cwd was deleted while the run waited, the
         # agent stopped resolving — was dropped on the floor: no completion event,
-        # and the caller's own bookkeeping showed the run as still going. Crew left
-        # such a topic `running` forever.
+        # and the caller's own bookkeeping showed the run as still going. Multitask
+        # Mode left such a topic `running` forever.
         #
         # Only for NON-batch runs, which is exactly the set `_announce_rejection`
         # skips (it announces batch members itself, from inside `spawn`). Announcing
@@ -5782,7 +5782,7 @@ class SubagentManager:
                                         info.id,
                                     )
                                     try:
-                                        exc._kc_fallback_story = _story  # type: ignore[attr-defined]
+                                        exc._jn_fallback_story = _story  # type: ignore[attr-defined]
                                     except Exception:
                                         pass
                                 raise
@@ -5933,7 +5933,8 @@ class SubagentManager:
                 # child could generate unbounded approval prompts until the
                 # wall-clock reaper fires (the turn budget used to bound
                 # exactly this traffic). Generous multiple of the parent's
-                # limit: legitimate crews fan many small child tool calls.
+                # limit: a legitimate native subagent fan-out makes many small
+                # child tool calls.
                 if not event.sub_session_id:
                     turns += 1
                     info.turns = turns

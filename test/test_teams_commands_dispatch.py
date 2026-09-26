@@ -517,5 +517,5 @@ def _click_option(*, nonce: str, index: int, label: str) -> TeamsInbound:
         text="",
         user_email=_EMAIL,
         activity_id="act-2",
-        card_value={"kc": KIND_OPTION, "nonce": nonce, "index": index, "label": label},
+        card_value={"jn": KIND_OPTION, "nonce": nonce, "index": index, "label": label},
     )

@@ -15,7 +15,7 @@ from junction.skills import _SHORT_DESC_CHARS, SkillsLoader
 def _isolate_extra_paths(monkeypatch, tmp_path_factory):
     """SkillsLoader.__init__ reads global config for ``skills.extra_paths`` and
     edition-contributed skill roots via the ``extra_skills()`` seam; isolate both
-    so a developer's local ~/.kirocrew extra_paths / composed companion roots
+    so a developer's local ~/.junction extra_paths / composed companion roots
     don't bleed into these hermetic loader tests. Tests that need extra_paths
     pass ``config=``; tests that need edition-root resolution monkeypatch
     ``DefaultMcpToolingProvider.extra_skills``."""

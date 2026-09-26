@@ -117,10 +117,8 @@ export function isFiller(s) {
  *     they all render on `/settings?tab=display`, one of the gated surfaces.
  */
 export const ALWAYS_LATIN = [
-  // glossary.json `dnt`, plus the spaced display name `Kiro Crew`, which is NOT a
-  // glossary term (see glossary.json) but must still be stripped before leak
-  // detection or the `Crew` half orphans as a reportable Latin run.
-  'AWS', 'Discord', 'Docker', 'Git', 'GitHub', 'GitLab', 'JSON', 'Kiro', 'Kiro Crew',
+  // glossary.json `dnt`.
+  'AWS', 'Discord', 'Docker', 'Git', 'GitHub', 'GitLab', 'JSON', 'Kiro',
   'Junction',
   'MCP', 'Markdown', 'Node.js', 'OAuth', 'Playwright', 'Python', 'Slack',
   'Telegram', 'TypeScript', 'Webex', 'WhatsApp', 'YAML', 'iMessage', 'npm',
@@ -401,7 +399,7 @@ export function scanDocument(opts) {
       const src = fiber._debugSource
       if (src && src.fileName) {
         // Absolute paths are baked in at build time, so they name the BUILD machine's
-        // layout ("/local/home/.../kc-minw0/website/src/..."). Repo-relative is what a
+        // layout ("/local/home/.../jn-minw0/website/src/..."). Repo-relative is what a
         // reader can act on and all a CI log should disclose.
         const file = String(src.fileName).replace(/^.*?\/website\//, '')
         const entry = `${file}:${src.lineNumber}`

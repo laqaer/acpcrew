@@ -329,14 +329,12 @@ def test_in_tree_redirect_is_refused_not_accepted_as_contained(owned_home, monke
 
 
 @requires_symlinks
-def test_relocated_data_home_under_the_kiro_home_still_writes(tmp_path, monkeypatch):
-    """The most specific owned root has to win, or relocation breaks.
+def test_relocated_default_data_home_still_writes(tmp_path, monkeypatch):
+    """A default data home relocated onto another disk is a supported layout.
 
-    The default layout nests two owned roots: the data home ``~/.kiro/crew``
-    sits inside the kiro home ``~/.kiro``. Relocating the data home onto another
-    disk makes ``crew`` itself a link. Anchoring on the OUTER root would put that
-    link below the anchor and refuse a supported layout, so the anchor must be
-    the innermost root containing the destination.
+    Relocating ``~/.junction`` makes the home itself a link. The data home is an
+    owned root, so the link sits AT the trust anchor rather than below it and the
+    write must go through.
 
     ``config.paths`` memoises the resolved default home per process, so the
     caches are cleared alongside ``$HOME`` -- otherwise this test would read
@@ -347,14 +345,14 @@ def test_relocated_data_home_under_the_kiro_home_still_writes(tmp_path, monkeypa
     relocated = tmp_path / "another-disk"
     relocated.mkdir()
     home = tmp_path / "home"
-    (home / ".kiro").mkdir(parents=True)
-    os.symlink(relocated, home / ".kiro" / "crew")
+    home.mkdir()
+    os.symlink(relocated, home / config_paths.CONFIG_DIR_NAME)
     monkeypatch.delenv("JUNCTION_HOME", raising=False)
     monkeypatch.setenv("HOME", str(home))
     monkeypatch.setattr(config_paths, "_resolved_home", None)
     monkeypatch.setattr(config_paths, "_config_dir_memo", None)
 
-    target = home / ".kiro" / "crew" / "sub" / "token"
+    target = home / config_paths.CONFIG_DIR_NAME / "sub" / "token"
     aw.atomic_write(target, SECRET, restrict_to_owner=True)
 
     assert target.read_text() == SECRET

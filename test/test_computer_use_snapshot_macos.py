@@ -1094,9 +1094,9 @@ class TestDenylistCaseFolding:
         from junction.computer_use.types import AppRef
 
         for name, bundle in (
-            ("KIRO CREW", "DEV.KIRO.CREW"),
-            ("kiro crew", "dev.kiro.crew"),
-            ("Junction", "Dev.Kiro.Crew"),
+            ("JUNCTION", "DEV.JUNCTION.DESKTOP"),
+            ("junction", "dev.junction.desktop"),
+            ("Junction", "Dev.Junction.Desktop"),
         ):
             assert policy.denied_rule_for(AppRef(name=name, pid=1, bundle_id=bundle)) is not None
 

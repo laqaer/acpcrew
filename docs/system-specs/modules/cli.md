@@ -2,7 +2,7 @@
 
 ## Overview
 
-The CLI module (`junction/cli.py`) provides the `junction` command using stdlib `argparse`. Silent aliases `junction` and `acpcrew` dispatch to the same entry.
+The CLI module (`junction/cli.py`) provides the `junction` command using stdlib `argparse`. `junction` is the only console script.
 
 ## Import Weight Contract
 
@@ -27,11 +27,10 @@ binary) land in `cli.main()`, whose prelude runs `boot_platform()`
 
 ## Source Checkout Launcher
 
-The POSIX wrappers at `bin/junction` and `bin/junction` (identical scripts)
-resolve the invoked name before following symlinks, set `JUNCTION_PROJECT_DIR`
-to that checkout unless the caller already supplied one, and delegate to the
-matching `.venv/bin/<stem>` (trying the invoked name, then `junction`, then
-the silent aliases). The virtualenv entry point comes from the editable
+The POSIX wrapper at `bin/junction` resolves the invoked name before following
+symlinks, sets `JUNCTION_PROJECT_DIR` to that checkout unless the caller already
+supplied one, and delegates to the matching `.venv/bin/<stem>` (trying the
+invoked name, then `junction`). The virtualenv entry point comes from the editable
 install created by the setup scripts, so it makes `src/junction` importable
 without adding the source tree to `PYTHONPATH`. Any caller-provided
 `PYTHONPATH` is inherited unchanged.
@@ -81,7 +80,7 @@ At startup, `main()` auto-detects the project root and sets `JUNCTION_PROJECT_DI
 
 1. If `JUNCTION_PROJECT_DIR` env var is already set, use it
 2. Walk up from CWD looking for a directory with both `skills/` and `src/junction/` (`_PROJECT_MARKERS`). The project-level `agents/` dir was removed when agent config was consolidated into `src/junction/config/` (commit bbbc1f6e), so the marker no longer references it — a stale `agents/` requirement left detection (and the dashboard changelog) silently broken.
-3. Read saved path from `~/.kiro/crew/project_dir` (written by `junction setup`); the saved path is re-validated against the same markers
+3. Read saved path from `~/.junction/project_dir` (written by `junction setup`); the saved path is re-validated against the same markers
 
 This allows `junction` to find project-level agent config and skills from any directory.
 
@@ -161,7 +160,7 @@ choice blob makes the usage line unreadable.
 | `junction service install` | Install gateway as a system-level systemd service (Linux, requires sudo for `tee` + `systemctl` only) or launchd LaunchAgent (macOS, no sudo). Auto-restarts on crash, auto-starts on boot. |
 | `junction service uninstall` | Stop and remove the systemd unit / launchd plist. |
 | `junction service status` | Show service status (`systemctl status` or `launchctl list`). No sudo required. |
-| `junction logs` | Tail gateway logs from the systemd journal, launchd stdout file, or `~/.kiro/crew/gateway.log`. |
+| `junction logs` | Tail gateway logs from the systemd journal, launchd stdout file, or `~/.junction/gateway.log`. |
 | `junction logs -f` | Follow logs live (long-running tail). |
 | `junction cloud launch/list/status/connect/stop/start/destroy/iam-policy/doctor` | Provision, connect to, and manage a Junction EC2 instance in the user's AWS account. |
 | `junction security events` | Show recent SEL audit events (`-n N` for count) |
@@ -265,7 +264,7 @@ exfiltration redactors run.
 
 `junction setup` performs:
 
-1. Saves `JUNCTION_PROJECT_DIR` to `~/.kiro/crew/project_dir`
+1. Saves `JUNCTION_PROJECT_DIR` to `~/.junction/project_dir`
 2. Installs agent config to `~/.kiro/agents/junction.json`
 3. Prompts for Slack credentials and the slash-command name only when `--slack`
    is passed; the default wizard configures no messaging channels and prints a
@@ -339,8 +338,8 @@ setup. App tokens remain denied. Electron has no separate installer/login IPC
 or subprocess implementation. Filesystem discovery runs off the event loop.
 Version probes use a minimal noninteractive environment with no proxy
 credentials or desktop-session IPC. They use the strict OS sandbox and
-additionally hide the configured data home, `~/.kiro/crew`, `~/.kirocrew`, and
-every known Kiro identity store. Any candidate that runs `--version` is eligible
+additionally hide the configured data home, `~/.junction`, and every known Kiro
+identity store. Any candidate that runs `--version` is eligible
 for `whoami` and device login — trust is "it runs, and it has a valid login",
 not install source, owner, or fixed path (Junction is not the authority on where
 Kiro CLI is installed, and its self-updater rewrites its own bytes as the user).
@@ -485,7 +484,7 @@ after fixing the local SSM tunnel issue.
 
 ## Config Command
 
-`junction config` manages `~/.kiro/crew/config.json`:
+`junction config` manages `~/.junction/config.json`:
 
 - **get** — prints full effective config (with defaults resolved) or a single dot-path value
 - **set key value** — sets a value with auto type detection (bool/int/float/JSON/string). Rejects unknown leaf keys.
@@ -496,7 +495,7 @@ All write paths emit SEL audit events (`config_get`, `config_set`, `config_set_f
 
 ### Gateway Auto-Create
 
-`junction gateway` creates `~/.kiro/crew/config.json` with defaults if the file doesn't exist. Does nothing if it already exists.
+`junction gateway` creates `~/.junction/config.json` with defaults if the file doesn't exist. Does nothing if it already exists.
 
 ## Verbosity
 
@@ -727,13 +726,12 @@ CLI compaction is blocking (single-user, acceptable).
 
 ## Entry Point
 
-`[project.scripts]` in `pyproject.toml` maps `junction`, `junction`, and
-`acpcrew` → `junction._bootstrap:main`. `junction` is the primary CLI name;
-the other two are silent aliases. `setup.cfg` still lists `junction`
-for the same entry so older metadata readers keep resolving it.
+`[project.scripts]` in `pyproject.toml` maps `junction` →
+`junction._bootstrap:main`, and `setup.cfg`'s `console_scripts` lists the same
+single entry. There are no aliases.
 
 `junction stop` / `junction restart` classify a live server by the executable
-token's console-script basename (`junction`, plus the silent aliases) and by
+token's console-script basename (`junction`) and by
 server subcommand (`up`, `gateway`, `dashboard`, and the historical `start`).
 Wrappers such as `sudo` and `env` are skipped. A later argument is not the
 program, so `grep -m junction gateway` is not a server. A process started
@@ -820,17 +818,17 @@ keeps running the install the user typed, not a worktree someone made live.
 
 | Variable | Purpose |
 |----------|---------|
-| `JUNCTION_HOME` | Override config/data directory (default `~/.kiro/crew`) |
+| `JUNCTION_HOME` | Override config/data directory (default `~/.junction`) |
 | `JUNCTION_PORT` | Override dashboard port (default `5476`, validated as int at CLI startup) |
 | `JUNCTION_PROJECT_DIR` | Override agent config/skills directory |
 | `JUNCTION_WORKSPACE` | Override workspace root directory |
 
 For local dev:
-- **macOS/Linux**: `bin/junction` (POSIX shell wrapper; `bin/junction` is the same script); `source setup.sh` adds `bin/` to PATH
+- **macOS/Linux**: `bin/junction` (POSIX shell wrapper); `source setup.sh` adds `bin/` to PATH
 
 The wrapper sets `JUNCTION_PROJECT_DIR` and routes to the right runtime based on install type:
 
-- **One-liner install** (`install.sh` clones the repo into `~/.kirocrew-app/`): if a sibling `.venv/bin/junction` exists, the wrapper execs it directly.
+- **One-liner install** (`install.sh` clones the repo into `~/.junction-app/`): if a sibling `.venv/bin/junction` exists, the wrapper execs it directly.
 - **pip editable install** (`pip install -e .`): the console_scripts entry point resolves directly.
 
 ## Setup Scripts (First-Time Bootstrap)
@@ -1073,7 +1071,7 @@ that must not change, because the SPA's per-origin `localStorage` is keyed on it
      `sys.exit(1)`) does not abort the restart before the spawn.
    - Spawn a detached `junction gateway` via `subprocess.Popen`, stdin set
      to `subprocess.DEVNULL`, and stdout + stderr redirected to
-     `~/.kiro/crew/gateway.log` (the same file the `junction logs` command
+     `~/.junction/gateway.log` (the same file the `junction logs` command
      tails for foreground gateways). Detach is per-platform: POSIX uses
      `start_new_session=True`; Windows uses `creationflags=DETACHED_PROCESS
      | CREATE_NEW_PROCESS_GROUP` (there is no setsid) — both via
@@ -1124,7 +1122,7 @@ on crash, and starts on boot. Implemented in `src/junction/service/`.
     `kiro-cli login` credential store under the baked `HOME` supplies one
     instead, the dashboard reports a signed-out state on a host where `kiro-cli`
     itself is authenticated. `install_service()` prints a warning naming the
-    variable and the remedy when it detects that case, and `~/.kiro/crew/.env`
+    variable and the remedy when it detects that case, and `~/.junction/.env`
     is the supported home — `load_credentials()` reads every key from that file
     into the gateway environment at boot and forces `0600` on it first. The
     warning is diagnostic only: it is non-fatal by construction, since the unit
@@ -1171,7 +1169,7 @@ source is most appropriate:
    on any macOS host, and an install that never started the agent leaves
    a 0-byte log behind, so either check alone would capture the command
    and tail nothing.
-3. `~/.kiro/crew/gateway.log` for foreground gateways
+3. `~/.junction/gateway.log` for foreground gateways
 
 Uses `os.execvp` so signals (Ctrl+C) propagate naturally to the
 underlying `journalctl`/`tail` process.
@@ -1235,7 +1233,7 @@ live in `docs/app-kit/api-reference.md`; the durable contract surfaces this
 feature introduces are:
 
 - **Persisted schema — `installed.json` `dev: bool`** (default `false`): a
-  per-app flag in each app's `~/.kiro/crew/apps/<name>/installed.json`. Tolerant
+  per-app flag in each app's `~/.junction/apps/<name>/installed.json`. Tolerant
   on read (absent ⇒ `false`), reversible, no migration. This field is the sole
   authoritative source of truth for an app's dev-mode state. Builtin apps cannot
   enter dev mode.
@@ -1251,7 +1249,7 @@ feature introduces are:
   with `Cache-Control: no-store`; otherwise the standard revalidation header
   applies.
 
-An internal, unstable sentinel cache under `~/.kiro/crew/apps/` mirrors the set of
+An internal, unstable sentinel cache under `~/.junction/apps/` mirrors the set of
 dev-mode apps so the zero-dev-apps steady state costs one `stat()` per second.
 It is a derived cache reconciled from `installed.json` at watcher init (under a
 cross-process lock, atomic with concurrent toggles), **not** part of the App Kit
@@ -1264,7 +1262,7 @@ mirroring `browser/cli.py` (see [computer-use.md](computer-use.md)).
 
 **`doctor`** reports, in order: whether the platform is supported (macOS today;
 Windows and Linux report a typed refusal), whether the keystone primary enable at
-`~/.kiro/crew/computer_use.json` is on, and the macOS TCC probe
+`~/.junction/computer_use.json` is on, and the macOS TCC probe
 (`AXIsProcessTrusted()` + `CGPreflightScreenCaptureAccess()`). The probe is
 **advisory and never a gate**: macOS attributes a grant to the *responsible
 parent* of the process tree, so both rows can read `missing` while a

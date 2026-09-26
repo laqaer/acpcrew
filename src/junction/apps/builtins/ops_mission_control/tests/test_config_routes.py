@@ -397,8 +397,8 @@ class TestManifestCrons(unittest.TestCase):
     def test_secrets_live_outside_the_app_dir_so_uninstall_cannot_reach_them(self):
         """Pins the credential-retention boundary, which is easy to get wrong twice.
 
-        The keystone secret file MUST sit at the crew-home root: that is what puts it
-        on ``security._CREW_SECRET_LEAVES`` so the agent's own tools cannot read or
+        The keystone secret file MUST sit at the data-home root: that is what puts it
+        on ``security._DATA_HOME_SECRET_LEAVES`` so the agent's own tools cannot read or
         overwrite it. The consequence is that ``uninstall_app``, which removes
         ``apps/<name>/``, cannot delete it — a PagerDuty/Datadog token outlives an
         uninstall.
@@ -428,7 +428,7 @@ class TestManifestCrons(unittest.TestCase):
                 self.assertEqual(
                     path.parent,
                     home,
-                    "secrets must sit at the crew-home root for the keystone floor",
+                    "secrets must sit at the data-home root for the keystone floor",
                 )
                 self.assertNotIn(
                     "apps",
@@ -935,7 +935,7 @@ class TestSkillDelivery(unittest.TestCase):
         from junction.apps.manifest import AppManifest
 
         manifest = AppManifest.from_json_file(Path(__file__).resolve().parents[1] / "app.json")
-        prefix = "~/.kiro/crew/skills/ops-mission-control/sops/"
+        prefix = "~/.junction/skills/ops-mission-control/sops/"
         for cron in manifest.crons:
             with self.subTest(cron=cron.name):
                 self.assertIn(prefix, cron.message)

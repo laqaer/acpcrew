@@ -183,7 +183,7 @@ describe('sseSubagentQueued reducer', () => {
  *  choice (`--font-body`), while the code-shaped fragments keep monospace
  *  explicitly. Tailwind's `font-mono` resolves to `var(--mono)`, which the Font
  *  Family setting never writes — so any `font-mono` on a prose element pins
- *  JetBrains Mono regardless of the setting, and that is what these assert
+ *  Overpass Mono regardless of the setting, and that is what these assert
  *  against. The class is the observable here (jsdom applies no stylesheet), so
  *  each case checks the class on the SPECIFIC element that renders the text. */
 describe('SubagentProgressBar — chrome follows the Font Family setting', () => {

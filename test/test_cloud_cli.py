@@ -114,7 +114,7 @@ class TestDispatch:
     def test_connect_rejects_out_of_range_local_port(self, monkeypatch, capsys):
         monkeypatch.setattr(cli_cloud, "_resolve", lambda a: ("dev", "us-east-1"))
         monkeypatch.setattr(cli_cloud, "_ensure_session_manager_plugin", lambda: True)
-        monkeypatch.setattr(cli_cloud, "_resolve_tag", lambda a: "kc-1")
+        monkeypatch.setattr(cli_cloud, "_resolve_tag", lambda a: "jn-1")
         monkeypatch.setattr(
             cli_cloud.ec2, "describe", lambda *a, **k: {"exists": True, "instance_id": "i-0abc"}
         )
@@ -147,12 +147,12 @@ class TestResolve:
 
     def test_resolve_tag_uses_last(self, monkeypatch):
         monkeypatch.setattr(
-            CloudConfig, "load", classmethod(lambda cls, *a: CloudConfig(last_tag="kc-last"))
+            CloudConfig, "load", classmethod(lambda cls, *a: CloudConfig(last_tag="jn-last"))
         )
-        assert cli_cloud._resolve_tag(_args(tag="")) == "kc-last"
+        assert cli_cloud._resolve_tag(_args(tag="")) == "jn-last"
 
     def test_resolve_tag_explicit(self):
-        assert cli_cloud._resolve_tag(_args(tag="kc-x")) == "kc-x"
+        assert cli_cloud._resolve_tag(_args(tag="jn-x")) == "jn-x"
 
     def test_resolve_tag_missing_exits(self, monkeypatch):
         monkeypatch.setattr(
@@ -172,15 +172,15 @@ class TestListStatus:
         monkeypatch.setattr(
             ec2,
             "list_instances",
-            lambda *a, **k: [{"tag": "kc-1", "instance_id": "i-0abc", "instance_state": "running"}],
+            lambda *a, **k: [{"tag": "jn-1", "instance_id": "i-0abc", "instance_state": "running"}],
         )
         cli_cloud._cloud_list(_args(profile="", region=""))
         out = capsys.readouterr().out
-        assert "kc-1" in out and "i-0abc" in out
+        assert "jn-1" in out and "i-0abc" in out
 
     def test_status_absent(self, monkeypatch, capsys):
         monkeypatch.setattr(ec2, "describe", lambda *a, **k: {"exists": False})
-        assert cli_cloud._cloud_status(_args(profile="", region="", tag="kc-1")) == 0
+        assert cli_cloud._cloud_status(_args(profile="", region="", tag="jn-1")) == 0
         assert "No instance found" in capsys.readouterr().out
 
 
@@ -201,7 +201,7 @@ class TestConnect:
                 error="not ready",
             ),
         )
-        rc = cli_cloud._cloud_connect(_args(profile="", region="", tag="kc-1"))
+        rc = cli_cloud._cloud_connect(_args(profile="", region="", tag="jn-1"))
         assert rc == 1
         assert "Dashboard tunnel did not become ready" in capsys.readouterr().out
 
@@ -212,11 +212,11 @@ class TestDestroy:
             ec2,
             "destroy",
             lambda *a, **k: {
-                "argv": ["cloudformation", "delete-stack", "--stack-name", "junction-kc-1"]
+                "argv": ["cloudformation", "delete-stack", "--stack-name", "junction-jn-1"]
             },
         )
         rc = cli_cloud._cloud_destroy(
-            _args(profile="", region="", tag="kc-1", dry_run=True, yes=False)
+            _args(profile="", region="", tag="jn-1", dry_run=True, yes=False)
         )
         assert rc == 0
         assert "delete-stack" in capsys.readouterr().out
@@ -224,7 +224,7 @@ class TestDestroy:
     def test_destroy_absent_noop(self, monkeypatch, capsys):
         monkeypatch.setattr(ec2, "describe", lambda *a, **k: {"exists": False})
         rc = cli_cloud._cloud_destroy(
-            _args(profile="", region="", tag="kc-1", dry_run=False, yes=True)
+            _args(profile="", region="", tag="jn-1", dry_run=False, yes=True)
         )
         assert rc == 0
         assert "nothing to remove" in capsys.readouterr().out
@@ -244,11 +244,11 @@ class TestDestroy:
             source_mod, "delete_source", lambda *a, **k: {"removed": True, "uri": "", "error": ""}
         )
         monkeypatch.setattr(
-            CloudConfig, "load", classmethod(lambda cls, *a: CloudConfig(last_tag="kc-1"))
+            CloudConfig, "load", classmethod(lambda cls, *a: CloudConfig(last_tag="jn-1"))
         )
         monkeypatch.setattr(CloudConfig, "save", lambda self, *a: None)
         rc = cli_cloud._cloud_destroy(
-            _args(profile="", region="", tag="kc-1", dry_run=False, yes=True)
+            _args(profile="", region="", tag="jn-1", dry_run=False, yes=True)
         )
         assert rc == 0
         assert destroyed["called"] is True
@@ -270,21 +270,21 @@ class TestDestroy:
             "delete_source",
             lambda *a, **k: {
                 "removed": False,
-                "uri": "s3://junction-src-1/kc-1/junction-src.tar.gz",
+                "uri": "s3://junction-src-1/jn-1/junction-src.tar.gz",
                 "error": "AccessDenied",
             },
         )
         monkeypatch.setattr(
-            CloudConfig, "load", classmethod(lambda cls, *a: CloudConfig(last_tag="kc-1"))
+            CloudConfig, "load", classmethod(lambda cls, *a: CloudConfig(last_tag="jn-1"))
         )
         monkeypatch.setattr(CloudConfig, "save", lambda self, *a: None)
         rc = cli_cloud._cloud_destroy(
-            _args(profile="", region="", tag="kc-1", dry_run=False, yes=True)
+            _args(profile="", region="", tag="jn-1", dry_run=False, yes=True)
         )
         assert rc == 0
         out = capsys.readouterr().out
         assert "could not be removed" in out
-        assert "aws s3 rm s3://junction-src-1/kc-1/junction-src.tar.gz" in out
+        assert "aws s3 rm s3://junction-src-1/jn-1/junction-src.tar.gz" in out
 
     def test_destroy_unconfirmed_returns_nonzero_and_preserves_state(self, monkeypatch, capsys):
         # If ec2.destroy() doesn't confirm deletion, destroy must NOT report
@@ -302,13 +302,13 @@ class TestDestroy:
         monkeypatch.setattr(source_mod, "delete_source", _boom)
         saved = {"n": 0}
         monkeypatch.setattr(
-            CloudConfig, "load", classmethod(lambda cls, *a: CloudConfig(last_tag="kc-1"))
+            CloudConfig, "load", classmethod(lambda cls, *a: CloudConfig(last_tag="jn-1"))
         )
         monkeypatch.setattr(CloudConfig, "save", lambda self, *a: saved.update(n=saved["n"] + 1))
         monkeypatch.setattr(connect_mod, "unregister_instance", lambda *a, **k: True)
 
         rc = cli_cloud._cloud_destroy(
-            _args(profile="", region="", tag="kc-1", dry_run=False, yes=True)
+            _args(profile="", region="", tag="jn-1", dry_run=False, yes=True)
         )
         assert rc == 1
         assert saved["n"] == 0  # last_tag preserved
@@ -321,12 +321,12 @@ class TestDestroy:
 class TestCloudLogin:
     def test_already_logged_in_short_circuits(self, monkeypatch, capsys):
         monkeypatch.setattr(cli_cloud, "_resolve", lambda _a: ("dev", "us-east-1"))
-        monkeypatch.setattr(cli_cloud, "_resolve_tag", lambda _a: "kc-1")
+        monkeypatch.setattr(cli_cloud, "_resolve_tag", lambda _a: "jn-1")
         monkeypatch.setattr(
             ec2, "describe", lambda *a, **k: {"exists": True, "instance_id": "i-0abc"}
         )
         monkeypatch.setattr(cli_cloud.login_mod, "is_logged_in", lambda *a, **k: True)
-        rc = cli_cloud._cloud_login(_args(profile="", region="", tag="kc-1", no_browser=True))
+        rc = cli_cloud._cloud_login(_args(profile="", region="", tag="jn-1", no_browser=True))
         assert rc == 0
         assert "already signed in" in capsys.readouterr().out
 
@@ -334,7 +334,7 @@ class TestCloudLogin:
         from junction.cloud.login import LoginPrompt
 
         monkeypatch.setattr(cli_cloud, "_resolve", lambda _a: ("dev", "us-east-1"))
-        monkeypatch.setattr(cli_cloud, "_resolve_tag", lambda _a: "kc-1")
+        monkeypatch.setattr(cli_cloud, "_resolve_tag", lambda _a: "jn-1")
         monkeypatch.setattr(
             ec2, "describe", lambda *a, **k: {"exists": True, "instance_id": "i-0abc"}
         )
@@ -348,7 +348,7 @@ class TestCloudLogin:
         )
         monkeypatch.setattr(cli_cloud.login_mod, "resume_login_daemon", lambda *a, **k: None)
         monkeypatch.setattr(cli_cloud.login_mod, "wait_until_logged_in", lambda *a, **k: True)
-        rc = cli_cloud._cloud_login(_args(profile="", region="", tag="kc-1", no_browser=True))
+        rc = cli_cloud._cloud_login(_args(profile="", region="", tag="jn-1", no_browser=True))
         out = capsys.readouterr().out
         assert rc == 0
         # Assert the full device URL is echoed (exact string, not a host
@@ -361,7 +361,7 @@ class TestCloudLogin:
         from junction.cloud.login import LoginPrompt
 
         monkeypatch.setattr(cli_cloud, "_resolve", lambda _a: ("dev", "us-east-1"))
-        monkeypatch.setattr(cli_cloud, "_resolve_tag", lambda _a: "kc-1")
+        monkeypatch.setattr(cli_cloud, "_resolve_tag", lambda _a: "jn-1")
         monkeypatch.setattr(
             ec2, "describe", lambda *a, **k: {"exists": True, "instance_id": "i-0abc"}
         )
@@ -373,18 +373,18 @@ class TestCloudLogin:
         )
         monkeypatch.setattr(cli_cloud.login_mod, "resume_login_daemon", lambda *a, **k: None)
         monkeypatch.setattr(cli_cloud.login_mod, "wait_until_logged_in", lambda *a, **k: False)
-        rc = cli_cloud._cloud_login(_args(profile="", region="", tag="kc-1", no_browser=True))
+        rc = cli_cloud._cloud_login(_args(profile="", region="", tag="jn-1", no_browser=True))
         assert rc == 1
         assert "not detected yet" in capsys.readouterr().out
 
     def test_logout_signs_out_and_points_at_login(self, monkeypatch, capsys):
         monkeypatch.setattr(cli_cloud, "_resolve", lambda _a: ("dev", "us-east-1"))
-        monkeypatch.setattr(cli_cloud, "_resolve_tag", lambda _a: "kc-1")
+        monkeypatch.setattr(cli_cloud, "_resolve_tag", lambda _a: "jn-1")
         monkeypatch.setattr(
             ec2, "describe", lambda *a, **k: {"exists": True, "instance_id": "i-0abc"}
         )
         monkeypatch.setattr(cli_cloud.login_mod, "logout", lambda *a, **k: True)
-        rc = cli_cloud._cloud_logout(_args(profile="", region="", tag="kc-1"))
+        rc = cli_cloud._cloud_logout(_args(profile="", region="", tag="jn-1"))
         out = capsys.readouterr().out
         assert rc == 0
         assert "Signed out" in out
@@ -392,20 +392,20 @@ class TestCloudLogin:
 
     def test_logout_fails_when_session_survives(self, monkeypatch, capsys):
         monkeypatch.setattr(cli_cloud, "_resolve", lambda _a: ("dev", "us-east-1"))
-        monkeypatch.setattr(cli_cloud, "_resolve_tag", lambda _a: "kc-1")
+        monkeypatch.setattr(cli_cloud, "_resolve_tag", lambda _a: "jn-1")
         monkeypatch.setattr(
             ec2, "describe", lambda *a, **k: {"exists": True, "instance_id": "i-0abc"}
         )
         monkeypatch.setattr(cli_cloud.login_mod, "logout", lambda *a, **k: False)
-        rc = cli_cloud._cloud_logout(_args(profile="", region="", tag="kc-1"))
+        rc = cli_cloud._cloud_logout(_args(profile="", region="", tag="jn-1"))
         assert rc == 1
         assert "Could not confirm the instance is signed out" in capsys.readouterr().out
 
     def test_logout_no_instance(self, monkeypatch, capsys):
         monkeypatch.setattr(cli_cloud, "_resolve", lambda _a: ("dev", "us-east-1"))
-        monkeypatch.setattr(cli_cloud, "_resolve_tag", lambda _a: "kc-1")
+        monkeypatch.setattr(cli_cloud, "_resolve_tag", lambda _a: "jn-1")
         monkeypatch.setattr(ec2, "describe", lambda *a, **k: {"exists": False})
-        assert cli_cloud._cloud_logout(_args(profile="", region="", tag="kc-1")) == 1
+        assert cli_cloud._cloud_logout(_args(profile="", region="", tag="jn-1")) == 1
         assert "No running instance" in capsys.readouterr().out
 
     def test_logout_is_dispatched(self):

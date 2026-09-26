@@ -46,7 +46,7 @@ vi.mock('../src/mochiApi', () => ({
         // isUsable() requires a live port AND a connected tunnel, or the row
         // renders un-pickable and the switch path is never reached.
         { id: 'self', name: 'This instance', local_port: 5476, status: { state: 'connected' } },
-        { id: 'remote-1', name: 'Remote crew', local_port: 5477, status: { state: 'connected' } },
+        { id: 'remote-1', name: 'Remote instance', local_port: 5477, status: { state: 'connected' } },
       ],
     }),
     updateConfig: async () => undefined,
@@ -76,7 +76,7 @@ describe('SettingsPanel Save reveals the section that explains a failure', () =>
 
     // Pick a different instance, which is only possible from Instances.
     await user.click(await screen.findByText('Instances'))
-    await user.click(await screen.findByText('Remote crew'))
+    await user.click(await screen.findByText('Remote instance'))
 
     // Then walk away from that section before saving — the whole point.
     await user.click(screen.getByText('General'))
@@ -101,7 +101,7 @@ describe('SettingsPanel Save reveals the section that explains a failure', () =>
     render(<SettingsPanel onClose={vi.fn()} />)
 
     await user.click(await screen.findByText('Instances'))
-    await user.click(await screen.findByText('Remote crew'))
+    await user.click(await screen.findByText('Remote instance'))
     await user.click(screen.getByRole('button', { name: 'Save' }))
     expect(await screen.findByText(/Could not switch instance/)).toBeInTheDocument()
 
@@ -155,7 +155,7 @@ describe('SettingsPanel hides shell-only controls when there is no shell', () =>
       await screen.findByText(/Choosing which instance the pet shows needs the desktop app/),
     ).toBeInTheDocument()
     // The picker itself must be gone, not merely accompanied by a note.
-    expect(screen.queryByText('Remote crew')).not.toBeInTheDocument()
+    expect(screen.queryByText('Remote instance')).not.toBeInTheDocument()
   })
 
   it('replaces the shortcut editors with the desktop-app note', async () => {

@@ -276,8 +276,8 @@ SCOPE_CC_GLOBAL = "ccGlobal"
 # "zombie" servers).
 #
 # Resolved per call, never captured at import: an import-time binding freezes
-# the data home and defeats pod isolation, the lazy legacy-home migration and
-# test isolation. The name below is an opt-in override (None = live home) so
+# the data home and defeats pod isolation and test
+# isolation. The name below is an opt-in override (None = live home) so
 # existing monkeypatch call sites keep working. See config.md "Data Home";
 # dashboard/handlers/usage.py is the reference implementation.
 _MCP_SOURCES: tuple[tuple[Path, str], ...] | None = None
@@ -1274,7 +1274,7 @@ def list_servers() -> list[McpServerInfo]:
     servers = canonical_servers
 
     # 3c. Consent is per SCOPE: a ``disabled: true`` ANYWHERE withholds the
-    #     spawn, not only the branch above that INTRODUCES a Kiro-Crew-scope row
+    #     spawn, not only the branch above that INTRODUCES a Junction-scope row
     #     which exists nowhere else. ``/api/mcp/toggle`` writes the flag into the
     #     Kiro-global ``mcp.json``, and a row that step 1 already introduced from
     #     the agent config would otherwise keep ``disabled = False`` and stay
@@ -2542,7 +2542,7 @@ def sync_to_agent_config(servers: list[McpServerInfo]) -> bool:
     """Sync discovered MCP servers into the agent config.
 
     Delegates to ``install_agent()`` — the single authoritative merge function
-    that reads all source files (``~/.kiro/crew/mcp.json``,
+    that reads all source files (``~/.junction/mcp.json``,
     ``~/.kiro/settings/mcp.json``), merges them with correct priority, resolves
     commands, normalizes each spec's ``env`` (see ``env.emit_env``), and writes
     the final agent config. There is deliberately no second registration path:

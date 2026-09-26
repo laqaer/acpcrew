@@ -35,7 +35,7 @@ mkdirSync(OUT, { recursive: true })
 const SLOT = 'chat-1'
 const OTHER = 'gpu-autosde-critic'
 const AGENTS = [
-  { name: 'default', source: 'builtin', description: 'The stock crew agent' },
+  { name: 'default', source: 'builtin', description: 'The stock Junction agent' },
   { name: 'gpu-autosde-analyzer', source: 'package', description: 'Analyzer subagent for gpu-autosde: reads assigned chunk file diffs from disk and generates review comments' },
   { name: OTHER, source: 'package', description: 'Critic subagent for gpu-autosde: validates review comments against the actual diff, checks guideline citations' },
   { name: 'gpu-autosde-fetcher', source: 'package', description: 'Fetcher subagent for gpu-autosde: fetches CR diffs (remote or local), identifies changed files' },

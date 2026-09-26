@@ -39,12 +39,12 @@ resolution: which layer wins".
 
 ## Memory (`memory.py`)
 
-Structured files under `~/.kiro/crew/workspace/memory/`:
+Structured files under `~/.junction/workspace/memory/`:
 - `preferences.md` — learned user preferences (replaced wholesale by consolidator)
 - `projects.md` — active project context (replaced wholesale by consolidator)
 - `history/{date}.md` — daily conversation summaries (append-only, pruned by heartbeat)
 
-FTS5 search via `~/.kiro/crew/memory_index.db` (SQLite via `pysqlite3-binary` on Linux for FTS5/UPSERT compat, stdlib `sqlite3` on macOS). The virtual table is created with `tokenize='porter unicode61'`, so keyword matching is porter-stemmed inside SQLite. (This is a different stemmer from the `snowballstemmer` pass used by the vector store's keyword-fallback *scoring* in `vector_memory.py`; two independent code paths, do not conflate them.) Self-healing: corrupted DB auto-rebuilt. Incremental updates on writes, full rebuild on gateway startup and every `_FTS_REBUILD_TICKS = 15` heartbeat ticks (~15 min at the 60s default interval). Connection leak prevention: all FTS methods use try/finally.
+FTS5 search via `~/.junction/memory_index.db` (SQLite via `pysqlite3-binary` on Linux for FTS5/UPSERT compat, stdlib `sqlite3` on macOS). The virtual table is created with `tokenize='porter unicode61'`, so keyword matching is porter-stemmed inside SQLite. (This is a different stemmer from the `snowballstemmer` pass used by the vector store's keyword-fallback *scoring* in `vector_memory.py`; two independent code paths, do not conflate them.) Self-healing: corrupted DB auto-rebuilt. Incremental updates on writes, full rebuild on gateway startup and every `_FTS_REBUILD_TICKS = 15` heartbeat ticks (~15 min at the 60s default interval). Connection leak prevention: all FTS methods use try/finally.
 
 Context injection includes source citations per section. Agent can update memory files via kiro-cli's file tools.
 
@@ -140,7 +140,7 @@ The history consolidation prompt includes a `"lessons"` key that extracts only i
 
 ### Configuration
 
-`~/.kiro/crew/config.json` → `"memory"` section:
+`~/.junction/config.json` → `"memory"` section:
 ```json
 {"history_idle_hours": 3.0, "history_max_days": 365}
 ```
@@ -257,7 +257,7 @@ not coordinate, so reason about them separately:
 Embeddings run in-process via the vendored llama-cpp-python 0.3.34 runtime (`junction/_vendor/llama_cpp`) — no external server, no HTTP hop, no runtime pip install. (The Ollama-era remote-URL path — and with it `_validate_url`/`_resolve_blocked_addr` SSRF hardening from commit `76640a75` — was removed together with the network client: there is no embedding URL to validate anymore.)
 
 - `LlamaCppEmbedder.embed(text)` / `embed_batch(texts)` → returns 1024-dim vectors or `None` on any failure (graceful degradation)
-- **Non-blocking model load**: the GGUF load runs on a background daemon thread (`_kick_background_load()`, thread name `kc-embed-load`) — `embed()`/`embed_batch()` NEVER block on the load. When the model isn't in memory yet, the call kicks the background load and returns `None` immediately; memory degrades to keyword search until the load lands. The gateway/dashboard event loop is never stalled by embedding work. `wait_ready(timeout)` exists for sync contexts (tests, one-shot CLI flows) that legitimately want to block — never call it from an event-loop thread
+- **Non-blocking model load**: the GGUF load runs on a background daemon thread (`_kick_background_load()`, thread name `jn-embed-load`) — `embed()`/`embed_batch()` NEVER block on the load. When the model isn't in memory yet, the call kicks the background load and returns `None` immediately; memory degrades to keyword search until the load lands. The gateway/dashboard event loop is never stalled by embedding work. `wait_ready(timeout)` exists for sync contexts (tests, one-shot CLI flows) that legitimately want to block — never call it from an event-loop thread
 - The underlying `Llama` object is NOT thread-safe — inference on a loaded model is serialized behind a lock (tens of ms per short text)
 - `get_shared_embedder()` — process-wide singleton (~700MB RSS when loaded), shared by vector memory AND the knowledge library; `close()` unloads the model to free RSS
 - Per-platform native libs live in `_vendor/llama_cpp_libs/{linux_x86_64,linux_aarch64,macos_arm64,macos_x86_64,win_amd64}`, selected at import time via `LLAMA_CPP_LIB_PATH` (upstream-supported override; an operator-set value wins, enabling e.g. a GPU build). Before loading the bundled Linux x86_64 runtime, `_load_llama_class()` intersects the `flags` reported for every visible processor in `/proc/cpuinfo` and requires the baseline compiled into the shipped upstream wheel (AVX, AVX2, BMI2, F16C, FMA, SSE3, SSSE3). A missing or unreadable feature list refuses the native runtime before it can raise an uncatchable SIGILL; memory stays available through keyword search. The gate does not apply to an operator-set `LLAMA_CPP_LIB_PATH`, because that directory may contain a lower-baseline build. Unsupported platforms, incompatible bundled CPUs, and import failures all degrade to keyword-only memory search. See `_vendor/README.md`
@@ -276,7 +276,7 @@ Embeddings run in-process via the vendored llama-cpp-python 0.3.34 runtime (`jun
 - **Salvage fast-path** (`_salvage_legacy_ollama_blob`): before downloading, checks the legacy Ollama blob store (`~/.ollama/models/blobs/sha256-<digest>`, honoring `$OLLAMA_MODELS`) — Ollama stores layer blobs content-addressed and the Ollama-era GGUF is byte-identical, so migrating users skip the 610MB re-download entirely. The copy is sha256-verified like a real download; any failure falls through to the normal download
 - Downloads `qwen3-embedding-0.6b-q8_0.gguf` (Q8_0 quantized, 610MB) over plain HTTPS from the public Junction CDN — URL resolution order: `JUNCTION_EMBED_MODEL_URL` env var, then the `memory.embed_model_url` config knob, then the built-in `_DEFAULT_MODEL_URL` CDN constant. No git, no cloud SDK. Streaming sha256 is computed while downloading and byte-level progress (`bytes_downloaded`/`bytes_total`) is written to `status` every ~16MB for the dashboard's determinate progress bar
 - sha256-verifies the file (`06507c7b42688469c4e7298b0a1e16deff06caf291cf0a5b278c308249c3e439` — the trust anchor for every source: a tampered CDN object or mirror can only fail verification); files under `_GGUF_MIN_BYTES` (1MB) are rejected as truncated
-- Installs persistently to `~/.kiro/crew/models/qwen3-embedding-0.6b.gguf` — atomic install: stages into a per-process unique file in the TARGET directory (same filesystem) then `os.replace`, so two concurrent processes (gateway + one-shot CLI) can never interleave writes into a shared staging file
+- Installs persistently to `~/.junction/models/qwen3-embedding-0.6b.gguf` — atomic install: stages into a per-process unique file in the TARGET directory (same filesystem) then `os.replace`, so two concurrent processes (gateway + one-shot CLI) can never interleave writes into a shared staging file
 - **Daemon-thread download** (`_run_download_on_daemon_thread`): the blocking HTTPS transfer runs on a daemon thread (deliberately NOT `run_in_executor` — executor threads are joined at interpreter exit), so Ctrl-C or a finished one-shot CLI is never pinned by an in-flight 610MB transfer
 - **Retry ladder**: background startup task = up to 6 attempts with exponential backoff (60s base, 30min cap, may span hours); every gateway restart retries; dashboard Enable/Retry click = `DOWNLOAD_ATTEMPTS_INTERACTIVE` (3) attempts for fast feedback. `junction run` (one-shot CLI) never kicks downloads — only the long-lived gateway does
 - Escape hatch: `JUNCTION_SKIP_MODEL_DOWNLOAD=1` skips the download entirely (tests/CI must never trigger a 610MB download; tests additionally pin `OLLAMA_MODELS` to a tmp dir so the salvage path can't fire)
@@ -496,7 +496,7 @@ concurrent native write from being duplicated.
 User-taught corrections ("always do X", "never do Y"). Single write path through `vector_memory.write_lesson()`:
 
 1. **Vector memory** (primary): stored as `lesson.<md5hash>` semantic entries with `confidence=1.0, source=user_explicit`. The value is a mapping `{"rule", "category", "negative"}`, plus `"repo_scope"` when the lesson is restricted to one repository — the NOT-clause is a separate field; legacy in-band `"rule — NOT: negative"` rows stay readable without migration. Injected via `get_lessons_context()` — separate from `[Semantic Memory]` block. A scoped lesson is gated by `project_scope.project_scope_satisfied` against the session's active project BEFORE the shown/omitted counts are computed, using the same rule as a skill's `repo_scope`.
-2. **JSONL fallback** (`~/.kiro/crew/lessons.jsonl`): only used when vector memory is not initialized. Read-only migration source once vector memory is active.
+2. **JSONL fallback** (`~/.junction/lessons.jsonl`): only used when vector memory is not initialized. Read-only migration source once vector memory is active.
 
 **Priority**: vector lessons override JSONL. The fallback is keyed on whether the
 vector store holds any renderable lesson at all (`has_any_lesson()`), NOT on whether
@@ -614,7 +614,7 @@ default 50/300s pair has no config knob.
 
 A channel quiet for longer than the 5-minute default TTL presents an empty
 buffer even though the bot was there. `observe` buffers persist to
-`~/.kiro/crew/history/<channel_id>.jsonl` (path-validated: refused if it escapes
+`~/.junction/history/<channel_id>.jsonl` (path-validated: refused if it escapes
 the history root or hits `is_sensitive_path`) and are lazily compacted on load,
 dropping entries past the TTL and rewriting the file. `set_observe()` /
 `unset_observe()` re-`deque` an existing buffer to the other `maxlen`, and
@@ -650,17 +650,17 @@ truncated to 300 chars.
 
 ## Skills (`skills.py`)
 
-Markdown files at `~/.kiro/crew/skills/{name}/SKILL.md` with optional YAML frontmatter (`name`, `description`, `always`).
+Markdown files at `~/.junction/skills/{name}/SKILL.md` with optional YAML frontmatter (`name`, `description`, `always`).
 
 Frontmatter is parsed line-by-line (`_parse_frontmatter`): only a column-0 `key: value` line is a field. A value that is a bare block-scalar indicator (`>`, `|`, optionally chomped with `-`/`+`) is resolved from the indented lines that follow — folded (`>`) folds single breaks to spaces while preserving blank-line counts and more-indented line breaks, literal (`|`) preserves newlines — so a multi-line `description` still routes. Explicit indentation indicators (`>2`) are not supported. The other frontmatter readers stay reconciled with this resolution: the onboarding import gate treats a bare indicator as an activating `always` value (fail-closed), the auto-skill update path's `history._frontmatter_value` resolves block scalars the same way, so a live skill's block-scalar `description`/`triggers` survive the staged-candidate round-trip instead of collapsing to the indicator character, and the skill-provider preview endpoint (`dashboard/handlers/discover.py`) parses SKILL.md with the loader's own grammar, so the previewed name/description match what the installed skill will show.
 
 Supports nested directories (e.g. `skills/utils/tiny-url/SKILL.md`). The skill name is the relative path from the skills root (e.g. `utils/tiny-url`).
 
-**Source precedence** (project-level wins): `$JUNCTION_PROJECT_DIR/skills/` → `builtin_skills/` (bundled). Auto-copied to `~/.kiro/crew/skills/` on first run. Copies entire skill directories (scripts, assets, etc.).
+**Source precedence** (project-level wins): `$JUNCTION_PROJECT_DIR/skills/` → `builtin_skills/` (bundled). Auto-copied to `~/.junction/skills/` on first run. Copies entire skill directories (scripts, assets, etc.).
 
 **Project skills (`<project>/.kiro/skills`) — a different source from the one above.**
 `$JUNCTION_PROJECT_DIR/skills/` is a *sync* source: its contents are copied into
-`~/.kiro/crew/skills/` and thereafter are ordinary local skills. `<project>/.kiro/skills`
+`~/.junction/skills/` and thereafter are ordinary local skills. `<project>/.kiro/skills`
 is *discovered in place* for the session whose slot is bound to that project, and is
 never copied. A skill found there is reported with source `kiro-workspace`.
 
@@ -1227,7 +1227,7 @@ Auto-sync at startup + on-demand discovery from dashboard. Default servers: `jun
 **Server sources** (merged by `list_servers()`):
 1. `agents/defaults.json` → `mcpServers` (default: none beyond the managed servers)
 2. `~/.kiro/agents/junction.json` → `mcpServers` (installed config, merged)
-3. `~/.kiro/settings/mcp.json` and `~/.kiro/crew/mcp.json` (scanned at startup and on-demand)
+3. `~/.kiro/settings/mcp.json` and `~/.junction/mcp.json` (scanned at startup and on-demand)
 
 **Startup behavior**: gateway calls `_init_mcp_discovery()` which runs `discover_servers_to_sync()` + `sync_to_agent_config()` to auto-add new servers from mcp.json, then logs all configured servers. Discovery/sync failures are caught independently so `list_servers()` always runs. Additionally, `server.py` fires `_bg_mcp_probe()` as a background task at startup to populate the probe cache.
 
@@ -1327,7 +1327,7 @@ Prompt keys are only appended when ALL hold:
 
 ### Namespace
 
-Auto-generated skills live under `~/.kiro/crew/skills/auto/<slug>/SKILL.md`. Slug validated against `^[a-z0-9][a-z0-9-]{1,62}[a-z0-9]$`. The `auto/` prefix:
+Auto-generated skills live under `~/.junction/skills/auto/<slug>/SKILL.md`. Slug validated against `^[a-z0-9][a-z0-9-]{1,62}[a-z0-9]$`. The `auto/` prefix:
 - Makes provenance visible without parsing frontmatter (`list_auto_skills()`)
 - Prevents accidental overwrite of hand-authored skills via the refine path (`update_auto_skill()` explicitly refuses names outside `auto/`)
 
@@ -1391,7 +1391,7 @@ No new command. Users interact via the existing skill management surface:
 - Off by default (opt-in). Enable: `junction config set skills.auto_create_from_sessions true` (or dashboard Settings → Skills); auto-approve prose-only: `junction config set skills.approval_required false`
 - Review pending candidates: dashboard Skills → Pending review, or `GET /api/skills/-/pending`
 - List auto skills: filter `junction` skill listings to those under `auto/`, or use `SkillsLoader.list_auto_skills()` in code
-- Remove unwanted auto skill: `rm -rf ~/.kiro/crew/skills/auto/<slug>` (or dashboard skill delete when UI lands)
+- Remove unwanted auto skill: `rm -rf ~/.junction/skills/auto/<slug>` (or dashboard skill delete when UI lands)
 - Audit trail: `junction security events -n 20 | grep auto_skill`
 
 ## Hooks (`hooks.py`)
@@ -1411,7 +1411,7 @@ presence, but must not copy or register them.
 ### Script hooks (`ScriptHook`, `run_script_hook`) — the shell per platform
 
 A script hook's `command` is a single shell command line stored in
-`~/.kiro/crew/hooks.json`. It runs in that platform's native shell language, and
+`~/.junction/hooks.json`. It runs in that platform's native shell language, and
 a hook is therefore **not portable across platforms**:
 
 | | Shell | Env var in a command | Quote grouping |
@@ -1464,7 +1464,7 @@ never reach an LLM/agent surface.
 ### User kiro-cli Hooks (`agent.kiro_hooks` in `config.json`)
 
 User-defined kiro-cli hooks that persist across `junction update`. Follows the
-`removedTools` precedent — a raw key in `~/.kiro/crew/config.json` read by
+`removedTools` precedent — a raw key in `~/.junction/config.json` read by
 `_refresh_dynamic_fields()` at install time.
 
 ```json
@@ -1489,7 +1489,7 @@ Assembles all sources into prompts:
 - Every message: channel history, episodic memory, hook transforms, triggered skills, context rules, OPTIONS hint (interactive sessions only)
 - Runtime identity is turn-aware rather than key-only. Channel and dashboard dispatchers pass trusted `runtime_source` metadata to `build_message()`. New sessions use it for `[RUNTIME]`; follow-up turns refresh `[RUNTIME]` outside the one-time session context. This is required because a stable `dashboard:*` session can be resumed from Discord and `messaging.dm_scope="unified"` intentionally removes the originating channel from the session key. When trusted metadata is absent, namespaced keys (`discord:*`, `telegram:*`, `wecom:*`, `weixin:*`, `webex:*`, `teams:*`, `slack:*`) are recognized directly; bare unknown keys keep the legacy Slack fallback.
 - Thread history is injected only at session start (via `build_session_context`). Within the same ACP session, kiro-cli manages conversation history natively — duplicate injection wastes context window and accelerates compaction.
-- `_CRITICAL_RULES` injected by DEFAULT for every agent (built-in `junction` and custom alike) — it is the dashboard/Slack assistant's own output contract (runtime-conditional diff blocks — tool-made edits render as structured diff cards on the dashboard, so ```diff blocks are required only for non-tool edits or non-dashboard runtimes — `[OPTIONS:]` footer, absolute-path rule with a URL exclusion — a backticked URL renders as a click-to-copy chip rather than a link, so URLs must use markdown link syntax instead), so diff rendering and OPTIONS buttons work universally. A **custom** agent can OPT OUT by setting `includeCrewContext: false` in its materialized `~/.kiro/agents/<...>.json`: a custom app agent ships its own system prompt and output contract, so injecting this on top both conflicts with it and, on a safety-tuned model, reads as an identity override the model refuses as prompt injection. The flag is read through the same sensitive-path-gated scan as the agent prompt (matched by declared `name` or filename stem) and memoized by agent name; an absent/non-boolean flag, an unreadable/missing spec, and the built-in `junction` agent all default to injecting (only an explicit boolean `false` on a custom agent suppresses it). The same opt-out also suppresses the dashboard tool nudges (`ask_question` / `suggest_followup`) that `build_message` adds on dashboard sessions, but NOT the provider-agnostic `[OPTIONS:]` reminder. The `[OPTIONS:]`/diff tags still RENDER for any agent that emits them (the dashboard parses them regardless); the gate only stops the host from MANDATING them where an agent has declared it does not want them.
+- `_CRITICAL_RULES` injected by DEFAULT for every agent (built-in `junction` and custom alike) — it is the dashboard/Slack assistant's own output contract (runtime-conditional diff blocks — tool-made edits render as structured diff cards on the dashboard, so ```diff blocks are required only for non-tool edits or non-dashboard runtimes — `[OPTIONS:]` footer, absolute-path rule with a URL exclusion — a backticked URL renders as a click-to-copy chip rather than a link, so URLs must use markdown link syntax instead), so diff rendering and OPTIONS buttons work universally. A **custom** agent can OPT OUT by setting `includeJunctionContext: false` in its materialized `~/.kiro/agents/<...>.json`: a custom app agent ships its own system prompt and output contract, so injecting this on top both conflicts with it and, on a safety-tuned model, reads as an identity override the model refuses as prompt injection. The flag is read through the same sensitive-path-gated scan as the agent prompt (matched by declared `name` or filename stem) and memoized by agent name; an absent/non-boolean flag, an unreadable/missing spec, and the built-in `junction` agent all default to injecting (only an explicit boolean `false` on a custom agent suppresses it). The opt-out key earlier Junction builds documented (`context.LEGACY_INCLUDE_CONTEXT_KEY`) is still honoured, because specs in kiro-cli's shared agents directory carry it and ignoring it would fail permissive; `includeJunctionContext` wins when a spec sets both, and a non-boolean current key does not mask an explicit legacy `false` (`test_legacy_opt_out_key_still_omits_critical_rules`, `test_current_opt_out_key_wins_over_the_legacy_key`). The same opt-out also suppresses the dashboard tool nudges (`ask_question` / `suggest_followup`) that `build_message` adds on dashboard sessions, but NOT the provider-agnostic `[OPTIONS:]` reminder. The `[OPTIONS:]`/diff tags still RENDER for any agent that emits them (the dashboard parses them regardless); the gate only stops the host from MANDATING them where an agent has declared it does not want them.
 - Switchable context groups (see below) let a spawning parent drop whole sections for one sub-agent.
 - Cap: `_CONTEXT_BUDGET_BASE` = 165,000 chars (~55k tokens). Which ceiling applies depends on `skills.lazy_load`: OFF (the default) uses `caps.base` as one flat shared pool; ON uses `caps.max_context`, the SUM of the independent per-section caps (190,575 chars at the reference window), so skills/steering can never eat into memory/lessons space. Note the per-section caps are computed and passed to every section either way; `lazy_load` changes the *global* ceiling and the skills block's shape (full dump vs usage-ranked top-K), not whether sections have caps.
 

@@ -96,7 +96,7 @@ export default [
     // Test doubles are exempt: a `vi.mock` that swaps a portalled Radix dropdown
     // for a plain <select> is the ESTABLISHED way to make one driveable in jsdom
     // (Radix commits discrete events through flushSync, which throws inside
-    // Testing Library's act() — see src/test/CrewEditorSelect.test.tsx). Nothing
+    // Testing Library's act() — see src/test/AgentEditorSelect.test.tsx). Nothing
     // here renders to a user.
     files: ['src/**/*.test.{ts,tsx}', 'src/test/**/*.{ts,tsx}'],
     rules: {

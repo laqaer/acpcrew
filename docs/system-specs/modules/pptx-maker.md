@@ -210,10 +210,10 @@ templates and pins all live where the ENGINE puts them, so the two can never
 disagree about state.
 
 ```
-~/.kiro/crew/apps/pptx-maker/
+~/.junction/apps/pptx-maker/
   app.json, installed.json          # platform-written
   data/vendor/sdpm/                 # the pinned engine tree + its uv venv
-    .kirocrew-engine.json           #   tag/commit/digest of the verified install
+    .junction-engine.json           #   tag/commit/digest of the verified install
   data/vendor/preview-tools/bin/    # managed preview tools; prepended to the
     pdftoppm (or pdftoppm.cmd)      #   engine child's PATH, never the gateway's
   agents/*.json                     # rendered from the shipped templates
@@ -287,7 +287,7 @@ disable-check tests drive. Pinned by
 `test_pptx_maker_provision.py::test_provisioning_does_not_register_resources_itself`.
 
 It is a Python job rather than a `setup.onInstall` script because the platform
-does not stage a BUILTIN app's non-manifest files into `~/.kiro/crew/apps/<name>/`
+does not stage a BUILTIN app's non-manifest files into `~/.junction/apps/<name>/`
 — a shell script would have nothing to run there, and a manifest-declared
 `agents` path would point at a file that does not exist. Provisioning is
 user-triggered (it downloads a third-party tree and builds a venv) and idempotent.
@@ -391,7 +391,7 @@ are dropped, so an upstream setuid or group-writable bit cannot survive install.
 
 ### How readiness is probed without a `.git`
 
-`engine_source.write_source_marker()` writes `.kirocrew-engine.json` (tag, commit,
+`engine_source.write_source_marker()` writes `.junction-engine.json` (tag, commit,
 digest, repo) into the tree as the **last** step of a verified install, so its
 presence is the "this is the vetted tree" signal that `(root / ".git").is_dir()`
 used to provide. `is_installed()` requires BOTH the commit and the digest to match

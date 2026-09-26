@@ -30,11 +30,8 @@ import PipelineFlow, { stepLabel } from './PipelineFlow'
 import StepItemsTable from './StepItemsTable'
 import ItemSessionsTable from './ItemSessionsTable'
 
-// The repository this pipeline runs against. Both halves are GitHub IDENTIFIERS,
-// so the joined spelling is the real name of the repo and not the product name in
-// prose -- the slug exemption cannot see that here because the owner and the repo
-// are separate fields rather than one `owner/repo` string.
-const DEFAULT_REPO: RepoRef = { owner: 'kirodotdev', repo: 'Junction' } // brand-ok: repo identifier
+// The repository this pipeline runs against.
+const DEFAULT_REPO: RepoRef = { owner: 'laqaer', repo: 'junction' }
 
 /** How often the open level refetches, in ms.
  *

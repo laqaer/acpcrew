@@ -202,7 +202,7 @@ def read_bytes_with_retry(path: Path | str) -> bytes:
     gets the plain single-attempt semantics instead of pausing the one loop for
     the whole budget. Callers wanting the retry from a loop-driven path offload
     the read (``asyncio.to_thread`` / ``run_in_executor``), which is what
-    ``CrewStore``'s builder already does.
+    ``MultitaskStore``'s builder already does.
 
     The final attempt sits OUTSIDE the loop for the same reason it does in
     :func:`replace_with_retry`: with it inside, a budget of 0 would fall out
@@ -272,7 +272,7 @@ def _owned_roots() -> tuple[Path, ...]:
     from junction.config import paths as config_paths
 
     roots: list[Path] = []
-    for resolver in (config_paths.data_home, config_paths.legacy_home, config_paths.kiro_home):
+    for resolver in (config_paths.data_home, config_paths.kiro_home):
         try:
             roots.append(Path(resolver()))
         except (OSError, RuntimeError, ValueError):  # pragma: no cover - defensive

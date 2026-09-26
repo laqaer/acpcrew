@@ -9,7 +9,7 @@ import { SourceBadge, PageHeader, EmptyState, Btn, Input, SearchInput, Card, Car
 import ModelDropdownList from '../components/ModelDropdownList'
 import AgentSkillsEditor from '../components/AgentSkillsEditor'
 import SimpleSelect from '../components/SimpleSelect'
-import CrewAvatar from '../components/CrewAvatar'
+import AgentAvatar from '../components/AgentAvatar'
 import type { JunctionAgent } from '../components/AgentSelector'
 import InfoTip from '../components/InfoTip'
 import ListDetailBack from '../components/ListDetailBack'
@@ -454,20 +454,20 @@ export default function AgentsPage({ embedded }: { embedded?: boolean } = {}) {
     },
   })
 
-  /** Crews, so a template can name who it affects. Read-only here — a crew's
-   *  own bindings are edited on the Crews tab.
+  /** Agents, so a template can name who it affects. Read-only here — an agent's
+   *  own bindings are edited on the Agents tab.
    *
-   *  Deliberately the SAME key and the SAME cached shape as the Crews tab
+   *  Deliberately the SAME key and the SAME cached shape as the Agents tab
    *  (`JunctionAgentsPage.tsx`): one shared QueryClient keeps one value per
    *  key, so an observer that stored the unwrapped array here would be handed
    *  to that page as `agentsData` (rendering an empty roster) and its object to
-   *  this one (`crews.filter` on an object throws during render). Storing the
+   *  this one (`roster.filter` on an object throws during render). Storing the
    *  response verbatim and selecting from it also dedupes the fetch. */
-  const { data: crewsData, isError: crewsFailed, refetch: refetchCrews } = useQuery<{ agents?: JunctionAgent[]; default_agent?: string }>({
+  const { data: rosterData, isError: rosterFailed, refetch: refetchRoster } = useQuery<{ agents?: JunctionAgent[]; default_agent?: string }>({
     queryKey: ['junction-agents'],
     queryFn: () => api.junctionAgents(),
   })
-  const crews = useMemo(() => crewsData?.agents ?? [], [crewsData])
+  const roster = useMemo(() => rosterData?.agents ?? [], [rosterData])
 
   const { data: defaultAgentData, isError: defaultFailed, refetch: refetchDefault } = useQuery({
     queryKey: ['default-agent'],
@@ -519,7 +519,7 @@ export default function AgentsPage({ embedded }: { embedded?: boolean } = {}) {
       refetchInstalled()
     },
     /*  The handler — not this page — is the authority on references: it checks
-     *  the fallback and crew bindings under the same config lock the writers
+     *  the fallback and agent bindings under the same config lock the writers
      *  take, so it refuses (409) races this cached snapshot cannot see. Show its
      *  reason rather than failing silently, and refetch both reference queries:
      *  that re-derives `blockedBy`, so the control the user just used disappears
@@ -528,7 +528,7 @@ export default function AgentsPage({ embedded }: { embedded?: boolean } = {}) {
       setDeleteError(err instanceof Error ? err.message : String(err))
       setConfirmDelete(false)
       refetchDefault()
-      refetchCrews()
+      refetchRoster()
     },
   })
   const spawnClearMut = useMutation({ mutationFn: () => api.spawnClear(), onSuccess: () => refetchSpawn() })
@@ -618,15 +618,15 @@ export default function AgentsPage({ embedded }: { embedded?: boolean } = {}) {
 
   const listed = installed.find(a => a.name === selectedAgent?.name)
   const usedBy = useMemo(
-    () => (selectedName ? crews.filter(c => c.kiro_agent === selectedName) : []),
-    [crews, selectedName],
+    () => (selectedName ? roster.filter(c => c.kiro_agent === selectedName) : []),
+    [roster, selectedName],
   )
   /** Deleting a template something still points at leaves a dangling reference,
-   *  and the next session that resolves it fails to start — a crew bound to it
+   *  and the next session that resolves it fails to start — an agent bound to it
    *  boots from nothing, and the fallback name is handed to kiro-cli as an
    *  agent id. So the guard is not just "who owns this file" but "is anything
    *  still pointing at it", which this page can finally answer because it reads
-   *  both the fallback setting and the crew roster.
+   *  both the fallback setting and the agent roster.
    *
    *  Unresolved data counts as "pointing at it", not as "nothing points at it":
    *  an unresolved query leaves `usedBy` empty and `defaultAgent` '', which
@@ -634,17 +634,17 @@ export default function AgentsPage({ embedded }: { embedded?: boolean } = {}) {
    *  narrower window — the PUT can land before the refetch, so `defaultAgent`
    *  still names the OLD template while config already names this one. */
   /*  `isError` is as load-bearing as the undefined check. A REFETCH that fails
-   *  keeps the last good data, so `crewsData`/`defaultAgentData` stay defined
+   *  keeps the last good data, so `rosterData`/`defaultAgentData` stay defined
    *  and the mutation settles — the guard would then compare against a name the
    *  server no longer has. Stale-and-known-stale is unknown, so it blocks. */
-  const crewsLoaded = crewsData !== undefined && !crewsFailed
+  const rosterLoaded = rosterData !== undefined && !rosterFailed
   const defaultLoaded = defaultAgentData !== undefined && !defaultFailed
-  const blockedBy: 'owner' | 'default' | 'crews' | 'unloaded' | null =
+  const blockedBy: 'owner' | 'default' | 'roster' | 'unloaded' | null =
     !listed ? 'owner'
       : (listed.source === 'junction' || listed.source === 'package') ? 'owner'
-        : (!defaultLoaded || !crewsLoaded || setDefaultMut.isPending) ? 'unloaded'
+        : (!defaultLoaded || !rosterLoaded || setDefaultMut.isPending) ? 'unloaded'
           : defaultAgent === listed.name ? 'default'
-            : usedBy.length > 0 ? 'crews'
+            : usedBy.length > 0 ? 'roster'
               : null
   const deletable = blockedBy === null
   const modelPinned = modelLabel(selectedAgent?.model) !== 'auto'
@@ -693,11 +693,11 @@ export default function AgentsPage({ embedded }: { embedded?: boolean } = {}) {
 
   return (
     <>
-      {!embedded && <PageHeader title={i18nT('pages.agentsPage.agent_templates')} subtitle={i18nT('pages.agentsPage.what_a_crew_starts_from_its_model_skills_tools_mc')} />}
+      {!embedded && <PageHeader title={i18nT('pages.agentsPage.agent_templates')} subtitle={i18nT('pages.agentsPage.what_an_agent_starts_from_its_model_skills_tools_mc')} />}
       <div className={`${embedded ? '' : 'px-4 md:px-6 pb-8'} overflow-y-auto flex-1 min-h-0`}>
         {/* Which template a session boots from when nothing names one — CLI
             chat, a chat-channel thread, a warm-pool process. A dashboard chat
-            goes through a crew and never reads this, so the bar says what the
+            goes through an agent and never reads this, so the bar says what the
             setting actually governs rather than "new sessions". The per-row
             star it replaces was both the state readout and the control, so the
             same glyph had to mean "this is the default" and "make this the
@@ -820,9 +820,9 @@ export default function AgentsPage({ embedded }: { embedded?: boolean } = {}) {
                     {blockedBy === 'default' && (
                       <span className="text-[11.5px] text-muted">{i18nT('pages.agentsPage.this_is_the_fallback_template_point_the_picker_a')}</span>
                     )}
-                    {blockedBy === 'crews' && (
+                    {blockedBy === 'roster' && (
                       <span className="text-[11.5px] text-muted">
-                        {i18nT('pages.agentsPage.used_by_crews_repoint_them_on_the_crews_tab_firs', { crews: usedBy.map(c => c.name).join(', ') })}
+                        {i18nT('pages.agentsPage.used_by_agents_repoint_them_on_the_agents_tab_firs', { agents: usedBy.map(c => c.name).join(', ') })}
                       </span>
                     )}
                     {deletable && !confirmDelete && (
@@ -901,8 +901,8 @@ export default function AgentsPage({ embedded }: { embedded?: boolean } = {}) {
                           first-run reader nothing about which model runs. */}
                       <p className="m-0 rounded-md border border-border bg-bg-accent px-3 py-2.5 text-[11.5px] leading-relaxed text-muted">
                         {modelPinned
-                          ? i18nT('pages.agentsPage.pinned_here_a_crew_set_to_inherit_uses_this_model')
-                          : i18nT('pages.agentsPage.no_model_pinned_here_a_crew_set_to_inherit_falls_')}
+                          ? i18nT('pages.agentsPage.pinned_here_an_agent_set_to_inherit_uses_this_model')
+                          : i18nT('pages.agentsPage.no_model_pinned_here_an_agent_set_to_inherit_falls_back')}
                       </p>
                     </Section>
 
@@ -916,12 +916,12 @@ export default function AgentsPage({ embedded }: { embedded?: boolean } = {}) {
 
                     <Section title={i18nT('pages.agentsPage.used_by')}>
                       {usedBy.length === 0 ? (
-                        <p className="m-0 text-[12.5px] text-muted">{i18nT('pages.agentsPage.no_crews_use_this_template_yet')}</p>
+                        <p className="m-0 text-[12.5px] text-muted">{i18nT('pages.agentsPage.no_agents_use_this_template_yet')}</p>
                       ) : (<>
                         <div className="flex flex-wrap gap-1.5">
                           {usedBy.map(c => (
                             <span key={c.name} className="inline-flex items-center gap-1.5 rounded-full border border-border-strong py-[2px] pl-[3px] pr-2.5 text-[11.5px] text-text">
-                              <CrewAvatar seed={c.name} size={18} />{c.name}
+                              <AgentAvatar seed={c.name} size={18} />{c.name}
                             </span>
                           ))}
                         </div>

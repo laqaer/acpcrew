@@ -8,7 +8,7 @@ import { extractDenyDetail, extractDenyReason } from '../utils/denyReason'
 describe('extractDenyReason', () => {
   const ROW =
     '🚫 Running: python3 -c "import x" — Blocked by security policy: ' +
-    'kiro[-.]?crew\\b[^|;&#>/*]*\\btoken\\b\n' +
+    'junction\\b[^|;&#>/*]*\\btoken\\b\n' +
     "Matched structurally on the command's argv, not by the pattern text above."
 
   it('returns the reason starting at the contract marker', () => {

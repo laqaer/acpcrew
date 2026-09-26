@@ -6,7 +6,7 @@
  * hidden.
  *
  * The predicate is asserted directly rather than through a full render because
- * CapabilitiesPage pulls in the whole tab surface (crews, templates, hooks,
+ * CapabilitiesPage pulls in the whole tab surface (agents, templates, hooks,
  * prompts, steering) and every provider behind it; a render harness here would
  * test that scaffolding rather than the gate. It is imported from the shared
  * hook rather than mirrored locally, because the chat renderer now reads the

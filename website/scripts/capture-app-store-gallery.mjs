@@ -12,7 +12,7 @@
  *   node scripts/capture-app-store-gallery.mjs [outputRoot]
  */
 import { chromium } from 'playwright'
-import { copyFileSync, existsSync, mkdirSync, readFileSync, readdirSync } from 'node:fs'
+import { existsSync, mkdirSync, readFileSync, readdirSync } from 'node:fs'
 import { join, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
 
@@ -25,17 +25,6 @@ const OUTPUT_ROOT = resolve(process.argv[2]
   || fileURLToPath(new URL('../public/app-assets/', import.meta.url)))
 const VIEWPORT = { width: 1280, height: 800 }
 
-// These are prior captures of the same real SPA in richer, deliberately seeded
-// states. Keep them instead of replacing useful product frames with empty-state
-// screenshots. They are copied byte-for-byte; no mock artwork is substituted.
-const SEEDED_CAPTURES = {
-  'auto-improvement': fileURLToPath(new URL('../../temp-screenshots/auto-improvement/01-dashboard.png', import.meta.url)),
-  'auto-triage-pipeline': fileURLToPath(new URL('../../temp-screenshots/auto-triage-pipeline/app-01-populated.png', import.meta.url)),
-  'command-bar': fileURLToPath(new URL('../../temp-screenshots/command-bar/2-command-bar-root.png', import.meta.url)),
-  'crew-companion': fileURLToPath(new URL('../../temp-screenshots/crew-companion/dashboard-app-page.png', import.meta.url)),
-  mochi: fileURLToPath(new URL('../public/app-assets/mochi/shot-1-gallery.png', import.meta.url)),
-}
-
 const APPS = [
   ['agent-worlds', 'agent_worlds', 'worlds', '/worlds'],
   ['auto-improvement', 'auto_improvement', 'auto-improvement', '/auto-improvement'],
@@ -43,8 +32,8 @@ const APPS = [
   ['auto-triage-pipeline', 'auto_triage_pipeline', 'auto-triage-pipeline', '/auto-triage-pipeline'],
   ['channels', 'channels', 'channels', '/channels'],
   ['code-review-sage', 'code_review_sage', 'code-review-sage', '/code-review-sage'],
-  ['command-bar', 'command_bar', 'command-bar', '/chat'],
-  ['crew-companion', 'crew_companion', 'crew-companion', '/crew-companion'],
+  ['command-bar', 'command_bar', 'command-bar', '/artifacts'],
+  ['desk-companion', 'desk_companion', 'desk-companion', '/desk-companion'],
   ['design-critique', 'design_critique', 'design-critique', '/design-critique'],
   ['design-tweak', 'design_tweak', 'design-tweak', '/design-tweak'],
   ['dev-fleet', 'dev_fleet', 'dev-fleet', '/dev-fleet'],
@@ -114,6 +103,22 @@ const FIXTURES = {
   },
   '/apps/md-notebook/api/vaults': { vaults: [], hasPat: false, hasGhAuth: false },
   '/api/apps/meetings/sessions': { sessions: [], active: null },
+  '/api/apps/mochi/activity': { entries: [] },
+  '/api/apps/mochi/pinned': { pins: [] },
+  '/api/apps/mochi/watchlist': { items: [] },
+  '/api/apps/mochi/pet-state': { state: 'idle', mood: 'calm' },
+  '/api/apps/mochi/plan': { tasks: [], narrative: '', needs_replan: false },
+  '/api/apps/mochi/settings': {
+    petInstance: 'self', mode: 'quiet', catPreset: null, allowMcpServers: false,
+    petName: '', language: '', activeAppearance: 'default-mochi',
+  },
+  '/api/apps/mochi/stats': {
+    firstLaunch: '2026-08-25T12:00:00Z', streak: 1, lastActiveDate: '2026-08-25',
+    companionSeconds: 0, messages: { sent: 0, received: 0 }, walkSteps: 0,
+    screenshots: 0, peeks: 0, drags: 0, thinkingSeconds: 0, latestActiveTime: '',
+    earliestActiveTime: '', moods: {}, longestChat: 0,
+    busiestDay: { date: '', messages: 0 }, lastMemoryHour: 0,
+  },
   '/api/apps/meetings/settings': { calendar_connected: false, task_provider: '' },
   '/api/apps/ops-mission-control/state': {
     incidents: [], counts: {}, providers: [], rotation: null,
@@ -154,7 +159,8 @@ function appResponse(name) {
 
 async function main() {
   const { srv, base } = await serveDist()
-  const browser = await chromium.launch()
+  // CHROME points at a Chromium binary when Playwright's own browser is absent.
+  const browser = await chromium.launch({ executablePath: process.env.CHROME || undefined })
   const context = await browser.newContext({
     viewport: VIEWPORT,
     deviceScaleFactor: 1,
@@ -185,10 +191,10 @@ async function main() {
   }
 
   await stubDashboardApi(page, {
-    theme: 'light',
+    theme: 'dark',
     extra,
     localStorageEntries: {
-      'kc-onboarded': '1',
+      'mc-onboarded': '1',
       'mc-changelog-seen': '9999',
       'mc-yolo-ack': '1',
     },
@@ -199,15 +205,17 @@ async function main() {
     const outputDir = join(OUTPUT_ROOT, assetDir)
     mkdirSync(outputDir, { recursive: true })
     const output = join(outputDir, screenshotName)
-    const seeded = SEEDED_CAPTURES[name]
-    if (seeded && existsSync(seeded)) {
-      if (seeded !== output) copyFileSync(seeded, output)
-      console.log(`copied seeded real capture ${output.replace(`${ROOT}`, '')}`)
-      continue
-    }
-
     await page.goto(`${base}${route}`, { waitUntil: 'domcontentloaded' })
     await page.waitForTimeout(2200)
+    if (name === 'command-bar') {
+      // The command bar has no page of its own; its product frame is the
+      // palette open over the dashboard.
+      const trigger = page.getByText('Run a command', { exact: true }).first()
+      if (await trigger.isVisible().catch(() => false)) {
+        await trigger.click()
+        await page.waitForTimeout(700)
+      }
+    }
     if (name === 'design-critique') {
       const example = page.getByRole('button', { name: /example/i }).first()
       if (await example.isVisible().catch(() => false)) {

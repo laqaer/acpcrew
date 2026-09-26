@@ -74,13 +74,13 @@ export function buildCustomThemeCss(slug: string, theme: CustomThemeData): strin
   // targets, so hardcoding the built-in families here would out-specify :root and
   // strand a pack's own faces. An unfilled role falls through to Junction's stack.
   const darkDefaults =
-    '--font-body:var(--theme-font-sans, var(--script-fallbacks),\'Space Grotesk\',-apple-system,BlinkMacSystemFont,sans-serif);' +
-    '--mono:var(--theme-font-mono, var(--script-fallbacks-mono),\'JetBrains Mono\',ui-monospace,SFMono-Regular,monospace);' +
+    '--font-body:var(--theme-font-sans, var(--script-fallbacks),\'Overpass\',-apple-system,BlinkMacSystemFont,sans-serif);' +
+    '--mono:var(--theme-font-mono, var(--script-fallbacks-mono),\'Overpass Mono\',ui-monospace,SFMono-Regular,monospace);' +
     '--radius-sm:6px;--radius-md:8px;--radius-lg:12px;--radius-xl:16px;' +
     'color-scheme:dark;'
   const lightDefaults =
-    '--font-body:var(--theme-font-sans, var(--script-fallbacks),\'Space Grotesk\',-apple-system,BlinkMacSystemFont,sans-serif);' +
-    '--mono:var(--theme-font-mono, var(--script-fallbacks-mono),\'JetBrains Mono\',ui-monospace,SFMono-Regular,monospace);' +
+    '--font-body:var(--theme-font-sans, var(--script-fallbacks),\'Overpass\',-apple-system,BlinkMacSystemFont,sans-serif);' +
+    '--mono:var(--theme-font-mono, var(--script-fallbacks-mono),\'Overpass Mono\',ui-monospace,SFMono-Regular,monospace);' +
     '--radius-sm:6px;--radius-md:8px;--radius-lg:12px;--radius-xl:16px;' +
     'color-scheme:light;'
 
@@ -155,10 +155,10 @@ export function buildThemeFontCss(slug: string, theme: CustomThemeData): string 
   if (!faces.length) return ''
   const tokens: string[] = []
   if (firstEmitted.sans) {
-    tokens.push(`--theme-font-sans:'${firstEmitted.sans}',var(--script-fallbacks),'Space Grotesk',-apple-system,BlinkMacSystemFont,sans-serif;`)
+    tokens.push(`--theme-font-sans:'${firstEmitted.sans}',var(--script-fallbacks),'Overpass',-apple-system,BlinkMacSystemFont,sans-serif;`)
   }
   if (firstEmitted.mono) {
-    tokens.push(`--theme-font-mono:'${firstEmitted.mono}',var(--script-fallbacks-mono),'JetBrains Mono',ui-monospace,SFMono-Regular,monospace;`)
+    tokens.push(`--theme-font-mono:'${firstEmitted.mono}',var(--script-fallbacks-mono),'Overpass Mono',ui-monospace,SFMono-Regular,monospace;`)
   }
   if (!tokens.length) return faces.join('\n')
   return (

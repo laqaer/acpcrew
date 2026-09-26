@@ -38,21 +38,21 @@ def _text(resp: web.Response) -> str:
 class TestPullRequestRef(unittest.TestCase):
     def test_parses_a_pull_request_url(self):
         ref = routes._pull_request_ref(
-            "https://github.com/kirodotdev/KiroCrew/pull/777")
+            "https://github.com/laqaer/junction/pull/777")
         assert ref is not None
-        self.assertEqual(ref["owner"], "kirodotdev")
-        self.assertEqual(ref["repo"], "Junction")  # brand-ok: repo name
+        self.assertEqual(ref["owner"], "laqaer")
+        self.assertEqual(ref["repo"], "junction")
         self.assertEqual(ref["number"], 777)
         # The change id has to match the one the review path writes, or the opened
         # PR would not line up with its own review.
-        self.assertEqual(ref["change_id"], "GH-kirodotdev-Junction-777")
+        self.assertEqual(ref["change_id"], "GH-laqaer-junction-777")
 
     def test_a_repo_url_is_not_a_pull_request(self):
         self.assertIsNone(
-            routes._pull_request_ref("https://github.com/kirodotdev/KiroCrew"))
+            routes._pull_request_ref("https://github.com/laqaer/junction"))
 
     def test_a_bare_slug_is_not_a_pull_request(self):
-        self.assertIsNone(routes._pull_request_ref("kirodotdev/KiroCrew"))
+        self.assertIsNone(routes._pull_request_ref("laqaer/junction"))
 
     def test_a_malformed_pull_request_url_falls_through(self):
         # Returning None lets the caller try repo-URL parsing and report ITS error,
@@ -62,12 +62,12 @@ class TestPullRequestRef(unittest.TestCase):
 
     def test_extra_path_segments_do_not_confuse_it(self):
         ref = routes._pull_request_ref(
-            "https://github.com/kirodotdev/KiroCrew/pull/777/files#r123")
+            "https://github.com/laqaer/junction/pull/777/files#r123")
         assert ref is not None
         self.assertEqual(ref["number"], 777)
         # Normalised, not echoed: the url is rebuilt from validated parts.
         self.assertEqual(ref["url"],
-                         "https://github.com/kirodotdev/KiroCrew/pull/777")
+                         "https://github.com/laqaer/junction/pull/777")
 
 
 class TestRepoEndpointWithPullRequest(unittest.IsolatedAsyncioTestCase):
@@ -86,18 +86,18 @@ class TestRepoEndpointWithPullRequest(unittest.IsolatedAsyncioTestCase):
 
     async def test_pins_the_repo_and_reports_the_pull_request(self):
         resp = await routes._handle_repos(_FakeRequest(  # type: ignore[arg-type]
-            {"repo": "https://github.com/kirodotdev/KiroCrew/pull/777"}))
+            {"repo": "https://github.com/laqaer/junction/pull/777"}))
         self.assertEqual(resp.status, 200)
         body = _text(resp)
-        self.assertIn("kirodotdev", body)
+        self.assertIn("laqaer", body)
         self.assertIn("pull_request", body)
         # And it really is pinned, not just echoed.
         pinned = [f"{r['owner']}/{r['repo']}" for r in discovery.read_repos()]
-        self.assertIn("kirodotdev/KiroCrew", pinned)
+        self.assertIn("laqaer/junction", pinned)
 
     async def test_a_repo_url_reports_no_pull_request(self):
         resp = await routes._handle_repos(_FakeRequest(  # type: ignore[arg-type]
-            {"repo": "https://github.com/kirodotdev/KiroCrew"}))
+            {"repo": "https://github.com/laqaer/junction"}))
         self.assertEqual(resp.status, 200)
         self.assertNotIn("pull_request", _text(resp))
 
@@ -113,7 +113,7 @@ class TestRepoEndpointWithPullRequest(unittest.IsolatedAsyncioTestCase):
 
     async def test_a_hostile_host_is_still_refused(self):
         resp = await routes._handle_repos(_FakeRequest(  # type: ignore[arg-type]
-            {"repo": "https://evil.test/kirodotdev/KiroCrew/pull/777"}))
+            {"repo": "https://evil.test/laqaer/junction/pull/777"}))
         self.assertEqual(resp.status, 400)
 
     def _allow_ghe_host(self):

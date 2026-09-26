@@ -3,10 +3,10 @@
  *
  * The nightly app ("Junction Nightly.app") and the production app
  * ("Junction.app", stable ⇄ insider via the update channel) are separate
- * INSTALLS sharing ONE bundle identifier (com.amazon.kiro.crew — Finder
+ * INSTALLS sharing ONE bundle identifier (dev.junction.desktop — Finder
  * separates installs by filename; Squirrel validates updates against the
  * host's designated requirement, which pins the id), ONE data home
- * (~/.kiro/crew), and ONE gateway port (5476). That makes the port a mutex:
+ * (~/.junction), and ONE gateway port (5476). That makes the port a mutex:
  * only one Junction-family gateway may run at a time. Electron's
  * requestSingleInstanceLock is keyed on userData (per productName), so it
  * cannot stop "Junction Nightly" launching while "Junction" runs — this

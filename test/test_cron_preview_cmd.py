@@ -85,7 +85,7 @@ class TestCronPreviewValidation:
 
     def test_nonexistent_script(self):
         with pytest.raises(SystemExit):
-            _cron_preview(_make_args("~/.kirocrew/crons/nonexistent.py:run"))
+            _cron_preview(_make_args("~/.junction/crons/nonexistent.py:run"))
 
     def test_permission_error_rejected(self, capsys):
         """resolve_script_path rejects scripts that fail validation."""
@@ -94,7 +94,7 @@ class TestCronPreviewValidation:
             side_effect=PermissionError("blocked by policy"),
         ):
             with pytest.raises(SystemExit):
-                _cron_preview(_make_args("~/.kirocrew/crons/bad.py:run"))
+                _cron_preview(_make_args("~/.junction/crons/bad.py:run"))
         assert "blocked" in capsys.readouterr().out
 
     def test_missing_function(self, tmp_path: Path):

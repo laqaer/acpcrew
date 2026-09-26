@@ -56,6 +56,7 @@ from typing import Callable
 import junction.validation as _validation
 from junction import security
 from junction import sel as _sel_mod
+from junction.config.paths import RETIRED_DATA_HOME_NAMES
 from junction.executors import governance_executor
 
 logger = logging.getLogger(__name__)
@@ -133,13 +134,13 @@ _REDACTION_SINKS: tuple[tuple[str, str, str], ...] = (
         "Azure DevOps comment bodies",
         "apps/builtins/issue_radar/backend/azure_client.py",
         "The text Issue Radar posts as a work-item or pull-request comment on Azure "
-        "DevOps. A comment body is frequently model-authored -- a crew's reply, or an "
+        "DevOps. A comment body is frequently model-authored -- a steward's reply, or an "
         "AI summary the user accepted -- and publishing it is irreversible: it lands "
         "somewhere public and permanent on the customer's own organization, so a "
         "credential or an exfiltration URL cannot be walked back. `_comment_text` "
         "therefore runs the two-pass chain at the client, immediately before the body "
         "reaches `az devops invoke`, rather than trusting each caller to have "
-        "redacted; the crew path already redacts and loses nothing, because both "
+        "redacted; the steward path already redacts and loses nothing, because both "
         "passes are idempotent.",
     ),
     (
@@ -526,9 +527,9 @@ _REDACTION_SINKS: tuple[tuple[str, str, str], ...] = (
         "Workflow progress summaries injected back into a session.",
     ),
     (
-        "Crew Mode delivery",
-        "crew_chat.py",
-        "Every crew-slot post (`_post`): forwarded subagent summaries/errors, "
+        "Multitask Mode delivery",
+        "multitask_chat.py",
+        "Every multitask-slot post (`_post`): forwarded subagent summaries/errors, "
         "decision-agent questions, and topic-meta renders — all LLM-authored — "
         "written to the transcript, broadcast over WS, and persisted to the "
         "conversation log.",
@@ -1174,13 +1175,13 @@ NON_EGRESS_REDACTION_MODULES: frozenset[str] = frozenset(
         # scan hits, and the change degrades to the local queue instead. Lives in
         # push_policy because all three push paths share this one implementation.
         "apps/builtins/auto_improvement/spine/push_policy.py",
-        # Inbound: the crew worker's slot title is derived from an issue title,
+        # Inbound: the steward worker's slot title is derived from an issue title,
         # which is untrusted text anyone who can open an issue wrote. It is
         # scrubbed before it becomes a slot title (and fails CLOSED to the slot
         # key if the redactors are unavailable), so this is inbound sanitisation
         # rather than an egress boundary — the slot title's user-visible surface
         # is already covered by the registered dashboard sinks.
-        "apps/builtins/issue_radar/backend/crew_runtime.py",
+        "apps/builtins/issue_radar/backend/steward_runtime.py",
         # Log/audit hygiene, not an egress boundary: strips ``user:password@`` from
         # an external registry's clone URL before it reaches the SEL credential-grant
         # record and the warning logs. The URL is index-supplied, so it can carry a
@@ -1516,12 +1517,13 @@ _EXFIL_HEURISTICS: tuple[tuple[str, str], ...] = (
 def _own_namespace_prefixes() -> tuple[str, ...]:
     """Home-relative prefixes that belong to Junction / kiro-cli itself.
 
-    Derived from the crew data-home prefixes, plus the ``.kiro`` parent that
-    holds kiro-cli's own state and the gateway's auth staging dir. Used only to
-    label a row in the posture view — a misclassification is cosmetic, never a
-    gate decision.
+    Derived from the data-home prefixes and the retired data homes still fenced
+    on upgraded machines, plus the ``.kiro`` directory that holds kiro-cli's own
+    state and the gateway's auth staging dir. Used only to label a row in the
+    posture view — a misclassification is cosmetic, never a gate decision.
     """
-    return tuple({p.split("/", 1)[0] for p in security.crew_home_prefixes()})
+    prefixes = (*security.data_home_prefixes(), *RETIRED_DATA_HOME_NAMES)
+    return tuple({p.split("/", 1)[0] for p in prefixes} | {".kiro"})
 
 
 def _sensitive_path_items() -> list[PostureItem]:
@@ -1529,7 +1531,7 @@ def _sensitive_path_items() -> list[PostureItem]:
     items: list[PostureItem] = []
     own = _own_namespace_prefixes()
     for entry in security.sensitive_home_dirs():
-        # Path-boundary match, so a sibling like `.kirocrew-notes` is not counted
+        # Path-boundary match, so a sibling like `.junction-notes` is not counted
         # as ours just because it shares a string prefix.
         first = entry.split("/", 1)[0]
         if first in own:

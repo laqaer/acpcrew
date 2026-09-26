@@ -2,11 +2,11 @@
 # ──────────────────────────────────────────────────────────────────────
 # Playwright CLI installer (no pre-existing Node/npm required).
 #
-#   curl -fsSL https://raw.githubusercontent.com/kirodotdev/KiroCrew/main/playwright-cli.sh | sh
-#   curl -fsSL https://raw.githubusercontent.com/kirodotdev/KiroCrew/main/playwright-cli.sh | sh -s -- --version 0.1.18
+#   curl -fsSL https://raw.githubusercontent.com/laqaer/junction/main/playwright-cli.sh | sh
+#   curl -fsSL https://raw.githubusercontent.com/laqaer/junction/main/playwright-cli.sh | sh -s -- --version 0.1.18
 #
 # Read before you run (many enterprises forbid piping a script into a shell):
-#   curl -fsSLO https://raw.githubusercontent.com/kirodotdev/KiroCrew/main/playwright-cli.sh
+#   curl -fsSLO https://raw.githubusercontent.com/laqaer/junction/main/playwright-cli.sh
 #   less playwright-cli.sh
 #   sh playwright-cli.sh --version 0.1.18
 #
@@ -55,7 +55,7 @@ Options:
   -h, --help              this text
 
 Environment:
-  JUNCTION_HOME                 data home (default ~/.kiro/crew)
+  JUNCTION_HOME                 data home (default ~/.junction)
   JUNCTION_PLAYWRIGHT_CLI_HOME  overrides --prefix
   JUNCTION_NPM_REGISTRY         overrides --registry
   JUNCTION_NODE_BIN_DIR         an existing Node bin dir to reuse
@@ -114,12 +114,12 @@ MIN_GLIBC_FOR_OFFICIAL="2.28"
 # Written into a Node tree this installer unpacked. Its ABSENCE is what stops
 # the bootstrap from recursively deleting a `node` directory it did not create
 # (reachable with --prefix "$HOME" on a host that also has ~/node).
-NODE_STAMP_NAME=".kirocrew-playwright-cli-node"
+NODE_STAMP_NAME=".junction-playwright-cli-node"
 
 # `${HOME:-}` rather than a bare `$HOME`, because `set -u` turns an unset HOME into
 # a raw shell abort with an exit code outside the documented table. The situation is
 # reported properly once EX_USAGE exists, a few lines below.
-DATA_HOME="${JUNCTION_HOME:-${HOME:-}/.kiro/crew}"
+DATA_HOME="${JUNCTION_HOME:-${HOME:-}/.junction}"
 PREFIX="${JUNCTION_PLAYWRIGHT_CLI_HOME:-$DATA_HOME/playwright-cli}"
 BIN_DIR="${HOME:-$DATA_HOME}/.local/bin"
 # Seeded from the ambient value, not left empty, because `npx playwright install`
@@ -356,7 +356,7 @@ _reject_url_credential() { # label url alternative
 # explicitly is not refused for a variable they had already worked around. Only the
 # defaults need HOME; --prefix and --bin-dir replace every use of it.
 if [ -z "${HOME:-}" ] && [ -z "${JUNCTION_HOME:-}" ] \
-   && { [ "$PREFIX" = "/.kiro/crew/playwright-cli" ] || [ "$BIN_DIR" = "/.local/bin" ]; }; then
+   && { [ "$PREFIX" = "/.junction/playwright-cli" ] || [ "$BIN_DIR" = "/.local/bin" ]; }; then
   die "$EX_USAGE" "HOME is not set; pass --prefix and --bin-dir, or set HOME"
 fi
 

@@ -25,7 +25,7 @@ bash <app-skills-dir>/pod-e2e/scripts/pod-e2e.sh <worktree-name> --video
   ✅ api-tests — … → exit 0
   ✅ playwright — headless chromium loaded dashboard …
 result:       3 passed, 0 failed
-ARTIFACT_DIR=~/.kirocrew-pods/.e2e-artifacts/<worktree-name>
+ARTIFACT_DIR=~/.junction-pods/.e2e-artifacts/<worktree-name>
 ```
 Exit code = number of failed phases (0 = all green). Then **look at the
 evidence**: `Read` the screenshots in that `ARTIFACT_DIR`
@@ -132,7 +132,7 @@ green). Flags:
      degrades to unbounded and says so in the log (the harness is POSIX-only
      anyway); the phase-level `timeout` still applies.
 6. **collect** — all logs + screenshots land in
-   `~/.kirocrew-pods/.e2e-artifacts/<wt>/`. Per-phase results are appended to
+   `~/.junction-pods/.e2e-artifacts/<wt>/`. Per-phase results are appended to
    `verdict.jsonl` **as they are decided** (and `playwright.log` is unbuffered),
    so a stalled or killed run still leaves a readable verdict. The file is
    truncated at the start of **every** run — including runs that skip the FE
@@ -306,7 +306,7 @@ QA screenshots and demo videos follow a **review-then-attach** contract:
 ### Keep the rest of the tree clean
 
 The e2e suite already writes its logs and screenshots to
-`~/.kirocrew-pods/.e2e-artifacts/<wt>/` -- **outside** the worktree -- by design;
+`~/.junction-pods/.e2e-artifacts/<wt>/` -- **outside** the worktree -- by design;
 don't copy those raw logs back into the worktree "to keep them with the branch."
 The only QA output that belongs in the tree is the **committed** media under
 `temp-screenshots/<feature>/` (above). Everything else -- raw `*.log` dumps,

@@ -86,12 +86,13 @@ class TestNightlyPermissions:
         # reusable build workflows request nothing more.
         assert _permission_block(lines, "  build-wheel:") is None
         assert _permission_block(lines, "  build-desktop:") is None
-        # The Windows build signs during the build, so unlike build-desktop it
-        # must be granted OIDC explicitly (a callee can never exceed its
-        # caller). Never contents:write: it holds a signing identity.
+        # The Windows build signs during the build with a certificate it reads
+        # from secrets, so it mints no OIDC token. The caller grants exactly
+        # contents:read: a callee can never exceed its caller, so this is the
+        # ceiling that keeps the job holding a signing identity from also
+        # assuming a cloud role or writing to the repository.
         assert _permission_block(lines, "  build-windows:") == {
             "contents": "read",
-            "id-token": "write",
         }
         assert _permission_block(lines, "  publish-cli:") == {
             "contents": "read",
@@ -148,11 +149,12 @@ class TestNightlyPermissions:
 
 class TestReleasePermissions:
     def test_release_jobs_follow_least_privilege_split(self) -> None:
-        """The signing caller holds AWS creds (id-token) but must not hold
-        contents:write; the GitHub-Release job holds contents:write but must
-        not hold AWS creds. Keeping the two capabilities in separate jobs
-        means a compromise of either job cannot both exfiltrate via AWS and
-        tamper with the repo/release."""
+        """The signing and publishing callers hold AWS creds (id-token) but
+        must not hold contents:write; the GitHub-Release job holds
+        contents:write but must not hold AWS creds. Keeping the two
+        capabilities in separate jobs means a compromise of either job cannot
+        both exfiltrate via AWS and tamper with the repo/release. The Windows
+        build holds a signing certificate and neither capability."""
         lines = _lines("release.yml")
 
         assert _workflow_permissions("release.yml") == {"contents": "read"}
@@ -166,10 +168,10 @@ class TestReleasePermissions:
         }
         assert _permission_block(lines, "  build-wheel:") is None
         assert _permission_block(lines, "  build-desktop:") is None
-        # Windows build: OIDC for signing, never contents:write (see nightly).
+        # Windows build: certificate from secrets, so contents:read and no
+        # OIDC (see nightly).
         assert _permission_block(lines, "  build-windows:") == {
             "contents": "read",
-            "id-token": "write",
         }
         assert _permission_block(lines, "  publish-cli:") == {
             "contents": "read",
@@ -219,10 +221,11 @@ class TestReusableWorkflowPermissions:
 
         build-windows.yml is deliberately NOT in this list: it Authenticode-signs
         during the build (the NSIS installer compresses its own already-signed
-        executable, so signing cannot be a downstream job) and therefore needs
-        OIDC. Keeping it a separate workflow is what lets these two stay
-        credential-free -- putting the Windows leg back into build-desktop.yml
-        would hand OIDC to the mac and Linux legs as well. See
+        executable, so signing cannot be a downstream job) and therefore holds
+        the signing certificate. Keeping it a separate workflow is what lets
+        these two stay credential-free -- putting the Windows leg back into
+        build-desktop.yml would put the certificate within reach of the mac and
+        Linux legs as well. See
         test_build_windows_isolates_the_signing_capability.
         """
         assert _workflow_permissions("build-wheel.yml") == {"contents": "read"}
@@ -232,10 +235,10 @@ class TestReusableWorkflowPermissions:
         """The credential-free build workflow must not build Windows.
 
         This is the structural half of the least-privilege split: if a Windows
-        leg reappears here it would need OIDC in this workflow, and the
-        assertion above would have to be weakened to allow it. Pinning the
-        matrix keeps that pressure visible in review instead of arriving as a
-        one-line permissions edit.
+        leg reappears here it would need the signing certificate in this
+        workflow, which the credential-free guarantee above exists to prevent.
+        Pinning the matrix keeps that pressure visible in review instead of
+        arriving as a one-line secrets edit.
         """
         # Assert on the resolved matrix, not on the text: the word "windows"
         # legitimately appears in prose, and a substring check would either
@@ -249,27 +252,27 @@ class TestReusableWorkflowPermissions:
         }
         assert not any("windows" in runner for runner in runners), (
             f"build-desktop.yml grew a Windows leg (matrix: {sorted(runners)}). "
-            "Windows signs during its build and needs OIDC; it belongs in "
-            "build-windows.yml so this workflow can stay contents:read only."
+            "Windows signs during its build with a production certificate; it "
+            "belongs in build-windows.yml so this workflow can stay credential-free."
         )
 
     def test_build_windows_isolates_the_signing_capability(self) -> None:
-        """The Windows build needs OIDC and nothing more.
+        """The Windows build needs contents:read and nothing more.
 
-        contents:write in particular must never appear: this job holds a
+        It signs with a certificate read from secrets, so it mints no OIDC
+        token. contents:write in particular must never appear: this job holds a
         production signing identity, which is precisely why it is not allowed to
-        also mutate the repository.
+        also mutate the repository or assume a cloud role.
         """
         assert _workflow_permissions("build-windows.yml") == {"contents": "read"}
         lines = _lines("build-windows.yml")
         assert _permission_block(lines, "  build-windows:") == {
             "contents": "read",
-            "id-token": "write",
         }
 
     def test_sign_and_notarize_declares_exact_capabilities(self) -> None:
-        """The shared sign/notarize workflow needs OIDC (AWS signing role)
-        and attestations (provenance for the artifacts + shipping DMG) --
+        """The shared sign/notarize workflow needs OIDC (the AWS role that
+        stages artifacts and reads the notary credential) and attestations (provenance for the artifacts + shipping DMG) --
         and nothing else. contents:write in particular must never appear
         here (least-privilege split: the GitHub-Release job in release.yml
         is the only writer)."""

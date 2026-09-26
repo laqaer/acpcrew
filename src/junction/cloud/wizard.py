@@ -298,8 +298,8 @@ class _ExistingLaunch:
 
 
 def _new_tag() -> str:
-    """A short, unique discovery tag: ``kc-<6 hex>``."""
-    return f"kc-{secrets.token_hex(3)}"
+    """A short, unique discovery tag: ``jn-<6 hex>``."""
+    return f"jn-{secrets.token_hex(3)}"
 
 
 def launch(
