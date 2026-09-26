@@ -29,6 +29,7 @@ import uuid
 from pathlib import Path
 from typing import Any
 
+from junction import platform_compat
 from junction.atomic_write import read_bytes_with_retry, replace_with_retry
 from junction.config.loader import JunctionConfig, resolve_agent_bindings
 from junction.config.paths import data_home
@@ -183,9 +184,20 @@ def migrate_legacy_store_root() -> bool:
     Returns whether a move happened. Best-effort: a failed move is logged and the
     manager starts on the current root, which is the same state a fresh install
     is in.
+
+    A legacy root that is a symlink or a Windows junction is never moved. Junction
+    never creates one, and a rename moves the link itself, so the current root
+    would become a link and every later store write would land wherever it points.
+    It is left in place and logged, as the companion migration does.
     """
     legacy = data_home() / LEGACY_STORE_ROOT_NAME
     if not legacy.is_dir():
+        return False
+    if platform_compat.is_link_or_junction(legacy):
+        logger.warning(
+            "multitask: %s is a link; leaving it in place and not resuming its stores",
+            legacy,
+        )
         return False
     current = _store_root()
     if current.exists():

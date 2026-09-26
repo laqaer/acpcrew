@@ -320,8 +320,9 @@ def _validated_ttl_hours(value: Any) -> int | None:
 #: than in the stewards dir, because the stewards dir is one of the things it moves.
 _MIGRATION_LOCK_NAME = "stewards-migration.lock"
 
-#: Legacy paths already reported as shadowed by their current name, so the warning
-#: is logged once per process instead of on every store call.
+#: Legacy paths already reported as shadowed by their current name, or as a link
+#: that is never moved, so the warning is logged once per process instead of on
+#: every store call.
 _shadowed_legacy_paths: set[str] = set()
 
 
@@ -345,10 +346,18 @@ def adopt_legacy_path(parent: Path, legacy_name: str, name: str) -> Path:
     caller would create one, and an empty store shadowing the real one looks exactly
     like a repository that never had a steward; raising leaves the legacy path in
     place, so the next call tries the move again.
+
+    A legacy path that is a symlink or a Windows junction is never moved. Junction
+    never creates one there, and a rename moves the link itself, so the current
+    path would become a link and every later store write would land wherever it
+    points. It is left in place with a warning, as the companion migration does.
     """
     target = parent / name
     legacy = parent / legacy_name
     if not legacy.exists():
+        return target
+    if platform_compat.is_link_or_junction(legacy):
+        _report_linked(legacy)
         return target
     if target.exists():
         if legacy.exists():
@@ -356,7 +365,10 @@ def adopt_legacy_path(parent: Path, legacy_name: str, name: str) -> Path:
         return target
     with open(parent / _MIGRATION_LOCK_NAME, "w") as fd:
         with platform_compat.file_lock(fd.fileno(), exclusive=True):
-            if legacy.exists() and not target.exists():
+            # Re-checked under the lock: the link test above ran before it was held.
+            if platform_compat.is_link_or_junction(legacy):
+                _report_linked(legacy)
+            elif legacy.exists() and not target.exists():
                 legacy.rename(target)
                 logger.info("issue-radar: moved %s to %s", legacy, target)
             elif legacy.exists():
@@ -372,6 +384,17 @@ def _report_shadowed(legacy: Path, target: Path) -> None:
         "issue-radar: %s and %s both exist; using %s and leaving %s untouched — "
         "move anything still needed out of it by hand",
         legacy, target, target, legacy,
+    )
+
+
+def _report_linked(legacy: Path) -> None:
+    if str(legacy) in _shadowed_legacy_paths:
+        return
+    _shadowed_legacy_paths.add(str(legacy))
+    logger.warning(
+        "issue-radar: %s is a link; leaving it in place rather than moving it — "
+        "move anything still needed out of it by hand",
+        legacy,
     )
 
 

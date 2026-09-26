@@ -38,6 +38,7 @@ from contextlib import contextmanager
 
 import pytest
 
+from junction import platform_compat
 from junction.apps.builtins.issue_radar.backend import steward_store as cs
 
 OWNER, REPO = "laqaer", "junction"
@@ -1536,6 +1537,26 @@ def test_the_move_never_clobbers_a_current_dir(tmp_path, caplog):
     assert (legacy / f"{old['id']}.json").is_file(), "the legacy store was touched"
     shadowed = [r for r in caplog.records if str(legacy) in r.getMessage()]
     assert len(shadowed) == 1, "the shadowed store must be reported once, not per call"
+
+
+def test_a_linked_legacy_dir_is_never_moved(tmp_path, caplog):
+    # A rename moves the link itself, so the current directory would become a link
+    # and every later steward write would land wherever it points.
+    old = _populated(tmp_path)
+    legacy = _age_into_legacy_layout(tmp_path)
+    elsewhere = legacy.rename(tmp_path / "elsewhere")
+    platform_compat.symlink_or_junction(str(elsewhere), str(legacy))
+
+    with caplog.at_level("WARNING", logger=cs.logger.name):
+        assert cs.list_stewards(OWNER, REPO, tmp_path) == []
+        cs.list_stewards(OWNER, REPO, tmp_path)
+
+    current = cs.stewards_dir(OWNER, REPO, tmp_path)
+    assert platform_compat.is_link_or_junction(legacy), "the link was moved"
+    assert not platform_compat.is_link_or_junction(current)
+    assert (elsewhere / f"{old['id']}.json").is_file(), "the linked store was touched"
+    linked = [r for r in caplog.records if str(legacy) in r.getMessage()]
+    assert len(linked) == 1, "the link must be reported once, not per call"
 
 
 def test_a_move_that_fails_leaves_no_empty_store_in_front_of_the_real_one(

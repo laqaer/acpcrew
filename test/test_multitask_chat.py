@@ -26,6 +26,7 @@ from unittest.mock import AsyncMock, MagicMock, patch
 import pytest
 
 import junction.multitask_chat as multitask_mod
+from junction import platform_compat
 from junction.multitask_chat import MultitaskManager, MultitaskStore
 
 
@@ -2493,6 +2494,20 @@ class TestLegacyStoreRootMigration:
     def test_no_legacy_root_is_a_no_op(self, tmp_path: Path) -> None:
         assert multitask_mod.migrate_legacy_store_root() is False
         assert not (tmp_path / "multitask").exists()
+
+    def test_a_linked_legacy_root_is_never_moved(self, tmp_path: Path) -> None:
+        """A rename moves the link itself, so the current root would become a
+        link and every later store write would land wherever it points."""
+        elsewhere = tmp_path / "elsewhere"
+        _write_legacy_store(elsewhere, "chat-1", "outside the data home")
+        legacy = tmp_path / multitask_mod.LEGACY_STORE_ROOT_NAME
+        platform_compat.symlink_or_junction(str(elsewhere), str(legacy))
+
+        assert multitask_mod.migrate_legacy_store_root() is False
+
+        assert platform_compat.is_link_or_junction(legacy), "the link is left in place"
+        assert not os.path.lexists(multitask_mod._store_root())
+        assert (elsewhere / multitask_mod._store_name("chat-1") / "queue.json").is_file()
 
 
 # ── mode plumbing ──
