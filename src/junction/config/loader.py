@@ -345,6 +345,30 @@ def coerce_role_efforts(raw: object) -> dict[str, str]:
     return out
 
 
+def _role_key_properties(noun: str, help_text: str, **node: object) -> dict[str, dict[str, object]]:
+    """Declare one config-schema sub-key per :data:`ROLE_MODEL_KEYS` role.
+
+    ``role_models`` / ``role_efforts`` stay plain dicts normalized by the
+    coercers above, but each role also flattens into a first-class schema entry
+    (``agent.role_models.<role>``) so its Settings control can carry a
+    ``configKey``. Deriving the keys from ROLE_MODEL_KEYS keeps the schema on
+    the same role list as the coercers and the config PATCH allowlist.
+    ``help_text`` may name the role with a ``{role}`` placeholder.
+    """
+    return {
+        role: {
+            "type": "string",
+            "default": "",
+            **node,
+            "x-meta": {
+                "label": f"{role.capitalize()} {noun}",
+                "help": help_text.format(role=role),
+            },
+        }
+        for role in ROLE_MODEL_KEYS
+    }
+
+
 def coerce_fallback_model(raw: object) -> str:
     """Normalize the throttle-fallback model (agent.fallback_model).
 
@@ -1470,6 +1494,11 @@ class AgentConfig:
             "to the provider default, so an unpinned role stays usable on every "
             "subscription tier. Pin a namespaced catalog slug or a served id "
             "to spend tokens where they return the most work.",
+            properties=_role_key_properties(
+                "model",
+                "Model pinned for the {role} role. Empty or 'auto' defers to the "
+                "provider default.",
+            ),
         ),
     )
     role_efforts: dict[str, str] = field(
@@ -1481,6 +1510,12 @@ class AgentConfig:
             "Empty for a role inherits the chat default (agent.reasoning_effort) "
             "and then the provider/model default. Only applies on "
             "reasoning-capable models.",
+            properties=_role_key_properties(
+                "reasoning effort",
+                "Reasoning effort pinned for the {role} role. Empty leaves the role "
+                "unpinned; see agent.role_efforts.",
+                enum=["", *EFFORT_LEVELS],
+            ),
         ),
     )
     fallback_model: str = field(
