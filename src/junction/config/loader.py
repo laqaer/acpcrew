@@ -345,6 +345,26 @@ def coerce_role_efforts(raw: object) -> dict[str, str]:
     return out
 
 
+def _role_key_properties(noun: str, help: str) -> dict[str, dict]:
+    """Declared schema sub-keys for a per-role map, one per :data:`ROLE_MODEL_KEYS`.
+
+    Declaring them makes ``agent.role_models.<role>`` and
+    ``agent.role_efforts.<role>`` exact schema entries, so a Settings control can
+    carry one as its ``configKey`` and a misspelled role (which the coercers
+    above silently drop) fails the settings-registry drift test rather than
+    matching the ``.*`` wildcard. Built from the role tuple itself so the schema
+    cannot name a role the router does not serve.
+    """
+    return {
+        role: {
+            "type": "string",
+            "default": "",
+            "x-meta": {"label": f"{role.capitalize()} {noun}", "help": help},
+        }
+        for role in ROLE_MODEL_KEYS
+    }
+
+
 def coerce_fallback_model(raw: object) -> str:
     """Normalize the throttle-fallback model (agent.fallback_model).
 
@@ -1471,6 +1491,11 @@ class AgentConfig:
             "to the provider default, so an unpinned role stays usable on every "
             "subscription tier. Pin a namespaced catalog slug or a served id "
             "to spend tokens where they return the most work.",
+            properties=_role_key_properties(
+                "model",
+                "Model pinned for this class of work. Empty or 'auto' defers to the "
+                "provider default.",
+            ),
         ),
     )
     role_efforts: dict[str, str] = field(
@@ -1482,6 +1507,11 @@ class AgentConfig:
             "Empty for a role inherits the chat default (agent.reasoning_effort) "
             "and then the provider/model default. Only applies on "
             "reasoning-capable models.",
+            properties=_role_key_properties(
+                "reasoning effort",
+                "Reasoning effort for this class of work. Empty inherits the chat "
+                "default, then the provider/model default.",
+            ),
         ),
     )
     fallback_model: str = field(

@@ -170,7 +170,7 @@
       "why": "",
       "doc": "",
       "cta_prompt": "",
-      "action": { "kind": "route", "label": "Open Background Model setting", "route": "/settings/chat?highlight=chat.background-model" }
+      "action": { "kind": "route", "label": "Open Background Model setting", "route": "/settings/chat?highlight=key:agent.role_models.background" }
     },
     {
       "id": "agent-browsing",
