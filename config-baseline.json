@@ -2377,7 +2377,7 @@
         "max_total_mb": 0,
         "otlp_endpoint": "",
         "beacon_enabled": true,
-        "beacon_endpoint": "https://d175o3ylxqum0e.cloudfront.net"
+        "beacon_endpoint": ""
       }
     },
     {
@@ -2487,10 +2487,10 @@
       "sensitive": false,
       "tags": [],
       "label": "Beacon Endpoint",
-      "help": "HTTPS base URL that receives the anonymous heartbeat. EMPTY = no beacon is ever sent, regardless of the toggle above. Must be https:// (a plaintext heartbeat would reveal which hosts run this software to any on-path observer); a non-https value is cleared.",
+      "help": "HTTPS base URL that receives the anonymous heartbeat. EMPTY (the default) = no beacon is ever sent, regardless of the toggle above; set it to an endpoint you operate to collect heartbeats. Must be https:// (a plaintext heartbeat would reveal which hosts run this software to any on-path observer); a non-https value is cleared.",
       "hasChildren": false,
       "enumValues": null,
-      "defaultValue": "https://d175o3ylxqum0e.cloudfront.net"
+      "defaultValue": ""
     },
     {
       "path": "stt",

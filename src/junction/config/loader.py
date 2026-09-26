@@ -1392,8 +1392,12 @@ _BOT_NAME_RE = _re.compile(r"[^a-zA-Z0-9 _\-.]")
 
 # Default endpoint for the anonymous usage beacon (see junction/beacon.py).
 # Lives here with the other config defaults so beacon.py adds no import edge
-# into the config package. Setting the field to "" disables the beacon outright.
-_DEFAULT_BEACON_ENDPOINT = "https://d175o3ylxqum0e.cloudfront.net"
+# into the config package. EMPTY by default: a stock build ships with no
+# analytics collector of its own, so the beacon is a no-op until an operator
+# points ``telemetry.beacon_endpoint`` at an https:// endpoint they run. The
+# ``beacon_enabled`` toggle and ``junction telemetry enable/disable`` keep
+# working either way; they only matter once an endpoint is set.
+_DEFAULT_BEACON_ENDPOINT = ""
 
 
 def _sanitize_bot_name(raw: str) -> str:
@@ -3928,8 +3932,9 @@ class TelemetryConfig:
         default=_DEFAULT_BEACON_ENDPOINT,
         metadata=_meta(
             "Beacon Endpoint",
-            "HTTPS base URL that receives the anonymous heartbeat. EMPTY = no "
-            "beacon is ever sent, regardless of the toggle above. Must be "
+            "HTTPS base URL that receives the anonymous heartbeat. EMPTY (the "
+            "default) = no beacon is ever sent, regardless of the toggle above; "
+            "set it to an endpoint you operate to collect heartbeats. Must be "
             "https:// (a plaintext heartbeat would reveal which hosts run this "
             "software to any on-path observer); a non-https value is cleared.",
         ),
