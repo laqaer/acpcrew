@@ -16,8 +16,8 @@ import pytest
 from junction import platform_compat
 from junction.mcp_discovery import (
     SCOPE_CC_GLOBAL,
-    SCOPE_KIRO_GLOBAL,
     SCOPE_JUNCTION,
+    SCOPE_KIRO_GLOBAL,
     McpServerInfo,
     _cache_probe,
     _get_cached,

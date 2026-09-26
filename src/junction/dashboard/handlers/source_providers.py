@@ -39,9 +39,7 @@ from junction.dashboard.handlers._shared import read_capped_response
 # is their long-standing import location (issue_radar's glab resolution and
 # the provider tests reach them here).
 from junction.github_runner import GH_ENV_PASSTHROUGH as _GH_ENV_PASSTHROUGH
-from junction.github_runner import (
-    PROVIDER_EXECUTABLE_CANDIDATES as _PROVIDER_EXECUTABLE_CANDIDATES,
-)
+from junction.github_runner import PROVIDER_EXECUTABLE_CANDIDATES as _PROVIDER_EXECUTABLE_CANDIDATES
 from junction.github_runner import STRICT_PROVIDER_BIN_ENV as _STRICT_PROVIDER_BIN_ENV
 from junction.github_runner import (
     provider_executable_candidates,
